@@ -1,6 +1,5 @@
 ﻿const User = require('../models/User');
 
-// Thay YOUR_DISCORD_ID bằng ID thật của bạn
 const OWNER_ID = '745950731638407210';
 
 module.exports = {
