@@ -4,7 +4,9 @@ module.exports = {
   name: 'top',
   description: 'Xem bảng xếp hạng người có nhiều coke nhất trong server',
   async execute(message, args) {
-    const limit = (!args[0] || isNaN(args[0])) ? 5 : Math.min(parseInt(args[0]), 50);
+    // args[0]: loại bảng xếp hạng (ví dụ: 'cash'), args[1]: số lượng
+    const inputLimit = parseInt(args[1]);
+    const limit = (!inputLimit || inputLimit <= 0) ? 5 : Math.min(inputLimit, 50); // mặc định 5, tối đa 50
 
     // Lấy top users toàn bộ server
     const topUsers = await User.find({})
@@ -31,12 +33,7 @@ module.exports = {
       const username = fetchedUser ? `@${fetchedUser.username}` : 'Người chơi đã rời';
       const coke = u.coke.toLocaleString();
 
-      if (i === 0 && fetchedUser) {
-        // người đứng đầu có link in đậm
-        text += `#${i + 1}\t${username}\n\tCoke: ${coke}\n`;
-      } else {
-        text += `#${i + 1}\t${username}\n\tCoke: ${coke}\n`;
-      }
+      text += `#${i + 1}\t${username}\n\t\tCoke: ${coke}\n`;
     }
 
     const now = new Date();
