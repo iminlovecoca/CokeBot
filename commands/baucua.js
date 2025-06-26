@@ -158,7 +158,12 @@ module.exports = {
                 .setDescription(`**KẾT QUẢ:** ${emojiResults}\n\n${allResults}`);
 
             await message.channel.send({ embeds: [resultEmbed] });
-            await gameData.buttonsMessage.edit({ content: '⏱ **Ván đã kết thúc!**', components: [] });
+            try {
+                await gameData.buttonsMessage.edit({ content: '⏱ **Ván đã kết thúc!**', components: [] });
+            } catch (err) {
+                console.warn('Không thể chỉnh sửa message:', err.message);
+            }
+
             activeGames.delete(gameKey);
         });
     }
