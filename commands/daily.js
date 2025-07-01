@@ -1,69 +1,76 @@
+const { DateTime } = require('luxon');
 const User = require('../models/User');
 
 module.exports = {
   name: 'daily',
   async execute(message) {
-    const userId = message.author.id;
-    const name = message.author.username;
+    try {
+      const userId = message.author.id;
+      const name = message.author.username;
 
-    let user = await User.findOne({ userId });
+      let user = await User.findOne({ userId });
+      if (!user) {
+        user = await User.create({
+          userId,
+          coke: 0,
+          dailyStreak: 0,
+          level: 1,
+          xp: 0,
+          lastDaily: null
+        });
+      }
 
-    // Tạo mới nếu chưa có
-    if (!user) {
-      user = await User.create({ userId, dailyStreak: 0, coke: 0 });
-    } else {
-      if (isNaN(user.coke)) user.coke = 0;
-      if (isNaN(user.dailyStreak)) user.dailyStreak = 0;
+      const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
+      const today = now.startOf('day');
+      const lastClaim = user.lastDaily ? DateTime.fromJSDate(user.lastDaily).setZone('Asia/Ho_Chi_Minh').startOf('day') : null;
+
+      // Nếu đã điểm danh hôm nay
+      if (lastClaim && lastClaim.equals(today)) {
+        const nextClaim = today.plus({ days: 1 });
+        const diff = nextClaim.diff(now, ['hours', 'minutes', 'seconds']).toObject();
+        const h = Math.floor(diff.hours);
+        const m = Math.floor(diff.minutes);
+        const s = Math.floor(diff.seconds);
+
+        return message.reply(`⏱ | **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
+      }
+
+      // Cập nhật chuỗi streak
+      let streak = 1;
+      if (lastClaim) {
+        const daysDiff = today.diff(lastClaim, 'days').days;
+        if (daysDiff === 1) {
+          streak = user.dailyStreak + 1;
+        }
+      }
+
+      // Tính thưởng
+      let reward = 1000 + streak * 500;
+      if (reward > 10000) reward = 10000;
+
+      // Thêm coke và xp (tối đa 3000 XP/ngày)
+      user.coke += reward;
+      user.dailyStreak = streak;
+      user.lastDaily = new Date();
+
+      // Tính XP (500 XP mỗi lần nhận)
+      user.xp = Math.min((user.xp || 0) + 500, 3000);
+
+      // Check lên cấp
+      const getXpNeeded = level => 2000 + (level - 1) * 1000;
+      while (user.xp >= getXpNeeded(user.level)) {
+        user.xp -= getXpNeeded(user.level);
+        user.level++;
+        user.coke += 2000; // Thưởng khi lên cấp
+      }
+
+      await user.save();
+
+      return message.reply(`🎁 | **${name}** đã nhận được **${reward.toLocaleString()} coke**!
+🔥 Chuỗi ngày: **${streak} ngày**`);
+    } catch (err) {
+      console.error('Daily error:', err);
+      return message.reply('❌ | Đã xảy ra lỗi khi thực hiện lệnh.');
     }
-
-    const now = new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
-    const nowDate = new Date(now);
-    const lastDate = user.lastDaily
-      ? new Date(new Date(user.lastDaily).toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }))
-      : new Date(0);
-
-    const isSameDay = (
-      nowDate.getFullYear() === lastDate.getFullYear() &&
-      nowDate.getMonth() === lastDate.getMonth() &&
-      nowDate.getDate() === lastDate.getDate()
-    );
-
-    // Nếu chưa sang ngày mới
-    if (isSameDay) {
-      // Tính thời gian còn lại
-      const nextDay = new Date(nowDate);
-      nextDay.setDate(nowDate.getDate() + 1);
-      nextDay.setHours(0, 0, 0, 0);
-      const remaining = nextDay - nowDate;
-
-      const h = Math.floor(remaining / (1000 * 60 * 60));
-      const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((remaining % (1000 * 60)) / 1000);
-
-      return message.reply(`⏱ | **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
-    }
-
-    // Nếu cách ngày trước hơn 2 ngày thì reset chuỗi
-    const diffDays = Math.floor((nowDate - lastDate) / (1000 * 60 * 60 * 24));
-    if (diffDays > 1) {
-      user.dailyStreak = 1;
-    } else {
-      user.dailyStreak += 1;
-    }
-
-    // Tính phần thưởng
-    let reward = 500 + (user.dailyStreak - 1) * 210;
-    if (reward > 10000) reward = 10000;
-
-    user.coke += reward;
-    user.lastDaily = new Date(); // lưu theo UTC
-    await user.save();
-
-    const formattedReward = reward.toLocaleString('en-US');
-    const emoji = '<:Economy_Cowoncy:1386429292883214397>';
-
-    return message.reply(
-      `${emoji} | **${name}** đã nhận được **${formattedReward} coke**!\n🔥 Chuỗi ngày: **${user.dailyStreak} ngày**`
-    );
   }
 };

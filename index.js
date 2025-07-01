@@ -32,6 +32,14 @@ client.on('messageCreate', async message => {
 
 client.once('ready', () => {
   console.log(`Bot đã sẵn sàng: ${client.user.tag}`);
+  client.user.setPresence({
+    activities: [{
+      name: 'Coke',
+      type: 1, // Type 1 = Streaming
+      url: 'https://twitch.tv/coke' // Discord yêu cầu URL hợp lệ
+    }],
+    status: 'online'
+  });
 });
 
 mongoose.connect(process.env.MONGO_URL)
