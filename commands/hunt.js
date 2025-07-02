@@ -1,75 +1,69 @@
-// // commands/hunt.js
-// const User = require('../models/User');
-// const { getRandomBeast, getMultipleRandomBeasts } = require('../utils/beasts');
-// const { setCooldown, getRemainingCooldown } = require('../utils/cooldown');
+// commands/hunt.js
+const User = require('../models/User');
+const { getRandomBeast } = require('../utils/beasts');
+const { setCooldown, getRemainingCooldown } = require('../utils/cooldown');
 
-// module.exports = {
-//     name: 'h',
-//     aliases: ['hunt'],
-//     async execute(message, args) {
-//         const userId = message.author.id;
-//         const name = message.author.username;
+module.exports = {
+    name: 'h',
+    aliases: ['hunt'],
+    async execute(message, args) {
+        const userId = message.author.id;
+        const name = message.author.username;
 
-//         const cooldownSeconds = 15;
-//         const remaining = getRemainingCooldown(userId, 'hunt');
+        // Cooldown 15s
+        const cooldownSeconds = 15;
+        const remaining = getRemainingCooldown(userId, 'hunt');
+        if (remaining > 0) {
+            const msg = await message.reply(`⏱ | Vui lòng chờ **${remaining} giây**`);
+            let count = remaining;
+            const interval = setInterval(async () => {
+                count--;
+                if (count <= 0) {
+                    clearInterval(interval);
+                    msg.delete().catch(() => {});
+                } else {
+                    msg.edit(`⏱ | Vui lòng chờ **${count} giây**`);
+                }
+            }, 1000);
+            return;
+        }
 
-//         // Nếu đang trong thời gian cooldown thì hiển thị đếm ngược
-//         if (remaining > 0) {
-//             let countdown = remaining;
-//             const reply = await message.reply(`⏱ | Vui lòng chờ **${countdown} giây** để săn tiếp...`);
+        // Số lượt săn
+        let times = 1;
+        if (args[0] === 'all') {
+            times = 10;
+        } else if (!isNaN(args[0])) {
+            const num = parseInt(args[0]);
+            if (num > 0 && num <= 10) times = num;
+        }
 
-//             const interval = setInterval(async () => {
-//                 countdown--;
-//                 if (countdown <= 0) {
-//                     clearInterval(interval);
-//                     try {
-//                         await reply.delete(); // Xoá tin nhắn khi hết đếm ngược
-//                     } catch (e) { }
-//                 } else {
-//                     try {
-//                         await reply.edit(`⏱ | Vui lòng chờ **${countdown} giây** để săn tiếp...`);
-//                     } catch (e) { }
-//                 }
-//             }, 1000);
+        // Lấy user
+        let user = await User.findOne({ userId });
+        if (!user || user.coke < 100 * times) {
+            return message.reply(`🚫 | Không đủ coke để săn ${times} lần (cần ${100 * times} coke)`);
+        }
 
-//             return;
-//         }
+        setCooldown(userId, 'hunt', cooldownSeconds);
 
-//         // Xác định số lượt bắt
-//         let amount = 1;
-//         if (args[0] === 'all') {
-//             amount = 10;
-//         } else if (!isNaN(args[0])) {
-//             amount = Math.min(10, Math.max(1, parseInt(args[0])));
-//         }
+        const caught = [];
+        user.coke -= 100 * times;
+        if (!user.beasts) user.beasts = {};
 
-//         const cost = 100 * amount;
+        for (let i = 0; i < times; i++) {
+            const beast = getRandomBeast();
+            caught.push(`${beast.emoji} **${beast.name}** (${beast.rarity})`);
 
-//         let user = await User.findOne({ userId });
-//         if (!user || user.coke < cost) {
-//             return message.reply(`🚫 | Không đủ ${cost} coke để săn ${amount} thú!`);
-//         }
+            if (!user.beasts[beast.rarity]) user.beasts[beast.rarity] = {};
+            if (!user.beasts[beast.rarity][beast.name]) {
+                user.beasts[beast.rarity][beast.name] = 1;
+            } else {
+                user.beasts[beast.rarity][beast.name] += 1;
+            }
+        }
 
-//         // Đặt cooldown sau khi đủ điều kiện
-//         setCooldown(userId, 'hunt', cooldownSeconds);
+        await user.save();
 
-//         user.coke -= cost;
-
-//         const beasts = getMultipleRandomBeasts(amount);
-//         if (!user.beasts) user.beasts = {};
-
-//         for (const beast of beasts) {
-//             if (!user.beasts[beast.rarity]) user.beasts[beast.rarity] = {};
-//             if (!user.beasts[beast.rarity][beast.name]) {
-//                 user.beasts[beast.rarity][beast.name] = 1;
-//             } else {
-//                 user.beasts[beast.rarity][beast.name] += 1;
-//             }
-//         }
-
-//         await user.save();
-
-//         const results = beasts.map(b => `${b.emoji} **${b.name}** (${b.rarity})`).join('\n');
-//         message.reply(`🎯 | **${name}** đã bắt được:\n${results}`);
-//     }
-// };
+        message.reply(`🎯 | **${name}** đã bắt được:
+${caught.join('\n')}`);
+    }
+};

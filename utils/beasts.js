@@ -23,7 +23,10 @@ const beastList = {
   ],
   L: [
     '🦖 Khủng long bạo chúa', '🦕 Khủng long cổ dài', '🦣 Voi ma mút', '🦍 Khỉ đột', '👻 Hồn ma', '🦏 Tê giác',
-    '🦧 Đười ươi', '🐼 Gấu trúc', '🦬 Bò rừng', '🐉 Rồng', '🐳 Cá voi', '🐦‍🔥 Phượng hoàng'
+    '🦧 Đười ươi', '🐼 Gấu trúc', '🦬 Bò rừng', '🐳 Cá voi'
+  ],
+  L: [
+    '🦖 Khủng long bạo chúa', '🦕 Khủng long cổ dài', '🦣 Voi ma mút','🐉 Rồng', '🐦‍🔥 Phượng hoàng'
   ]
 };
 
@@ -35,7 +38,8 @@ function getRandomBeast() {
     R: 15,
     E: 10,
     M: 4,
-    L: 1
+    L: 1,
+    A: 0.5
   };
 
   const totalWeight = rarities.reduce((sum, r) => sum + weights[r], 0);
@@ -61,7 +65,8 @@ function getRandomBeast() {
     R: 'Rare',
     E: 'Epic',
     M: 'Mythical',
-    L: 'Legendary'
+    L: 'Legendary',
+    A: 'Ancient'
   };
 
   return {
