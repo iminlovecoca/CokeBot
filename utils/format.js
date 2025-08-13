@@ -1,6 +1,9 @@
-// utils/format.js
-function formatCurrency(number) {
+function formatUSCurrency(number) {
   return number.toLocaleString('en-US');
 }
 
-module.exports = { formatCurrency };
+function formatVNCurrency(num) {
+  return num.toLocaleString('vi-VN');
+}
+
+module.exports = { formatVNCurrency, formatUSCurrency };
