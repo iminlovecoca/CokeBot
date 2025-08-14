@@ -7,17 +7,13 @@ const {
   GatewayIntentBits,
   Collection,
   Events,
-  PermissionsBitField,
   Partials
 } = require('discord.js');
 const User = require('./models/User');
 const { adjustCoke } = require('./utils/cokeManager');
-// const { checkSpam } = require('./utils/antispam');
 
-// ==== Thêm stock engine ====
-const { ensureSymbols, tickPrices } = require('./utils/stockEngine');
+const { ensureSymbols, tickPrices, resetDailyVolume, listQuotes } = require('./utils/stockEngine');
 
-// Init bot
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -30,7 +26,6 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Load prefix commands
 const loadCommands = (dir) => {
   const files = fs.readdirSync(dir, { withFileTypes: true });
   for (const file of files) {
@@ -51,25 +46,13 @@ client.on('messageCreate', async message => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
 
-  // // check spam 
-  // if (await checkSpam(message)) return;
-
-  if (mongoose.connection.readyState !== 1) {
-    console.warn('⚠️ Mất kết nối MongoDB - bỏ qua thao tác');
-    return;
-  }
+  if (mongoose.connection.readyState !== 1) return;
 
   const userId = message.author.id;
   let user = await User.findOne({ userId }) || await User.create({
     userId, level: 1, xp: 0, coke: 0, dailyXp: 0
   });
 
-  // Kiểm tra bị ban
-  if (user.bannedUntil && user.bannedUntil > Date.now()) {
-    return message.reply('🚫 Bạn đang bị cấm sử dụng bot trong thời gian này.').catch(() => {});
-  }
-
-  // Reset daily XP
   const now = new Date().toISOString().split('T')[0];
   if (user.lastXpDate !== now) {
     user.dailyXp = 0;
@@ -87,7 +70,7 @@ client.on('messageCreate', async message => {
       user.xp -= getXpNeeded(user.level);
       user.level++;
       const reward = 10000 + (user.level - 1) * 5000;
-      await adjustCoke(userId, reward); // Đồng bộ cộng coke
+      await adjustCoke(userId, reward);
       totalReward += reward;
       leveledUp = true;
     }
@@ -155,27 +138,45 @@ client.once('ready', async () => {
     status: 'online'
   });
 
-  // ==== Khởi động engine chứng khoán khi bot ready ====
   try {
     await ensureSymbols();
-    console.log('✅ Sẵn sàng dữ liệu chứng khoán.');
-    setInterval(() => {
-      tickPrices().catch(err => console.error('tickPrices error:', err));
-    }, 30 * 1000); // cập nhật mỗi 30s
-  } catch (e) {
-    console.error('❌ Stock engine init error:', e);
+    console.log('✅ Dữ liệu chứng khoán sẵn sàng.');
+
+    setInterval(async () => {
+      await tickPrices();
+
+      const quotes = await listQuotes();
+      let msg = '📊 **Thị trường chứng khoán:**\n';
+      quotes.forEach(q => {
+        const diff = (q.price - (q.prevPrice || q.price));
+        const emoji = diff > 0 ? ':up:' : diff < 0 ? '🔻' : ':up:';
+        const perc = diff === 0 ? 0 : ((diff / (q.prevPrice || q.price)) * 100).toFixed(2);
+        msg += `• ${q.symbol} — ${q.price.toLocaleString()} (${emoji} ${diff.toFixed(2)} | ${perc}%)\n`;
+      });
+      console.log(msg);
+    }, 30 * 1000);
+
+    const now = new Date();
+    const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+    setTimeout(function dailyReset() {
+      resetDailyVolume();
+      setTimeout(dailyReset, 24 * 60 * 60 * 1000);
+    }, msToMidnight);
+
+  } catch (err) {
+    console.error('❌ Stock engine init error:', err);
   }
 });
 
 mongoose.connect(process.env.MONGO_URL, {
-  maxPoolSize: 100,             
-  minPoolSize: 10,              
-  connectTimeoutMS: 20000,      
-  serverSelectionTimeoutMS: 20000, 
-  socketTimeoutMS: 60000,       
-  heartbeatFrequencyMS: 5000,   
-  retryWrites: true,            
-  family: 4                     
+  maxPoolSize: 100,
+  minPoolSize: 10,
+  connectTimeoutMS: 20000,
+  serverSelectionTimeoutMS: 20000,
+  socketTimeoutMS: 60000,
+  heartbeatFrequencyMS: 5000,
+  retryWrites: true,
+  family: 4
 })
   .then(() => {
     console.log('✅ Đã kết nối MongoDB');
@@ -183,10 +184,7 @@ mongoose.connect(process.env.MONGO_URL, {
   })
   .catch(err => {
     console.error('❌ MongoDB lỗi:', err);
-    setTimeout(() => {
-      console.log('🔄 Thử kết nối lại MongoDB...');
-      mongoose.connect(process.env.MONGO_URL);
-    }, 5000);
+    setTimeout(() => mongoose.connect(process.env.MONGO_URL), 5000);
   });
 
 mongoose.connection.on('disconnected', () => {
