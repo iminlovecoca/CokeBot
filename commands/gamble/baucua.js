@@ -1,4 +1,3 @@
-// baucua.js
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -9,16 +8,16 @@ const {
   TextInputStyle,
   Collection
 } = require('discord.js');
-const User = require('../../models/User');
+const { adjustCoke, getCoke } = require('../../utils/cokeManager');
 
-const symbols = ['🦀', '🦐', '🍐', '🐓', '🫎', '🦈'];
+const symbols = ['🦀', '🦐', '🍐', '🐓', '🦌', '🦈'];
 const names = ['cua', 'tôm', 'bầu', 'gà', 'hươu', 'cá'];
 const activeGames = new Map();
 const MAX_BET = 250000;
 
 module.exports = {
   name: 'bc',
-  description: '🎲 Chơi Bầu Cua bằng coke! Dùng button mở modal đặt cược.',
+  description: '🎲 Chơi Bầu Cua bằng coke!',
   async execute(message) {
     const channelId = message.channel.id;
     if (activeGames.has(channelId)) {
@@ -87,34 +86,31 @@ module.exports = {
 
       if (!submitted) return;
 
-      // Kiểm tra ván còn hiệu lực không
       if (!activeGames.has(channelId) || gameData.timeLeft <= 0) {
-        return submitted.reply({ content: '❌ | Ván đã kết thúc, bạn không thể đặt cược!', flags: 64 });
+        return submitted.reply({ content: '❌ | Ván đã kết thúc, bạn không thể đặt cược!', ephemeral: true });
       }
 
       const amount = parseInt(submitted.fields.getTextInputValue('bet_amount'));
       if (isNaN(amount) || amount <= 0 || amount > MAX_BET) {
-        return submitted.reply({ content: '❌ | Số tiền không hợp lệ!', flags: 64 });
+        return submitted.reply({ content: '❌ | Số tiền không hợp lệ!', ephemeral: true });
       }
 
-      const user = await User.findOne({ userId }) || await User.create({ userId });
-      if (user.coke < amount) {
-        return submitted.reply({ content: '❌ | Bạn không đủ coke!', flags: 64 });
+      const balance = await getCoke(userId);
+      if (balance < amount) {
+        return submitted.reply({ content: '❌ | Bạn không đủ coke!', ephemeral: true });
       }
 
       if (!gameData.choices.has(userId)) gameData.choices.set(userId, {});
       const userBets = gameData.choices.get(userId);
 
       if (userBets[choice]) {
-        return submitted.reply({ content: `⚠️ | Bạn đã đặt cho **${choice}** rồi!`, flags: 64 });
+        return submitted.reply({ content: `⚠️ | Bạn đã đặt cho **${choice}** rồi!`, ephemeral: true });
       }
 
-      // Lưu lại cược
+      await adjustCoke(userId, -amount);
       userBets[choice] = amount;
-      user.coke -= amount;
-      await user.save();
 
-      await submitted.reply({ content: `✅ | Đã đặt **${amount.toLocaleString()} coke** cho **${choice}**!`, flags: 64 });
+      await submitted.reply({ content: `✅ | Đã đặt **${amount.toLocaleString()} coke** cho **${choice}**!`, ephemeral: true });
     });
 
     collector.on('end', async () => {
@@ -125,9 +121,6 @@ module.exports = {
       let resultText = `**🎯 Kết quả:** ${emojiResult}\n\n`;
 
       for (const [userId, bets] of gameData.choices.entries()) {
-        const user = await User.findOne({ userId });
-        if (!user) continue;
-
         let gain = 0;
         let total = 0;
 
@@ -137,8 +130,7 @@ module.exports = {
           if (hit > 0) gain += amount * (hit + 1);
         }
 
-        user.coke += gain;
-        await user.save();
+        if (gain > 0) await adjustCoke(userId, gain);
 
         resultText += `**<@${userId}>**\n➡️ Đã cược: ${Object.entries(bets).map(([c, a]) => `${c} (${a})`).join(', ')}\n`;
         resultText += gain > 0

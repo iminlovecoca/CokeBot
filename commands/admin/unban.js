@@ -33,8 +33,16 @@ module.exports = {
 
     await User.updateOne(
       { userId: target.id },
-      { $set: { bannedUntil: null, bannedReason: '' } }
+      {
+        $set: {
+          bannedUntil: null,
+          bannedReason: '',
+          warned: false,
+          warnedAt: null
+        }
+      }
     );
+
 
     return message.reply(`✅ Đã gỡ cấm <@${target.id}> khỏi bot.`);
   }

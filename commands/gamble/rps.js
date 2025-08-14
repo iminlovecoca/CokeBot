@@ -1,206 +1,168 @@
-// const User = require('../../models/User');
-// const RPSGame = require('../../models/RPSGame');
+const User = require('../../models/User');
+const RPSGame = require('../../models/RPSGame');
+const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+const { getCoke, debitIfEnough, credit, adjustCoke } = require('../../utils/cokeManager');
 
-// const EMOJIS = {
-//   keo: '✌️',
-//   bua: '👊',
-//   bao: '🖐️',
-// };
+const EMOJIS = { keo: '✌️', bua: '👊', bao: '🖐️' };
+const choices = ['keo', 'bua', 'bao'];
+const cooldownSeconds = 15;
+const maxBet = 250_000;
 
-// const choices = ['keo', 'bua', 'bao'];
-// const cooldownSeconds = 15;
-// const maxBet = 250_000;
+const games = new Map();
 
-// const games = new Map();
+module.exports = {
+  name: 'rps',
+  description: 'Chơi kéo-búa-bao có cược, react emoji để chơi, resume được',
+  async execute(message, args) {
+    try {
+      const userId = message.author.id;
+      const cooldown = getRemainingCooldown(userId, 'rps');
+      if (cooldown > 0) return notifyCooldown(message, cooldown);
+      setCooldown(userId, 'rps', cooldownSeconds);
 
-// module.exports = {
-//   name: 'rps',
-//   description: 'Chơi kéo-búa-bao có cược, react chọn emoji để chơi, lưu ván chơi resume được',
-//   async execute(message, args) {
-//     try {
-//       const userId = message.author.id;
+      let ongoingGame = await RPSGame.findOne({ userId, active: true });
+      if (ongoingGame) return resumeGame(message, userId, ongoingGame);
 
-//       const cooldown = getRemainingCooldown(userId, 'rps');
-//       if (cooldown > 0) return notifyCooldown(message, cooldown);
+      const balance = await getCoke(userId);
+      const bet = parseBet(args[0], balance);
+      if (!bet) return message.reply('❌ Số tiền cược không hợp lệ hoặc bạn không đủ coke!');
 
-//       setCooldown(userId, 'rps', cooldownSeconds);
+      const deb = await debitIfEnough(userId, bet);
+      if (!deb.ok) return message.reply('❌ | Bạn không đủ coke để cược!');
 
-//       let user = await User.findOne({ userId });
-//       if (!user) user = await User.create({ userId, coke: 0 });
+      const newGame = await RPSGame.create({
+        userId,
+        bet,
+        playerChoice: null,
+        botChoice: null,
+        active: true,
+        date: new Date(),
+      });
 
-//       let ongoingGame = await RPSGame.findOne({ userId, active: true });
-//       if (ongoingGame) return resumeGame(message, userId, ongoingGame);
+      games.set(userId, newGame);
+      return startGame(message, userId, newGame);
+    } catch (err) {
+      console.error('RPS Command Error:', err);
+      message.reply('❌ Có lỗi xảy ra khi bắt đầu ván kéo-búa-bao.');
+    }
+  },
+};
 
-//       let bet = parseBet(args[0], user.coke);
-//       if (!bet) return message.reply('❌ Số tiền cược không hợp lệ hoặc bạn không đủ coke!');
+function parseBet(arg, coke) {
+  if (!arg) return null;
+  if (arg === 'all') return Math.min(coke, maxBet);
+  const bet = parseInt(String(arg).replace(/[,\.]/g, ''));
+  if (isNaN(bet) || bet <= 0 || bet > coke) return null;
+  return Math.min(bet, maxBet);
+}
 
-//       await User.updateOne({ userId }, { $inc: { coke: -bet } });
+function notifyCooldown(message, cooldown) {
+  return message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để chơi lại.`).then((msg) => {
+    let remaining = cooldown;
+    const interval = setInterval(() => {
+      remaining--;
+      if (remaining > 0) msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để chơi lại.`);
+      else {
+        clearInterval(interval);
+        msg.delete().catch(() => {});
+      }
+    }, 1000);
+  });
+}
 
-//       const newGame = await RPSGame.create({
-//         userId,
-//         bet,
-//         playerChoice: null,
-//         botChoice: null,
-//         active: true,
-//         date: new Date(),
-//       });
+async function resumeGame(message, userId, gameData) {
+  if (gameData.playerChoice) {
+    return finishGame(message, userId, gameData);
+  }
 
-//       games.set(userId, newGame);
+  const displayName = message.author.username || 'Bạn';
+  const text = `<:rice:1396919696581857290> | **${displayName}** cược **${gameData.bet.toLocaleString()}** coke và chọn ...`;
+  const msg = await message.reply(text);
 
-//       return startGame(message, userId, newGame);
-//     } catch (err) {
-//       console.error('RPS Command Error:', err);
-//       message.reply('❌ Có lỗi xảy ra khi bắt đầu ván kéo-búa-bao.');
-//     }
-//   },
-// };
+  for (const emoji of Object.values(EMOJIS)) await msg.react(emoji);
 
-// function parseBet(arg, coke) {
-//   if (!arg) return null;
-//   if (arg === 'all') return Math.min(coke, maxBet);
-//   const bet = parseInt(String(arg).replace(/[,\.]/g, ''));
-//   if (isNaN(bet) || bet <= 0 || bet > coke) return null;
-//   return Math.min(bet, maxBet);
-// }
+  games.set(userId, { ...gameData.toObject?.() ?? gameData, message: msg });
+  setupCollector(message, userId, msg);
+}
 
-// function notifyCooldown(message, cooldown) {
-//   return message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để chơi lại.`).then(msg => {
-//     let remaining = cooldown;
-//     const interval = setInterval(() => {
-//       remaining--;
-//       if (remaining > 0) msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để chơi lại.`);
-//       else {
-//         clearInterval(interval);
-//         msg.delete().catch(() => {});
-//       }
-//     }, 1000);
-//   });
-// }
+async function startGame(message, userId, game) {
+  const displayName = message.author.username || 'Bạn';
+  const text = `<:rice:1396919696581857290> | **${displayName}** cược **${game.bet.toLocaleString()}** coke và chọn ...`;
+  const msg = await message.reply(text);
 
-// async function resumeGame(message, userId, gameData) {
-//   if (gameData.playerChoice) {
-//     return finishGame(message, userId, gameData);
-//   }
+  for (const emoji of Object.values(EMOJIS)) await msg.react(emoji);
 
-//   const displayName = message.author.username || 'Bạn';
+  games.set(userId, { ...game.toObject?.() ?? game, message: msg });
+  setupCollector(message, userId, msg);
+}
 
-//   const text = `<:rice:1396919696581857290> | **${displayName}** cược **${gameData.bet.toLocaleString()}** coke và chọn ...`;
+function setupCollector(message, userId, msg) {
+  const filter = (reaction, userReact) =>
+    Object.values(EMOJIS).includes(reaction.emoji.name) && userReact.id === userId;
 
-//   const msg = await message.reply(text);
+  const collector = msg.createReactionCollector({ filter, time: 60_000, max: 1 });
 
-//   for (const emoji of Object.values(EMOJIS)) {
-//     await msg.react(emoji);
-//   }
+  collector.on('collect', async (reaction, userReact) => {
+    collector.stop();
 
-//   games.set(userId, { ...gameData.toObject(), message: msg });
-//   setupCollector(message, userId, msg);
-// }
+    const playerChoice = Object.entries(EMOJIS).find(([k, v]) => v === reaction.emoji.name)[0];
+    const botChoice = choices[Math.floor(Math.random() * choices.length)];
 
-// async function startGame(message, userId, game) {
-//   const displayName = message.author.username || 'Bạn';
+    let game = games.get(userId);
+    if (!game) return;
 
-//   const text = `<:rice:1396919696581857290> | **${displayName}** cược **${game.bet.toLocaleString()}** coke và chọn ...`;
+    game.playerChoice = playerChoice;
+    game.botChoice = botChoice;
 
-//   const msg = await message.reply(text);
+    await RPSGame.updateOne({ userId, active: true }, { playerChoice, botChoice });
+    await finishGame(message, userId, game);
+  });
 
-//   for (const emoji of Object.values(EMOJIS)) {
-//     await msg.react(emoji);
-//   }
+  collector.on('end', async (_, reason) => {
+    if (reason === 'time') {
+      const game = games.get(userId);
+      if (!game) return;
 
-//   games.set(userId, { ...game.toObject(), message: msg });
-//   setupCollector(message, userId, msg);
-// }
+      await credit(userId, game.bet); 
+      await message.channel.send(`⏱ | Hết thời gian chọn, cược đã được hoàn lại cho bạn.`);
 
-// function setupCollector(message, userId, msg) {
-//   const filter = (reaction, userReact) =>
-//     Object.values(EMOJIS).includes(reaction.emoji.name) && userReact.id === userId;
+      games.delete(userId);
+      await RPSGame.deleteOne({ userId, active: true });
+      try { await game.message.delete().catch(() => {}); } catch {}
+    }
+  });
+}
 
-//   const collector = msg.createReactionCollector({ filter, time: 60000, max: 1 });
+async function finishGame(message, userId, game) {
+  const { playerChoice, botChoice, bet } = game;
+  const displayName = message.author.username || 'Bạn';
 
-//   collector.on('collect', async (reaction, userReact) => {
-//     collector.stop();
+  let resultText = '';
+  let reward = 0;
 
-//     const playerChoice = Object.entries(EMOJIS).find(([k, v]) => v === reaction.emoji.name)[0];
-//     const botChoice = choices[Math.floor(Math.random() * choices.length)];
+  if (playerChoice === botChoice) {
+    resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn nhận lại **${bet.toLocaleString()} coke.**`;
+    reward = bet;
+  } else if (
+    (playerChoice === 'keo' && botChoice === 'bao') ||
+    (playerChoice === 'bua' && botChoice === 'keo') ||
+    (playerChoice === 'bao' && botChoice === 'bua')
+  ) {
+    resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn nhận được **${(bet * 2).toLocaleString()} coke.**`;
+    reward = bet * 2;
+  } else {
+    resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn mất **${bet.toLocaleString()} coke.**`;
+    reward = 0;
+  }
 
-//     let game = games.get(userId);
-//     if (!game) return;
+  if (reward > 0) await adjustCoke(userId, reward);
 
-//     game.playerChoice = playerChoice;
-//     game.botChoice = botChoice;
+  games.delete(userId);
+  await RPSGame.deleteOne({ userId, active: true });
 
-//     await RPSGame.updateOne({ userId, active: true }, { playerChoice, botChoice });
-
-//     await finishGame(message, userId, game);
-//   });
-
-//   collector.on('end', async (_, reason) => {
-//     if (reason === 'time') {
-//       const game = games.get(userId);
-//       if (!game) return;
-
-//       await User.updateOne({ userId }, { $inc: { coke: game.bet } });
-
-//       await message.channel.send(`⏱ | Hết thời gian chọn, cược đã được hoàn lại cho bạn.`);
-
-//       games.delete(userId);
-//       await RPSGame.deleteOne({ userId, active: true });
-//       try {
-//         await game.message.delete().catch(() => {});
-//       } catch {}
-//     }
-//   });
-// }
-
-// async function finishGame(message, userId, game) {
-//   const { playerChoice, botChoice, bet } = game;
-
-//   const displayName = message.author.username || 'Bạn';
-
-//   let resultText = '';
-//   let reward = 0;
-
-//   if (playerChoice === botChoice) {
-//     resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn nhận lại **${bet.toLocaleString()} coke.**`;
-//     reward = bet;
-//   } else if (
-//     (playerChoice === 'keo' && botChoice === 'bao') ||
-//     (playerChoice === 'bua' && botChoice === 'keo') ||
-//     (playerChoice === 'bao' && botChoice === 'bua')
-//   ) {
-//     resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn nhận được **${ (bet * 2).toLocaleString()} coke.**`;
-//     reward = bet * 2;
-//   } else {
-//     resultText = `<:blank:1403928807395819671> **| Coke** ra **${botChoice}** và bạn mất **${bet.toLocaleString()} coke.**`;
-//     reward = 0;
-//   }
-
-//   if (reward > 0) {
-//     await User.updateOne({ userId }, { $inc: { coke: reward } });
-//   }
-
-//   games.delete(userId);
-//   await RPSGame.deleteOne({ userId, active: true });
-
-//   await game.message.edit({
-//     content: `<:rice:1396919696581857290> | **${displayName}** cược **${bet.toLocaleString()} coke** và chọn **${playerChoice}**\n` +
-//       `${resultText}`
-//   });
-// }
-
-// const cooldowns = new Map();
-// function getRemainingCooldown(userId, cmdName) {
-//   const key = `${userId}_${cmdName}`;
-//   if (!cooldowns.has(key)) return 0;
-//   const expire = cooldowns.get(key);
-//   const now = Date.now();
-//   if (now > expire) {
-//     cooldowns.delete(key);
-//     return 0;
-//   }
-//   return Math.ceil((expire - now) / 1000);
-// }
-// function setCooldown(userId, cmdName, seconds) {
-//   const key = `${userId}_${cmdName}`;
-//   cooldowns.set(key, Date.now() + seconds * 1000);
-// }
+  await game.message.edit({
+    content:
+      `<:rice:1396919696581857290> | **${displayName}** cược **${bet.toLocaleString()} coke** và chọn **${playerChoice}**\n` +
+      `${resultText}`,
+  });
+}

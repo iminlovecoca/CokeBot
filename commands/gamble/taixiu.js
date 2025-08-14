@@ -1,6 +1,5 @@
-﻿const User = require('../../models/User');
-const random = require('random-number-csprng');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+﻿const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+const { getCoke, debitIfEnough, adjustCoke } = require('../../utils/cokeManager');
 
 const diceEmojis = [
   '<:dice_1:1403773853146288258>', '<:dice_2:1403773866505011473>', '<:dice_3:1403773877569458268>',
@@ -25,9 +24,9 @@ module.exports = {
         count--;
         if (count <= 0) {
           clearInterval(interval);
-          try { await msg.delete(); } catch { }
+          try { await msg.delete(); } catch {}
         } else {
-          try { await msg.edit(`⏱ | Vui lòng chờ **${count} giây**`); } catch { }
+          try { await msg.edit(`⏱ | Vui lòng chờ **${count} giây**`); } catch {}
         }
       }, 1000);
       return;
@@ -38,43 +37,35 @@ module.exports = {
     if (!['t', 'x'].includes(choiceArg)) {
       return message.reply('❌ | Cú pháp: `!tx t 100` hoặc `!tx x all`');
     }
-
     const choice = choiceArg === 't' ? 'tai' : 'xiu';
-    let user = await User.findOne({ userId }) || await User.create({ userId });
 
+    const balance = await getCoke(userId);
     let amount = 0;
     if (amountArg === 'all') {
-      if (user.coke <= 0) return message.reply('❌ | Bạn không có coke!');
-      amount = Math.min(user.coke, maxBet);
+      if (balance <= 0) return message.reply('❌ | Bạn không có coke!');
+      amount = Math.min(balance, maxBet);
     } else if (!isNaN(amountArg)) {
-      amount = parseInt(amountArg);
-      if (amount > maxBet) amount = maxBet;
+      amount = Math.min(parseInt(amountArg), maxBet);
     } else {
       return message.reply('❌ | Vui lòng nhập số tiền hợp lệ!');
     }
+    if (amount <= 0) return message.reply('❌ | Không đủ coke hoặc số tiền không hợp lệ!');
 
-    if (amount <= 0 || user.coke < amount) {
-      return message.reply('❌ | Không đủ coke hoặc số tiền không hợp lệ!');
-    }
+    const deb = await debitIfEnough(userId, amount);
+    if (!deb.ok) return message.reply('❌ | Bạn không đủ coke để cược!');
 
     const outcome = Math.random() < 0.5 ? 'tai' : 'xiu';
 
     let rolls, sum, triple;
     while (true) {
-      const r1 = await random(1, 6);
-      const r2 = await random(1, 6);
-      const r3 = await random(1, 6);
+      const r1 = 1 + Math.floor(Math.random() * 6);
+      const r2 = 1 + Math.floor(Math.random() * 6);
+      const r3 = 1 + Math.floor(Math.random() * 6);
       sum = r1 + r2 + r3;
       triple = r1 === r2 && r2 === r3;
       if (triple) continue;
-      if (outcome === 'tai' && sum >= 11 && sum <= 17) {
-        rolls = [r1, r2, r3];
-        break;
-      }
-      if (outcome === 'xiu' && sum >= 4 && sum <= 10) {
-        rolls = [r1, r2, r3];
-        break;
-      }
+      if (outcome === 'tai' && sum >= 11 && sum <= 17) { rolls = [r1, r2, r3]; break; }
+      if (outcome === 'xiu' && sum >= 4 && sum <= 10) { rolls = [r1, r2, r3]; break; }
     }
     const [roll1, roll2, roll3] = rolls;
 
@@ -86,8 +77,7 @@ module.exports = {
       win = amount * multiplier;
     }
 
-    user.coke += win - amount;
-    await user.save();
+    if (win > 0) await adjustCoke(userId, win);
 
     const rollEmoji = rolls.map(i => diceEmojis[i - 1]);
 
@@ -95,25 +85,27 @@ module.exports = {
     const name = member?.displayName || message.author.username;
 
     const betText = `${currency} ${amount.toLocaleString()}`;
-    const winText = win > 0 ? `${currency} ${win.toLocaleString()}${multiplier > 1 ? ` (x${multiplier})` : ''}` : 'trắng... ';
-
-    const wait = ms => new Promise(res => setTimeout(res, ms));
+    const winText = win > 0 ? `${currency} ${win.toLocaleString()}${multiplier > 1 ? ` (x${multiplier})` : ''}` : 'trắng... 😢';
 
     let display = `**  \`__TÀI XỈU__\`**\n\` \` ${moving} ${moving} ${moving} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
     const msg = await message.channel.send(display);
 
     await wait(1000);
     display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${moving} ${moving} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
-    try { await msg.edit(display); } catch { }
+    try { await msg.edit(display); } catch {}
 
     await wait(700);
     display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${moving} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
-    try { await msg.edit(display); } catch { }
+    try { await msg.edit(display); } catch {}
 
     await wait(1000);
     display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
-    try { await msg.edit(display); } catch { }
+    try { await msg.edit(display); } catch {}
 
     setCooldown(userId, 'tx', cooldownSeconds);
   }
 };
+
+function wait(ms) {
+  return new Promise(res => setTimeout(res, ms));
+}

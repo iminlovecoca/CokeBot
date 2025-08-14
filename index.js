@@ -11,7 +11,8 @@ const {
   Partials
 } = require('discord.js');
 const User = require('./models/User');
-const { checkSpam } = require('./utils/antispam');
+const { adjustCoke } = require('./utils/cokeManager');
+// const { checkSpam } = require('./utils/antispam');
 
 // Init bot
 const client = new Client({
@@ -32,14 +33,13 @@ const loadCommands = (dir) => {
   for (const file of files) {
     const fullPath = path.join(dir, file.name);
     if (file.isDirectory()) {
-      loadCommands(fullPath); // đệ quy subfolder
+      loadCommands(fullPath);
     } else if (file.name.endsWith('.js')) {
       const cmd = require(fullPath);
       if (cmd.name) client.commands.set(cmd.name, cmd);
     }
   }
 };
-
 loadCommands(path.join(__dirname, 'commands'));
 
 const PREFIX = '!';
@@ -48,8 +48,8 @@ client.on('messageCreate', async message => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
 
-  // check spam 
-  if (await checkSpam(message)) return;
+  // // check spam 
+  // if (await checkSpam(message)) return;
 
   if (mongoose.connection.readyState !== 1) {
     console.warn('⚠️ Mất kết nối MongoDB - bỏ qua thao tác');
@@ -66,6 +66,7 @@ client.on('messageCreate', async message => {
     return message.reply('🚫 Bạn đang bị cấm sử dụng bot trong thời gian này.').catch(() => {});
   }
 
+  // Reset daily XP
   const now = new Date().toISOString().split('T')[0];
   if (user.lastXpDate !== now) {
     user.dailyXp = 0;
@@ -83,7 +84,7 @@ client.on('messageCreate', async message => {
       user.xp -= getXpNeeded(user.level);
       user.level++;
       const reward = 10000 + (user.level - 1) * 5000;
-      user.coke += reward;
+      await adjustCoke(userId, reward); // Đồng bộ cộng coke
       totalReward += reward;
       leveledUp = true;
     }
@@ -153,21 +154,30 @@ client.once('ready', () => {
 });
 
 mongoose.connect(process.env.MONGO_URL, {
-  maxPoolSize: 50,
-  minPoolSize: 5,
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 60000,
-  heartbeatFrequencyMS: 8000,
-  retryWrites: true,
+  maxPoolSize: 100,             
+  minPoolSize: 10,              
+  connectTimeoutMS: 20000,      
+  serverSelectionTimeoutMS: 20000, 
+  socketTimeoutMS: 60000,       
+  heartbeatFrequencyMS: 5000,   
+  retryWrites: true,            
+  family: 4                     
 })
-
   .then(() => {
     console.log('✅ Đã kết nối MongoDB');
     client.login(process.env.TOKEN);
   })
   .catch(err => {
     console.error('❌ MongoDB lỗi:', err);
+    setTimeout(() => {
+      console.log('🔄 Thử kết nối lại MongoDB...');
+      mongoose.connect(process.env.MONGO_URL);
+    }, 5000);
   });
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ Mất kết nối MongoDB, đang thử kết nối lại...');
+});
 
 function getXpNeeded(level) {
   return 2000 + (level - 1) * 1000;
