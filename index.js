@@ -14,6 +14,9 @@ const User = require('./models/User');
 const { adjustCoke } = require('./utils/cokeManager');
 // const { checkSpam } = require('./utils/antispam');
 
+// ==== Thêm stock engine ====
+const { ensureSymbols, tickPrices } = require('./utils/stockEngine');
+
 // Init bot
 const client = new Client({
   intents: [
@@ -145,12 +148,23 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ Bot sẵn sàng: ${client.user.tag}`);
   client.user.setPresence({
     activities: [{ name: 'Coke 🎲', type: 0 }],
     status: 'online'
   });
+
+  // ==== Khởi động engine chứng khoán khi bot ready ====
+  try {
+    await ensureSymbols();
+    console.log('✅ Sẵn sàng dữ liệu chứng khoán.');
+    setInterval(() => {
+      tickPrices().catch(err => console.error('tickPrices error:', err));
+    }, 30 * 1000); // cập nhật mỗi 30s
+  } catch (e) {
+    console.error('❌ Stock engine init error:', e);
+  }
 });
 
 mongoose.connect(process.env.MONGO_URL, {

@@ -1,4 +1,5 @@
 const User = require('../../models/User');
+const StockHolding = require('../../models/StockHolding');
 
 function getRankEmoji(level) {
   if (level <= 10) return 'Common';
@@ -12,7 +13,7 @@ function getRankEmoji(level) {
 
 module.exports = {
   name: 'top',
-  description: 'Xem bảng xếp hạng theo cash, level, rank, luck hoặc tea',
+  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea hoặc stock',
 
   async execute(message, args) {
     const type = args[0]?.toLowerCase() || 'cash';
@@ -21,8 +22,7 @@ module.exports = {
     const authorId = message.author.id;
     const authorData = await User.findOne({ userId: authorId });
 
-    let topUsers, unit = '', getValue;
-
+    let topUsers = [], unit = '', getValue;
     let title = `Bảng Xếp Hạng`;
     const guildName = message.guild?.name || 'Máy chủ';
 
@@ -54,6 +54,23 @@ module.exports = {
         unit = 'Tea';
         getValue = u => u.tea || 0;
         topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
+        break;
+
+      case 'stock':
+        title = `Top Chứng Khoán - ${guildName}`;
+        unit = 'MV';
+        // Lấy tổng giá trị cổ phiếu của người chơi
+        const agg = await StockHolding.aggregate([
+          { $match:{ qty:{$gt:0} } },
+          { $group:{ _id:'$userId', totalMV:{ $sum:{ $multiply:['$qty','$avgPrice'] } } } },
+          { $sort:{ totalMV:-1 } },
+          { $limit: 50 }
+        ]);
+        topUsers = [];
+        for(const g of agg){
+          topUsers.push({ userId:g._id, totalMV:g.totalMV });
+        }
+        getValue = u => u.totalMV || 0;
         break;
 
       case 'cash':
