@@ -13,41 +13,39 @@ const MAX_QTY_PER_ORDER = 1_000_000;
 function vnTime(date) {
   return new Date(date).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
-function fmt(n){ return Number(n).toLocaleString(); }
+function fmt(n) { return Number(n).toLocaleString(); }
 
 module.exports = {
   name: 'stock',
-  description: 'Sàn chứng khoán ảo: mua/bán/giá/ví, hỗ trợ short',
-  async execute(message, args){
+  description: 'Sàn chứng khoán ảo: mua/bán/giá/ví',
+  async execute(message, args) {
     const userId = message.author.id;
     const cd = getRemainingCooldown(userId, 'stock');
-    if(cd>0) return message.reply(`⏱ | Hãy đợi **${cd}s** để thao tác lại.`);
-    setCooldown(userId,'stock',3);
+    if (cd > 0) return message.reply(`⏱ | Hãy đợi **${cd}s** để thao tác lại.`);
+    setCooldown(userId, 'stock', 3);
 
-    const sub = (args[0]||'').toLowerCase();
-    try{
+    const sub = (args[0] || '').toLowerCase();
+    try {
       await ensureSymbols();
       await tickPrices(); // cập nhật giá biến động mỗi khi lệnh stock chạy
 
-      if(!sub||sub==='help') return help(message);
-      if(sub==='list') return listCmd(message);
-      if(sub==='price') return priceCmd(message,(args[1]||'').toUpperCase());
-      if(sub==='buy') return buyCmd(message,userId,(args[1]||'').toUpperCase(),parseInt(args[2]));
-      if(sub==='sell') return sellCmd(message,userId,(args[1]||'').toUpperCase(),parseInt(args[2]));
-      if(sub==='short') return sellShortCmd(message,userId,(args[1]||'').toUpperCase(),parseInt(args[2]));
-      if(sub==='cover') return buyToCoverCmd(message,userId,(args[1]||'').toUpperCase(),parseInt(args[2]));
-      if(sub==='portfolio'||sub==='pf') return portfolioCmd(message,userId);
+      if (!sub || sub === 'help') return help(message);
+      if (sub === 'list') return listCmd(message);
+      if (sub === 'price') return priceCmd(message, (args[1] || '').toUpperCase());
+      if (sub === 'buy') return buyCmd(message, userId, (args[1] || '').toUpperCase(), parseInt(args[2]));
+      if (sub === 'sell') return sellCmd(message, userId, (args[1] || '').toUpperCase(), parseInt(args[2]));
+      if (sub === 'portfolio' || sub === 'pf') return portfolioCmd(message, userId);
 
       return help(message);
-    }catch(e){
-      console.error('Stock cmd error:',e);
+    } catch (e) {
+      console.error('Stock cmd error:', e);
       return message.reply('❌ | Lỗi hệ thống chứng khoán.');
     }
   }
 };
 
 // ===== HELP / LIST / PRICE =====
-async function help(message){
+async function help(message) {
   return message.reply([
     '📈 **Chứng khoán ảo (coke)**',
     '`!stock list` — danh sách mã & giá',
@@ -59,81 +57,88 @@ async function help(message){
   ].join('\n'));
 }
 
-async function listCmd(message){
+async function listCmd(message) {
   const quotes = await listQuotes();
-  if(!quotes.length) return message.reply('Chưa có mã nào.');
+  if (!quotes.length) return message.reply('Chưa có mã nào.');
 
-  const lines = quotes.map(q=>{
-    const chg = q.price - (q.prevPrice||q.price*0.99);
-    const pct = (chg/(q.prevPrice||q.price*0.99)*100);
-    const sign = chg>=0? '<:up:1405548221580836934>':'🔻';
-    return `• **${q.symbol}** — ${fmt(q.price)} (${sign} ${chg>=0?'+':''}${fmt(chg)} | ${pct.toFixed(2)}%)`;
+  const lines = quotes.map(q => {
+    const chg = q.price - (q.prevPrice || q.price * 0.99);
+    const pct = (chg / (q.prevPrice || q.price * 0.99) * 100);
+    const sign = chg >= 0 ? '<:up:1405548221580836934>' : '🔻';
+    return `• **${q.symbol}** — ${fmt(q.price)} (${sign} ${chg >= 0 ? '+' : ''}${fmt(chg)} | ${pct.toFixed(2)}%)`;
   });
-
-  return message.reply({ embeds:[new EmbedBuilder()
-    .setColor('Blue')
-    .setTitle('Danh sách mã & giá')
-    .setDescription(lines.join('\n') || 'Chưa có dữ liệu.') 
-  ] });
-}
-
-async function priceCmd(message,symbol){
-  if(!symbol) return message.reply('❌ | Cú pháp: `!stock price <MÃ>`');
-  const q = await getQuote(symbol);
-  if(!q) return message.reply('❌ | Mã không tồn tại.');
-  const chg = q.price - (q.prevPrice||q.price*0.99);
-  const pct = chg/(q.prevPrice||q.price*0.99)*100;
 
   return message.reply({
-    embeds:[new EmbedBuilder()
-      .setColor(chg>=0?'Green':'Red')
-      .setTitle(`${q.symbol} — ${q.name}`)
-      .setDescription(`Giá hiện tại: **${fmt(q.price)} coke**\nThay đổi: **${chg>=0?'+':''}${fmt(chg)}** (${pct.toFixed(2)}%)\nCập nhật: ${vnTime(q.lastUpdate)})`)]
+    embeds: [new EmbedBuilder()
+      .setColor('Blue')
+      .setTitle('Danh sách mã & giá')
+      .setDescription(lines.join('\n') || 'Chưa có dữ liệu.')
+    ]
   });
 }
 
-// ===== BUY / SELL / SHORT / COVER =====
-async function buyCmd(message,userId,symbol,qty){
-  if(!symbol||!qty||qty<=0||qty>MAX_QTY_PER_ORDER)
+async function priceCmd(message, symbol) {
+  if (!symbol) return message.reply('❌ | Cú pháp: `!stock price <MÃ>`');
+  const q = await getQuote(symbol);
+  if (!q) return message.reply('❌ | Mã không tồn tại.');
+  const chg = q.price - (q.prevPrice || q.price * 0.99);
+  const pct = chg / (q.prevPrice || q.price * 0.99) * 100;
+
+  return message.reply({
+    embeds: [new EmbedBuilder()
+      .setColor(chg >= 0 ? 'Green' : 'Red')
+      .setTitle(`${q.symbol} — ${q.name}`)
+      .setDescription(`Giá hiện tại: **${fmt(q.price)} coke**\nThay đổi: **${chg >= 0 ? '+' : ''}${fmt(chg)}** (${pct.toFixed(2)}%)\nCập nhật: ${vnTime(q.lastUpdate)})`)]
+  });
+}
+
+// ===== BUY / SELL =====
+async function buyCmd(message, userId, symbol, qty) {
+  if (!symbol || !qty || qty <= 0 || qty > MAX_QTY_PER_ORDER)
     return message.reply('❌ | Cú pháp: !stock buy <MÃ> <SL>');
 
   const q = await getQuote(symbol);
-  if(!q) return message.reply('❌ | Mã không tồn tại.');
+  if (!q) return message.reply('❌ | Mã không tồn tại.');
   const price = q.price;
-  const cost = Math.round(price*qty);
-  const fee = Math.max(1,Math.floor(cost*FEE_RATE));
+  const cost = Math.round(price * qty);
+  const fee = Math.max(1, Math.floor(cost * FEE_RATE));
   const total = cost + fee;
 
-  if((await getCoke(userId))<total) return message.reply(`❌ | Không đủ coke.\n💰 Tổng: ${fmt(total)} coke (bao gồm phí ${fmt(fee)} coke)`);
+  if ((await getCoke(userId)) < total) return message.reply(`❌ | Không đủ coke.\n💰 Tổng: ${fmt(total)} coke (bao gồm phí ${fmt(fee)} coke)`);
 
-  await debitIfEnough(userId,total);
-  await StockOrder.create({ userId,symbol,side:'BUY',qty,price });
+  await debitIfEnough(userId, total);
+  await StockOrder.create({ userId, symbol, side: 'BUY', qty, price });
 
   return message.reply(`📝 | Đã đặt lệnh **mua** ${qty} **${symbol}** @ **${fmt(price)}**. Tổng: ${fmt(total)} coke (đã gồm phí).`);
 }
 
-async function sellCmd(message,userId,symbol,qty){
-  if(!symbol||!qty||qty<=0||qty>MAX_QTY_PER_ORDER)
+async function sellCmd(message, userId, symbol, qty) {
+  qty = parseInt(qty);
+  if (!symbol || !qty || isNaN(qty) || qty <= 0 || qty > MAX_QTY_PER_ORDER)
     return message.reply('❌ | Cú pháp: !stock sell <MÃ> <SL>');
 
-  const holding = await StockHolding.findOne({userId,symbol});
-  if(!holding||holding.qty<qty) return message.reply('❌ | Không đủ cổ phiếu để bán.');
+  const holding = await StockHolding.findOne({ userId, symbol });
+  const holdingQty = holding?.qty || 0;
+  if (holdingQty < qty) return message.reply('❌ | Không đủ cổ phiếu để bán.');
 
   const q = await getQuote(symbol);
+  if (!q) return message.reply('❌ | Mã không tồn tại.');
+
   const price = q.price;
-  const fee = Math.max(1,Math.floor(price*qty*FEE_RATE));
-  const net = Math.round(price*qty*(1-FEE_RATE));
+  const fee = Math.max(1, Math.floor(price * qty * FEE_RATE));
+  const net = Math.round(price * qty * (1 - FEE_RATE));
 
   holding.qty -= qty;
-  if(holding.qty<=0) holding.avgPrice=0;
+  if (holding.qty <= 0) holding.avgPrice = 0;
   await holding.save();
 
-  await StockOrder.create({ userId,symbol,side:'SELL',qty,price });
+  await StockOrder.create({ userId, symbol, side: 'SELL', qty, price });
   await PendingWithdrawal.create({
     userId,
     amount: net,
     note: `bán ${qty} ${symbol}`,
-    readyAt: Date.now()+24*60*60*1000,
+    readyAt: Date.now() + 24 * 60 * 60 * 1000,
+    unlockAt: Date.now() + 24 * 60 * 60 * 1000,
     claimed: false
   });
 
@@ -142,10 +147,7 @@ async function sellCmd(message,userId,symbol,qty){
 
 // ===== PORTFOLIO =====
 async function portfolioCmd(message, userId) {
-  const holdings = await StockHolding.find({
-    userId,
-    $or: [{ qty: { $gt: 0 } }, { shortQty: { $gt: 0 } }]
-  });
+  const holdings = await StockHolding.find({ userId, qty: { $gt: 0 } });
   if (!holdings.length) return message.reply('📦 | Ví trống.');
 
   let totalMV = 0;
@@ -157,30 +159,22 @@ async function portfolioCmd(message, userId) {
 
     const mv = Math.round(q.price * h.qty);
     const pnl = mv - Math.round(h.avgPrice * h.qty);
-    const pnlPercent = ((q.price - h.avgPrice)/h.avgPrice*100).toFixed(2);
+    const pnlPercent = ((q.price - h.avgPrice) / h.avgPrice * 100).toFixed(2);
 
     totalMV += mv;
 
     lines.push(
-      `• **${h.symbol}** — SL: ${h.qty} | Giá vốn: ${h.avgPrice} | Giá: ${q.price} | MV: ${mv} | PnL: ${pnl>=0?'<:up:1405548221580836934>':'🔻'} ${pnl} (${pnlPercent}%) | Short: ${h.shortQty||0}@${h.shortPrice||0}`
+      `• **${h.symbol}** — SL: ${h.qty} | Giá vốn: ${h.avgPrice} | Giá: ${q.price} | MV: ${mv} | PnL: ${pnl >= 0 ? '<:up:1405548221580836934>' : '🔻'} ${pnl} (${pnlPercent}%)`
     );
-
-    // Auto sell log
-    if (q.autoSellLog?.length) {
-      lines.push(`  ⚠️ Auto Sell hôm nay:`);
-      for (const l of q.autoSellLog) {
-        lines.push(`    • SL: ${l.qty} @ Giá: ${l.price} (${vnTime(l.time)})`);
-      }
-    }
   }
 
   return message.reply({
-    embeds:[
+    embeds: [
       new EmbedBuilder()
         .setColor('Blue')
         .setTitle(`📊 Ví của ${message.member.displayName}`)
         .setDescription(lines.join('\n') || 'Chưa có dữ liệu.')
-        .addFields({ name:'Tổng MV', value: fmt(totalMV)+' coke' })
+        .addFields({ name: 'Tổng MV', value: fmt(totalMV) + ' coke' })
     ]
   });
 }
@@ -194,11 +188,9 @@ async function matchOrders() {
 
     const mv = Math.round(order.qty * q.price);
     const fee = Math.max(1, Math.floor(mv * FEE_RATE));
-    const net = order.side.includes('SELL') ? mv - fee : -mv - fee;
+    const net = order.side === 'SELL' ? mv - fee : -mv - fee;
 
-    if (order.side === 'SELL' || order.side === 'SELL_SHORT') {
-      if (order.side === 'SELL_SHORT') await adjustCoke(order.userId, mv - fee);
-    } else if (order.side === 'BUY') {
+    if (order.side === 'BUY') {
       const holding = await StockHolding.findOne({ userId: order.userId, symbol: order.symbol }) || new StockHolding({ userId: order.userId, symbol: order.symbol });
       const prevQty = holding.qty || 0;
       const prevAvg = holding.avgPrice || 0;
@@ -206,14 +198,8 @@ async function matchOrders() {
       holding.qty = newQty;
       holding.avgPrice = Number(((prevQty * prevAvg + mv) / newQty).toFixed(4));
       await holding.save();
-    } else if (order.side === 'BUY_TO_COVER') {
-      const holding = await StockHolding.findOne({ userId: order.userId, symbol: order.symbol });
-      if (!holding) continue;
-      const pnl = Math.round((holding.shortPrice - q.price) * order.qty);
-      await adjustCoke(order.userId, pnl);
-      holding.shortQty -= order.qty;
-      if (holding.shortQty <= 0) holding.shortPrice = 0;
-      await holding.save();
+    } else if (order.side === 'SELL') {
+      // tiền đã xử lý trong PendingWithdrawal
     }
 
     await StockTx.create({
@@ -257,4 +243,4 @@ async function processPendingWithdrawals() {
     } catch (e) { console.error('Cannot DM user for pending withdrawal:', e); }
   }
 }
-setInterval(processPendingWithdrawals, 60*1000);
+setInterval(processPendingWithdrawals, 60 * 1000);

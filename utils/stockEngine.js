@@ -43,7 +43,6 @@ async function ensureSymbols() {
   }
 }
 
-// tick giá, auto sell, gửi thông báo
 async function tickPrices() {
   const symbols = await StockSymbol.find({});
   const now = Date.now();
@@ -65,66 +64,15 @@ async function tickPrices() {
 
     let newPrice = clamp(Number((s.price * demandFactor * (1 + drift + microFluctuation)).toFixed(2)), 1, 10_000_000);
 
-    // ===== AUTO SELL =====
-    if (newPrice < s.price * 0.9) {
-      const holdings = await StockHolding.find({ symbol: s.symbol, qty: { $gt: 0 } });
-      for (const h of holdings) {
-        const lossQty = Math.floor(h.qty * 0.5);
-        if (lossQty <= 0) continue;
-
-        h.qty -= lossQty;
-        if (h.qty <= 0) h.avgPrice = 0;
-        await h.save();
-
-        const netCash = Math.round(lossQty * newPrice * 0.9);
-        await adjustCoke(h.userId, netCash);
-
-        // gửi DM an toàn nếu bot client tồn tại
-        if (global.client?.users) {
-          try {
-            const user = await global.client.users.fetch(h.userId);
-            if (user) {
-              await user.send({
-                embeds: [{
-                  color: 'Red',
-                  title: '⚠️ AUTO SELL',
-                  description: `📉 Cổ phiếu **${s.symbol}** giảm mạnh! Bot đã tự động bán **${lossQty} cổ phiếu** của bạn.\n💰 Bạn nhận được **${netCash} coke** sau phí.`,
-                  timestamp: new Date()
-                }]
-              });
-            }
-          } catch(e) { console.error('Cannot DM user for auto sell', e); }
-        }
+    // Chỉ update giá, không auto sell
+    await StockSymbol.updateOne({ symbol: s.symbol }, {
+      $set: {
+        prevPrice: s.price,
+        price: newPrice,
+        lastUpdate: new Date(),
+        dailySellVolume: s.dailySellVolume || 0
       }
-
-      // log auto sell
-      const logEntry = { qty: Math.floor((s.dailySellVolume || 0)/s.price), price: newPrice, time: new Date() };
-      const autoSellLog = s.autoSellLog || [];
-      autoSellLog.push(logEntry);
-
-      console.log(`[AUTO SELL] ${s.symbol} giảm mạnh, bán tháo`);
-      newPrice = Math.max(newPrice * 0.97, 1);
-      s.dailySellVolume = (s.dailySellVolume || 0) + 500;
-
-      await StockSymbol.updateOne({ symbol: s.symbol }, {
-        $set: {
-          prevPrice: s.price,
-          price: newPrice,
-          lastUpdate: new Date(),
-          dailySellVolume: s.dailySellVolume,
-          autoSellLog
-        }
-      });
-    } else {
-      await StockSymbol.updateOne({ symbol: s.symbol }, {
-        $set: {
-          prevPrice: s.price,
-          price: newPrice,
-          lastUpdate: new Date(),
-          dailySellVolume: s.dailySellVolume || 0
-        }
-      });
-    }
+    });
   }
 }
 
