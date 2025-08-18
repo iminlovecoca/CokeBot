@@ -1,5 +1,6 @@
+const random = require('random-number-csprng');
 const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-const { getCoke, debitIfEnough, adjustCoke } = require('../../utils/cokeManager');
+const { debitIfEnough, adjustCoke } = require('../../utils/cokeManager');
 
 const moving = '<a:slots_rollRecovered2:1403778802542313604>';
 const currency = '<:money2:1403773842832359505>';
@@ -9,7 +10,7 @@ const symbols = [
   '<:slots_lychee:1403773792781861004>',
   '<a:slots_coin:1403773750448623716>',
   '<:slots_U:1403773817301766346>',
-  '<:slots_W:1403773828533981286>',
+  '<:slots_W:1403773828533981286>'
 ];
 const maxBet = 250000;
 
@@ -36,26 +37,26 @@ module.exports = {
       return;
     }
 
-    const balance = await getCoke(userId);
     let amount = 0;
     if (!args[0]) {
       amount = 1;
     } else if (args[0] === 'all') {
-      if (balance <= 0) return message.reply('❌ | Bạn không có coke!');
-      amount = Math.min(balance, maxBet);
+      const balance = await debitIfEnough(userId, 1);
+      if (!balance.ok) return message.reply('❌ | Bạn không có coke!');
+      await adjustCoke(userId, balance.balance);
+      amount = Math.min(balance.balance, maxBet);
     } else if (!isNaN(args[0])) {
-      amount = Math.min(parseInt(args[0]), maxBet);
+      amount = parseInt(args[0]);
+      if (amount > maxBet) amount = maxBet;
     } else {
       return message.reply('❌ | Cú pháp: `!s <số tiền>` hoặc `!s all`');
     }
 
-    if (amount <= 0) return message.reply('❌ | Số tiền cược không hợp lệ!');
-
     const deb = await debitIfEnough(userId, amount);
-    if (!deb.ok) return message.reply('❌ | Bạn không đủ coke!');
+    if (!deb.ok) return message.reply('❌ | Không đủ coke hoặc số tiền không hợp lệ!');
 
-    const rslots = [];
-    const rand = Math.floor(Math.random() * 1000) / 10; // 0.0 - 99.9
+    let rslots = [];
+    const rand = (await random(1, 1000)) / 10;
     let win = 0;
 
     if (rand <= 20) {
@@ -83,13 +84,11 @@ module.exports = {
       rslots.push(symbols[slot1], symbols[slot2], symbols[slot3]);
     }
 
-    if (win > 0) await adjustCoke(userId, win);
-
     const member = await message.guild.members.fetch(userId).catch(() => null);
     const name = member?.displayName || message.author.username;
 
     const betText = `${currency} ${amount.toLocaleString()}`;
-    const winText = win > 0 ? `${currency} ${win.toLocaleString()}` : 'cut... 😢';
+    const winText = win > 0 ? `${currency} ${win.toLocaleString()}` : 'cut... ';
 
     let machine =
       '**  `___SLOTS___`**\n` ` ' +
@@ -116,6 +115,8 @@ module.exports = {
         await msg.edit(machine);
 
         setTimeout(async () => {
+          if (win > 0) await adjustCoke(userId, win);
+
           machine =
             '**  `___SLOTS___`**\n` ` ' +
             rslots[0] + ' ' + rslots[1] + ' ' + rslots[2] +

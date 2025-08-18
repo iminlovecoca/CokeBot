@@ -12,7 +12,7 @@ const {
 const User = require('./models/User');
 const { adjustCoke } = require('./utils/cokeManager');
 
-const { ensureSymbols, tickPrices, resetDailyVolume, listQuotes } = require('./utils/stockEngine');
+// const { ensureSymbols, tickPrices, resetDailyVolume, listQuotes } = require('./utils/stockEngine');
 
 const client = new Client({
   intents: [
@@ -138,35 +138,35 @@ client.once('ready', async () => {
     status: 'online'
   });
 
-  try {
-    await ensureSymbols();
-    console.log('✅ Dữ liệu chứng khoán sẵn sàng.');
+//   try {
+//     await ensureSymbols();
+//     console.log('✅ Dữ liệu chứng khoán sẵn sàng.');
 
-    setInterval(async () => {
-      await tickPrices();
+//     setInterval(async () => {
+//       await tickPrices();
 
-      const quotes = await listQuotes();
-      let msg = '📊 **Thị trường chứng khoán:**\n';
-      quotes.forEach(q => {
-        const diff = (q.price - (q.prevPrice || q.price));
-        const emoji = diff > 0 ? ':up:' : diff < 0 ? '🔻' : ':up:';
-        const perc = diff === 0 ? 0 : ((diff / (q.prevPrice || q.price)) * 100).toFixed(2);
-        msg += `• ${q.symbol} — ${q.price.toLocaleString()} (${emoji} ${diff.toFixed(2)} | ${perc}%)\n`;
-      });
-      console.log(msg);
-    }, 30 * 1000);
+//       const quotes = await listQuotes();
+//       let msg = '📊 **Thị trường chứng khoán:**\n';
+//       quotes.forEach(q => {
+//         const diff = (q.price - (q.prevPrice || q.price));
+//         const emoji = diff > 0 ? ':up:' : diff < 0 ? '🔻' : ':up:';
+//         const perc = diff === 0 ? 0 : ((diff / (q.prevPrice || q.price)) * 100).toFixed(2);
+//         msg += `• ${q.symbol} — ${q.price.toLocaleString()} (${emoji} ${diff.toFixed(2)} | ${perc}%)\n`;
+//       });
+//       console.log(msg);
+//     }, 30 * 1000);
 
-    const now = new Date();
-    const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
-    setTimeout(function dailyReset() {
-      resetDailyVolume();
-      setTimeout(dailyReset, 24 * 60 * 60 * 1000);
-    }, msToMidnight);
+//     const now = new Date();
+//     const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
+//     setTimeout(function dailyReset() {
+//       resetDailyVolume();
+//       setTimeout(dailyReset, 24 * 60 * 60 * 1000);
+//     }, msToMidnight);
 
-  } catch (err) {
-    console.error('❌ Stock engine init error:', err);
-  }
-});
+//   } catch (err) {
+//     console.error('❌ Stock engine init error:', err);
+//   }
+ });
 
 mongoose.connect(process.env.MONGO_URL, {
   maxPoolSize: 100,

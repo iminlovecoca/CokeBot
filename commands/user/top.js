@@ -1,5 +1,6 @@
 const User = require('../../models/User');
 const StockHolding = require('../../models/StockHolding');
+const StockSymbol = require('../../models/StockSymbol');
 
 function getRankEmoji(level) {
   if (level <= 10) return 'Common';
@@ -27,6 +28,33 @@ module.exports = {
     const guildName = message.guild?.name || 'Máy chủ';
 
     switch (type) {
+      case 'stock':
+        title = `Top Chứng Khoán - ${guildName}`;
+        unit = 'MV';
+
+        // Lấy danh sách holdings còn cổ phiếu
+        const holdings = await StockHolding.find({ qty: { $gt: 0 } });
+        const symbols = await StockSymbol.find({});
+        const priceMap = {};
+        for (const s of symbols) priceMap[s.symbol] = s.price;
+
+        const userMap = {};
+        for (const h of holdings) {
+          const curPrice = priceMap[h.symbol] || 0;
+          const mv = h.qty * curPrice;
+          if (!userMap[h.userId]) userMap[h.userId] = 0;
+          userMap[h.userId] += mv;
+        }
+
+        // Chuyển thành array, sort theo MV
+        topUsers = Object.entries(userMap)
+          .map(([userId, totalMV]) => ({ userId, totalMV }))
+          .sort((a, b) => b.totalMV - a.totalMV)
+          .slice(0, 50);
+
+        getValue = u => u.totalMV || 0;
+        break;
+
       case 'lvl':
       case 'level':
         title = `Top Level - ${guildName}`;
@@ -54,23 +82,6 @@ module.exports = {
         unit = 'Tea';
         getValue = u => u.tea || 0;
         topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
-        break;
-
-      case 'stock':
-        title = `Top Chứng Khoán - ${guildName}`;
-        unit = 'MV';
-        // Lấy tổng giá trị cổ phiếu của người chơi
-        const agg = await StockHolding.aggregate([
-          { $match:{ qty:{$gt:0} } },
-          { $group:{ _id:'$userId', totalMV:{ $sum:{ $multiply:['$qty','$avgPrice'] } } } },
-          { $sort:{ totalMV:-1 } },
-          { $limit: 50 }
-        ]);
-        topUsers = [];
-        for(const g of agg){
-          topUsers.push({ userId:g._id, totalMV:g.totalMV });
-        }
-        getValue = u => u.totalMV || 0;
         break;
 
       case 'cash':

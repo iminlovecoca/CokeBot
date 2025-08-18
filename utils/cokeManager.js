@@ -23,25 +23,33 @@ async function getCoke(userId) {
 }
 
 async function adjustCoke(userId, delta) {
-  return withLock(userId, async () => {
-    const doc = await User.findOneAndUpdate(
-      { userId },
-      { $inc: { coke: delta } },
-      { new: true, upsert: true }
-    );
-    return doc.coke;
-  });
+  if (!delta) return (await User.findOne({ userId }))?.coke ?? 0;
+
+  const doc = await User.findOneAndUpdate(
+    { userId },
+    { $inc: { coke: delta }, $setOnInsert: { userId, coke: 0 } },
+    { new: true, upsert: true }
+  );
+  return doc.coke;
 }
 
 async function debitIfEnough(userId, amount) {
   if (amount <= 0) return { ok: false };
-  return withLock(userId, async () => {
-    const user = await User.findOne({ userId }) || await User.create({ userId, coke: 0 });
-    if (user.coke < amount) return { ok: false };
-    user.coke -= amount;
-    await user.save();
-    return { ok: true, balance: user.coke };
-  });
+
+  await User.updateOne(
+    { userId },
+    { $setOnInsert: { userId, coke: 0 } },
+    { upsert: true }
+  );
+
+  const updated = await User.findOneAndUpdate(
+    { userId, coke: { $gte: amount } },
+    { $inc: { coke: -amount } },
+    { new: true }
+  );
+
+  if (!updated) return { ok: false };
+  return { ok: true, balance: updated.coke };
 }
 
 async function credit(userId, amount) {

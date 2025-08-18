@@ -8,7 +8,7 @@ const {
   TextInputStyle,
   Collection
 } = require('discord.js');
-const { adjustCoke, getCoke } = require('../../utils/cokeManager');
+const { adjustCoke, debitIfEnough } = require('../../utils/cokeManager');
 
 const symbols = ['🦀', '🦐', '🍐', '🐓', '🦌', '🦈'];
 const names = ['cua', 'tôm', 'bầu', 'gà', 'hươu', 'cá'];
@@ -95,11 +95,6 @@ module.exports = {
         return submitted.reply({ content: '❌ | Số tiền không hợp lệ!', ephemeral: true });
       }
 
-      const balance = await getCoke(userId);
-      if (balance < amount) {
-        return submitted.reply({ content: '❌ | Bạn không đủ coke!', ephemeral: true });
-      }
-
       if (!gameData.choices.has(userId)) gameData.choices.set(userId, {});
       const userBets = gameData.choices.get(userId);
 
@@ -107,10 +102,16 @@ module.exports = {
         return submitted.reply({ content: `⚠️ | Bạn đã đặt cho **${choice}** rồi!`, ephemeral: true });
       }
 
-      await adjustCoke(userId, -amount);
-      userBets[choice] = amount;
+      const deb = await debitIfEnough(userId, amount);
+      if (!deb.ok) {
+        return submitted.reply({ content: '❌ | Bạn không đủ coke!', ephemeral: true });
+      }
 
-      await submitted.reply({ content: `✅ | Đã đặt **${amount.toLocaleString()} coke** cho **${choice}**!`, ephemeral: true });
+      userBets[choice] = amount;
+      await submitted.reply({
+        content: `✅ | Đã đặt **${amount.toLocaleString()} coke** cho **${choice}**!`,
+        ephemeral: true
+      });
     });
 
     collector.on('end', async () => {
