@@ -1,297 +1,211 @@
-const { EmbedBuilder } = require('discord.js');
-const Game = require('../../models/Game');
-const bjUtil = require('../../utils/blackjackutil');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-const { getCoke, debitIfEnough, adjustCoke } = require('../../utils/cokeManager');
+const {
+  formatCards,
+  createNewDeck,
+  drawNewCard,
+  getBestHandValue,
+  getGame,
+  addGame,
+  delGame,
+  updateGame,
+  isBust,
+  isBlackJack,
+  isDoubleAce,
+  isFiveCard,
+  isDealerStay
+} = require('../../utils/blackJackUtil')
+const {
+  setCooldown,
+  getRemainingCooldown,
+  notifyCooldown
+} = require('../../utils/cooldown')
+const { decBalance, incBalance } = require('../../utils/userUtil')
+const { getBetAmount } = require('../../utils/gameUtil')
+const config = require('../../data/config.json')
+const emoji = config.emoji
 
-const hitEmoji = '👊';
-const standEmoji = '🛑';
-const games = new Map();
-const maxBet = 250_000;
-const gameExpireTime = 30 * 60 * 1000; // 30 phút
+const hitEmoji = '👊'
+const standEmoji = '🛑'
+const maxBet = 250000
+const minBet = 1
+const cooldownSeconds = 15
 
 module.exports = {
   name: 'bj',
   description: 'Chơi bài xì dách (blackjack) bằng emoji',
-  async execute(message, args) {
+  execute: async (message, args) => {
     try {
-      const userId = message.author.id;
-      const cooldown = getRemainingCooldown(userId, 'bj');
-      if (cooldown > 0) return notifyCooldown(message, cooldown);
-      setCooldown(userId, 'bj', 15);
+      const userId = message.author.id
+      let bet = args.length == 0 ? 'min' : args[0]
+      const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
 
-      if (games.has(userId))
-        return message.reply('⚠️ Bạn đang có một ván Blackjack đang diễn ra.');
+      const cooldown = getRemainingCooldown(userId, 'bj')
+      if (cooldown > 0) return notifyCooldown(message, cooldown)
+      setCooldown(userId, 'bj', cooldownSeconds)
 
-      let ongoingGame = await Game.findOne({ userId, active: true });
-      if (ongoingGame) {
-        if (Date.now() - ongoingGame.date.getTime() <= gameExpireTime) {
-          return resumeGame(message, userId, ongoingGame);
-        } else {
-          await Game.deleteOne({ userId });
-          return message.reply('⏱ | Ván Blackjack cũ đã hết hạn, coke cược đã mất.');
-        }
-      }
-
-      const balance = await getCoke(userId);
-      const bet = parseBet(args[0], balance);
-      if (!bet) return message.reply('❌ | Số tiền cược không hợp lệ hoặc không đủ coke!');
-
-      const deb = await debitIfEnough(userId, bet);
-      if (!deb.ok) return message.reply('❌ | Bạn không đủ coke để cược!');
-
-      const deck = bjUtil.createDeck();
-      if (!Array.isArray(deck) || deck.length === 0) {
-        return message.reply('❌ Không thể tạo bộ bài, vui lòng thử lại sau.');
-      }
-
-      const player = [bjUtil.drawCard(deck), bjUtil.drawCard(deck)];
-      const dealer = [bjUtil.drawCard(deck), bjUtil.drawCard(deck)];
-
-      await Game.findOneAndUpdate(
-        { userId },
-        {
-          userId,
-          bet,
-          deck,
-          player,
-          dealer,
-          active: true,
-          date: new Date(),
-        },
-        { upsert: true, new: true }
-      );
-
-      return startGame(message, userId, { deck, player, dealer, bet });
-    } catch (err) {
-      console.error('BJ Command Error:', err);
-      message.reply('❌ Có lỗi xảy ra khi bắt đầu game.');
+      await initGame(message, bet, betAmount)
+    } catch(error) {
+      return await message.reply(error.message)
     }
-  },
-};
-
-// ================== Helper Functions ===================
-
-function parseBet(arg, coke) {
-  if (!arg) return null;
-  if (arg === 'all') return Math.min(coke, maxBet);
-  const bet = parseInt(String(arg).replace(/[,\.]/g, ''));
-  if (isNaN(bet) || bet <= 0 || bet > coke) return null;
-  return Math.min(bet, maxBet);
-}
-
-function notifyCooldown(message, cooldown) {
-  return message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để chơi lại.`).then((msg) => {
-    let remaining = cooldown;
-    const interval = setInterval(() => {
-      remaining--;
-      if (remaining > 0) msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để chơi lại.`);
-      else {
-        clearInterval(interval);
-        msg.delete().catch(() => {});
-      }
-    }, 1000);
-  });
-}
-
-async function resumeGame(message, userId, gameData) {
-  const embed = renderEmbed(
-    message.author,
-    gameData.player,
-    gameData.dealer,
-    false,
-    gameData.bet,
-    true
-  );
-  return message.reply({ embeds: [embed] }).then(async (msg) => {
-    await msg.react(hitEmoji);
-    await msg.react(standEmoji);
-    // convert Mongoose doc thành plain object
-    const gameObj = gameData.toObject ? gameData.toObject() : gameData;
-    games.set(userId, { ...gameObj, message: msg });
-    setupCollector(message, userId, msg);
-  });
-}
-
-async function startGame(message, userId, game) {
-  const embed = renderEmbed(message.author, game.player, game.dealer, false, game.bet);
-  return message.reply({ embeds: [embed] }).then(async (msg) => {
-    await msg.react(hitEmoji);
-    await msg.react(standEmoji);
-    games.set(userId, { ...game, message: msg });
-    setupCollector(message, userId, msg);
-  });
-}
-
-function setupCollector(message, userId, msg) {
-  try {
-    const filter = (reaction, userReact) =>
-      [hitEmoji, standEmoji].includes(reaction.emoji.name) && userReact.id === userId;
-
-    const collector = msg.createReactionCollector({ filter, time: 90_000 });
-
-    collector.on('collect', async (reaction, userReact) => {
-      const game = games.get(userReact.id);
-      if (!game || game.message.id !== msg.id) return;
-
-      try {
-        if (reaction.emoji.name === hitEmoji) {
-          await handleHit(message, userReact, game);
-        } else if (reaction.emoji.name === standEmoji) {
-          collector.stop('stand');
-          await handleStand(message, userReact, game);
-        }
-        await reaction.users.remove(userReact.id).catch(() => {});
-      } catch (err) {
-        console.error('Collector Action Error:', err);
-      }
-    });
-
-    collector.on('end', async (_, reason) => {
-      if (reason !== 'stand') {
-        games.delete(userId);
-        // Giữ nguyên DB → cho phép resume sau
-      }
-    });
-  } catch (err) {
-    console.error('Collector Setup Error:', err);
   }
 }
 
-function renderEmbed(authorObj, player, dealer, showDealer, bet, isResume = false) {
-  const safePlayer = Array.isArray(player) ? player.filter(Boolean) : [];
-  const safeDealer = Array.isArray(dealer) ? dealer.filter(Boolean) : [];
-  const dealerCards = showDealer
-    ? bjUtil.getCardDisplay(safeDealer)
-    : `${bjUtil.getCardDisplay([safeDealer[0]])} ${bjUtil.backEmoji()}`;
-  const dealerPoint = showDealer ? `[${bjUtil.calcHandValue(safeDealer)}]` : `[?]`;
-  const resumeText = isResume ? '<:rice:1396919696581857290> ~ tiếp tục ván bài\n\n' : '';
+const initGame = async (message, bet, betAmount) => {
+  const userId = message.author.id
+  const game = await getGame(userId)
 
-  return new EmbedBuilder()
-    .setColor('Blue')
-    .setDescription(
-      `${resumeText}\n\n**Dealer** ${dealerPoint}\n${dealerCards}\n\n**${authorObj.username}** [${bjUtil.calcHandValue(safePlayer)}]\n${bjUtil.getCardDisplay(safePlayer)}`
-    )
-    .setAuthor({
-      name: `${authorObj.username}, bạn cược ${bet.toLocaleString()} để chơi xì dách`,
-      iconURL: authorObj.displayAvatarURL({ dynamic: true, size: 1024 }),
-    });
-}
-
-async function handleHit(message, user, game) {
-  try {
-    if (!Array.isArray(game.deck) || game.deck.length === 0) throw new Error('Deck rỗng');
-
-    const card = bjUtil.drawCard(game.deck);
-    if (!card) throw new Error('Không còn lá bài nào để rút');
-    game.player.push(card);
-
-    await Game.updateOne(
-      { userId: user.id },
-      { player: game.player, deck: game.deck }
-    );
-
-    await game.message.edit({
-      embeds: [renderEmbed(message.author, game.player, game.dealer, false, game.bet)],
-    });
-
-    const playerPoints = bjUtil.calcHandValue(game.player);
-    if (playerPoints > 21 || game.player.length >= 5) {
-      await handleStand(message, user, game);
-    }
-  } catch (err) {
-    console.error('Error in handleHit:', err);
-    await handleStand(message, user, game);
-  }
-}
-
-async function handleStand(message, user, game) {
-  try {
-    while (bjUtil.calcHandValue(game.dealer) < 17 && game.dealer.length < 5) {
-      if (!Array.isArray(game.deck) || game.deck.length === 0) break;
-      const card = bjUtil.drawCard(game.deck);
-      game.dealer.push(card);
-    }
-  } catch (err) {
-    console.error('Error in handleStand:', err);
-  }
-
-  const playerPoint = bjUtil.calcHandValue(game.player);
-  const dealerPoint = bjUtil.calcHandValue(game.dealer);
-
-  const isDoubleAce = (hand) =>
-    hand.length === 2 && hand.every((c) => c?.name?.startsWith('A'));
-  const isBlackjack = (hand) => hand.length === 2 && bjUtil.calcHandValue(hand) === 21;
-  const isFiveCard = (hand) => hand.length === 5 && bjUtil.calcHandValue(hand) <= 21;
-
-  const playerSpecial = isDoubleAce(game.player)
-    ? 'Xì bàng'
-    : isBlackjack(game.player)
-    ? 'Xì dách'
-    : isFiveCard(game.player)
-    ? 'Ngũ linh'
-    : null;
-
-  const dealerSpecial = isDoubleAce(game.dealer)
-    ? 'Xì bàng'
-    : isBlackjack(game.dealer)
-    ? 'Xì dách'
-    : isFiveCard(game.dealer)
-    ? 'Ngũ linh'
-    : null;
-
-  let reward = 0;
-  let result = '';
-
-  if (playerSpecial && !dealerSpecial) {
-    reward = game.bet * 3;
-    result = `<:rice:1396919696581857290> ~ **${playerSpecial}**, bạn thắng ${(reward - game.bet).toLocaleString()} coke!`;
-  } else if (!playerSpecial && dealerSpecial) {
-    result = `<:rice:1396919696581857290> ~ Dealer thắng với **${dealerSpecial}**!`;
-  } else if (playerSpecial && dealerSpecial) {
-    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
-    if (rank[playerSpecial] > rank[dealerSpecial]) {
-      reward = game.bet * 3;
-      result = `**${playerSpecial}**, bạn thắng!`;
-    } else if (rank[playerSpecial] < rank[dealerSpecial]) {
-      result = `<:rice:1396919696581857290> ~ Dealer thắng với **${dealerSpecial}**!`;
-    } else {
-      reward = game.bet;
-      result = `<:rice:1396919696581857290> ~ Hoà! cả hai cùng có **${playerSpecial}**.`;
-    }
-  } else if (playerPoint > 21 && dealerPoint > 21) {
-    reward = game.bet;
-    result = '<:rice:1396919696581857290> ~ Hoà! cả hai đều ngoắc.';
-  } else if (playerPoint > 21) {
-    result = `<:rice:1396919696581857290> ~ Bạn mất ${game.bet.toLocaleString()} coke!`;
-  } else if (dealerPoint > 21 || playerPoint > dealerPoint) {
-    reward = game.bet * 2;
-    result = `<:rice:1396919696581857290> ~ Bạn thắng ${(reward - game.bet).toLocaleString()} coke!`;
-  } else if (playerPoint < dealerPoint) {
-    result = `<:rice:1396919696581857290> ~ Bạn mất ${game.bet.toLocaleString()} coke!`;
+  if (game) {
+    const playerHand = game.player
+    const dealerHand = game.dealer
+    const deck = game.deck
+    await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
   } else {
-    reward = game.bet;
-    result = '<:rice:1396919696581857290> ~ Hoà, không mất coke.';
+    const deck = createNewDeck()
+    const playerHand = [drawNewCard(deck), drawNewCard(deck)]
+    const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
+    await decBalance(userId, bet, betAmount)
+    await addGame(userId, betAmount, playerHand, dealerHand, deck)
+    await blackjack(message, playerHand, dealerHand, deck, betAmount)
+  }
+}
+
+const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => {
+  const embed = generateEmbed(message.author, playerHand, dealerHand, bet)
+  const filter = (reaction, user) =>
+    [hitEmoji, standEmoji].includes(reaction.emoji.name) && user.id === message.author.id
+  if (resume) {
+    embed.footer.text = `🎲 ~ Tiếp tục ván bài cũ!`
   }
 
-  if (reward > 0) await adjustCoke(user.id, reward);
+  const sentMessage = await message.reply({ embeds: [embed] })
+  await sentMessage.react(hitEmoji)
+  await sentMessage.react(standEmoji)
 
-  const net = reward - game.bet;
-  const embedColor = net > 0 ? 'Green' : net < 0 ? 'Red' : 'Grey';
+  const collector = sentMessage.createReactionCollector({ filter, time: 60000 })
 
-  const embed = new EmbedBuilder()
-    .setColor(embedColor)
-    .setDescription(
-      `**Dealer** [${dealerPoint}]\n${bjUtil.getCardDisplay(game.dealer)}\n\n` +
-        `**${message.author.username}** [${playerPoint}]\n${bjUtil.getCardDisplay(game.player)}\n\n` +
-        `${result}`
-    )
-    .setAuthor({
-      name: `${message.author.username}, bạn cược ${game.bet.toLocaleString()} để chơi xì dách`,
-      iconURL: message.author.displayAvatarURL({ dynamic: true, size: 1024 }),
-    });
+  collector.on('collect', async (react) => {
+    if (react.emoji.name === hitEmoji) {
+      await handleHit(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector)
+    } else {
+      collector.stop()
+      await handleStand(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector)
+    }
+    await react.users.remove(message.author.id).catch(() => {})
+  })
 
-  await game.message.edit({ embeds: [embed] });
-  games.delete(user.id);
-  await Game.deleteOne({ userId: user.id }).catch(() => {});
+  collector.on('end', (_, reason) => {
+    if (reason == 'time')
+      sentMessage.edit('**⏱ |** Đã hết thời gian tương tác. Nhập `!bj` để tiếp tục!')
+  })
+}
+
+const generateEmbed = (author, playerHand, dealerHand, bet, hide=true, result, embedColor) => {
+  let color = 8240363
+  let footer = '🎲 ~ Game đang diễn ra'
+  let dealerValue = getBestHandValue(dealerHand, hide)
+  if (result) {
+    color = embedColor
+    footer = '🎲 ~ ' + result
+  } else {
+    dealerValue += '+?'
+  }
+
+  const embed = {
+    color: color,
+    footer: { text: footer },
+    author: {
+      name: `${author.username}, bạn cược ${bet} coke để chơi xì dách`,
+      iconURL: author.displayAvatarURL({ dynamic: true, size: 1024 })
+    },
+    fields: [
+      {
+        name: `Dealer [${dealerValue}]`,
+        value: formatCards(dealerHand, hide),
+        inline: true
+      },
+      {
+        name: `${author.username} [${getBestHandValue(playerHand)}]`,
+        value: formatCards(playerHand),
+        inline: true
+      },
+    ]
+  }
+  return embed
+}
+
+const handleHit = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
+  const card = drawNewCard(deck)
+  playerHand.push(card)
+  if (isBust(playerHand) || isFiveCard(playerHand)) {
+    collector.stop()
+    await handleStand(message, author,playerHand, dealerHand, deck, bet, collector)
+  } else {
+    await updateGame(author.id, card)
+    await message.edit({
+      embeds: [generateEmbed(author, playerHand, dealerHand, bet)]
+    })
+  }
+}
+
+const handleStand = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
+  while (!isDealerStay(dealerHand) && dealerHand.length < 5) {
+    card = drawNewCard(deck)
+    dealerHand.push(card)
+  }
+
+  const playerValue = getBestHandValue(playerHand)
+  const dealerValue = getBestHandValue(dealerHand)
+
+  const playerSpecial = isDoubleAce(playerHand)
+    ? 'Xì bàng'
+    : isBlackJack(playerHand)
+    ? 'Xì dách'
+    : isFiveCard(playerHand)
+    ? 'Ngũ linh'
+    : null
+  const dealerSpecial = isDoubleAce(dealerHand)
+    ? 'Xì bàng'
+    : isBlackJack(dealerHand)
+    ? 'Xì dách'
+    : isFiveCard(dealerHand)
+    ? 'Ngũ linh'
+    : null
+
+  let reward = 0
+  if (playerSpecial && !dealerSpecial) {
+    reward = bet * 3
+    result = `**${playerSpecial}**, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+  } else if (!playerSpecial && dealerSpecial) {
+    result = `Dealer thắng với **${dealerSpecial}**!`
+  } else if (playerSpecial && dealerSpecial) {
+    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 }
+    if (rank[playerSpecial] > rank[dealerSpecial]) {
+      reward = bet * 3
+      result = `**${playerSpecial}**, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+    } else if (rank[playerSpecial] < rank[dealerSpecial]) {
+      result = `Dealer thắng với **${dealerSpecial}**!`
+    } else {
+      reward = bet
+      result = `Hoà! cả hai cùng có **${playerSpecial}**, bạn nhận lại ${bet} coke!`
+    }
+  } else if (isBust(playerHand) && isBust(dealerHand)) {
+    reward = bet
+    result = `Hoà! Cả hai đều ngoắc, bạn nhận lại ${bet} coke!`
+  } else if (isBust(playerHand)) {
+    result = `Bạn mất ${bet.toLocaleString()} coke!`
+  } else if (isBust(dealerHand) || playerValue > dealerValue) {
+    reward = bet * 2
+    result = `Bạn thắng ${(reward - bet).toLocaleString()} coke!`
+  } else if (playerValue < dealerValue) {
+    result = `Bạn mất ${bet.toLocaleString()} coke!`
+  } else {
+    reward = bet
+    result = `Hoà, bạn nhận lại ${bet} coke!`
+  }
+  if (reward > 0) await incBalance(author.id, reward)
+  const net = reward - bet
+  const color = net > 0 ? 65280 : net < 0 ? 16711680 : 6381923
+  await message.edit({
+    embeds: [generateEmbed(author, playerHand, dealerHand, bet, false, result, color)]
+  })
+  await delGame(author.id)
 }
