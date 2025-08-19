@@ -1,30 +1,15 @@
+const BlackJackGame = require('../models/BlackJackGame')
+const config = require('../data/config.json')
+const emoji = config.emoji
+
 const suits = ['s', 'c', 'h', 'd']; 
 const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 
-const emojiMap = {
-  'As': '<:as:1387744476281180313>', '2s': '<:2s:1387744451430187070>', '3s': '<:3s:1387744435680448662>', '4s': '<:4s:1387744421117689856>',
-  '5s': '<:5s:1387744401672900678>', '6s': '<:6s:1387744380521025536>', '7s': '<:7s:1387744359654621246>', '8s': '<:8s:1387744343573663795>',
-  '9s': '<:9s:1387744328021049454>', '10s': '<:10s:1387744315001802839>', 'Js': '<:js:1387744943573045398>', 'Qs': '<:qs:1387744494937444524>',
-  'Ks': '<:ks:1387744640362352691>',
-  'Ah': '<:ah:1387747538479743046>', '2h': '<:2h:1387747525225615400>', '3h': '<:3h:1387747508582879283>', '4h': '<:4h:1387747459903651840>',
-  '5h': '<:5h:1387747409458892801>', '6h': '<:6h:1387747390613618870>', '7h': '<:7h:1387747372792283176>', '8h': '<:8h:1387747352663818290>',
-  '9h': '<:9h:1387747330081427456>', '10h': '<:10h:1387747310833897543>', 'Jh': '<:jh:1387747288411017328>', 'Qh': '<:qh:1387747094860927130>',
-  'Kh': '<:kh:1387747075621650523>',
-  'Ad': '<:ad:1387746016584798270>', '2d': '<:2d:1387745830768873482>', '3d': '<:3d:1387745813966618754>', '4d': '<:4d:1387745735952433286>',
-  '5d': '<:5d:1387745682936303626>', '6d': '<:6d:1387745631421861898>', '7d': '<:7d:1387745614917537792>', '8d': '<:8d:1387745588853997811>',
-  '9d': '<:9d:1387745073038622780>', '10d': '<:10d:1387745042197647493>', 'Jd': '<:jd:1387745008970629201>', 'Qd': '<:qd:1387744996974919791>',
-  'Kd': '<:kd:1387744979916558456>',
-  'Ac': '<:ac:1387747044189405204>', '2c': '<:2c:1387747027382702190>', '3c': '<:3c:1387747001067900958>', '4c': '<:4c:1387746985385398335>',
-  '5c': '<:5c:1387746960357986344>', '6c': '<:6c:1387746942880055397>', '7c': '<:7c:1387746915462156288>', '8c': '<:8c:1387746898496065649>',
-  '9c': '<:9c:1387746869517746338>', '10c': '<:10c:1387746849154269266>', 'Jc': '<:jc:1387746825771159592>', 'Qc': '<:qc:1387746055717781626>',
-  'Kc': '<:kc:1387746037199798445>'
-};
-
-function createDeck() {
+const createNewDeck = () => {
   const deck = [];
   for (const suit of suits) {
     for (const rank of ranks) {
-      deck.push({ name: `${rank}${suit}`, value: getValue(rank) });
+      deck.push(`${rank}${suit}`);
     }
   }
   return shuffle(deck);
@@ -38,13 +23,7 @@ function shuffle(array) {
   return array;
 }
 
-function getValue(rank) {
-  if (rank === 'A') return 11;
-  if (['K', 'Q', 'J'].includes(rank)) return 10;
-  return parseInt(rank);
-}
-
-function drawCard(deck) {
+function drawNewCard(deck) {
   if (!deck || !Array.isArray(deck)) {
     throw new Error("Deck không hợp lệ");
   }
@@ -54,30 +33,84 @@ function drawCard(deck) {
   return deck.pop();
 }
 
-function calcHandValue(hand) {
-  const validCards = hand.filter(c => c && typeof c.name === 'string' && typeof c.value === 'number');
-  let total = validCards.reduce((sum, card) => sum + card.value, 0);
-  let aces = validCards.filter(c => c.name.startsWith('A')).length;
+const getBestHandValue = (hand, hide=false) => {
+  let value = 0
+  let aceCount = 0
+  let cards = JSON.parse(JSON.stringify(hand))
+  if (hide) cards.pop()
 
-  while (total > 21 && aces > 0) {
-    total -= 10;
-    aces--;
+  for (const card of cards) {
+    const cardVal = card.slice(0, -1)
+
+    if (isNaN(cardVal)) {
+      if (cardVal === 'A') {
+        aceCount++
+        value += 11
+      } else {
+        value += 10
+      }
+    } else {
+      value += +cardVal
+    }
   }
-  return total;
+
+  while (value > 21 && aceCount > 0) {
+    value -= 10
+    aceCount--
+  }
+  return value
 }
 
-function getCardDisplay(hand) {
-  return hand.map(c => emojiMap[c.name] || c.name).join(' ');
+const formatCards = (hand, hide=false) => {
+  let cards = [...hand]
+  if (hide) {
+    cards = cards.map((c, idx) => idx === 0 ? emoji[c] : emoji.back)
+  } else {
+    cards = cards.map(c => emoji[c])
+  }
+  return cards.join(' ')
 }
 
-function backEmoji() {
-  return '<:back:1387747558880841789>';
+const getGame = async userId => await BlackJackGame.findOne({ userId })
+
+const addGame = async (userId, bet, player, dealer, deck) => {
+  await BlackJackGame.insertOne({ userId, bet, player, dealer, deck })
 }
+
+const delGame = async userId => {
+  await BlackJackGame.deleteOne({ userId })
+}
+
+const updateGame = async (userId, card) => {
+  await BlackJackGame.updateOne(
+    { userId },
+    { $push: { player: card } }
+  )
+}
+
+const isBust = cards => getBestHandValue(cards) > 21
+
+const isBlackJack = cards => getBestHandValue(cards) === 21 && cards.length == 2
+
+const isDoubleAce = cards =>
+  cards.length === 2 && cards.every((c) => c.startsWith('A'))
+
+const isFiveCard = cards => getBestHandValue(cards) <= 21 && cards.length == 5
+
+const isDealerStay = cards => getBestHandValue(cards) > 16
 
 module.exports = {
-  createDeck,
-  drawCard,
-  calcHandValue,
-  getCardDisplay,
-  backEmoji
+  createNewDeck,
+  drawNewCard,
+  getBestHandValue,
+  formatCards,
+  getGame,
+  addGame,
+  delGame,
+  updateGame,
+  isBust,
+  isBlackJack,
+  isDoubleAce,
+  isFiveCard,
+  isDealerStay
 };

@@ -1,6 +1,11 @@
 const User = require('../../models/User');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+const {
+  setCooldown,
+  getRemainingCooldown,
+  notifyCooldown
+} = require('../../utils/cooldown');
 const { formatVNCurrency } = require('../../utils/format');
+const config = require('../../data/config.json')
 
 const allowedViewers = ['745950731638407210', '858603090289623100'];
 
@@ -10,21 +15,8 @@ module.exports = {
     const userId = message.author.id;
     const cooldownSeconds = 3;
 
-    const remaining = getRemainingCooldown(userId, 'cash');
-    if (remaining > 0) {
-      const msg = await message.reply(`⏱ | Vui lòng chờ **${remaining}** giây`);
-      let count = remaining;
-      const interval = setInterval(() => {
-        count--;
-        if (count <= 0) {
-          clearInterval(interval);
-          msg.delete().catch(() => {});
-        } else {
-          msg.edit(`⏱ | Vui lòng chờ **${count}** giây`);
-        }
-      }, 1000);
-      return;
-    }
+    const cooldown = getRemainingCooldown(userId, 'cash');
+    if (cooldown > 0) return notifyCooldown(message, cooldown)
 
     let targetId = userId;
     let displayName = message.member.displayName;
@@ -44,7 +36,7 @@ module.exports = {
     if (!user) user = await User.create({ userId: targetId });
 
     const formatted = formatVNCurrency(user.coke);
-    const emoji = '<:money2:1403773842832359505>';
+    const emoji = config.emoji.money;
 
     await message.reply(`${emoji} | **${displayName}**, hiện có **${formatted} coke**.`);
 

@@ -195,6 +195,51 @@ const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
 	}
 }
 
+const decBalance = async (userId, bet, betAmount) => {
+	const msg = await _decBalance(userId, betAmount)
+	if (msg && bet === 'all') {
+		const user = await User.findOne({ userId })
+		await decBalance(userId, bet, user.coke)
+	} else if (msg) {
+		throw Error(msg)
+	}
+}
+
+const _decBalance = async (userId, amount) => {
+	const session = await mongoose.startSession()
+	session.startTransaction()
+
+	try {
+		await User.updateOne(
+			{ userId },
+			{ $inc: { coke: -amount } }
+		).session(session)
+
+		const user = await User.findOne(
+			{ userId }
+		).session(session)
+
+		if (user.coke < 0) {
+			throw Error('❌ | Bạn không có đủ coke để cược!')
+		}
+		await session.commitTransaction()
+		return null
+	} catch(error) {
+		console.log(error)
+		await session.abortTransaction()
+		return error.message
+	} finally {
+		session.endSession()
+	}
+}
+
+const incBalance = async (userId, amount) => {
+	await User.updateOne(
+		{ userId },
+		{ $inc: { coke: amount } }
+	)
+}
+
 const daysToMilliseconds = days => days * 24 * 60 * 60 * 1000
 
 const removeTransferalOlderThanNDays = async (userId, n) => {
@@ -224,6 +269,14 @@ const removeReceiptOlderThanNDays = async (userId, n) => {
 }
 
 module.exports = {
-	getOrCreateUser, withdrawCmd, sendCmd, giveCmd, removeTransferalOlderThanNDays,
-	removeReceiptOlderThanNDays, computeInterest, validateBeforeGiving
+	getOrCreateUser,
+	withdrawCmd,
+	sendCmd,
+	giveCmd,
+	removeTransferalOlderThanNDays,
+	removeReceiptOlderThanNDays,
+	computeInterest,
+	validateBeforeGiving,
+	decBalance,
+	incBalance
 }
