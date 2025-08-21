@@ -36,6 +36,8 @@ module.exports = {
       const cooldown = getRemainingCooldown(userId, 's')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
 
+      await decBalance(userId, amount)
+
       let rslots = [];
       const rand = (await random(1, 1000)) / 10;
       let win = 0;
@@ -70,8 +72,6 @@ module.exports = {
 
       const betText = `${currency} ${amount.toLocaleString()}`
       const winText = win > 0 ? `${currency} ${win.toLocaleString()}` : 'cức...'
-
-      await decBalance(userId, bet, amount)
 
       let machine =
         '**  `___SLOTS___`**\n` ` ' +

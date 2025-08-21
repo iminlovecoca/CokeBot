@@ -20,34 +20,26 @@ module.exports = {
   async execute(message, args) {
     try {
       const userId = message.author.id
-      let bet = args.length == 0 ? 'min' : args[0]
-      const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+      const game = await getGame(userId)
 
       const cooldown = getRemainingCooldown(userId, 'rps')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
       setCooldown(userId, 'rps', cooldownSeconds)
 
-      await initGame(message, bet, betAmount)
+      if (game) {
+        await rps(message, game.bet, game.botChoice)
+      } else {
+        let bet = args.length == 0 ? 'min' : args[0]
+        const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+        botChoice = choices[Math.floor(Math.random() * choices.length)]
+        await decBalance(userId, betAmount)
+        await addGame(userId, betAmount, botChoice)
+        await rps(message, betAmount, botChoice)
+      }
     } catch (error) {
       return await message.reply(error.message)
     }
-  },
-}
-
-const initGame = async (message, bet, betAmount) => {
-  const userId = message.author.id
-  const game = await getGame(userId)
-  let botChoice
-
-  if (game) {
-    botChoice = game.botChoice
-    betAmount = game.bet
-  } else {
-  	botChoice = choices[Math.floor(Math.random() * choices.length)]
-    await decBalance(userId, bet, betAmount)
-    await addGame(userId, betAmount, botChoice)
   }
-  await rps(message, betAmount, botChoice)
 }
 
 const rps = async (message, bet, botChoice) => {

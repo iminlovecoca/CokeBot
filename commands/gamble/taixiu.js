@@ -34,16 +34,16 @@ module.exports = {
       } else {
         choice = args[0].toLowerCase();
         if (['tai', 't'].includes(choice)) {
-          choice = 't'
+          choice = 'tai'
         } else if (['xiu', 'x'].includes(choice)) {
-          choice = 'x'
+          choice = 'xiu'
         } else {
           return await message.reply('❌ | Bạn phải chọn `tai` hoặc `xiu`!')
         }
       }
       let bet = args.length == 1 ? 'min' : args[1]
       const amount = await getBetAmount(bet, userId, maxBet, minBet)
-      await decBalance(userId, bet, amount)
+      await decBalance(userId, amount)
 
       // Random xúc xắc
       let rolls = [];
