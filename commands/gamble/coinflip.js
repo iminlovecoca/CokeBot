@@ -38,7 +38,7 @@ module.exports = {
 			if (cooldown > 0) return notifyCooldown(message, cooldown)
 			setCooldown(userId, 'coinflip', cooldownSeconds)
 
-			await decBalance(userId, bet, betAmount)
+			await decBalance(userId, betAmount)
 			let text = `**${message.member?.displayName || message.author.username}** đã cược **${betAmount.toLocaleString()} coke** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n`
 			text += `Đồng xu quay... ${emoji.coinflip}`;
 			const msg = await message.reply(text);
@@ -49,7 +49,7 @@ module.exports = {
 				let resultEmoji = rand === 'h' ? emoji.heads : emoji.tails;
 				let resultText = `Đồng xu quay... ${resultEmoji} và bạn `;
 				if (win) {
-					await incBalance(userId, betAmount)
+					await incBalance(userId, 2 * betAmount)
 					resultText += `thắng **${(betAmount * 2).toLocaleString()} coke**!!`;
 				} else {
 					resultText += 'thua hết... :c';

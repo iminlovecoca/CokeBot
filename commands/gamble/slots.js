@@ -11,7 +11,7 @@ const emoji = config.emoji
 
 const maxBet = 250000
 const minBet = 1
-const cooldownSeconds = 15
+const cooldownSeconds = 0
 
 const moving = emoji.slots_rolling
 const currency = emoji.money
@@ -35,6 +35,8 @@ module.exports = {
 
       const cooldown = getRemainingCooldown(userId, 's')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
+
+      await decBalance(userId, amount)
 
       let rslots = [];
       const rand = (await random(1, 1000)) / 10;
@@ -70,8 +72,6 @@ module.exports = {
 
       const betText = `${currency} ${amount.toLocaleString()}`
       const winText = win > 0 ? `${currency} ${win.toLocaleString()}` : 'cức...'
-
-      await decBalance(userId, bet, amount)
 
       let machine =
         '**  `___SLOTS___`**\n` ` ' +
