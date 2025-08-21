@@ -11,7 +11,7 @@ const emoji = config.emoji
 
 const maxBet = 250000
 const minBet = 1
-const cooldownSeconds = 0
+const cooldownSeconds = 15
 
 const moving = emoji.slots_rolling
 const currency = emoji.money
