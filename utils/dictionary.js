@@ -1,7 +1,6 @@
 // utils/dictionary.js
 
 const words = [
-  // 1000 từ trung bình đến khó
   'phát minh', 'chiến lược', 'nghiệp vụ', 'hành lang', 'tác nghiệp', 'đột phá',
   'kịch bản', 'tuyên truyền', 'khái niệm', 'định hướng', 'bối cảnh', 'biện pháp',
   'trách nhiệm', 'thẩm quyền', 'chính sách', 'nền tảng', 'tổ chức', 'sáng kiến',

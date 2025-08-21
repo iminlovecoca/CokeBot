@@ -35,36 +35,30 @@ module.exports = {
   execute: async (message, args) => {
     try {
       const userId = message.author.id
-      let bet = args.length == 0 ? 'min' : args[0]
-      const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+      const game = await getGame(userId)
 
       const cooldown = getRemainingCooldown(userId, 'bj')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
       setCooldown(userId, 'bj', cooldownSeconds)
 
-      await initGame(message, bet, betAmount)
+      if (game) {
+        const playerHand = game.player
+        const dealerHand = game.dealer
+        const deck = game.deck
+        await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
+      } else {
+        let bet = args.length == 0 ? 'min' : args[0]
+        const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+        const deck = createNewDeck()
+        const playerHand = [drawNewCard(deck), drawNewCard(deck)]
+        const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
+        await decBalance(userId, betAmount)
+        await addGame(userId, betAmount, playerHand, dealerHand, deck)
+        await blackjack(message, playerHand, dealerHand, deck, betAmount)
+      }
     } catch(error) {
       return await message.reply(error.message)
     }
-  }
-}
-
-const initGame = async (message, bet, betAmount) => {
-  const userId = message.author.id
-  const game = await getGame(userId)
-
-  if (game) {
-    const playerHand = game.player
-    const dealerHand = game.dealer
-    const deck = game.deck
-    await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
-  } else {
-    const deck = createNewDeck()
-    const playerHand = [drawNewCard(deck), drawNewCard(deck)]
-    const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
-    await decBalance(userId, bet, betAmount)
-    await addGame(userId, betAmount, playerHand, dealerHand, deck)
-    await blackjack(message, playerHand, dealerHand, deck, betAmount)
   }
 }
 
@@ -100,11 +94,11 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
 
 const generateEmbed = (author, playerHand, dealerHand, bet, hide=true, result, embedColor) => {
   let color = 8240363
-  let footer = '🎲 ~ Game đang diễn ra'
+  let footer = '🎲 ~ Ván bài đang diễn ra'
   let dealerValue = getBestHandValue(dealerHand, hide)
   if (result) {
     color = embedColor
-    footer = '🎲 ~ ' + result
+    footer = `🎲 ~ ${result}`
   } else {
     dealerValue += '+?'
   }
@@ -173,19 +167,19 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
   let reward = 0
   if (playerSpecial && !dealerSpecial) {
     reward = bet * 3
-    result = `**${playerSpecial}**, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+    result = `${playerSpecial}, bạn thắng ${(reward - bet).toLocaleString()} coke!`
   } else if (!playerSpecial && dealerSpecial) {
-    result = `Dealer thắng với **${dealerSpecial}**!`
+    result = `Dealer thắng với ${dealerSpecial}!`
   } else if (playerSpecial && dealerSpecial) {
     const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 }
     if (rank[playerSpecial] > rank[dealerSpecial]) {
       reward = bet * 3
-      result = `**${playerSpecial}**, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+      result = `${playerSpecial}, bạn thắng ${(reward - bet).toLocaleString()} coke!`
     } else if (rank[playerSpecial] < rank[dealerSpecial]) {
-      result = `Dealer thắng với **${dealerSpecial}**!`
+      result = `Dealer thắng với ${dealerSpecial}!`
     } else {
       reward = bet
-      result = `Hoà! cả hai cùng có **${playerSpecial}**, bạn nhận lại ${bet} coke!`
+      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại ${bet} coke!`
     }
   } else if (isBust(playerHand) && isBust(dealerHand)) {
     reward = bet
