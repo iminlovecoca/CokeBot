@@ -1,7 +1,7 @@
-const User = require('../../models/User');
-const Drop = require('../../models/Drop');
+const { getOrCreateUser, decBalance } = require('../../utils/userUtil');
+const { getDrop, addDrop, delDrop } = require('../../utils/dropUtil');
 const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-const { adjustCoke } = require('../../utils/cokeManager');
+const config = require('../../data/config.json');
 
 module.exports = {
   name: 'drop',
@@ -11,6 +11,7 @@ module.exports = {
     const amount = parseInt(args[0]);
     const userId = message.author.id;
     const channelId = message.channel.id;
+    const duration = 10000;
 
     if (isNaN(amount) || amount <= 0) {
       return message.reply('❌ | Vui lòng nhập số coke hợp lệ để thả.');
@@ -21,13 +22,13 @@ module.exports = {
       return message.reply(`⏱ | Bạn cần chờ **${remaining} giây** trước khi dùng lại \`!drop\`.`);
     }
 
-    const ongoingDrop = await Drop.findOne({ channelId });
+    const ongoingDrop = await getDrop(channelId);
     if (ongoingDrop) {
       return message.reply('⚠️ | Đã có một drop đang diễn ra trong kênh này! Hãy chờ drop kết thúc trước khi thả mới.');
     }
 
-    const user = await User.findOne({ userId });
-    if (!user || user.coke < amount) {
+    const user = await getOrCreateUser(userId);
+    if (user.coke < amount) {
       return message.reply('❌ | Bạn không đủ coke để thả!');
     }
 
@@ -35,22 +36,12 @@ module.exports = {
     const tax = Math.floor(amount * taxRate);
     const finalAmount = amount - tax;
 
-    await adjustCoke(userId, -amount);
-
-    await Drop.findOneAndUpdate(
-      { channelId },
-      {
-        channelId,
-        amount: finalAmount,
-        picked: [],
-        expireAt: new Date(Date.now() + 10_000)
-      },
-      { upsert: true }
-    );
+    await decBalance(userId, amount);
+    await addDrop(channelId, finalAmount, duration);
 
     setCooldown(userId, 'drop', 10);
 
-    const taxNote = `<:money2:1403773842832359505> **| ${tax.toLocaleString()} coke** (5%) đã bị đánh thuế.\n`;
+    const taxNote = `${config.emoji.money} **| ${tax.toLocaleString()} coke** (5%) đã bị đánh thuế.\n`;
 
     const dropMsg = await message.channel.send(
       `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${finalAmount.toLocaleString()} coke** xuống!\n` +
@@ -64,8 +55,8 @@ module.exports = {
 
       if (remainingSec <= 0) {
         clearInterval(interval);
-        await Drop.deleteOne({ channelId });
-        dropMsg.edit('<:money2:1403773842832359505> **|** Drop đã kết thúc!').catch(() => {});
+        await delDrop(channelId);
+        dropMsg.edit(`${config.emoji.money} **|** Drop đã kết thúc!`).catch(() => {});
       } else {
         dropMsg.edit(
           `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${finalAmount.toLocaleString()} coke**!\n` +

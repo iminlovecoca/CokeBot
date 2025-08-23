@@ -10,7 +10,7 @@ const {
   Partials
 } = require('discord.js');
 const User = require('./models/User');
-const { adjustCoke } = require('./utils/cokeManager');
+const { incBalance } = require('./utils/userUtil')
 
 // const { ensureSymbols, tickPrices, resetDailyVolume, listQuotes } = require('./utils/stockEngine');
 
@@ -70,7 +70,7 @@ client.on('messageCreate', async message => {
       user.xp -= getXpNeeded(user.level);
       user.level++;
       const reward = 10000 + (user.level - 1) * 5000;
-      await adjustCoke(userId, reward);
+      await incBalance(userId, reward);
       totalReward += reward;
       leveledUp = true;
     }

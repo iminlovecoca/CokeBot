@@ -56,7 +56,7 @@ module.exports = {
         await addGame(userId, betAmount, playerHand, dealerHand, deck)
         await blackjack(message, playerHand, dealerHand, deck, betAmount)
       }
-    } catch(error) {
+    } catch (error) {
       return await message.reply(error.message)
     }
   }
@@ -83,7 +83,7 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
       collector.stop()
       await handleStand(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector)
     }
-    await react.users.remove(message.author.id).catch(() => {})
+    await react.users.remove(message.author.id).catch(() => { })
   })
 
   collector.on('end', (_, reason) => {
@@ -92,7 +92,7 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
   })
 }
 
-const generateEmbed = (author, playerHand, dealerHand, bet, hide=true, result, embedColor) => {
+const generateEmbed = (author, playerHand, dealerHand, bet, hide = true, result, embedColor) => {
   let color = 8240363
   let footer = '🎲 ~ Ván bài đang diễn ra'
   let dealerValue = getBestHandValue(dealerHand, hide)
@@ -131,7 +131,7 @@ const handleHit = async (message, author, playerHand, dealerHand, deck, bet, col
   playerHand.push(card)
   if (isBust(playerHand) || isFiveCard(playerHand)) {
     collector.stop()
-    await handleStand(message, author,playerHand, dealerHand, deck, bet, collector)
+    await handleStand(message, author, playerHand, dealerHand, deck, bet, collector)
   } else {
     await updateGame(author.id, card)
     await message.edit({
@@ -148,21 +148,23 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
 
   const playerValue = getBestHandValue(playerHand)
   const dealerValue = getBestHandValue(dealerHand)
+  // const dealerValue = ['4h', '3d', '7h', 'Js']
+  // const playerValue = ['6s', 'Kc']
 
   const playerSpecial = isDoubleAce(playerHand)
     ? 'Xì bàng'
     : isBlackJack(playerHand)
-    ? 'Xì dách'
-    : isFiveCard(playerHand)
-    ? 'Ngũ linh'
-    : null
+      ? 'Xì dách'
+      : isFiveCard(playerHand)
+        ? 'Ngũ linh'
+        : null
   const dealerSpecial = isDoubleAce(dealerHand)
     ? 'Xì bàng'
     : isBlackJack(dealerHand)
-    ? 'Xì dách'
-    : isFiveCard(dealerHand)
-    ? 'Ngũ linh'
-    : null
+      ? 'Xì dách'
+      : isFiveCard(dealerHand)
+        ? 'Ngũ linh'
+        : null
 
   let reward = 0
   if (playerSpecial && !dealerSpecial) {

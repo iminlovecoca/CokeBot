@@ -1,5 +1,5 @@
-const Drop = require('../../models/Drop');
-const { adjustCoke } = require('../../utils/cokeManager');
+const { getDrop, updateDrop } = require('../../utils/dropUtil');
+const { incBalance } = require('../../utils/userUtil')
 
 module.exports = {
   name: 'pickup',
@@ -9,7 +9,7 @@ module.exports = {
     const userId = message.author.id;
     const channelId = message.channel.id;
 
-    const drop = await Drop.findOne({ channelId });
+    const drop = await getDrop(channelId);
     if (!drop || drop.amount <= 0) {
       return message.reply('❌ | Không có coke nào để nhặt.');
     }
@@ -21,11 +21,8 @@ module.exports = {
     const percent = Math.floor(Math.random() * 31) + 10;
     const amount = Math.max(1, Math.floor(drop.amount * percent / 100));
 
-    drop.amount -= amount;
-    drop.picked.push(userId);
-    await drop.save();
-
-    await adjustCoke(userId, amount);
+    await updateDrop(channelId, amount, userId)
+    await incBalance(userId, amount);
 
     return message.channel.send(
       `:credit_card: | **${message.member.displayName}** đã nhặt được **${amount.toLocaleString()} coke** từ sàn!`
