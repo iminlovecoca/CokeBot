@@ -37,7 +37,10 @@ const getBestHandValue = (hand, hide=false) => {
   let value = 0
   let aceCount = 0
   let cards = JSON.parse(JSON.stringify(hand))
-  if (hide) cards.pop()
+
+  if (hide && cards.length > 1) {
+    cards = cards.slice(0, 1)
+  }
 
   for (const card of cards) {
     const cardVal = card.slice(0, -1)
@@ -63,7 +66,7 @@ const getBestHandValue = (hand, hide=false) => {
 
 const formatCards = (hand, hide=false) => {
   let cards = [...hand]
-  if (hide) {
+  if (hide && cards.length > 1) {
     cards = cards.map((c, idx) => idx === 0 ? emoji[c] : emoji.back)
   } else {
     cards = cards.map(c => emoji[c])

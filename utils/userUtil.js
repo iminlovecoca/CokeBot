@@ -21,7 +21,7 @@ const getOrCreateUser = async userId => {
 
 const withdrawCmd = async (userId, amount) => {
 	const session = await mongoose.startSession()
-  	session.startTransaction()
+	session.startTransaction()
 
 	try {
 		const user = await User.findOne({ userId }).session(session)
@@ -35,18 +35,18 @@ const withdrawCmd = async (userId, amount) => {
 		).session(session)
 		await session.commitTransaction()
 		return `✅ | Đã rút **${formatVNCurrency(amount)} coke** từ ngân hàng.`
-	} catch(error) {
+	} catch (error) {
 		await session.abortTransaction()
 		return 'Lỗi giao dịch, vui lòng thử lại.'
 	} finally {
 		session.endSession()
 	}
-	
+
 }
 
 const sendCmd = async (userId, amount) => {
 	const session = await mongoose.startSession()
-  	session.startTransaction()
+	session.startTransaction()
 
 	try {
 		const user = await User.findOne({ userId }).session(session)
@@ -54,13 +54,13 @@ const sendCmd = async (userId, amount) => {
 			return '❌ | Số tiền không hợp lệ hoặc bạn không đủ coke!'
 		}
 
-  		await User.updateOne(
+		await User.updateOne(
 			{ userId, coke: { $gte: amount } },
 			{ $inc: { bank: amount, coke: -amount } }
 		).session(session)
 		await session.commitTransaction()
 		return `✅ | Đã gửi **${formatVNCurrency(amount)} coke** vào ngân hàng.`
-	} catch(error) {
+	} catch (error) {
 		await session.abortTransaction()
 		return '❌ | Lỗi giao dịch, vui lòng thử lại.'
 	} finally {
@@ -71,7 +71,7 @@ const sendCmd = async (userId, amount) => {
 const computeInterest = async (userId, daysPassed) => {
 	const DAILY_INTEREST_RATE = 0.0001096
 	const session = await mongoose.startSession()
-  	session.startTransaction()
+	session.startTransaction()
 
 	try {
 		const user = await User.findOne({ userId }).session(session)
@@ -91,7 +91,7 @@ const computeInterest = async (userId, daysPassed) => {
 		).session(session)
 		await session.commitTransaction()
 		return interest
-	} catch(error) {
+	} catch (error) {
 		await session.abortTransaction()
 		return 0
 	} finally {
@@ -119,13 +119,13 @@ const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
 		return '❌ | Người nhận hiện đang bị cấm sử dụng bot.'
 	}
 
-	const senderPerDayLimit = sender.vipLevel ? Infinity : getPerDayLimit(sender.level || 1)[0]
-	const receiverPerDayLimit = receiver.vipLevel ? Infinity : getPerDayLimit(receiver.level || 1)[1]
-	const senderPerTransLimit = sender.vipLevel ? Infinity : getPerTransactionLimit(sender.level || 1)
-	const senderDailyGive = sender.dailyGive || {}
-	const receiverDailyReceive = receiver.dailyReceive || {}
-	const sentToday = senderDailyGive[dateKey] || 0
-	const receivedToday = receiverDailyReceive[dateKey] || 0
+	const senderPerDayLimit = sender.vipLevel ? Infinity : getPerDayLimit(sender.level || 1)[0];
+	const receiverPerDayLimit = receiver.vipLevel ? Infinity : getPerDayLimit(receiver.level || 1)[1];
+	const senderPerTransLimit = sender.vipLevel ? Infinity : getPerTransactionLimit(sender.level || 1);
+	const senderDailyGive = sender.dailyGive || {};
+	const receiverDailyReceive = receiver.dailyReceive || {};
+	const sentToday = senderDailyGive[dateKey] || 0;
+	const receivedToday = receiverDailyReceive[dateKey] || 0;
 
 	if (amount > senderPerTransLimit) {
 		return `❌ | Vượt giới hạn giao dịch (**${senderPerTransLimit.toLocaleString()}**).`
@@ -162,7 +162,7 @@ const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
 		await User.updateOne(
 			{ userId: senderId },
 			{
-				$inc: { coke: -amount},
+				$inc: { coke: -amount },
 				$push: {
 					transferHistory: {
 						to: receiverId,
@@ -175,7 +175,7 @@ const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
 		await User.updateOne(
 			{ userId: receiverId },
 			{
-				$inc: { coke: amount},
+				$inc: { coke: amount },
 				$push: {
 					receiveHistory: {
 						from: senderId,
@@ -187,7 +187,7 @@ const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
 		).session(session)
 		await session.commitTransaction()
 		return true
-	} catch(error) {
+	} catch (error) {
 		await session.abortTransaction()
 		return false
 	} finally {

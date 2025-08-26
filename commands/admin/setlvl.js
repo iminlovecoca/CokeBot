@@ -5,7 +5,7 @@ module.exports = {
   description: '📌 Chỉ owner mới có thể chỉnh cấp độ người chơi (có thể set/gỡ VIP)',
 
   async execute(message, args) {
-    const ownerId = '745950731638407210'; // 🔒 ID của bạn
+    const ownerId = '745950731638407210';
     if (message.author.id !== ownerId) {
       return message.reply('❌ | Lệnh này chỉ dành cho **owner**.');
     }
@@ -24,14 +24,13 @@ module.exports = {
       { new: true, upsert: true }
     );
 
-    // Cộng coke dựa trên cấp
     let cokeReward = 0;
     for (let i = 1; i <= level; i++) {
       cokeReward += 10000 + (i - 1) * 5000;
     }
-    userData.coke = cokeReward;
 
-    // Gán hoặc gỡ VIP
+    userData.coke += cokeReward;
+
     let vipNote = '';
     if (flag?.toLowerCase() === 'vip') {
       userData.vipLevel = 1;
@@ -45,7 +44,7 @@ module.exports = {
 
     return message.reply(
       `✅ | Đã đặt **level ${level}** cho **${target.username}**.\n` +
-      `💰 Cộng **${cokeReward.toLocaleString()} coke**.\n` +
+      `💰 Thưởng thêm **${cokeReward.toLocaleString()} coke** (cộng vào số dư hiện tại).\n` +
       (vipNote ? vipNote : '')
     );
   }

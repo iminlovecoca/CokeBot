@@ -21,14 +21,17 @@ module.exports = {
     if (message.author.bot) return;
 
     const userId = message.author.id;
-    const user = await User.findOne({ userId }) || await User.create({ userId, level: 1, xp: 0, coke: 0 });
+    const user = await User.findOne({ userId }) || await User.create({
+      userId, level: 1, xp: 0, coke: 0, dailyXp: 0
+    });
 
     const now = new Date();
     const today = now.toISOString().split('T')[0];
+    const last = user.lastXpReset ? user.lastXpReset.toISOString().split('T')[0] : null;
 
-    if (user.lastXpDate !== today) {
+    if (last !== today) {
       user.dailyXp = 0;
-      user.lastXpDate = today;
+      user.lastXpReset = now; 
     }
 
     if (user.dailyXp >= 3000) return;

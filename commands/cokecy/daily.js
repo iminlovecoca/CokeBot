@@ -37,7 +37,6 @@ module.exports = {
         return message.reply(`⏱ | **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
       }
 
-      // Cập nhật chuỗi streak
       let streak = 1;
       if (lastClaim) {
         const daysDiff = today.diff(lastClaim, 'days').days;
@@ -46,19 +45,15 @@ module.exports = {
         }
       }
 
-      // Tính thưởng
       let reward = 1000 + streak * 500;
       if (reward > 10000) reward = 10000;
 
-      // Thêm coke và xp (tối đa 3000 XP/ngày)
       user.coke += reward;
       user.dailyStreak = streak;
       user.lastDaily = new Date();
 
-      // Tính XP (500 XP mỗi lần nhận)
       user.xp = Math.min((user.xp || 0) + 500, 3000);
 
-      // Check lên cấp
       const getXpNeeded = level => 2000 + (level - 1) * 1000;
       while (user.xp >= getXpNeeded(user.level)) {
         user.xp -= getXpNeeded(user.level);

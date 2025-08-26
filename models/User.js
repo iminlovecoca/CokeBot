@@ -4,13 +4,17 @@ const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   coke: { type: Number, default: 0 },
   cokeGC: { type: Number, default: 0 },
+  
   dailyStreak: { type: Number, default: 0 },
   lastDaily: { type: Date },
   level: { type: Number, default: 1 },
   xp: { type: Number, default: 0 },
   dailyXp: { type: Number, default: 0 },
   lastXpReset: { type: Date },
+
   vipLevel: { type: Number, default: 0 },
+  vipUntil: { type: Date, default: null },
+
   bannedUntil: { type: Number, default: null },
   bannedReason: { type: String, default: '' },
 

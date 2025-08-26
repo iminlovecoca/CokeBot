@@ -54,9 +54,9 @@ client.on('messageCreate', async message => {
   });
 
   const now = new Date().toISOString().split('T')[0];
-  if (user.lastXpDate !== now) {
+  if (user.lastXpReset !== now) {
     user.dailyXp = 0;
-    user.lastXpDate = now;
+    user.lastXpReset = now;
   }
 
   if (user.dailyXp < 3000) {
@@ -169,14 +169,14 @@ client.once('ready', async () => {
  });
 
 mongoose.connect(process.env.MONGO_URL, {
-  maxPoolSize: 100,
-  minPoolSize: 10,
-  connectTimeoutMS: 20000,
-  serverSelectionTimeoutMS: 20000,
-  socketTimeoutMS: 60000,
-  heartbeatFrequencyMS: 5000,
+  maxPoolSize: 50,                 
+  minPoolSize: 5,                     
+  socketTimeoutMS: 0,              
+  connectTimeoutMS: 20000,         
+  serverSelectionTimeoutMS: 20000, 
+  heartbeatFrequencyMS: 10000,     
   retryWrites: true,
-  family: 4
+  family: 4   
 })
   .then(() => {
     console.log('✅ Đã kết nối MongoDB');
