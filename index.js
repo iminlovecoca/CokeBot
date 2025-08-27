@@ -9,10 +9,6 @@ const {
   Events,
   Partials
 } = require('discord.js');
-const User = require('./models/User');
-const { incBalance } = require('./utils/userUtil')
-
-// const { ensureSymbols, tickPrices, resetDailyVolume, listQuotes } = require('./utils/stockEngine');
 
 const client = new Client({
   intents: [
@@ -40,49 +36,32 @@ const loadCommands = (dir) => {
 };
 loadCommands(path.join(__dirname, 'commands'));
 
+const loadEvents = (dir) => {
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+  for (const file of files) {
+    const fullPath = path.join(dir, file.name);
+    if (file.isDirectory()) {
+      loadEvents(fullPath);
+    } else if (file.name.endsWith('.js')) {
+      const event = require(fullPath);
+      if (event.name) {
+        if (event.once) {
+          client.once(event.name, (...args) => event.execute(...args));
+        } else {
+          client.on(event.name, (...args) => event.execute(...args));
+        }
+      }
+    }
+  }
+};
+loadEvents(path.join(__dirname, 'events'));
+
 const PREFIX = '!';
 
 client.on('messageCreate', async message => {
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
-
   if (mongoose.connection.readyState !== 1) return;
-
-  const userId = message.author.id;
-  let user = await User.findOne({ userId }) || await User.create({
-    userId, level: 1, xp: 0, coke: 0, dailyXp: 0
-  });
-
-  const now = new Date().toISOString().split('T')[0];
-  if (user.lastXpReset !== now) {
-    user.dailyXp = 0;
-    user.lastXpReset = now;
-  }
-
-  if (user.dailyXp < 3000) {
-    const gain = Math.min(10, 3000 - user.dailyXp);
-    user.xp += gain;
-    user.dailyXp += gain;
-
-    let leveledUp = false;
-    let totalReward = 0;
-    while (user.xp >= getXpNeeded(user.level)) {
-      user.xp -= getXpNeeded(user.level);
-      user.level++;
-      const reward = 10000 + (user.level - 1) * 5000;
-      await incBalance(userId, reward);
-      totalReward += reward;
-      leveledUp = true;
-    }
-
-    await user.save();
-
-    if (leveledUp) {
-      message.channel.send(
-        `🎉 **<@${userId}> lên cấp!**\n📈 Level: \`${user.level}\`\n💰 Thưởng: \`${totalReward.toLocaleString()} coke\`\n🏅 Rank: ${getRankEmoji(user.level)}`
-      ).catch(() => {});
-    }
-  }
 
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const cmd = args.shift().toLowerCase();
@@ -104,7 +83,6 @@ client.on(Events.InteractionCreate, async interaction => {
 
     try {
       await command.slashExecute(interaction, client.betData);
-      if (interaction.commandName === 'bet') saveBetData();
     } catch (err) {
       console.error('❌ Slash command error:', err);
       if (!interaction.replied) {
@@ -137,46 +115,17 @@ client.once('ready', async () => {
     activities: [{ name: 'Coke 🎲', type: 0 }],
     status: 'online'
   });
-
-//   try {
-//     await ensureSymbols();
-//     console.log('✅ Dữ liệu chứng khoán sẵn sàng.');
-
-//     setInterval(async () => {
-//       await tickPrices();
-
-//       const quotes = await listQuotes();
-//       let msg = '📊 **Thị trường chứng khoán:**\n';
-//       quotes.forEach(q => {
-//         const diff = (q.price - (q.prevPrice || q.price));
-//         const emoji = diff > 0 ? ':up:' : diff < 0 ? '🔻' : ':up:';
-//         const perc = diff === 0 ? 0 : ((diff / (q.prevPrice || q.price)) * 100).toFixed(2);
-//         msg += `• ${q.symbol} — ${q.price.toLocaleString()} (${emoji} ${diff.toFixed(2)} | ${perc}%)\n`;
-//       });
-//       console.log(msg);
-//     }, 30 * 1000);
-
-//     const now = new Date();
-//     const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime();
-//     setTimeout(function dailyReset() {
-//       resetDailyVolume();
-//       setTimeout(dailyReset, 24 * 60 * 60 * 1000);
-//     }, msToMidnight);
-
-//   } catch (err) {
-//     console.error('❌ Stock engine init error:', err);
-//   }
- });
+});
 
 mongoose.connect(process.env.MONGO_URL, {
-  maxPoolSize: 50,                 
-  minPoolSize: 5,                     
-  socketTimeoutMS: 0,              
-  connectTimeoutMS: 20000,         
-  serverSelectionTimeoutMS: 20000, 
-  heartbeatFrequencyMS: 10000,     
+  maxPoolSize: 50,
+  minPoolSize: 5,
+  socketTimeoutMS: 0,
+  connectTimeoutMS: 20000,
+  serverSelectionTimeoutMS: 20000,
+  heartbeatFrequencyMS: 10000,
   retryWrites: true,
-  family: 4   
+  family: 4
 })
   .then(() => {
     console.log('✅ Đã kết nối MongoDB');
@@ -190,17 +139,3 @@ mongoose.connect(process.env.MONGO_URL, {
 mongoose.connection.on('disconnected', () => {
   console.warn('⚠️ Mất kết nối MongoDB, đang thử kết nối lại...');
 });
-
-function getXpNeeded(level) {
-  return 2000 + (level - 1) * 1000;
-}
-
-function getRankEmoji(level) {
-  if (level >= 61) return '<:Ancient:1390024806535004333>';
-  if (level >= 51) return '<:Legendary:1390024789279772833>';
-  if (level >= 41) return '<:Mysthic:1390024772200567026>';
-  if (level >= 31) return '<:Epic:1390024749517770832>';
-  if (level >= 21) return '<:Rare:1390024624380706916>';
-  if (level >= 11) return '<:Uncommon:1390024590347997245>';
-  return '<:Common:1390024512774471902>';
-}

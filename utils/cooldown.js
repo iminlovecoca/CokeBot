@@ -14,16 +14,28 @@ const getRemainingCooldown = (userId, commandName) => {
 
 const notifyCooldown = (message, cooldown) => {
   return message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để chơi lại.`).then((msg) => {
-      let remaining = cooldown;
-    const interval = setInterval(() => {
-      remaining--
-      if (remaining > 0) msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để chơi lại.`)
-      else {
-        clearInterval(interval)
-        msg.delete().catch(() => {})
+    let remaining = cooldown;
+    const interval = setInterval(async () => {
+      remaining--;
+      if (remaining > 0) {
+        try {
+          const channel = await message.client.channels.fetch(msg.channelId).catch(() => null);
+          if (!channel) return clearInterval(interval);
+
+          const freshMsg = await channel.messages.fetch(msg.id).catch(() => null);
+          if (!freshMsg) return clearInterval(interval);
+
+          await freshMsg.edit(`⏱ | Vui lòng chờ **${remaining}s** để chơi lại.`);
+        } catch {
+          clearInterval(interval);
+        }
+      } else {
+        clearInterval(interval);
+        msg.delete().catch(() => {});
       }
-    }, 1000)
-  })
-}
+    }, 1000);
+  });
+};
+
 
 module.exports = { setCooldown, getRemainingCooldown, notifyCooldown };

@@ -148,8 +148,6 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
 
   const playerValue = getBestHandValue(playerHand)
   const dealerValue = getBestHandValue(dealerHand)
-  // const dealerValue = ['4h', '3d', '7h', 'Js']
-  // const playerValue = ['6s', 'Kc']
 
   const playerSpecial = isDoubleAce(playerHand)
     ? 'Xì bàng'
@@ -166,42 +164,60 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
         ? 'Ngũ linh'
         : null
 
-  let reward = 0
+  let reward = 0;
+  let net = 0;
+  let result = '';
+
   if (playerSpecial && !dealerSpecial) {
-    reward = bet * 3
-    result = `${playerSpecial}, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+    reward = bet * 3;
+    net = reward - bet;
+    result = `${playerSpecial}, bạn thắng **${net.toLocaleString()} coke**!`;
   } else if (!playerSpecial && dealerSpecial) {
-    result = `Dealer thắng với ${dealerSpecial}!`
+    reward = 0;
+    net = -bet;
+    result = `Dealer thắng với ${dealerSpecial}! Bạn mất **${bet.toLocaleString()} coke**.`;
   } else if (playerSpecial && dealerSpecial) {
-    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 }
+    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
     if (rank[playerSpecial] > rank[dealerSpecial]) {
-      reward = bet * 3
-      result = `${playerSpecial}, bạn thắng ${(reward - bet).toLocaleString()} coke!`
+      reward = bet * 3;
+      net = reward - bet;
+      result = `${playerSpecial}, bạn thắng **${net.toLocaleString()} coke**!`;
     } else if (rank[playerSpecial] < rank[dealerSpecial]) {
-      result = `Dealer thắng với ${dealerSpecial}!`
+      reward = 0;
+      net = -bet;
+      result = `Dealer thắng với ${dealerSpecial}! Bạn mất **${bet.toLocaleString()} coke**.`;
     } else {
-      reward = bet
-      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại ${bet} coke!`
+      reward = bet;
+      net = 0;
+      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại **${bet.toLocaleString()} coke**.`;
     }
   } else if (isBust(playerHand) && isBust(dealerHand)) {
-    reward = bet
-    result = `Hoà! Cả hai đều ngoắc, bạn nhận lại ${bet} coke!`
+    reward = bet;
+    net = 0;
+    result = `Hoà! Cả hai đều ngoắc, bạn nhận lại **${bet.toLocaleString()} coke**.`;
   } else if (isBust(playerHand)) {
-    result = `Bạn mất ${bet.toLocaleString()} coke!`
+    reward = 0;
+    net = -bet;
+    result = `Bạn mất **${bet.toLocaleString()} coke**!`;
   } else if (isBust(dealerHand) || playerValue > dealerValue) {
-    reward = bet * 2
-    result = `Bạn thắng ${(reward - bet).toLocaleString()} coke!`
+    reward = bet * 2;
+    net = reward - bet;
+    result = `Bạn thắng **${net.toLocaleString()} coke**!`;
   } else if (playerValue < dealerValue) {
-    result = `Bạn mất ${bet.toLocaleString()} coke!`
+    reward = 0;
+    net = -bet;
+    result = `Bạn mất **${bet.toLocaleString()} coke**!`;
   } else {
-    reward = bet
-    result = `Hoà, bạn nhận lại ${bet} coke!`
+    reward = bet;
+    net = 0;
+    result = `Hoà, bạn nhận lại **${bet.toLocaleString()} coke**.`;
   }
-  if (reward > 0) await incBalance(author.id, reward)
-  const net = reward - bet
-  const color = net > 0 ? 65280 : net < 0 ? 16711680 : 6381923
+
+  if (reward > 0) await incBalance(author.id, reward);
+
+  const color = net > 0 ? 0x00FF00 : net < 0 ? 0xFF0000 : 0x615F5F;
   await message.edit({
     embeds: [generateEmbed(author, playerHand, dealerHand, bet, false, result, color)]
-  })
+  });
   await delGame(author.id)
 }

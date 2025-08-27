@@ -37,10 +37,7 @@ const getBestHandValue = (hand, hide=false) => {
   let value = 0
   let aceCount = 0
   let cards = JSON.parse(JSON.stringify(hand))
-
-  if (hide && cards.length > 1) {
-    cards = cards.slice(0, 1)
-  }
+  if (hide) cards.pop()
 
   for (const card of cards) {
     const cardVal = card.slice(0, -1)
@@ -66,7 +63,7 @@ const getBestHandValue = (hand, hide=false) => {
 
 const formatCards = (hand, hide=false) => {
   let cards = [...hand]
-  if (hide && cards.length > 1) {
+  if (hide) {
     cards = cards.map((c, idx) => idx === 0 ? emoji[c] : emoji.back)
   } else {
     cards = cards.map(c => emoji[c])
@@ -77,7 +74,7 @@ const formatCards = (hand, hide=false) => {
 const getGame = async userId => await BlackJackGame.findOne({ userId })
 
 const addGame = async (userId, bet, player, dealer, deck) => {
-  await BlackJackGame.insertOne({ userId, bet, player, dealer, deck })
+  await BlackJackGame.create({ userId, bet, player, dealer, deck })
 }
 
 const delGame = async userId => {
@@ -100,7 +97,12 @@ const isDoubleAce = cards =>
 
 const isFiveCard = cards => getBestHandValue(cards) <= 21 && cards.length == 5
 
-const isDealerStay = cards => getBestHandValue(cards) > 16
+const isDealerStay = cards => {
+  const value = getBestHandValue(cards)
+  if (value === 17 && cards.some(c => c.startsWith('A'))) return false
+  return value >= 17
+}
+
 
 module.exports = {
   createNewDeck,

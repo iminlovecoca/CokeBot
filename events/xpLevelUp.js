@@ -31,14 +31,14 @@ module.exports = {
 
     if (last !== today) {
       user.dailyXp = 0;
-      user.lastXpReset = now; 
+      user.lastXpReset = now;
     }
 
     if (user.dailyXp >= 3000) return;
 
     const gain = Math.min(10, 3000 - user.dailyXp);
-    user.xp += gain;
-    user.dailyXp += gain;
+    user.xp += gain;        
+    user.dailyXp += gain;  
 
     let leveledUp = false;
     let oldLevel = user.level;
