@@ -21,6 +21,7 @@ const cooldownSeconds = 15
 
 module.exports = {
   name: 'tx',
+  aliases: ['taixiu', 'doden'],
   description: '🎲 Chơi tài xỉu bằng coke!',
   async execute(message, args) {
     try {

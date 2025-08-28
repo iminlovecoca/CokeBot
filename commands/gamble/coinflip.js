@@ -14,12 +14,14 @@ const cooldownSeconds = 15
 
 module.exports = {
 	name: 'cf',
+	aliases: ['coinflip', 'coin', 'flip'],
 	description: 'Chơi coinflip!',
 	async execute(message, args) {
 		try {
 			const userId = message.author.id;
 			let choice
 			if (args.length == 0) {
+				choice = 'h';
 				return await message.reply('❌ | Cú pháp: `!cf <heads/tails> <số tiền|all>`')
 			} else {
 				choice = args[0].toLowerCase();
@@ -56,7 +58,7 @@ module.exports = {
 				}
 				await msg.edit(`**${message.member?.displayName || message.author.username}** đã cược **${betAmount.toLocaleString()} coke** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n${resultText}`)
 			}, 2000)
-		} catch(error) {
+		} catch (error) {
 			return await message.reply(error.message)
 		}
 	}

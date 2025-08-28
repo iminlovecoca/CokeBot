@@ -1,6 +1,9 @@
 const danisaEmoji = '<:danisa:1404057793920635043>';
-const ownerId = '745950731638407210';
+const ownerId = process.env.OWNER_ID;
 const User = require('../../models/User');
+const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+
+const COOLDOWN = 300;
 
 module.exports = {
   name: 'cookie',
@@ -8,22 +11,37 @@ module.exports = {
   async execute(message, args) {
     const authorId = message.author.id;
 
-    // Lấy user author hoặc tạo mới
+    if (authorId !== ownerId) {
+      const cd = getRemainingCooldown(authorId, 'cookie');
+      if (cd > 0) {
+        const minutes = Math.floor(cd / 60);
+        const seconds = cd % 60;
+        let timeString = '';
+        if (minutes > 0) timeString += `${minutes} phút`;
+        if (minutes > 0 && seconds > 0) timeString += ' ';
+        if (seconds > 0) timeString += `${seconds} giây`;
+
+        return message.reply(`⏱ | Bạn phải chờ **${timeString}** để dùng lại lệnh.`);
+      }
+    }
+
     let authorUser = await User.findOne({ userId: authorId });
     if (!authorUser) {
-      authorUser = new User({ userId: authorId, luck: 0, cookie: 0 });
+      authorUser = new User({ userId: authorId, cookie: 0 });
+      await authorUser.save();
     }
 
     if (!args.length) {
-      // tự thưởng 1 bánh Dasani
       authorUser.cookie += 1;
       await authorUser.save();
+
+      if (authorId !== ownerId) setCooldown(authorId, 'cookie', COOLDOWN);
+
       return message.reply(
-        `${danisaEmoji} | Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**` 
+        `${danisaEmoji} | Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**`
       );
     }
 
-    // Nếu có args, user tag người khác
     const userMention = message.mentions.users.first();
     if (!userMention) {
       return message.reply('❌ Bạn phải tag một người dùng hợp lệ!');
@@ -33,30 +51,31 @@ module.exports = {
       return message.reply('❌ Bạn không thể tặng bánh **Danisa** cho chính mình!');
     }
 
-    // Kiểm tra owner để bypass kiểm tra bánh
     if (authorId !== ownerId) {
       if (authorUser.cookie <= 0) {
-        return message.reply('❌ Bạn không còn chiếc bánh Danisa nào để tặng!');
+        return message.reply('❌ Bạn không còn hộp **Danisa** nào để tặng!');
       }
-      // Trừ 1 bánh khi tặng
       authorUser.cookie -= 1;
       await authorUser.save();
     }
 
-    // Thưởng 1 bánh Dasani cho người được tặng
     let targetUser = await User.findOne({ userId: userMention.id });
     if (!targetUser) {
       targetUser = new User({ userId: userMention.id, luck: 0, cookie: 0 });
+      await targetUser.save();
     }
+
     targetUser.cookie += 1;
     await targetUser.save();
 
-    // Lấy displayName của người được tặng và người tặng
-    const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
+    const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
+
+    if (authorId !== ownerId) setCooldown(authorId, 'cookie', COOLDOWN);
 
     return message.channel.send(
-      `${danisaEmoji} **| ${targetDisplayName}**, bạn vừa nhận được 1 hộp **Danisa** từ **${authorDisplayName}**. Hãy thưởng thức nhé~ ${danisaEmoji}`
+      `${danisaEmoji} **| ${authorDisplayName}** vừa tặng 1 hộp **Danisa** cho **${targetDisplayName}**!\n` +
+      `📦 Bạn còn lại **${authorUser.cookie} hộp**.`
     );
   }
 };

@@ -5,6 +5,7 @@ const config = require('../../data/config.json');
 
 module.exports = {
   name: 'drop',
+  aliases: ['drp'],
   description: 'Thả coke xuống kênh để người khác nhặt',
 
   async execute(message, args) {

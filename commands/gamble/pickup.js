@@ -3,6 +3,7 @@ const { incBalance } = require('../../utils/userUtil')
 
 module.exports = {
   name: 'pickup',
+  aliases: ['pk', 'earn', 'claim'],
   description: 'Nhặt coke ngẫu nhiên từ sàn (1 lần/đợt)',
 
   async execute(message) {

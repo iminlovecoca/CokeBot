@@ -26,6 +26,7 @@ const symbols = [
 
 module.exports = {
   name: 's',
+  aliases: ['slot', 'slots'],
   description: 'Chơi slot để kiếm coke!',
   async execute(message, args) {
     try {

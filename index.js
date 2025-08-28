@@ -15,7 +15,8 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildPresences
   ],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User]
 });
@@ -65,14 +66,16 @@ client.on('messageCreate', async message => {
 
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const cmd = args.shift().toLowerCase();
-  const command = client.commands.get(cmd);
+  const command = client.commands.get(cmd)
+    || client.commands.find(c => c.aliases && c.aliases.includes(cmd));
   if (!command) return;
+
 
   try {
     await command.execute(message, args);
   } catch (err) {
     console.error(`❌ Lỗi lệnh !${cmd}:`, err);
-    message.reply('❌ | Đã xảy ra lỗi khi thực thi lệnh.').catch(() => {});
+    message.reply('❌ | Đã xảy ra lỗi khi thực thi lệnh.').catch(() => { });
   }
 });
 
@@ -86,7 +89,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } catch (err) {
       console.error('❌ Slash command error:', err);
       if (!interaction.replied) {
-        interaction.reply({ content: '❌ Lỗi khi xử lý slash command.', flags: 64 }).catch(() => {});
+        interaction.reply({ content: '❌ Lỗi khi xử lý slash command.', flags: 64 }).catch(() => { });
       }
     }
   }

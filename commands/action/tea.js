@@ -1,6 +1,7 @@
-const teaEmoji = '🍵'; // hoặc emoji bạn thích
-const ownerId = '745950731638407210';
+const teaEmoji = '🍵'; 
+const ownerId = process.env.OWNER_ID;
 const User = require('../../models/User');
+const { setCooldown, getRemainingCooldown, notifyCooldown } = require('../../utils/cooldown');
 
 module.exports = {
   name: 'tea',
@@ -8,22 +9,29 @@ module.exports = {
   async execute(message, args) {
     const authorId = message.author.id;
 
-    // Lấy user author hoặc tạo mới
+    if (authorId !== ownerId) {
+      const cd = getRemainingCooldown(authorId, 'tea');
+      if (cd > 0) {
+        return notifyCooldown(message, cd);
+      }
+    }
+
     let authorUser = await User.findOne({ userId: authorId });
     if (!authorUser) {
-      authorUser = new User({ userId: authorId, luck: 0, tea: 0 });
+      authorUser = new User({ userId: authorId, tea: 0 });
     }
 
     if (!args.length) {
-      // tự thưởng 1 trà
       authorUser.tea += 1;
       await authorUser.save();
+
+      if (authorId !== ownerId) setCooldown(authorId, 'tea', 300);
+
       return message.reply(
         `${teaEmoji} | Bạn vừa tự thưởng cho mình 1 tách **trà**! Giờ bạn có **${authorUser.tea} tách**.`
       );
     }
 
-    // Nếu có args, user tag người khác
     const userMention = message.mentions.users.first();
     if (!userMention) {
       return message.reply('❌ Bạn phải tag một người dùng hợp lệ!');
@@ -33,17 +41,14 @@ module.exports = {
       return message.reply('❌ Bạn không thể tặng trà cho chính mình khi đã dùng tag!');
     }
 
-    // Kiểm tra owner để bypass kiểm tra trà
     if (authorId !== ownerId) {
       if (authorUser.tea <= 0) {
         return message.reply('❌ Bạn không còn tách trà nào để tặng!');
       }
-      // Trừ 1 trà khi tặng
       authorUser.tea -= 1;
       await authorUser.save();
     }
 
-    // Thưởng 2 trà cho người được tặng
     let targetUser = await User.findOne({ userId: userMention.id });
     if (!targetUser) {
       targetUser = new User({ userId: userMention.id, luck: 0, tea: 0 });
@@ -51,12 +56,14 @@ module.exports = {
     targetUser.tea += 1;
     await targetUser.save();
 
-    // Lấy displayName của người được tặng và người tặng
-    const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
+    const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
+
+    if (authorId !== ownerId) setCooldown(authorId, 'tea', 300);
 
     return message.channel.send(
-      `${teaEmoji} **| ${targetDisplayName}**, bạn vừa nhận được 1 tách trà nóng từ **${authorDisplayName}**. Hãy thư giãn và thưởng thức nhé~ ${teaEmoji}`
+      `${teaEmoji} **| ${authorDisplayName}** vừa tặng 1 tách trà cho **${targetDisplayName}**!\n` +
+      `Bạn còn lại **${authorUser.tea} tách trà**.`
     );
   }
 };

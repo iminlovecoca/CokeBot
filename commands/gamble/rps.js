@@ -16,6 +16,7 @@ const cooldownSeconds = 15
 
 module.exports = {
   name: 'rps',
+  aliases: ['keobuabao', 'kbb'],
   description: 'Chơi kéo-búa-bao có cược, react emoji để chơi',
   async execute(message, args) {
     try {

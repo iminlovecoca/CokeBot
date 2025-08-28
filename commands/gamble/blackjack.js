@@ -31,6 +31,7 @@ const cooldownSeconds = 15
 
 module.exports = {
   name: 'bj',
+  aliases: ['blackjack', '21'],
   description: 'Chơi bài xì dách (blackjack) bằng emoji',
   execute: async (message, args) => {
     try {
@@ -171,46 +172,46 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
   if (playerSpecial && !dealerSpecial) {
     reward = bet * 3;
     net = reward - bet;
-    result = `${playerSpecial}, bạn thắng **${net.toLocaleString()} coke**!`;
+    result = `${playerSpecial}, bạn thắng ${net.toLocaleString()} coke!`;
   } else if (!playerSpecial && dealerSpecial) {
     reward = 0;
     net = -bet;
-    result = `Dealer thắng với ${dealerSpecial}! Bạn mất **${bet.toLocaleString()} coke**.`;
+    result = `Dealer thắng với ${dealerSpecial}! Bạn mất ${bet.toLocaleString()} coke.`;
   } else if (playerSpecial && dealerSpecial) {
     const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
     if (rank[playerSpecial] > rank[dealerSpecial]) {
       reward = bet * 3;
       net = reward - bet;
-      result = `${playerSpecial}, bạn thắng **${net.toLocaleString()} coke**!`;
+      result = `${playerSpecial}, bạn thắng ${net.toLocaleString()} coke!`;
     } else if (rank[playerSpecial] < rank[dealerSpecial]) {
       reward = 0;
       net = -bet;
-      result = `Dealer thắng với ${dealerSpecial}! Bạn mất **${bet.toLocaleString()} coke**.`;
+      result = `Dealer thắng với ${dealerSpecial}! Bạn mất ${bet.toLocaleString()} coke.`;
     } else {
       reward = bet;
       net = 0;
-      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại **${bet.toLocaleString()} coke**.`;
+      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại ${bet.toLocaleString()} coke.`;
     }
   } else if (isBust(playerHand) && isBust(dealerHand)) {
     reward = bet;
     net = 0;
-    result = `Hoà! Cả hai đều ngoắc, bạn nhận lại **${bet.toLocaleString()} coke**.`;
+    result = `Hoà! Cả hai đều ngoắc, bạn nhận lại ${bet.toLocaleString()} coke.`;
   } else if (isBust(playerHand)) {
     reward = 0;
     net = -bet;
-    result = `Bạn mất **${bet.toLocaleString()} coke**!`;
+    result = `Bạn mất ${bet.toLocaleString()} coke!`;
   } else if (isBust(dealerHand) || playerValue > dealerValue) {
     reward = bet * 2;
     net = reward - bet;
-    result = `Bạn thắng **${net.toLocaleString()} coke**!`;
+    result = `Bạn thắng ${net.toLocaleString()} coke!`;
   } else if (playerValue < dealerValue) {
     reward = 0;
     net = -bet;
-    result = `Bạn mất **${bet.toLocaleString()} coke**!`;
+    result = `Bạn mất ${bet.toLocaleString()} coke!`;
   } else {
     reward = bet;
     net = 0;
-    result = `Hoà, bạn nhận lại **${bet.toLocaleString()} coke**.`;
+    result = `Hoà, bạn nhận lại ${bet.toLocaleString()} coke.`;
   }
 
   if (reward > 0) await incBalance(author.id, reward);

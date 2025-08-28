@@ -28,7 +28,6 @@ module.exports = {
       userData = await User.create({ userId: user.id, level: 1, xp: 0, coke: 0 });
     }
 
-    // XP mỗi ngày
     const today = new Date().toISOString().split('T')[0];
     if (userData.lastXpDate !== today) {
       userData.dailyXp = 0;
@@ -52,11 +51,9 @@ module.exports = {
     const xpNeed = getXpNeeded(userData.level);
     const xpPercent = userData.xp / xpNeed;
 
-    // Canvas setup
     const canvas = createCanvas(700, 250);
     const ctx = canvas.getContext('2d');
 
-    // Load background
     const bgPath = path.join(__dirname, '../assets/backgrounds/bg1.png');
     const bg = await loadImage(bgPath);
     ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
@@ -97,7 +94,6 @@ module.exports = {
     ctx.fillText(message.member?.displayName || user.username, textStartX, currentY);
 
 
-    // Thanh XP
     const barY = currentY + 10;
     const barLength = 300;
     ctx.fillStyle = '#888';
@@ -111,7 +107,6 @@ module.exports = {
     ctx.fillStyle = '#ffffff';
     ctx.fillText(xpText, textStartX + barLength + 10, barY + 9);
 
-    // Các dòng info
     currentY += 45;
     ctx.font = '18px Arial';
     ctx.fillText(`🏆 Level: ${userData.level}`, textStartX, currentY);
@@ -122,7 +117,6 @@ module.exports = {
     currentY += 25;
     ctx.fillText(`💰 Coke: ${userData.coke.toLocaleString()}`, textStartX, currentY);
 
-    // Gửi ảnh
     const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'profile.png' });
     return message.reply({ files: [attachment] });
   }

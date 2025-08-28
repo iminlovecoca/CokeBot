@@ -6,22 +6,20 @@ const activeGames = new Map();
 
 module.exports = {
   name: 'gw',
+  aliases: ['guessword', 'gheptu'],
   description: 'Trò chơi ghép chữ từ chữ bị đảo',
 
   async execute(message) {
     const channelId = message.channel.id;
 
-    // Kiểm tra cooldown
     if (cooldown.has(channelId)) {
       return message.reply('⚠️ Chờ 5 giây để bắt đầu trò chơi mới!');
     }
 
-    // Kiểm tra xem game đang chạy trong kênh chưa
     if (activeGames.has(channelId)) {
       return message.reply('⚠️ Trò chơi đang diễn ra trong kênh này.');
     }
 
-    // Khóa trước để tránh race condition
     activeGames.set(channelId, { answer: null, message: null, ended: false });
 
     const word = getRandomWord();
@@ -41,7 +39,6 @@ module.exports = {
       if (m.content.toLowerCase() === game.answer.toLowerCase()) {
         game.ended = true;
 
-        // Tính phần thưởng theo số từ
         const wordCount = game.answer.trim().split(/\s+/).length;
         let reward = 2000;
         if (wordCount === 2) reward = 2500;

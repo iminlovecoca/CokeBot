@@ -11,6 +11,9 @@ const allowedViewers = ['745950731638407210', '858603090289623100'];
 
 module.exports = {
   name: 'cash',
+  aliases: ['money', 'balance'],
+  description: 'Xem số coke hiện có của bạn hoặc người khác',
+
   async execute(message, args) {
     const userId = message.author.id;
     const cooldownSeconds = 3;

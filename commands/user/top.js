@@ -26,13 +26,13 @@ module.exports = {
     let topUsers = [], unit = '', getValue;
     let title = `Bảng Xếp Hạng`;
     const guildName = message.guild?.name || 'Máy chủ';
+    const guild = message.guild;
 
     switch (type) {
       case 'stock':
         title = `Top Chứng Khoán - ${guildName}`;
         unit = 'MV';
 
-        // Lấy danh sách holdings còn cổ phiếu
         const holdings = await StockHolding.find({ qty: { $gt: 0 } });
         const symbols = await StockSymbol.find({});
         const priceMap = {};
@@ -46,7 +46,6 @@ module.exports = {
           userMap[h.userId] += mv;
         }
 
-        // Chuyển thành array, sort theo MV
         topUsers = Object.entries(userMap)
           .map(([userId, totalMV]) => ({ userId, totalMV }))
           .sort((a, b) => b.totalMV - a.totalMV)
@@ -96,6 +95,14 @@ module.exports = {
     if (!topUsers || topUsers.length === 0)
       return message.reply('❌ | Không có dữ liệu người chơi nào.');
 
+    topUsers = topUsers.filter(u => {
+      const member = guild.members.cache.get(u.userId);
+      return !!member;
+    });
+
+    if (topUsers.length === 0)
+      return message.reply('❌ | Không có thành viên nào trong server để hiển thị.');
+
     const userRankIndex = topUsers.findIndex(u => u.userId === authorId);
     const userValue = userRankIndex >= 0 ? getValue(topUsers[userRankIndex]) : null;
     const userRank = userRankIndex >= 0 ? userRankIndex + 1 : null;
@@ -110,8 +117,8 @@ module.exports = {
 
     for (let i = 0; i < Math.min(limit, topUsers.length); i++) {
       const u = topUsers[i];
-      const fetchedUser = await message.client.users.fetch(u.userId).catch(() => null);
-      const username = fetchedUser ? `@${fetchedUser.username}` : 'Người chơi đã rời';
+      const member = guild.members.cache.get(u.userId);
+      const username = member ? `@${member.user.username}` : 'Ẩn danh';
       const value = getValue(u).toLocaleString();
 
       if (type === 'rank') {

@@ -8,6 +8,7 @@ const {
 
 module.exports = {
   name: 'give',
+  aliases: ['send'],
   description: 'Chuyển coke cho người khác (ghi lại lịch sử chuyển nhận)',
 
   async execute(message, args) {

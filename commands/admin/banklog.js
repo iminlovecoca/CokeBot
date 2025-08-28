@@ -2,57 +2,42 @@ const User = require('../../models/User');
 
 module.exports = {
   name: 'banklog',
-  description: '📊 Xem lịch sử bank và chuyển tiền (chỉ dành cho owner)',
-  async execute(message, args) {
-    const ownerId = '745950731638407210'; // Thay bằng ID Discord của bạn
+  description: '📊 Xem top số dư ngân hàng (chỉ dành cho owner)',
+
+  async execute(message) {
+    const ownerId = '745950731638407210';
     if (message.author.id !== ownerId) {
       return message.reply('❌ | Chỉ **owner** mới được dùng lệnh này.');
     }
 
-    const type = args[0]?.toLowerCase();
+    const users = await User.find({ bank: { $gt: 0 } })
+      .sort({ bank: -1 })
+      .limit(30);
 
-    if (!type || !['bank', 'give'].includes(type)) {
-      return message.reply(
-        '❓ | Cú pháp:\n' +
-        '`!banklog bank` — Xem danh sách số dư ngân hàng\n' +
-        '`!banklog give` — Xem lịch sử chuyển tiền theo ngày'
-      );
+    if (users.length === 0) {
+      return message.reply('❌ Không có ai có tiền trong ngân hàng.');
     }
 
-    if (type === 'bank') {
-      const users = await User.find({ bank: { $gt: 0 } }).sort({ bank: -1 }).limit(30);
-      if (users.length === 0) return message.reply('❌ Không có ai có tiền trong ngân hàng.');
-
-      let text = '```md\n< TOP Người có tiền trong ngân hàng >\n\n';
-      for (const u of users) {
-        const username = (await message.client.users.fetch(u.userId).catch(() => null))?.username || 'Ẩn danh';
-        text += `${username.padEnd(20)} | ${u.bank.toLocaleString()} coke\n`;
-      }
-      text += '```';
-      return message.channel.send(text);
+    let text = '```md\n< Top Ngân Hàng >\n\n';
+    for (let i = 0; i < users.length; i++) {
+      const u = users[i];
+      const fetchedUser = await message.client.users.fetch(u.userId).catch(() => null);
+      const username = fetchedUser ? `@${fetchedUser.username}` : 'Ẩn danh';
+      text += `#${i + 1}\t${username}\n\t\tBank: ${u.bank.toLocaleString()} coke\n`;
     }
 
-    if (type === 'give') {
-      const users = await User.find({});
-      const giveLogs = {};
+    const now = new Date();
+    const dateStr = now.toLocaleString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
-      for (const u of users) {
-        const give = u.dailyGive || {};
-        for (const date in give) {
-          if (!giveLogs[date]) giveLogs[date] = 0;
-          giveLogs[date] += give[date];
-        }
-      }
-
-      if (Object.keys(giveLogs).length === 0) return message.reply('❌ Không có dữ liệu chuyển tiền.');
-
-      const sortedDates = Object.keys(giveLogs).sort((a, b) => new Date(b) - new Date(a));
-      let text = '```md\n< Lịch sử chuyển tiền theo ngày >\n\n';
-      for (const date of sortedDates) {
-        text += `📅 ${date} : ${giveLogs[date].toLocaleString()} coke\n`;
-      }
-      text += '```';
-      return message.channel.send(text);
-    }
+    text += `\n${dateStr}\n\`\`\``;
+    return message.channel.send(text);
   }
 };

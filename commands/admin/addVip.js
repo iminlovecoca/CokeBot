@@ -1,4 +1,3 @@
-// setvip.js
 const User = require('../../models/User');
 require('dotenv').config();
 
@@ -6,7 +5,6 @@ module.exports = {
   name: 'setvip',
   description: 'Chỉ **Owner** được dùng để set hoặc gỡ VIP cho người chơi',
   async execute(message, args) {
-    // Kiểm tra quyền owner
     if (message.author.id !== process.env.OWNER_ID) {
       return message.reply('❌ Lệnh này chỉ dành cho **Owner** bot.');
     }
@@ -15,7 +13,6 @@ module.exports = {
     let removeMode = false;
     let target;
 
-    // Xác định chế độ: set hay remove
     if (mode?.toLowerCase() === 'remove') {
       removeMode = true;
       target = targetArg;
