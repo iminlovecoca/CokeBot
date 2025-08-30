@@ -17,6 +17,7 @@ module.exports = {
           dailyStreak: 0,
           level: 1,
           xp: 0,
+          dailyXp: 0,
           lastDaily: null
         });
       }
@@ -52,9 +53,9 @@ module.exports = {
       user.dailyStreak = streak;
       user.lastDaily = new Date();
 
-      user.xp = Math.min((user.xp || 0) + 500, 3000);
+      user.xp += 500;
 
-      const getXpNeeded = level => 2000 + (level - 1) * 1000;
+      const getXpNeeded = level => 2000 + (level - 1) * 10000;
       while (user.xp >= getXpNeeded(user.level)) {
         user.xp -= getXpNeeded(user.level);
         user.level++;
@@ -63,7 +64,10 @@ module.exports = {
 
       await user.save();
 
-      return message.reply(`:dollar: | **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n🔥 Chuỗi ngày: **${streak} ngày**`);
+      return message.reply(
+        `:dollar: | **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n` +
+        `🔥 Chuỗi ngày: **${streak} ngày**`
+      );
     } catch (err) {
       console.error('Daily error:', err);
       return message.reply('❌ | Đã xảy ra lỗi khi thực hiện lệnh.');
