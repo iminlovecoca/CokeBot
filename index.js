@@ -112,7 +112,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.once('ready', async () => {
+client.once(Events.ClientReady, async () => {
   console.log(`✅ Bot sẵn sàng: ${client.user.tag}`);
   client.user.setPresence({
     activities: [{ name: 'Coke 🎲', type: 0 }],

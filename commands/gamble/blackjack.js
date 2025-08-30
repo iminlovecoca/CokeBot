@@ -78,6 +78,13 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
   const collector = sentMessage.createReactionCollector({ filter, time: 60000 })
 
   collector.on('collect', async (react) => {
+    const game = await getGame(message.author.id)
+    if (!game) {
+      collector.stop()
+      sentMessage.edit('**❌ |** Ván bài đã kết thúc!')
+      return
+    }
+
     if (react.emoji.name === hitEmoji) {
       await handleHit(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector)
     } else {
