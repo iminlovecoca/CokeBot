@@ -4,7 +4,7 @@ const {
   getRemainingCooldown,
   notifyCooldown
 } = require('../../utils/cooldown')
-const { decBalance, incBalance } = require('../../utils/userUtil')
+const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const config = require('../../data/config.json')
 const emoji = config.emoji
@@ -37,8 +37,6 @@ module.exports = {
       const cooldown = getRemainingCooldown(userId, 's')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
 
-      await decBalance(userId, amount)
-
       let rslots = [];
       const rand = (await random(1, 1000)) / 10;
       let win = 0;
@@ -67,7 +65,7 @@ module.exports = {
         if (slot2 === len - 1) slot2++;
         rslots.push(symbols[slot1], symbols[slot2], symbols[slot3]);
       }
-
+      await incBalance(userId, win - amount)
       const member = await message.guild.members.fetch(userId).catch(() => null);
       const name = member?.displayName || message.author.username;
 
@@ -99,8 +97,6 @@ module.exports = {
           await msg.edit(machine);
 
           setTimeout(async () => {
-            if (win > 0) await incBalance(userId, win)
-
             machine =
               '**  `___SLOTS___`**\n` ` ' +
               rslots[0] + ' ' + rslots[1] + ' ' + rslots[2] +
