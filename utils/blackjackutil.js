@@ -71,10 +71,12 @@ const formatCards = (hand, hide=false) => {
   return cards.join(' ')
 }
 
-const getGame = async userId => await BlackJackGame.findOne({ userId })
+const getGame = async userId => {
+  return await BlackJackGame.findOne({ userId }).lean()
+}
 
 const addGame = async (userId, bet, player, dealer, deck) => {
-  await BlackJackGame.create({ userId, bet, player, dealer, deck })
+  await BlackJackGame.insertOne({ userId, bet, player, dealer, deck })
 }
 
 const delGame = async userId => {
