@@ -10,8 +10,9 @@ module.exports = {
   description: 'Thêm coke cho người dùng (chỉ chủ bot)',
 
   async execute(message, args) {
-    if (message.author.id !== ALLOWED_IDS) {
-      return message.reply('❌ Lệnh này chỉ dành cho **owner**.');
+    const authorId = message.author.id;
+    if (!ALLOWED_IDS.includes(authorId)) {
+      return message.reply('❌ Bạn không có quyền dùng lệnh này!');
     }
 
     const mention = message.mentions.users.first();

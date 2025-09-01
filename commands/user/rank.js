@@ -16,6 +16,7 @@ function getRankEmoji(level) {
 
 module.exports = {
   name: 'rank',
+  aliases: ['level', 'lvl'],
   description: '🔰 Xem cấp bậc rank và level',
 
   async execute(message) {
@@ -36,6 +37,7 @@ module.exports = {
       `🔰 ${displayName}\n` +
       `Rank: ${rankEmoji}\n` +
       `Lvl ${userData.level} ${progressBar} ${xpPercent}%`;
+      `XP: ${userData.xp} / ${xpNeed}`;
 
     return message.channel.send(output);
   }
