@@ -57,12 +57,16 @@ module.exports = {
         win = amount * 10;
         rslots.push(symbols[4], symbols[5], symbols[4]);
       } else {
-        const len = symbols.length - 1;
-        let slot1 = Math.floor(Math.random() * len);
-        let slot2 = Math.floor(Math.random() * len);
-        let slot3 = Math.floor(Math.random() * len);
-        if (slot3 === slot1) slot2 = (slot1 + Math.ceil(Math.random() * (len - 1))) % len;
-        if (slot2 === len - 1) slot2++;
+        const len = (symbols.length - 1);
+        let slot1 = Math.floor(Math.random() * (symbols.length - 1));
+        let slot2 = Math.floor(Math.random() * (symbols.length - 1));
+        let slot3 = Math.floor(Math.random() * (symbols.length - 1));
+        // if (slot3 === slot1) 
+        //   slot2 = (slot1 + Math.ceil(Math.random() * (len - 1))) % (symbols.length - 1);
+        // if (slot2 === len - 1) slot2++;
+        if (slot3 == slot1)
+          slot2 = (slot1 + Math.ceil(Math.random() * (symbols.length - 2))) % (symbols.length - 1);
+        if (slot2 == symbols.length - 2) slot2++;
         rslots.push(symbols[slot1], symbols[slot2], symbols[slot3]);
       }
       await incBalance(userId, win - amount)
@@ -109,7 +113,7 @@ module.exports = {
       }, 1000);
 
       setCooldown(userId, 's', cooldownSeconds);
-    } catch(error) {
+    } catch (error) {
       return await message.reply(error.message)
     }
   }
