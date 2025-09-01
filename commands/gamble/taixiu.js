@@ -4,7 +4,7 @@ const {
   getRemainingCooldown,
   notifyCooldown
 } = require('../../utils/cooldown')
-const { decBalance, incBalance } = require('../../utils/userUtil')
+const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const config = require('../../data/config.json')
 const emoji = config.emoji
@@ -44,7 +44,6 @@ module.exports = {
       }
       let bet = args.length == 1 ? 'min' : args[1]
       const amount = await getBetAmount(bet, userId, maxBet, minBet)
-      await decBalance(userId, amount)
 
       // Random xúc xắc
       let rolls = [];
@@ -68,7 +67,7 @@ module.exports = {
         multiplier = 2;
         win = amount * multiplier;
       }
-
+      await incBalance(userId, win - amount)
       const member = await message.guild.members.fetch(userId).catch(() => null);
       const name = member?.displayName || message.author.username;
 
@@ -89,7 +88,6 @@ module.exports = {
       await msg.edit(display);
 
       await wait(1000);
-      if (win > 0) await incBalance(userId, win)
 
       display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
       await msg.edit(display);

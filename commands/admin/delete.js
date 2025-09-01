@@ -1,5 +1,5 @@
 const User = require('../../models/User');
-const OWNER_ID = '745950731638407210'; // Thay bằng Discord ID của bạn nếu cần
+const OWNER_ID = '745950731638407210';
 
 module.exports = {
   name: 'delete',

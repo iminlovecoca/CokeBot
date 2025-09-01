@@ -12,7 +12,6 @@ module.exports = {
     }
 
     try {
-      // Xoá toàn bộ dữ liệu stock
       await StockHolding.deleteMany({});
       await StockTx.deleteMany({});
 

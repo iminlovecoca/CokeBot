@@ -5,7 +5,7 @@ module.exports = {
   name: 'setzoo',
   description: 'Set full thú cho 1 tài khoản (owner only)',
   async execute(message, args) {
-    const ownerId = '745950731638407210'; // ✅ Thay bằng ID Discord của bạn
+    const ownerId = '745950731638407210';
     if (message.author.id !== ownerId) {
       return message.reply('❌ | Bạn không có quyền dùng lệnh này.');
     }

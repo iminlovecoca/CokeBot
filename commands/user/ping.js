@@ -12,12 +12,10 @@ module.exports = {
     const latency = sent.createdTimestamp - message.createdTimestamp;
     const apiLatency = Math.round(message.client.ws.ping);
 
-    // Trạng thái MongoDB
     const mongoStatus = mongoose.connection.readyState;
     const mongoStates = ['❌ Mất kết nối', '✅ Đã kết nối', '🟠 Đang kết nối', '🔄 Ngắt kết nối'];
     const mongoStateText = mongoStates[mongoStatus] || '❓ Không rõ';
 
-    // Đo thời gian truy vấn thực tế
     let dbPing = 'Không đo được';
     try {
       const start = Date.now();
@@ -27,11 +25,9 @@ module.exports = {
       dbPing = '❌ Lỗi';
     }
 
-    // RAM
     const usedMem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
     const totalMem = (os.totalmem() / 1024 / 1024).toFixed(1);
 
-    // Uptime
     const uptime = formatUptime(process.uptime());
 
     const embed = new EmbedBuilder()
