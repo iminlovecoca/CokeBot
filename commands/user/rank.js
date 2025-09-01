@@ -30,13 +30,16 @@ module.exports = {
 
     const xpNeed = getXpNeeded(userData.level);
     const xpPercent = Math.floor((userData.xp / xpNeed) * 100);
-    const progressBar = `▰`.repeat(Math.floor(xpPercent / 10)) + `▱`.repeat(10 - Math.floor(xpPercent / 10));
+    const progressBar =
+      `▰`.repeat(Math.floor(xpPercent / 10)) +
+      `▱`.repeat(10 - Math.floor(xpPercent / 10));
+
     const rankEmoji = getRankEmoji(userData.level);
 
     const output =
       `🔰 ${displayName}\n` +
       `Rank: ${rankEmoji}\n` +
-      `Lvl ${userData.level} ${progressBar} ${xpPercent}%`;
+      `Lvl ${userData.level} ${progressBar} ${xpPercent}%\n` +
       `XP: ${userData.xp} / ${xpNeed}`;
 
     return message.channel.send(output);

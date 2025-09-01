@@ -7,7 +7,7 @@ const ALLOWED_IDS = [
 
 module.exports = {
   name: 'addcoke',
-  description: 'Thêm coke cho người dùng (chỉ chủ bot)',
+  description: 'Thêm coke cho người dùng hoặc tất cả (chỉ chủ bot)',
 
   async execute(message, args) {
     const authorId = message.author.id;
@@ -15,22 +15,31 @@ module.exports = {
       return message.reply('❌ Bạn không có quyền dùng lệnh này!');
     }
 
-    const mention = message.mentions.users.first();
+    const target = args[0];
     const amount = parseInt(args[1]);
 
-    if (!mention || isNaN(amount) || amount <= 0) {
-      return message.reply('❌ Cú pháp: `!m @user <số tiền>`');
+    if (!target || isNaN(amount) || amount <= 0) {
+      return message.reply('❌ Cú pháp:\n`!addcoke @user <số tiền>` hoặc `!addcoke all <số tiền>`');
+    }
+
+    let isAll = target.toLowerCase() === "all";
+    let mention = null;
+    if (!isAll) {
+      mention = message.mentions.users.first() ||
+        (await message.client.users.fetch(target).catch(() => null));
+      if (!mention) return message.reply("❌ Không tìm thấy user.");
     }
 
     const embed = new EmbedBuilder()
-      .setColor('#ffcc00')
+      .setColor('#3498db')
       .setTitle('💳 Xác nhận giao dịch')
       .setDescription(
-        `${message.author}, bạn sắp thêm **${amount.toLocaleString()} coke** cho ${mention}\n\n` +
-        `✅ Bấm **Xác nhận** để tiếp tục\n` +
-        `❎ Bấm **Hủy** để dừng lại`
-      )
-      .setFooter({ text: 'Lưu ý: Chỉ Owner mới có thể xác nhận' });
+        isAll
+          ? `${message.author}, bạn sắp cộng thêm **${amount.toLocaleString()} coke** cho **toàn bộ user**.\n\n` +
+            `✅ Bấm **Xác nhận** để tiếp tục\n❎ Bấm **Hủy** để dừng lại`
+          : `${message.author}, bạn sắp cộng thêm **${amount.toLocaleString()} coke** cho ${mention}.\n\n` +
+            `✅ Bấm **Xác nhận** để tiếp tục\n❎ Bấm **Hủy** để dừng lại`
+      );
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -52,31 +61,44 @@ module.exports = {
 
     collector.on('collect', async (interaction) => {
       if (interaction.customId === 'confirm_add') {
-        let user = await User.findOne({ userId: mention.id });
-        if (!user) user = await User.create({ userId: mention.id });
+        if (isAll) {
+          await User.updateMany({}, { $inc: { coke: amount } });
+          await interaction.update({
+            embeds: [
+              new EmbedBuilder()
+                .setColor('Green')
+                .setTitle('✅ Thành công')
+                .setDescription(`Đã cộng thêm **${amount.toLocaleString()} coke** cho toàn bộ user.`)
+            ],
+            components: []
+          });
+        } else {
+          let user = await User.findOne({ userId: mention.id });
+          if (!user) user = await User.create({ userId: mention.id });
 
-        user.coke += amount;
-        await user.save();
+          user.coke += amount;
+          await user.save();
 
-        await interaction.update({
-          embeds: [
-            new EmbedBuilder()
-              .setColor('Green')
-              .setTitle('✅ Thành công')
-              .setDescription(
-                `Đã cộng **${amount.toLocaleString()} coke** cho ${mention}.\n` +
-                `Số dư mới: **${user.coke.toLocaleString()} coke**`
-              )
-          ],
-          components: []
-        });
+          await interaction.update({
+            embeds: [
+              new EmbedBuilder()
+                .setColor('Green')
+                .setTitle('✅ Thành công')
+                .setDescription(
+                  `Đã cộng **${amount.toLocaleString()} coke** cho ${mention}.\n` +
+                  `Số dư mới: **${user.coke.toLocaleString()} coke**`
+                )
+            ],
+            components: []
+          });
+        }
       } else if (interaction.customId === 'cancel_add') {
         await interaction.update({
           embeds: [
             new EmbedBuilder()
               .setColor('Red')
               .setTitle('❎ Đã hủy')
-              .setDescription(`Giao dịch thêm coke cho ${mention} đã bị hủy.`)
+              .setDescription('Giao dịch cộng coke đã bị hủy.')
           ],
           components: []
         });
@@ -90,7 +112,7 @@ module.exports = {
             new EmbedBuilder()
               .setColor('Grey')
               .setTitle('⌛ Hết hạn')
-              .setDescription(`Không có phản hồi, giao dịch đã bị hủy.`)
+              .setDescription('Không có phản hồi, giao dịch đã bị hủy.')
           ],
           components: []
         });
