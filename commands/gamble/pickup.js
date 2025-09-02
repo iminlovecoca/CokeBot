@@ -12,11 +12,11 @@ module.exports = {
 
     const drop = await getDrop(channelId);
     if (!drop || drop.amount <= 0) {
-      return message.reply('❌ | Không có coke nào để nhặt.');
+      return message.reply('❌ **|** Không có coke nào để nhặt.');
     }
 
     if (drop.picked.includes(userId)) {
-      return message.reply('❌ | Bạn đã nhặt trong đợt này rồi!');
+      return message.reply('❌ **|** Bạn đã nhặt trong đợt này rồi!');
     }
 
     const percent = Math.floor(Math.random() * 31) + 10;
@@ -26,7 +26,7 @@ module.exports = {
     await incBalance(userId, amount);
 
     return message.channel.send(
-      `:credit_card: | **${message.member.displayName}** đã nhặt được **${amount.toLocaleString()} coke** từ sàn!`
+      `:credit_card: **|** **${message.member.displayName}** đã nhặt được **${amount.toLocaleString()} coke** từ sàn!`
     );
   }
 };

@@ -31,7 +31,7 @@ module.exports = {
 
       let choice
       if (args.length == 0) {
-        return await message.reply('❌ | Cú pháp: `!tx <t/x> <số tiền|all>`')
+        return await message.reply('❌ **|** Cú pháp: `!tx <t/x> <số tiền|all>`')
       } else {
         choice = args[0].toLowerCase();
         if (['tai', 't'].includes(choice)) {
@@ -39,7 +39,7 @@ module.exports = {
         } else if (['xiu', 'x'].includes(choice)) {
           choice = 'xiu'
         } else {
-          return await message.reply('❌ | Bạn phải chọn `tai` hoặc `xiu`!')
+          return await message.reply('❌ **|** Bạn phải chọn `tai` hoặc `xiu`!')
         }
       }
       let bet = args.length == 1 ? 'min' : args[1]

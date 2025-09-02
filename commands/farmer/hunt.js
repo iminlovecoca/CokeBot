@@ -76,20 +76,20 @@ module.exports = {
       let lines = [];
 
       if (usedStones.length > 0) {
-        lines.push(`:seedling: **|** ${message.member.displayName}, hunt is empowered by 💎 ${usedStones.map(s => `\`${s}\``).join(', ')}!`);
+        lines.push(`:seedling: | ${message.member.displayName}, hunt is empowered by 💎 ${usedStones.map(s => `\`${s}\``).join(', ')}!`);
       }
 
       if (!user.zoo || typeof user.zoo !== 'object') user.zoo = {};
       user.zoo[animal] = (user.zoo[animal] || 0) + 1;
 
-      lines.push(`<:blank:1403928807395819671> **|** Bạn săn được: **${animal}**`);
+      lines.push(`<:blank:1403928807395819671> | Bạn săn được: **${animal}**`);
 
       if (team.length > 0) {
         if (!user.petExp) user.petExp = {};
         team.forEach(t => {
           user.petExp[t] = (user.petExp[t] || 0) + exp;
         });
-        lines.push(`<:blank:1403928807395819671> **|** ${team.map(t => `🐾 ${t}`).join(' ')} gained **${exp}xp**!`);
+        lines.push(`<:blank:1403928807395819671> | ${team.map(t => `🐾 ${t}`).join(' ')} gained **${exp}xp**!`);
       }
 
       user.isHunting = false;

@@ -73,10 +73,10 @@ module.exports = {
               `✅ **${message.member.displayName}** đã chuyển **${amount.toLocaleString()} coke** cho **${mention.displayName || mention.username}** lúc **${vnNow.toLocaleTimeString('vi-VN')}**`
             );
           } else {
-            embed.setColor(0xcc0000).setDescription('❌ | Giao dịch đã bị huỷ do người nhận đang thực hiện một giao dịch khác.');
+            embed.setColor(0xcc0000).setDescription('❌ **|** Giao dịch đã bị huỷ do người nhận đang thực hiện một giao dịch khác.');
           }
         } else {
-          embed.setColor(0xcc0000).setDescription('❌ | Giao dịch đã bị huỷ.');
+          embed.setColor(0xcc0000).setDescription('❌ **|** Giao dịch đã bị huỷ.');
         }
 
         await confirmMsg.edit({ embeds: [embed], components: [row] });
@@ -88,7 +88,7 @@ module.exports = {
     collector.on('end', collected => {
       if (collected.size === 0) {
         row.components.forEach(btn => btn.setDisabled(true));
-        embed.setColor(0xffcc00).setDescription('⏱ | Giao dịch đã hết hạn xác nhận.');
+        embed.setColor(0xffcc00).setDescription('⏱ **|** Giao dịch đã hết hạn xác nhận.');
         confirmMsg.edit({ embeds: [embed], components: [row] });
       }
     });

@@ -21,9 +21,9 @@ module.exports = {
         receivePerDayLimit = user.vipLevel ? Infinity : receivePerDayLimit
         perTransactionLimit = user.vipLevel ? Infinity : perTransactionLimit
         await message.reply(
-            `💳 | Giới hạn giao dịch: **${formatVNCurrency(perTransactionLimit)} coke**.\n` +
-            `💸 | Giới hạn gửi: **${formatVNCurrency(sentToday)}/${formatVNCurrency(sendPerDayLimit)} coke**.\n` +
-            `💵 | Giới hạn nhận: **${formatVNCurrency(receivedToday)}/${formatVNCurrency(receivePerDayLimit)} coke**.`
+            `💳 **|** Giới hạn giao dịch: **${formatVNCurrency(perTransactionLimit)} coke**.\n` +
+            `💸 **|** Giới hạn gửi: **${formatVNCurrency(sentToday)}/${formatVNCurrency(sendPerDayLimit)} coke**.\n` +
+            `💵 **|** Giới hạn nhận: **${formatVNCurrency(receivedToday)}/${formatVNCurrency(receivePerDayLimit)} coke**.`
         )
     }
 }

@@ -38,7 +38,7 @@ module.exports = {
       if (authorId !== ownerId) setCooldown(authorId, 'cookie', COOLDOWN);
 
       return message.reply(
-        `${danisaEmoji} | Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**`
+        `${danisaEmoji} **|** Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**`
       );
     }
 

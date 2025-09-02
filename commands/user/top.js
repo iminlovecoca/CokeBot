@@ -93,7 +93,7 @@ module.exports = {
     }
 
     if (!topUsers || topUsers.length === 0)
-      return message.reply('❌ | Không có dữ liệu người chơi nào.');
+      return message.reply('❌ **|** Không có dữ liệu người chơi nào.');
 
     topUsers = topUsers.filter(u => {
       const member = guild.members.cache.get(u.userId);
@@ -101,7 +101,7 @@ module.exports = {
     });
 
     if (topUsers.length === 0)
-      return message.reply('❌ | Không có thành viên nào trong server để hiển thị.');
+      return message.reply('❌ **|** Không có thành viên nào trong server để hiển thị.');
 
     const userRankIndex = topUsers.findIndex(u => u.userId === authorId);
     const userValue = userRankIndex >= 0 ? getValue(topUsers[userRankIndex]) : null;

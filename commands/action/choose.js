@@ -26,6 +26,6 @@ module.exports = {
         let msgTemplate = msgs[Math.floor(Math.random() * msgs.length)];
         msgTemplate = msgTemplate.replace('?', choice);
 
-        message.channel.send(`🎲 | **${message.author.username}**, ${msgTemplate}`);
+        message.channel.send(`🎲 **|** **${message.author.username}**, ${msgTemplate}`);
     }
 };

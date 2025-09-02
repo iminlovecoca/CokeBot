@@ -44,8 +44,8 @@ module.exports = {
 
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
 
-      reply = `👻 | **${authorDisplayName}** đã tự nguyền rủa chính mình!\n` +
-              `<:blank:1403928807395819671> | Bạn hiện có **${targetUser.luck}** điểm may mắn.`;
+      reply = `👻 **|** **${authorDisplayName}** đã tự nguyền rủa chính mình!\n` +
+              `<:blank:1403928807395819671> **|** Bạn hiện có **${targetUser.luck}** điểm may mắn.`;
     } else {
       targetUser.luck -= 1;
       authorUser.luck += 1;
@@ -56,8 +56,8 @@ module.exports = {
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
       const targetDisplayName = message.guild.members.cache.get(target.id)?.displayName || target.username;
 
-      reply = `👻 | **${authorDisplayName}** đã nguyền rủa **${targetDisplayName}**!\n` +
-              `<:blank:1403928807395819671> | Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
+      reply = `👻 **|** **${authorDisplayName}** đã nguyền rủa **${targetDisplayName}**!\n` +
+              `<:blank:1403928807395819671> **|** Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
     }
 
     message.channel.send(reply);

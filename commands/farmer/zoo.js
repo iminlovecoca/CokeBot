@@ -39,13 +39,13 @@ module.exports = {
         if (i === 0) {
           rows.push(group);
         } else {
-          rows.push(`<:blank:1403928807395819671> **|** ${group}`);
+          rows.push(`<:blank:1403928807395819671> | ${group}`);
         }
       }
 
       if (rows.length > 0) {
         const emojiLabel = categoryEmojis[category] || category;
-        content += `${emojiLabel} **|**  ${rows.join('\n')}\n`;
+        content += `${emojiLabel} |  ${rows.join('\n')}\n`;
       }
     }
 

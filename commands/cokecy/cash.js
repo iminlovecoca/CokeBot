@@ -31,7 +31,7 @@ module.exports = {
         const member = await message.guild.members.fetch(targetId).catch(() => null);
         displayName = member?.displayName || mention.username;
       } else {
-        return message.reply('🚫 | Bạn không có quyền xem số coke của người khác.');
+        return message.reply('🚫 **|** Bạn không có quyền xem số coke của người khác.');
       }
     }
 
@@ -41,7 +41,7 @@ module.exports = {
     const formatted = formatVNCurrency(user.coke);
     const emoji = config.emoji.money;
 
-    await message.reply(`${emoji} | **${displayName}**, hiện có **${formatted} coke**.`);
+    await message.reply(`${emoji} **|** **${displayName}**, hiện có **${formatted} coke**.`);
 
     setCooldown(userId, 'cash', cooldownSeconds);
   }

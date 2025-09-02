@@ -1,5 +1,8 @@
 ﻿const { DateTime } = require('luxon');
 const User = require('../../models/User');
+const config = require('../../data/config.json')
+const emoji = config.emoji
+const currency = emoji.money
 
 module.exports = {
   name: 'daily',
@@ -35,7 +38,7 @@ module.exports = {
         const m = Math.floor(diff.minutes);
         const s = Math.floor(diff.seconds);
 
-        return message.reply(`⏱ | **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
+        return message.reply(`⏱ **|** **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
       }
 
       let streak = 1;
@@ -55,7 +58,7 @@ module.exports = {
 
       user.xp += 500;
 
-      const getXpNeeded = level => 2000 + (level - 1) * 10000;
+      const getXpNeeded = level => 2000 + (level - 1) * 1000;
       while (user.xp >= getXpNeeded(user.level)) {
         user.xp -= getXpNeeded(user.level);
         user.level++;
@@ -65,12 +68,12 @@ module.exports = {
       await user.save();
 
       return message.reply(
-        `:dollar: | **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n` +
-        `🔥 Chuỗi ngày: **${streak} ngày**`
+        `${currency} **|** **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n` +
+        `🔥 **|** Chuỗi ngày: **${streak} ngày**`
       );
     } catch (err) {
       console.error('Daily error:', err);
-      return message.reply('❌ | Đã xảy ra lỗi khi thực hiện lệnh.');
+      return message.reply('❌ **|** Đã xảy ra lỗi khi thực hiện lệnh.');
     }
   }
 };

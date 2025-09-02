@@ -15,22 +15,22 @@ module.exports = {
     const duration = 10000;
 
     if (isNaN(amount) || amount <= 0) {
-      return message.reply('❌ | Vui lòng nhập số coke hợp lệ để thả.');
+      return message.reply('❌ **|** Vui lòng nhập số coke hợp lệ để thả.');
     }
 
     const remaining = getRemainingCooldown(userId, 'drop');
     if (remaining > 0) {
-      return message.reply(`⏱ | Bạn cần chờ **${remaining} giây** trước khi dùng lại \`!drop\`.`);
+      return message.reply(`⏱ **|** Bạn cần chờ **${remaining} giây** trước khi dùng lại \`!drop\`.`);
     }
 
     const ongoingDrop = await getDrop(channelId);
     if (ongoingDrop) {
-      return message.reply('⚠️ | Đã có một drop đang diễn ra trong kênh này! Hãy chờ drop kết thúc trước khi thả mới.');
+      return message.reply('⚠️ **|** Đã có một drop đang diễn ra trong kênh này! Hãy chờ drop kết thúc trước khi thả mới.');
     }
 
     const user = await getOrCreateUser(userId);
     if (user.coke < amount) {
-      return message.reply('❌ | Bạn không đủ coke để thả!');
+      return message.reply('❌ **|** Bạn không đủ coke để thả!');
     }
 
     const taxRate = 0.05;

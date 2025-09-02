@@ -8,6 +8,7 @@ const {
 const { getBetAmount } = require('../../utils/gameUtil')
 const config = require('../../data/config.json')
 const emoji = config.emoji
+const currency = emoji.money
 
 const maxBet = 250000
 const minBet = 1
@@ -41,7 +42,7 @@ module.exports = {
 			if (cooldown > 0) return notifyCooldown(message, cooldown)
 			setCooldown(userId, 'coinflip', cooldownSeconds)
 
-			let text = `**${message.member?.displayName || message.author.username}** đã cược **${betAmount.toLocaleString()} coke** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n`
+			let text = `**${message.member?.displayName || message.author.username}** đã cược ${currency} **${betAmount.toLocaleString()}** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n`
 			text += `Đồng xu quay... ${emoji.coinflip}`;
 			const msg = await message.reply(text);
 			const rand = await random(0, 1);
@@ -54,11 +55,11 @@ module.exports = {
 				let resultEmoji = result === 'h' ? emoji.heads : emoji.tails;
 				let resultText = `Đồng xu quay... ${resultEmoji} và bạn `;
 				if (win) {
-					resultText += `thắng **${(betAmount * 2).toLocaleString()} coke**!!`;
+					resultText += `thắng ${currency} **${(betAmount * 2).toLocaleString()}**!!`;
 				} else {
 					resultText += 'thua hết... :c';
 				}
-				await msg.edit(`**${message.member?.displayName || message.author.username}** đã cược **${betAmount.toLocaleString()} coke** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n${resultText}`)
+				await msg.edit(`**${message.member?.displayName || message.author.username}** đã cược ${currency} **${betAmount.toLocaleString()}** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n${resultText}`)
 			}, 2000)
 		} catch (error) {
 			return await message.reply(error.message)

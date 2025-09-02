@@ -13,11 +13,11 @@ module.exports = {
     const channelId = message.channel.id;
 
     if (cooldown.has(channelId)) {
-      return message.reply('⚠️ Chờ 5 giây để bắt đầu trò chơi mới!');
+      return message.reply('⚠️ **|** Chờ 5 giây để bắt đầu trò chơi mới!');
     }
 
     if (activeGames.has(channelId)) {
-      return message.reply('⚠️ Trò chơi đang diễn ra trong kênh này.');
+      return message.reply('⚠️ **|** Trò chơi đang diễn ra trong kênh này.');
     }
 
     activeGames.set(channelId, { answer: null, message: null, ended: false });
@@ -26,7 +26,7 @@ module.exports = {
     const shuffled = shuffleWord(word);
     const hint = shuffled.split('').join('/');
 
-    const msg = await message.channel.send(`🧠 Ghép chữ: **${hint}**`);
+    const msg = await message.channel.send(`🧠 **|** Ghép chữ: **${hint}**`);
     activeGames.set(channelId, { answer: word, message: msg, ended: false });
 
     const filter = m => !m.author.bot;
@@ -47,7 +47,7 @@ module.exports = {
 
         await User.updateOne({ userId: m.author.id }, { $inc: { coke: reward } });
         await m.react('✅');
-        await m.channel.send(`🎉 <@${m.author.id}> đoán đúng! Nhận được **${reward.toLocaleString()} coke**`);
+        await m.channel.send(`🎉 **|** <@${m.author.id}> đoán đúng! Nhận được **${reward.toLocaleString()} coke**`);
 
         activeGames.delete(channelId);
         cooldown.add(channelId);
@@ -62,7 +62,7 @@ module.exports = {
       const game = activeGames.get(channelId);
       if (game && !game.ended) {
         if (message.channel) { 
-          await message.channel.send(`⏰ Hết giờ! Không ai trả lời đúng.\n🔍 Đáp án là: **${game.answer}**`);
+          await message.channel.send(`⏰ **|** Hết giờ! Không ai trả lời đúng.\n🔍 Đáp án là: **${game.answer}**`);
         }
         activeGames.delete(channelId);
         cooldown.add(channelId);

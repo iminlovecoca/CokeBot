@@ -7,6 +7,8 @@ const {
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const config = require('../../data/config.json')
+const emoji = config.emoji
+const currency = emoji.money
 
 const EMOJIS = { keo: '✌️', bua: '👊', bao: '🖐️' }
 const choices = ['keo', 'bua', 'bao']
@@ -32,7 +34,7 @@ module.exports = {
       } else {
         let bet = args.length == 0 ? 'min' : args[0]
         const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
-        botChoice = choices[Math.floor(Math.random() * choices.length)]
+        const botChoice = choices[Math.floor(Math.random() * choices.length)]
         await decBalance(userId, betAmount)
         await addGame(userId, betAmount, botChoice)
         await rps(message, betAmount, botChoice)
@@ -45,9 +47,12 @@ module.exports = {
 
 const rps = async (message, bet, botChoice, resume) => {
   const userId = message.author.id
-  const displayName = message.author.username || 'Bạn'
-  let text = `${config.emoji.dice} | **${displayName}** cược **${bet.toLocaleString()}** coke và chọn ...`
+  const displayName = message.member?.displayName || message.author.username || 'Bạn';
+  const botEmoji = EMOJIS[botChoice]
+
+  let text = `${config.emoji.dice} **|** **${displayName}** cược ${currency} **${bet.toLocaleString()}** và chọn ...`
   if (resume) text = '▷ Tiếp tục ván chơi cũ\n' + text
+
   const sentMessage = await message.reply(text)
   for (const emoji of Object.values(EMOJIS)) {
     await sentMessage.react(emoji)
@@ -57,7 +62,7 @@ const rps = async (message, bet, botChoice, resume) => {
     Object.values(EMOJIS).includes(reaction.emoji.name) && user.id === userId
   const collector = sentMessage.createReactionCollector({ filter, time: 60000, max: 1 })
 
-  collector.on('collect', async (reaction, userReact) => {
+  collector.on('collect', async (reaction) => {
     collector.stop()
     const game = await getGame(message.author.id)
     if (!game) {
@@ -66,21 +71,23 @@ const rps = async (message, bet, botChoice, resume) => {
     } 
 
     const playerChoice = Object.entries(EMOJIS).find(([k, v]) => v === reaction.emoji.name)[0]
+    const playerEmoji = EMOJIS[playerChoice]
+
     let resultText = ''
     let reward = 0
 
     if (playerChoice === botChoice) {
-      resultText = `${config.emoji.blank} **| Coke** ra **${botChoice}** và bạn nhận lại **${bet.toLocaleString()} coke.**`
+      resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận lại ${currency} **${bet.toLocaleString()}.**`
       reward = bet
     } else if (
       (playerChoice === 'keo' && botChoice === 'bao') ||
       (playerChoice === 'bua' && botChoice === 'keo') ||
       (playerChoice === 'bao' && botChoice === 'bua')
     ) {
-      resultText = `${config.emoji.blank} **| Coke** ra **${botChoice}** và bạn nhận được **${(bet * 2).toLocaleString()} coke.**`
+      resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận được ${currency} **${(bet * 2).toLocaleString()}.**`
       reward = bet * 2
     } else {
-      resultText = `${config.emoji.blank} **| Coke** ra **${botChoice}** và bạn mất **${bet.toLocaleString()} coke.**`
+      resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn mất ${currency} **${bet.toLocaleString()}.**`
       reward = 0
     }
 
@@ -88,7 +95,7 @@ const rps = async (message, bet, botChoice, resume) => {
     await delGame(userId)
 
     await sentMessage.edit(
-        `${config.emoji.dice} | **${displayName}** cược **${bet.toLocaleString()} coke** và chọn **${playerChoice}**\n` +
+        `${config.emoji.dice} **|** **${displayName}** cược ${currency} **${bet.toLocaleString()}** và chọn ${playerEmoji}\n` +
         `${resultText}`
     )
   })

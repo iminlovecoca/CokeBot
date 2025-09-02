@@ -28,7 +28,7 @@ module.exports = {
       if (minutes > 0 && seconds > 0) timeString += ' ';
       if (seconds > 0) timeString += `${seconds} giây`;
 
-      return message.reply(`⏱ | Vui lòng chờ **${timeString}** để sử dụng lại lệnh.`);
+      return message.reply(`⏱ **|** Vui lòng chờ **${timeString}** để sử dụng lại lệnh.`);
     }
 
     let target = message.mentions.users.first() || message.author;
@@ -44,8 +44,8 @@ module.exports = {
 
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
 
-      reply = `🙏 | **${authorDisplayName}** đã cầu may cho chính mình!\n` +
-              `<:blank:1403928807395819671> | Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
+      reply = `🙏 **|** **${authorDisplayName}** đã cầu may cho chính mình!\n` +
+              `<:blank:1403928807395819671> **|** Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
     } else {
       authorUser.luck -= 1;
       targetUser.luck += 1;
@@ -56,8 +56,8 @@ module.exports = {
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
       const targetDisplayName = message.guild.members.cache.get(target.id)?.displayName || target.username;
 
-      reply = `🙏 | **${authorDisplayName}** đã cầu may cho **${targetDisplayName}**!\n` +
-              `<:blank:1403928807395819671> | Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
+      reply = `🙏 **|** **${authorDisplayName}** đã cầu may cho **${targetDisplayName}**!\n` +
+              `<:blank:1403928807395819671> **|** Bạn hiện có **${authorUser.luck}** điểm may mắn.`;
     }
 
     message.channel.send(reply);

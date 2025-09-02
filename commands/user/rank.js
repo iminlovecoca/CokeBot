@@ -37,10 +37,10 @@ module.exports = {
     const rankEmoji = getRankEmoji(userData.level);
 
     const output =
-      `🔰 ${displayName}\n` +
-      `Rank: ${rankEmoji}\n` +
-      `Lvl ${userData.level} ${progressBar} ${xpPercent}%\n` +
-      `XP: ${userData.xp} / ${xpNeed}`;
+      `🔰 **${displayName}** 🔰\n` +
+      `**Rank **|** ${rankEmoji}\n` +
+      `XP \t**|** ${userData.xp} / ${xpNeed}\n` +
+      `Level ${userData.level} ${progressBar} ${xpPercent}%**`;
 
     return message.channel.send(output);
   }
