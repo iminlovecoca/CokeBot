@@ -1,8 +1,9 @@
 const User = require('../../models/User');
 const { getRandomWord, shuffleWord } = require('../../utils/dictionary');
+const { setCooldown, getRemainingCooldown, notifyCooldown } = require('../../utils/cooldown');
 
-const cooldown = new Set();
 const activeGames = new Map();
+const cooldownSeconds = 5; 
 
 module.exports = {
   name: 'gw',
@@ -11,16 +12,12 @@ module.exports = {
 
   async execute(message) {
     const channelId = message.channel.id;
-
-    if (cooldown.has(channelId)) {
-      return message.reply('⚠️ **|** Chờ 5 giây để bắt đầu trò chơi mới!');
-    }
+    const cd = getRemainingCooldown(channelId, 'guessword');
+    if (cd > 0) return notifyCooldown(message, cd);
 
     if (activeGames.has(channelId)) {
       return message.reply('⚠️ **|** Trò chơi đang diễn ra trong kênh này.');
     }
-
-    activeGames.set(channelId, { answer: null, message: null, ended: false });
 
     const word = getRandomWord();
     const shuffled = shuffleWord(word);
@@ -39,19 +36,16 @@ module.exports = {
       if (m.content.toLowerCase() === game.answer.toLowerCase()) {
         game.ended = true;
 
-        const wordCount = game.answer.trim().split(/\s+/).length;
-        let reward = 2000;
-        if (wordCount === 2) reward = 2500;
-        else if (wordCount === 3) reward = 5000;
-        else if (wordCount >= 4) reward = 10000;
-
+        const reward = 2500;
         await User.updateOne({ userId: m.author.id }, { $inc: { coke: reward } });
-        await m.react('✅');
-        await m.channel.send(`🎉 **|** <@${m.author.id}> đoán đúng! Nhận được **${reward.toLocaleString()} coke**`);
+
+        await m.react('✅').catch(() => {});
+        await m.channel.send(
+          `🎉 **|** <@${m.author.id}> đoán đúng! Nhận được **${reward.toLocaleString()} coke**`
+        );
 
         activeGames.delete(channelId);
-        cooldown.add(channelId);
-        setTimeout(() => cooldown.delete(channelId), 5000);
+        setCooldown(channelId, 'guessword', cooldownSeconds);
         collector.stop();
       } else {
         await m.react('❌').catch(() => {});
@@ -61,12 +55,11 @@ module.exports = {
     collector.on('end', async () => {
       const game = activeGames.get(channelId);
       if (game && !game.ended) {
-        if (message.channel) { 
-          await message.channel.send(`⏰ **|** Hết giờ! Không ai trả lời đúng.\n🔍 Đáp án là: **${game.answer}**`);
-        }
+        await message.channel.send(
+          `⏰ **|** Hết giờ! Không ai trả lời đúng.\n🔍 Đáp án là: **${game.answer}**`
+        );
         activeGames.delete(channelId);
-        cooldown.add(channelId);
-        setTimeout(() => cooldown.delete(channelId), 5000);
+        setCooldown(channelId, 'guessword', cooldownSeconds);
       }
     });
   }
