@@ -3,7 +3,7 @@ const { createRandomCokemon } = require('../utils/cokemonUtil')
 const { addCokemon } = require('../utils/userUtil')
 const config = require('../data/config.json')
 
-const SPAWN_INTERVAL_MS = 5 * 1000
+const SPAWN_INTERVAL_MS = 15 * 1000
 const LURE_COOLDOWN_MS = 2 * 60 * 1000
 const LURE_USER_COOLDOWN_MS = 30 * 60 * 1000
 const NORMAL_COOLDOWN_MS = 5 * 60 * 1000
