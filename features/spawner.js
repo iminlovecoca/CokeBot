@@ -1,18 +1,21 @@
 const { EmbedBuilder } = require('discord.js')
-const config = require('../data/config.json')
 const { createRandomCokemon } = require('../utils/cokemonUtil')
+const { addCokemon } = require('../utils/userUtil')
+const config = require('../data/config.json')
 
-const spawnChannels = Object.keys(config.channel_themes || {})
-
-const SPAWN_INTERVAL_MS = 15 * 1000
-const LURE_COOLDOWN_MS = 2 * 60 * 1000
+const SPAWN_INTERVAL_MS = 5 * 1000
+const LURE_COOLDOWN_MS = 0.5 * 60 * 1000
 const LURE_USER_COOLDOWN_MS = 30 * 60 * 1000
-const NORMAL_COOLDOWN_MS = 5 * 60 * 1000
+const NORMAL_COOLDOWN_MS = 1 * 60 * 1000
+const DESPAWN_DURATION_MS = 1 * 60 * 1000
+const GRACE_PERIOD_MS = 10 * 1000
+const spawnChannels = Object.keys(config.channel_themes || {})
 
 const initializeSpawner = (client) => {
     console.log('✅ Spawner has been initialized.')
 
     setInterval(async () => {
+        // Despawn
         for (const [channelId, spawnState] of client.activeSpawns.entries()) {
             if (Date.now() > spawnState.despawn_at) {
                 client.activeSpawns.delete(channelId)
@@ -21,6 +24,48 @@ const initializeSpawner = (client) => {
                     await channel.send(`**${spawnState.cokemon.name}** đã chạy mất rồi!`);
                 } catch (error) {
                     console.error(error)
+                }
+            }
+        }
+
+        // Auto catch using catch-net
+        for (const [channelId, spawnState] of client.activeSpawns.entries()) {
+            if (!spawnState.autoCatchProcessed && Date.now() > spawnState.spawn_at + GRACE_PERIOD_MS) {
+                spawnState.autoCatchProcessed = true
+                const channel = await client.channels.fetch(channelId)
+                console.log(`Processing auto-catches for spawn in channel ${channel.name}...`)
+
+                for (const [userId, netState] of client.activeNets.entries()) {
+                    // Check if this user has acted manually in this encounter
+                    if (spawnState.userStates.has(userId)) {
+                        continue
+                    }
+
+                    const cokemon = spawnState.cokemon
+                    // Auto-catch with the base catch rate
+                    const isCaught = (Math.random() < cokemon.catch_rate)
+                    netState.uses--
+                    if (netState.uses <= 0) {
+                        client.activeNets.delete(userId)
+                    }
+
+                    if (isCaught) {
+                        const isShiny = (Math.random() < (1 / 16))
+                        const cokemonData = {
+                            owner_id: userId,
+                            species_id: spawnState.cokemon.species_id,
+                            gender: spawnState.cokemon.gender,
+                            ivs: spawnState.cokemon.ivs,
+                            level: spawnState.cokemon.level,
+                            is_shiny: isShiny
+                        }
+                        const result = await addCokemon(cokemonData)
+                        if (result.success) {
+                            const user = await client.users.fetch(userId);
+                            await user.send(`Lưới của bạn đã bắt được một **${cokemon.name}**!`)
+                                .catch(e => console.log(`Could not DM user ${user.username}`))
+                        }
+                    }
                 }
             }
         }
@@ -42,7 +87,7 @@ const initializeSpawner = (client) => {
                     const channel = await client.channels.fetch(channelId)
                     const newCokemon = await createRandomCokemon(lure, theme)
                     if (!newCokemon) {
-                        console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`);
+                        // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`);
                         continue
                     }
 
@@ -65,7 +110,9 @@ const initializeSpawner = (client) => {
                             cokemon: newCokemon,
                             // [[userId, { catchRateModifier, fleeRateModifier, hasFled } ]]
                             userStates: new Map(),
-                            despawn_at: Date.now() + (5 * 60 * 1000)
+                            despawn_at: Date.now() + DESPAWN_DURATION_MS,
+                            spawn_at: Date.now(),
+                            autoCatchProcessed: false
                         }
                         client.activeSpawns.set(channelId, spawnState)
                         client.lastSpawn.set(channelId, Date.now())

@@ -309,7 +309,7 @@ const sellItem = async (userId, itemId, quantity) => {
 	}
 }
 
-const useItem = async (client, userId, channelId, itemId) => {
+const useItem = async (client, user, channelId, itemId) => {
 	try {
 		let resultData = {}
 		const useTransaction = async (session) => {
@@ -318,12 +318,13 @@ const useItem = async (client, userId, channelId, itemId) => {
 				throw new Error('❌ | Vật phẩm không tồn tại.')
 			}
 
-			const user = await User.findOne({ userId }).session(session)
-			if (!user) {
+			const userId = user.id
+			const userData = await User.findOne({ userId }).session(session)
+			if (!userData) {
 				throw new Error('❌ | Không thể tìm thấy dữ liệu người chơi.')
 			}
 
-			const ownedQuantity = user?.inventory?.get(itemId) || 0
+			const ownedQuantity = userData?.inventory?.get(itemId) || 0
 			if (ownedQuantity < 1) {
 				throw new Error(`❌ | Bạn không có vật phẩm ${item.name} để sử dụng.`)
 			}
@@ -345,8 +346,8 @@ const useItem = async (client, userId, channelId, itemId) => {
 				}
 
 				const channelTheme = config.channel_themes[channelId]
-				if (channel_themes && item.boosts_type) {
-					const isCompatible = item.boosts_type.some(type => channel_themes.main_types.includes(type))
+				if (channelTheme && item.boosts_type) {
+					const isCompatible = item.boosts_type.some(type => channelTheme.main_types.includes(type))
 					if (!isCompatible) {
 						throw new Error('❌ | Loại lure này không tương thích với hệ sinh thái ở đây!')
 					}
@@ -354,10 +355,10 @@ const useItem = async (client, userId, channelId, itemId) => {
 
 				const expirationTime = Date.now() + (30 * 60 * 1000)
 				activeLures.set(channelId, {
-					expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: userId 
+					expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: userId
 				})
 				successMessage = `✨ **${user.username || userId}** đã sử dụng **${item.name}** ${item.emoji}!`
-			} else if (item.item_type === 'tool' && item.id === 'catch-net') {
+			} else if (item.item_type === 'tool' && itemId === 'catch-net') {
 				const activeNets = client.activeNets
 				const currentUses = activeNets.get(userId)?.uses || 0
 				const MAX_NET_USES = 100 // more than 5 nets stacked is not allowed
@@ -371,11 +372,11 @@ const useItem = async (client, userId, channelId, itemId) => {
 				throw new Error('❌ | Vật phẩm này không thể sử dụng được.')
 			}
 
-			user.inventory.set(itemId, ownedQuantity - 1)
-			if (user.inventory.get(itemId) === 0) {
-				user.inventory.delete(itemId)
+			userData.inventory.set(itemId, ownedQuantity - 1)
+			if (userData.inventory.get(itemId) === 0) {
+				userData.inventory.delete(itemId)
 			}
-			await user.save({ session })
+			await userData.save({ session })
 			resultData = { message: successMessage, itemType: item.item_type }
 		}
 		await runTransactionWithRetry(useTransaction)
