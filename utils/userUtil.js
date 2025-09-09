@@ -1,7 +1,11 @@
 const mongoose = require('mongoose')
 const User = require('../models/User')
+const Cokemon = require('../models/cokemon/Cokemon')
+const shopItems = require('../data/shopItem')
+const { runTransactionWithRetry } = require('./miscUtil')
 const { formatVNCurrency } = require('./format')
 const { getPerDayLimit, getPerTransactionLimit } = require('./transactionUtil')
+const config = require('../data/config.json')
 
 const getOrCreateUser = async userId => {
 	let user = await User.findOne({ userId })
@@ -237,6 +241,219 @@ const removeReceiptOlderThanNDays = async (userId, n) => {
 	)
 }
 
+const buyItem = async (userId, itemId, quantity) => {
+	let resultData = {}
+	try {
+		const buyTransaction = async (session) => {
+			const item = shopItems.get(itemId)
+			if (!item) {
+				throw new Error('❌ | Vật phẩm không tồn tại.')
+			}
+
+			const user = await User.findOne({ userId }).session(session)
+			const totalCost = item.price * quantity
+			if (user.coke < totalCost) {
+				throw new Error(`❌ | Bạn không đủ tiền! Bạn cần ${totalCost} coke nhưng chỉ có ${user.coke} coke.`)
+			}
+
+			user.coke -= totalCost
+			const currentQuantity = user.inventory.get(itemId) || 0
+			user.inventory.set(itemId, currentQuantity + quantity)
+			await user.save({ session })
+			resultData = { item, quantity, cost: totalCost }
+		}
+		await runTransactionWithRetry(buyTransaction)
+		return { success: true, ...resultData}
+	} catch (error) {
+		return { success: false, message: error.message }
+	}
+}
+
+const sellItem = async (userId, itemId, quantity) => {
+	let resultData = {}
+	try {
+		const sellTransaction = async (session) => {
+			const item = shopItems.get(itemId)
+			if (!item) {
+				throw new Error('❌ | Vật phẩm không tồn tại.')
+			}
+
+			const user = await User.findOne({ userId }).session(session)
+			if (!user) {
+				throw new Error('❌ | Bạn không có vật phẩm nào để bán.')
+			}
+
+			const ownedQuantity = user.inventory.get(itemId) || 0
+			if (ownedQuantity < quantity) {
+				throw new Error(`❌ | Bạn không có đủ vật phẩm để bán. Bạn chỉ có ${ownedQuantity} ${item.name}.`)
+			}
+
+			// Calculate the sell price (75% of original, rounded down)
+			const sellPrice = Math.floor(item.price * 0.75)
+			const totalGain = sellPrice * quantity
+			user.coke += totalGain
+			const newQuantity = ownedQuantity - quantity
+
+			if (newQuantity === 0) {
+				user.inventory.delete(itemId)
+			} else {
+				user.inventory.set(itemId, newQuantity)
+			}
+			await user.save({ session })
+			resultData = { item, quantity, gain: totalGain }
+		}
+		await runTransactionWithRetry(sellTransaction)
+		return { success: true, ...resultData }
+	} catch (error) {
+		return { success: false, message: error.message }
+	}
+}
+
+const useItem = async (client, userId, channelId, itemId) => {
+	try {
+		let resultData = {}
+		const useTransaction = async (session) => {
+			const item = shopItems.get(itemId)
+			if (!item) {
+				throw new Error('❌ | Vật phẩm không tồn tại.')
+			}
+
+			const user = await User.findOne({ userId }).session(session)
+			if (!user) {
+				throw new Error('❌ | Không thể tìm thấy dữ liệu người chơi.')
+			}
+
+			const ownedQuantity = user?.inventory?.get(itemId) || 0
+			if (ownedQuantity < 1) {
+				throw new Error(`❌ | Bạn không có vật phẩm ${item.name} để sử dụng.`)
+			}
+
+			let successMessage = ''
+			if (item.item_type === 'lure') {
+				const isDefaultChannel = !config.channel_themes[channelId]
+				if (isDefaultChannel) {
+					const cooldownEndTime = client.lureCooldowns.get(userId)
+					if (cooldownEndTime && Date.now() < cooldownEndTime) {
+						const remainingMinutes = Math.ceil((cooldownEndTime - Date.now()) / 60000)
+						throw new Error(`❌ | Bạn đang trong thời gian hồi. Bạn có thể dùng lure tiếp theo sau ${remainingMinutes} phút.`)
+					}
+				}
+
+				const activeLures = client.activeLures
+				if (activeLures.has(channelId)) {
+					throw new Error('❌ | Đã có một loại lure đang hoạt động ở kênh này.')
+				}
+
+				const channelTheme = config.channel_themes[channelId]
+				if (channel_themes && item.boosts_type) {
+					const isCompatible = item.boosts_type.some(type => channel_themes.main_types.includes(type))
+					if (!isCompatible) {
+						throw new Error('❌ | Loại lure này không tương thích với hệ sinh thái ở đây!')
+					}
+				}
+
+				const expirationTime = Date.now() + (30 * 60 * 1000)
+				activeLures.set(channelId, {
+					expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: userId 
+				})
+				successMessage = `✨ **${user.username || userId}** đã sử dụng **${item.name}** ${item.emoji}!`
+			} else if (item.item_type === 'tool' && item.id === 'catch-net') {
+				const activeNets = client.activeNets
+				const currentUses = activeNets.get(userId)?.uses || 0
+				const MAX_NET_USES = 100 // more than 5 nets stacked is not allowed
+				if (currentUses >= MAX_NET_USES) {
+					throw new Error(`❌ | Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm (Tối đa: ${MAX_NET_USES} lượt).`)
+				}
+				const newTotal = currentUses + 20 // 20 uses per net
+				activeNets.set(userId, { uses: newTotal })
+				successMessage = `✅ Bạn đã nạp thêm Lưới Bắt Tự Động! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**.`
+			} else {
+				throw new Error('❌ | Vật phẩm này không thể sử dụng được.')
+			}
+
+			user.inventory.set(itemId, ownedQuantity - 1)
+			if (user.inventory.get(itemId) === 0) {
+				user.inventory.delete(itemId)
+			}
+			await user.save({ session })
+			resultData = { message: successMessage, itemType: item.item_type }
+		}
+		await runTransactionWithRetry(useTransaction)
+		return { success: true, ...resultData }
+	} catch (error) {
+		return { success: false, message: error.message }
+	}
+}
+
+const getAllCokemon = async userId => {
+	return await Cokemon.find({ owner_id: userId }).populate('species_id')
+}
+
+const addCokemon = async (cokemonData) => {
+	const session = await mongoose.startSession()
+	try {
+		let newCokemon = null
+		await session.withTransaction(async (session) => {
+			const user = await User.findOneAndUpdate(
+				{ userId: cokemonData.owner_id },
+				{ $inc: { last_cokemon_id: 1 } },
+				{ new: true, upsert: true, session: session }
+			)
+
+			const speciesIdString = cokemonData.species_id.toString()
+			const dexEntry = user.cokedex.get(speciesIdString) || { caught: 0, has_shiny: false }
+			dexEntry.caught += 1
+			if (cokemonData.is_shiny) {
+				dexEntry.has_shiny = true
+			}
+			user.cokedex.set(speciesIdString, dexEntry)
+
+			const newUid = user.last_cokemon_id
+			const finalCokemonData = {
+				...cokemonData,
+				uid: newUid
+			}
+
+			const created = await Cokemon.create([finalCokemonData], { session })
+			newCokemon = created[0]
+			await user.save({ session })
+		})
+		return { success: true, cokemon: newCokemon }
+	} catch (error) {
+		console.error(error)
+		return { success: false, message: '❌ | Lỗi trong quá trình bắt, hãy thử lại nào.' }
+	} finally {
+		session.endSession()
+	}
+}
+
+const removeCokemon = async (userId, cokemonUid) => {
+	try {
+		let resultData = {}
+		const releaseTransaction = async (session) => {
+			const deletedCokemon = await Cokemon.findOneAndDelete(
+				{ owner_id: userId, uid: cokemonUid }
+			).populate('species_id')
+
+			if (!deletedCokemon) {
+				throw new Error(`Không tìm thấy cokemon với ID \`${cokemonUid}\` trong bộ sưu tập của bạn.`)
+			}
+
+			const reward = 50
+			await User.updateOne(
+				{ userId: userId },
+				{ $inc: { coke: reward } },
+				{ session }
+			)
+			resultData = { releasedCokemon: deletedCokemon, reward: reward }
+		}
+		await runTransactionWithRetry(releaseTransaction)
+		return { success: true, ...resultData }
+	} catch (error) {
+		return { success: false, message: error.message }
+	}
+}
+
 module.exports = {
 	getOrCreateUser,
 	withdrawCmd,
@@ -247,5 +464,11 @@ module.exports = {
 	computeInterest,
 	validateBeforeGiving,
 	decBalance,
-	incBalance
+	incBalance,
+	buyItem,
+	sellItem,
+	useItem,
+	getAllCokemon,
+	addCokemon,
+	removeCokemon
 }

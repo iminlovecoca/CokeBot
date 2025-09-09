@@ -1,0 +1,88 @@
+const { EmbedBuilder } = require('discord.js')
+const { getAllCokemon } = require('../../utils/userUtil')
+const { initPage } = require('../../utils/pageUtil')
+const { calculateIVPercentage } = require('../../utils/CokemonUtil')
+const MONS_PER_PAGE = 5
+
+module.exports = {
+	name: 'cokemon',
+	description: 'Hiển thị danh sách cokemon bạn đã .',
+	async execute(message, args) {
+		try {
+			const sortBy = args[0]?.toLowerCase() || 'recent' // sort by most recent by default
+			const validSorts = ['recent', 'iv', 'level', 'dex']
+
+			if (!validSorts.includes(sortBy)) {
+				throw new Error(`❌ | Tùy chọn sắp xếp không hợp lệ. Các kiểu hợp lệ là: \`${validSorts.join(', ')}\`.`)
+			}
+			const userCokemon = await getAllCokemon(message.author.id)
+			if (userCokemon.length === 0) {
+				return await message.reply("Bạn chưa có cokemon nào cả! Dùng `!catch` để bắt một con.")
+			}
+
+			let sortedCokemon
+			switch (sortBy) {
+				case 'level':
+					sortedCokemon = userCokemon.sort((a, b) => b.level - a.level)
+					break
+				case 'iv':
+					sortedCokemon = userCokemon
+						.map(c => {
+							return { ...c.toObject(), iv_percent: calculateIVPercentage(c.ivs) }
+						})
+						.sort((a, b) => b.iv_percent - a.iv_percent)
+					break
+				case 'dex':
+					sortedCokemon = userCokemon.sort((a, b) => a.species_id.dex_id - b.species_id.dex_id)
+					break
+				case 'recent':
+				default:
+					sortedCokemon = userCokemon.sort((a, b) => b.createdAt - a.createdAt)
+					break
+			}
+
+			const totalPages = Math.ceil(sortedCokemon.length / MONS_PER_PAGE)
+
+			const generateEmbed = (page) => {
+				const startIdx = page * MONS_PER_PAGE
+				const pageCokemon = sortedCokemon.slice(startIdx, startIdx + MONS_PER_PAGE)
+				
+				const sortByVi = sortBy === 'recent' ? 'thời gian bắt' : sortBy === 'dex' ? 'thứ tự dex' : sortBy
+				const embed = new EmbedBuilder()
+					.setColor('#3498DB')
+					.setTitle(`Cokemon của ${message.author.username}`)
+					.setDescription(`Sắp xếp theo: ${sortByVi}`)
+					.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
+
+				const idColumn = []
+				const nameColumn = []
+				const infoColumn = []
+
+				pageCokemon.forEach(c => {
+					const species = c.species_id
+					const ivPercent = c.iv_percent || calculateIVPercentage(c.ivs)
+					const displayEmoji = c.is_shiny ? species.shiny_emoji : species.emoji
+					const genderSymbol = c.gender === 'Male' ? '♂️' : c.gender === 'Female' ? '♀️' : ''
+					const displayName = c.nickname || species.name // todo: nickname
+
+					idColumn.push(`\`${c.uid}\``)
+					nameColumn.push(`${displayEmoji} ${displayName} ${c.is_shiny ? '✨' : ''}`)
+					infoColumn.push(`${genderSymbol} • Lv. ${c.level} • ${ivPercent}%`)
+				})
+
+				if (idColumn.length > 0) {
+					embed.addFields(
+						{ name: 'ID', value: idColumn.join('\n'), inline: true },
+						{ name: 'Cokemon', value: nameColumn.join('\n'), inline: true },
+						{ name: 'Thông tin', value: infoColumn.join('\n'), inline: true }
+					)
+				}
+				return embed
+			}
+			await initPage(message, generateEmbed, totalPages, '!cokemon')
+		} catch (error) {
+			console.log(error)
+			await message.reply(error.message)
+		}
+	}
+}
