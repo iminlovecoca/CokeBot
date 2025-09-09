@@ -4,11 +4,11 @@ const { addCokemon } = require('../utils/userUtil')
 const config = require('../data/config.json')
 
 const SPAWN_INTERVAL_MS = 5 * 1000
-const LURE_COOLDOWN_MS = 0.5 * 60 * 1000
+const LURE_COOLDOWN_MS = 2 * 60 * 1000
 const LURE_USER_COOLDOWN_MS = 30 * 60 * 1000
-const NORMAL_COOLDOWN_MS = 1 * 60 * 1000
-const DESPAWN_DURATION_MS = 1 * 60 * 1000
-const GRACE_PERIOD_MS = 10 * 1000
+const NORMAL_COOLDOWN_MS = 5 * 60 * 1000
+const DESPAWN_DURATION_MS = 5 * 60 * 1000
+const GRACE_PERIOD_MS = 60 * 1000
 const spawnChannels = Object.keys(config.channel_themes || {})
 
 const initializeSpawner = (client) => {
