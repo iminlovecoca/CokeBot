@@ -73,5 +73,32 @@
 		"Jc": "<:jc:1387746825771159592>",
 		"Qc": "<:qc:1387746055717781626>",
 		"Kc": "<:kc:1387746037199798445>"
+	},
+	"channel_themes": {
+		"GENERAL_CHANNEL_ID": null,
+		"THEMED_OCEAN_CHANNEL_ID": {
+			"main_types": ["Water"],
+			"weight": 0.9
+		},
+		"THEMED_VOLCANO_CHANNEL_ID": {
+			"main_types": ["Fire"],
+			"weight": 0.9
+		},
+		"THEMED_CAVERN_CHANNEL_ID": {
+			"main_types": ["Rock", "Ground"],
+			"weight": 0.9
+		},
+		"THEMED_POWER_PLANT_CHANNEL_ID": {
+			"main_types": ["Electric", "Psychic"],
+			"weight": 0.9
+		},
+		"THEMED_FOREST_CHANNEL_ID": {
+			"main_types": ["Grass", "Bug", "Flying"],
+			"weight": 0.9
+		},
+		"THEMED_DOJO_CHANNEL_ID": {
+			"main_types": ["Fighting", "Dragon", "Steel"],
+			"weight": 0.9
+		}
 	}
 }

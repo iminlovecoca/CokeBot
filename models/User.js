@@ -1,5 +1,10 @@
 ﻿const mongoose = require('mongoose');
 
+const cokedexEntrySchema = new mongoose.Schema({
+  caught: { type: Number, default: 0 },
+  has_shiny: { type: Boolean, default: false }
+}, { _id: false })
+
 const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
   coke: { type: Number, default: 0 },
@@ -42,6 +47,21 @@ const userSchema = new mongoose.Schema({
       multi: {},
       fixed: {}
     }
+  },
+
+  inventory: {
+    type: Map,
+    of: Number,
+    default: {}
+  },
+  last_cokemon_id: {
+    type: Number,
+    default: 0
+  },
+  cokedex: {
+    type: Map,
+    of: cokedexEntrySchema,
+    default: {}
   },
 
   warned: { type: Boolean, default: false },

@@ -9,8 +9,8 @@ const {
   Events,
   Partials
 } = require('discord.js');
-
 const User = require('./models/User');
+const spawner = require('./features/spawner');
 
 const client = new Client({
   intents: [
@@ -23,6 +23,21 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User]
 });
 
+// [[channelId: {expires_at, boosts_type, ownerId}]]
+client.activeLures = new Map();
+// [[userId: { uses }]]
+client.activeNets = new Map();
+// [[channelId: {
+//    cokemon: { species_id, name, catch_rate, flee_rate, gender, ivs, level, speciesData },
+//    userStates,
+//    despawn_at
+// }]]
+client.activeSpawns = new Map();
+// [[channelId: date]]
+client.lastSpawn = new Map();
+// [[userId: cooldown]]
+client.lureCooldowns = new Map();
+client.actionLocks = new Set();
 client.commands = new Collection();
 
 const loadCommands = (dir) => {
@@ -143,6 +158,7 @@ client.once(Events.ClientReady, async () => {
     activities: [{ name: 'Coke 🎲', type: 0 }],
     status: 'online'
   });
+  spawner.initializeSpawner(client);
 });
 
 async function connectWithRetry() {
