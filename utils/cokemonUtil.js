@@ -43,7 +43,7 @@ const createRandomCokemon = async (lure, theme) => {
 
 	const spawnPool = await Species.find(query)
 	if (spawnPool.length === 0) {
-		console.error('No possible spawns found at all.')
+		// console.error('No possible spawns found at all.')
 		return null
 	}
 

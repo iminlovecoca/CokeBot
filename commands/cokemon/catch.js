@@ -27,7 +27,7 @@ module.exports = {
 
 			const finalCatchChance = spawnState.cokemon.catch_rate * userState.catchRateModifier
 			if (Math.random() <= finalCatchChance) {
-				const isShiny = (Math.random() < (1 / 10))
+				const isShiny = (Math.random() < (1 / 16))
 				const cokemonData = {
 					owner_id: message.author.id,
 					species_id: spawnState.cokemon.species_id,

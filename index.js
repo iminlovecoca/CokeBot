@@ -29,8 +29,7 @@ client.activeLures = new Map();
 client.activeNets = new Map();
 // [[channelId: {
 //    cokemon: { species_id, name, catch_rate, flee_rate, gender, ivs, level, speciesData },
-//    userStates,
-//    despawn_at
+//    userStates, despawn_at, spawn_at, autoCatchProcessed
 // }]]
 client.activeSpawns = new Map();
 // [[channelId: date]]
