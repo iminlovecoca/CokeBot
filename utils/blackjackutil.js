@@ -1,5 +1,5 @@
 const BlackJackGame = require('../models/BlackJackGame')
-const config = require('../data/config.json')
+const config = require('../data/config')
 const emoji = config.emoji
 
 const suits = ['s', 'c', 'h', 'd']; 

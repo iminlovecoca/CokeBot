@@ -1,6 +1,6 @@
 const { sellItem } = require('../../utils/userUtil')
 const shopItems = require('../../data/shopItem')
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 
 module.exports = {
 	name: 'sell',

@@ -10,6 +10,7 @@ const {
   Partials
 } = require('discord.js');
 const User = require('./models/User');
+const Species = require('./models/cokemon/Species');
 const spawner = require('./features/spawner');
 
 const client = new Client({
@@ -63,42 +64,15 @@ const loadEvents = (dir) => {
       const event = require(fullPath);
       if (event.name) {
         if (event.once) {
-          client.once(event.name, (...args) => event.execute(...args));
+          client.once(event.name, (...args) => event.execute(...args, client));
         } else {
-          client.on(event.name, (...args) => event.execute(...args));
+          client.on(event.name, (...args) => event.execute(...args, client));
         }
       }
     }
   }
 };
 loadEvents(path.join(__dirname, 'events'));
-
-const PREFIX = '!';
-
-client.on('messageCreate', async message => {
-  if (message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
-  if (mongoose.connection.readyState !== 1) return;
-
-  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-  const cmd = args.shift().toLowerCase();
-  const command = client.commands.get(cmd)
-    || client.commands.find(c => c.aliases && c.aliases.includes(cmd));
-  if (!command) return;
-
-  const userData = await User.findOne({ userId: message.author.id });
-  if (userData?.bannedUntil && userData.bannedUntil > Date.now()) {
-    const until = `<t:${Math.floor(userData.bannedUntil / 1000)}:R>`;
-    return message.reply(`🚫 Bạn đang bị cấm sử dụng bot cho đến ${until}`);
-  }
-
-  try {
-    await command.execute(message, args);
-  } catch (err) {
-    console.error(`❌ Lỗi lệnh !${cmd}:`, err);
-    message.reply('❌ | Đã xảy ra lỗi khi thực thi lệnh.').catch(() => { });
-  }
-});
 
 client.on(Events.InteractionCreate, async interaction => {
   if (interaction.isChatInputCommand()) {
@@ -157,6 +131,15 @@ client.once(Events.ClientReady, async () => {
     activities: [{ name: 'Coke 🎲', type: 0 }],
     status: 'online'
   });
+
+  try {
+    client.allSpecies = await Species.find({}).sort({ dex_id: 'asc' });
+    console.log(`✅ Successfully cached ${client.allSpecies.length} species.`);
+  } catch (error) {
+    console.error("Could not cache species data:", error);
+    client.allSpecies = []
+  }
+
   spawner.initializeSpawner(client);
 });
 

@@ -5,7 +5,8 @@ const shopItems = require('../data/shopItem')
 const { runTransactionWithRetry } = require('./miscUtil')
 const { formatVNCurrency } = require('./format')
 const { getPerDayLimit, getPerTransactionLimit } = require('./transactionUtil')
-const config = require('../data/config.json')
+const config = require('../data/config')
+const settings = config.cokemon_settings
 
 const getOrCreateUser = async userId => {
 	let user = await User.findOne({ userId })
@@ -123,13 +124,13 @@ const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
 		return '❌ | Người nhận hiện đang bị cấm sử dụng bot.'
 	}
 
-	const senderPerDayLimit = sender.vipLevel ? Infinity : getPerDayLimit(sender.level || 1)[0];
-	const receiverPerDayLimit = receiver.vipLevel ? Infinity : getPerDayLimit(receiver.level || 1)[1];
-	const senderPerTransLimit = sender.vipLevel ? Infinity : getPerTransactionLimit(sender.level || 1);
-	const senderDailyGive = sender.dailyGive || {};
-	const receiverDailyReceive = receiver.dailyReceive || {};
-	const sentToday = senderDailyGive[dateKey] || 0;
-	const receivedToday = receiverDailyReceive[dateKey] || 0;
+	const senderPerDayLimit = sender.vipLevel ? Infinity : getPerDayLimit(sender.level || 1)[0]
+	const receiverPerDayLimit = receiver.vipLevel ? Infinity : getPerDayLimit(receiver.level || 1)[1]
+	const senderPerTransLimit = sender.vipLevel ? Infinity : getPerTransactionLimit(sender.level || 1)
+	const senderDailyGive = sender.dailyGive || {}
+	const receiverDailyReceive = receiver.dailyReceive || {}
+	const sentToday = senderDailyGive[dateKey] || 0
+	const receivedToday = receiverDailyReceive[dateKey] || 0
 
 	if (amount > senderPerTransLimit) {
 		return `❌ | Vượt giới hạn giao dịch (**${senderPerTransLimit.toLocaleString()}**).`
@@ -288,8 +289,7 @@ const sellItem = async (userId, itemId, quantity) => {
 				throw new Error(`❌ | Bạn không có đủ vật phẩm để bán. Bạn chỉ có ${ownedQuantity} ${item.name}.`)
 			}
 
-			// Calculate the sell price (75% of original, rounded down)
-			const sellPrice = Math.floor(item.price * 0.75)
+			const sellPrice = Math.floor(item.price * settings.sell_percentage)
 			const totalGain = sellPrice * quantity
 			user.coke += totalGain
 			const newQuantity = ownedQuantity - quantity
@@ -311,83 +311,89 @@ const sellItem = async (userId, itemId, quantity) => {
 
 const useItem = async (client, user, channelId, itemId) => {
 	try {
-		let resultData = {}
-		const useTransaction = async (session) => {
-			const item = shopItems.get(itemId)
-			if (!item) {
-				throw new Error('❌ | Vật phẩm không tồn tại.')
-			}
-
-			const userId = user.id
-			const userData = await User.findOne({ userId }).session(session)
-			if (!userData) {
-				throw new Error('❌ | Không thể tìm thấy dữ liệu người chơi.')
-			}
-
-			const ownedQuantity = userData?.inventory?.get(itemId) || 0
-			if (ownedQuantity < 1) {
-				throw new Error(`❌ | Bạn không có vật phẩm ${item.name} để sử dụng.`)
-			}
-
-			let successMessage = ''
-			if (item.item_type === 'lure') {
-				const isDefaultChannel = !config.channel_themes[channelId]
-				if (isDefaultChannel) {
-					const cooldownEndTime = client.lureCooldowns.get(userId)
-					if (cooldownEndTime && Date.now() < cooldownEndTime) {
-						const remainingMinutes = Math.ceil((cooldownEndTime - Date.now()) / 60000)
-						throw new Error(`❌ | Bạn đang trong thời gian hồi. Bạn có thể dùng lure tiếp theo sau ${remainingMinutes} phút.`)
-					}
-				}
-
-				const activeLures = client.activeLures
-				if (activeLures.has(channelId)) {
-					throw new Error('❌ | Đã có một loại lure đang hoạt động ở kênh này.')
-				}
-
-				const channelTheme = config.channel_themes[channelId]
-				if (channelTheme && item.boosts_type) {
-					const isCompatible = item.boosts_type.some(type => channelTheme.main_types.includes(type))
-					if (!isCompatible) {
-						throw new Error('❌ | Loại lure này không tương thích với hệ sinh thái ở đây!')
-					}
-				}
-
-				const expirationTime = Date.now() + (30 * 60 * 1000)
-				activeLures.set(channelId, {
-					expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: userId
-				})
-				successMessage = `✨ **${user.username || userId}** đã sử dụng **${item.name}** ${item.emoji}!`
-			} else if (item.item_type === 'tool' && itemId === 'catch-net') {
-				const activeNets = client.activeNets
-				const currentUses = activeNets.get(userId)?.uses || 0
-				const MAX_NET_USES = 100 // more than 5 nets stacked is not allowed
-				if (currentUses >= MAX_NET_USES) {
-					throw new Error(`❌ | Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm (Tối đa: ${MAX_NET_USES} lượt).`)
-				}
-				const newTotal = currentUses + 20 // 20 uses per net
-				activeNets.set(userId, { uses: newTotal })
-				successMessage = `✅ Bạn đã nạp thêm Lưới Bắt Tự Động! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**.`
-			} else {
-				throw new Error('❌ | Vật phẩm này không thể sử dụng được.')
-			}
-
-			userData.inventory.set(itemId, ownedQuantity - 1)
-			if (userData.inventory.get(itemId) === 0) {
-				userData.inventory.delete(itemId)
-			}
-			await userData.save({ session })
-			resultData = { message: successMessage, itemType: item.item_type }
+		item = shopItems.get(itemId)
+		if (!item) {
+			throw new Error('❌ | Vật phẩm không tồn tại.')
 		}
-		await runTransactionWithRetry(useTransaction)
-		return { success: true, ...resultData }
+
+		const userData = await User.findOne({ userId: user.id })
+		if (!userData) {
+			throw new Error('❌ | Không thể tìm thấy dữ liệu người chơi.')
+		}
+
+		const ownedQuantity = userData.inventory.get(itemId) || 0
+		if (ownedQuantity < 1) {
+			throw new Error(`❌ | Bạn không có vật phẩm ${item.name} để sử dụng.`)
+		}
+
+		let successMessage = ''
+		if (item.item_type === 'lure') {
+			const isDefaultChannel = !config.channel_themes[channelId]
+			if (isDefaultChannel) {
+				const cooldownEndTime = client.lureCooldowns.get(user.id)
+				if (cooldownEndTime && Date.now() < cooldownEndTime) {
+					const remainingMinutes = Math.ceil((cooldownEndTime - Date.now()) / 60000)
+					throw new Error(`❌ | Bạn đang trong thời gian hồi. Bạn có thể dùng bả tiếp theo sau ${remainingMinutes} phút.`)
+				}
+			}
+
+			if (client.activeLures.has(channelId)) {
+				throw new Error('❌ | Đã có một loại bả đang hoạt động ở kênh này.')
+			}
+
+			const channelTheme = config.channel_themes[channelId]
+			if (channelTheme && item.boosts_type) {
+				const isCompatible = item.boosts_type.some(type => channelTheme.main_types.includes(type))
+				if (!isCompatible) {
+					throw new Error('❌ | Loại bả này không tương thích với hệ sinh thái ở đây!')
+				}
+			}
+		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
+			const activeNets = client.activeNets
+			const currentUses = activeNets.get(user.id)?.uses || 0
+			if (currentUses > (settings.max_stacked_nets - 1) * settings.catch_net_uses) {
+				throw new Error(`❌ | Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm.`)
+			}
+		} else {
+			throw new Error('❌ | Vật phẩm này không thể sử dụng được.')
+		}
+
+		const consumeTransaction = async (session) => {
+			const updateResult = await User.updateOne(
+				{ userId: user.id, [`inventory.${itemId}`]: { $gte: 1 } },
+				{ $inc: { [`inventory.${itemId}`]: -1 } },
+				{ session }
+			)
+			if (updateResult.modifiedCount === 0) {
+				throw new Error('Không thể sử dụng vật phẩm, có thể số lượng đã thay đổi.')
+			}
+		}
+		await runTransactionWithRetry(consumeTransaction)
+
+		if (item.item_type === 'lure') {
+			const expirationTime = Date.now() + settings.lure_duration_ms
+			client.activeLures.set(channelId, { expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: user.id })
+			successMessage = `✨ **${user.username || user.id}** đã sử dụng **${item.name}** ${item.emoji}!`
+		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
+			const activeNets = client.activeNets
+			const currentNetState = activeNets.get(user.id) || { uses: 0, caught: new Map() }
+			const newTotal = currentNetState.uses + settings.catch_net_uses
+			activeNets.set(user.id, { uses: newTotal, caught: currentNetState.caught })
+			successMessage = `✅ Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
+		}
+		return { success: true, message: successMessage, itemType: item.item_type }
 	} catch (error) {
+		console.error(error)
 		return { success: false, message: error.message }
 	}
 }
 
 const getAllCokemon = async userId => {
 	return await Cokemon.find({ owner_id: userId }).populate('species_id')
+}
+
+const getAllCokemonWithUids = async (userId, Uids) => {
+	return await Cokemon.find({ owner_id: userId, uid: { $in: Uids } }).populate('species_id')
 }
 
 const addCokemon = async (cokemonData) => {
@@ -428,25 +434,32 @@ const addCokemon = async (cokemonData) => {
 	}
 }
 
-const removeCokemon = async (userId, cokemonUid) => {
+const removeCokemon = async (userId, cokemonUids) => {
 	try {
 		let resultData = {}
 		const releaseTransaction = async (session) => {
-			const deletedCokemon = await Cokemon.findOneAndDelete(
-				{ owner_id: userId, uid: cokemonUid }
-			).populate('species_id')
-
-			if (!deletedCokemon) {
-				throw new Error(`Không tìm thấy cokemon với ID \`${cokemonUid}\` trong bộ sưu tập của bạn.`)
-			}
-
-			const reward = 50
-			await User.updateOne(
-				{ userId: userId },
-				{ $inc: { coke: reward } },
+			const cokemonToDelete = await Cokemon.find(
+				{ owner_id: userId, uid: { $in: cokemonUids } },
+				null,
 				{ session }
 			)
-			resultData = { releasedCokemon: deletedCokemon, reward: reward }
+			if (cokemonToDelete.length !== cokemonUids.length) {
+				throw new Error('Một hoặc nhiều ID cokemon không hợp lệ hoặc không thuộc về bạn.')
+			}
+			if (cokemonToDelete.length === 0) {
+				throw new Error('Không có cokemon nào được chọn để thả.')
+			}
+
+			const idsToDelete = cokemonToDelete.map(c => c._id)
+			await Cokemon.deleteMany({ _id: { $in: idsToDelete } }, { session })
+
+			const totalReward = cokemonToDelete.length * settings.release_reward
+			await User.updateOne(
+				{ userId: userId },
+				{ $inc: { coke: totalReward } },
+				{ session }
+			)
+			resultData = { releasedCount: cokemonToDelete.length, reward: totalReward }
 		}
 		await runTransactionWithRetry(releaseTransaction)
 		return { success: true, ...resultData }
@@ -471,5 +484,6 @@ module.exports = {
 	useItem,
 	getAllCokemon,
 	addCokemon,
+	getAllCokemonWithUids,
 	removeCokemon
 }

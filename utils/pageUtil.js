@@ -1,30 +1,43 @@
+const EXPIRED_MS = 60 * 1000
 const prevEmoji = '⬅️'
 const nextEmoji = '➡️'
 
-const initPage = async (message, generateEmbed, totalPages, command) => {
-	let currentPage = 0
-	const embed = generateEmbed(currentPage)
-	const filter = (reaction, user) =>
-		[prevEmoji, nextEmoji].includes(reaction.emoji.name) && user.id === message.author.id
+const initPage = async (message, generateDisplay, totalPages, command, currentIndex = 0, options = {}) => {
+	let currentPage = currentIndex
+	const replyOptions = generateDisplay(currentPage)
 
-	const sentMsg = await message.reply({ embeds: [embed] })
+	let buttons = [prevEmoji, nextEmoji]
+	const sentMsg = await message.reply({ ...replyOptions })
 	await sentMsg.react(prevEmoji)
 	await sentMsg.react(nextEmoji)
+	if (options.customButtonEmoji) {
+		await sentMsg.react(options.customButtonEmoji)
+		buttons.push(options.customButtonEmoji)
+	}
 
-	const collector = sentMsg.createReactionCollector({ filter, time: 60000 })
+	const filter = (reaction, user) =>
+		buttons.includes(reaction.emoji.name) && user.id === message.author.id
+	const collector = sentMsg.createReactionCollector({ filter, time: EXPIRED_MS })
 
 	collector.on('collect', async (react) => {
 		if (react.emoji.name === prevEmoji) {
 			if (currentPage >= 1) {
 				currentPage--
-				await sentMsg.edit({ embeds: [generateEmbed(currentPage)] })
+			} else {
+				currentPage = totalPages - 1
 			}
-		} else {
+		} else if (react.emoji.name === nextEmoji) {
 			if (currentPage < totalPages - 1) {
 				currentPage++
-				await sentMsg.edit({ embeds: [generateEmbed(currentPage)] })
+			} else {
+				currentPage = 0
+			}
+		} else {
+			if (options.customHandler) {
+				await options.customHandler(react)
 			}
 		}
+		await sentMsg.edit(generateDisplay(currentPage))
 		await react.users.remove(message.author.id).catch(() => {})
 	})
 
