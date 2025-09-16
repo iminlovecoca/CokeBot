@@ -23,7 +23,7 @@ module.exports = {
       return message.reply(`⏱ **|** Bạn cần chờ **${h}h ${m}m ${s}s** nữa để làm việc lại.`);
     }
 
-    const reward = Math.floor(Math.random() * (26000 - 5000 + 1)) + 5000;
+    const reward = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
     const job = jobs[Math.floor(Math.random() * jobs.length)];
 
     user.coke += reward;

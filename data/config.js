@@ -80,28 +80,28 @@ module.exports = {
 		"no": "<:no:1417090195702153258>",
 	},
 	channel_themes: {
-		"GENERAL_CHANNEL_ID": null,
-		"THEMED_OCEAN_CHANNEL_ID": {
+		"1415143151307329536": null,
+		"1415143238871814255": {
 			"main_types": ["Water"],
 			"weight": 0.9
 		},
-		"THEMED_VOLCANO_CHANNEL_ID": {
+		"1415143289136353372": {
 			"main_types": ["Fire"],
 			"weight": 0.9
 		},
-		"THEMED_CAVERN_CHANNEL_ID": {
+		"1415143406241583186": {
 			"main_types": ["Rock", "Ground"],
 			"weight": 0.9
 		},
-		"THEMED_POWER_PLANT_CHANNEL_ID": {
+		"1415143555655143534": {
 			"main_types": ["Electric", "Psychic"],
 			"weight": 0.9
 		},
-		"THEMED_FOREST_CHANNEL_ID": {
+		"1415143658382037132": {
 			"main_types": ["Grass", "Bug", "Flying"],
 			"weight": 0.9
 		},
-		"THEMED_DOJO_CHANNEL_ID": {
+		"1415143688597667901": {
 			"main_types": ["Fighting", "Dragon", "Steel"],
 			"weight": 0.9
 		}

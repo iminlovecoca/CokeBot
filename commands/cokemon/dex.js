@@ -6,6 +6,7 @@ const MONS_PER_PAGE = 21
 
 module.exports = {
 	name: 'dex',
+	aliases: ['d', 'z'],
 	description: 'Hiển thị Cokedex của bạn.',
 	async execute(message, args) {
 		try {

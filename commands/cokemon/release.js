@@ -14,7 +14,7 @@ const cokemonInfo = cokemon => {
 module.exports = {
 	name: 'release',
 	description: 'Thử một hoặc nhiều cokemon về với tự nhiên.',
-	alias: ['rl'],
+	aliases: ['rl', 'r'],
 	async execute(message, args) {
 		try {
 			if (args.length === 0) {

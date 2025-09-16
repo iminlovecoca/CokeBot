@@ -36,7 +36,7 @@ module.exports = {
       if (m.content.toLowerCase() === game.answer.toLowerCase()) {
         game.ended = true;
 
-        const reward = 2500;
+        const reward = 250;
         await User.updateOne({ userId: m.author.id }, { $inc: { coke: reward } });
 
         await m.react('✅').catch(() => {});

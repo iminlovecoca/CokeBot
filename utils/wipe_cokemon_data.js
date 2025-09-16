@@ -2,8 +2,8 @@ const mongoose = require('mongoose')
 const readline = require('readline')
 require('dotenv').config()
 
-const User = require('./models/User')
-const Cokemon = require('./models/cokemon/Cokemon')
+const User = require('../models/User')
+const Cokemon = require('../models/cokemon/Cokemon')
 
 const rl = readline.createInterface({
 	input: process.stdin,
