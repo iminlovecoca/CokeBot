@@ -6,7 +6,7 @@ const {
 	notifyCooldown
 } = require('../../utils/cooldown')
 const { getBetAmount } = require('../../utils/gameUtil')
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 const emoji = config.emoji
 const currency = emoji.money
 

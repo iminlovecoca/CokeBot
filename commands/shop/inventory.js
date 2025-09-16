@@ -2,12 +2,13 @@ const { EmbedBuilder } = require('discord.js')
 const { getOrCreateUser } = require('../../utils/userUtil')
 const { initPage } = require('../../utils/pageUtil')
 const shopItems = require('../../data/shopItem')
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 const ITEMS_PER_PAGE = 5
 
 module.exports = {
 	name: 'inventory',
 	description: 'Kiểm tra túi đồ của bạn.',
+	aliases: ['inv'],
 	async execute(message) {
 		try {
 			const user = await getOrCreateUser(message.author.id)
@@ -23,7 +24,7 @@ module.exports = {
 			}
 
 			const totalPages = Math.ceil(userItems.length / ITEMS_PER_PAGE)
-			const generateEmbed = (page) => {
+			const generateDisplay = (page) => {
 				const startIdx = page * ITEMS_PER_PAGE
 				const pageItems = userItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
 
@@ -49,10 +50,10 @@ module.exports = {
 				} else {
 					embed.setDescription('Không có vật phẩm nào trong danh mục này.')
 				}
-				return embed
+				return { embeds: [embed] }
 			}
 
-			await initPage(message, generateEmbed, totalPages, '!inventory')
+			await initPage(message, generateDisplay, totalPages, '!inventory')
 		} catch(error) {
 			return await message.reply(error.message)
 		}

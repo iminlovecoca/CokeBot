@@ -5,7 +5,7 @@ const {
   notifyCooldown
 } = require('../../utils/cooldown');
 const { formatVNCurrency } = require('../../utils/format');
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 
 const allowedViewers = ['745950731638407210', '858603090289623100'];
 

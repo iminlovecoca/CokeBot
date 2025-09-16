@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require('discord.js')
 const { initPage } = require('../../utils/pageUtil')
 const shopItems = require('../../data/shopItem')
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 const ITEMS_PER_PAGE = 5
 
 const getItems = () => {
@@ -16,7 +16,7 @@ module.exports = {
 			const allItems = getItems()
 			const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE)
 
-			const generateEmbed = (page) => {
+			const generateDisplay = (page) => {
 				const startIdx = page * ITEMS_PER_PAGE
 				const pageItems = allItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
 
@@ -24,31 +24,21 @@ module.exports = {
 					.setColor('#0099ff')
 					.setTitle('Cửa Hàng Cokemon')
 					.setDescription(
-						'- Nhập \`!buy <id> <số lượng>\` để mua vật phẩm.\n' +
-						'- Nhập \`!sell <id> <số lượng>\` để bán vật phẩm với 75% giá gốc.\n'
+						"- `!buy <id> <số lượng>`: mua vật phẩm.\n" +
+						"- `!sell <id> <số lượng>`: bán vật phẩm với 75% giá gốc.\n"
 					)
 					.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
-						
-				const itemColumn = []
-				const priceColumn = []
 
 				pageItems.forEach(item => {
-					const emojiDisplay = item.emoji
-					itemColumn.push(`${emojiDisplay} ${item.name} (\`${item.id}\`)`)
-					priceColumn.push(`**${item.price}** ${config.emoji.money}`)
+					embed.addFields({
+						name: `${item.emoji} ${item.name} \`${item.id}\``,
+						value: `*${item.description}*\n**Giá:** ${item.price} ${config.emoji.money}`,
+						inline: false
+					})
 				})
-
-				if (itemColumn.length > 0) {
-					embed.addFields(
-						{ name: 'Vật Phẩm', value: itemColumn.join('\n'), inline: true },
-						{ name: 'Giá', value: priceColumn.join('\n'), inline: true },
-					)
-				} else {
-					embed.setDescription('Không có vật phẩm nào trong danh mục này.')
-				}
-				return embed
+				return { embeds: [embed] }
 			}
-			await initPage(message, generateEmbed, totalPages,'!shop')
+			await initPage(message, generateDisplay, totalPages,'!shop')
 		} catch(error) {
 			return await message.reply(error.message)
 		}

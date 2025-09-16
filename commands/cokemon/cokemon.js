@@ -2,7 +2,8 @@ const { EmbedBuilder } = require('discord.js')
 const { getAllCokemon } = require('../../utils/userUtil')
 const { initPage } = require('../../utils/pageUtil')
 const { calculateIVPercentage } = require('../../utils/CokemonUtil')
-const MONS_PER_PAGE = 5
+const config = require('../../data/config')
+const MONS_PER_PAGE = 10
 
 module.exports = {
 	name: 'cokemon',
@@ -17,7 +18,7 @@ module.exports = {
 			}
 			const userCokemon = await getAllCokemon(message.author.id)
 			if (userCokemon.length === 0) {
-				return await message.reply("Bạn chưa có cokemon nào cả! Dùng `!catch` để bắt một con.")
+				throw new Error("Bạn chưa có cokemon nào cả! Dùng `!catch` để bắt một con.")
 			}
 
 			let sortedCokemon
@@ -43,7 +44,7 @@ module.exports = {
 
 			const totalPages = Math.ceil(sortedCokemon.length / MONS_PER_PAGE)
 
-			const generateEmbed = (page) => {
+			const generateDisplay = (page) => {
 				const startIdx = page * MONS_PER_PAGE
 				const pageCokemon = sortedCokemon.slice(startIdx, startIdx + MONS_PER_PAGE)
 				
@@ -61,8 +62,8 @@ module.exports = {
 				pageCokemon.forEach(c => {
 					const species = c.species_id
 					const ivPercent = c.iv_percent || calculateIVPercentage(c.ivs)
-					const displayEmoji = c.is_shiny ? species.shiny_emoji : species.emoji
-					const genderSymbol = c.gender === 'Male' ? '♂️' : c.gender === 'Female' ? '♀️' : ''
+					const displayEmoji = c.is_shiny ? (species.shiny_emoji || `${species.emoji}✨`) : species.emoji
+					const genderSymbol = c.gender === 'Male' ? config.emoji.male : c.gender === 'Female' ? config.emoji.female : config.emoji.genderless
 					const displayName = c.nickname || species.name // todo: nickname
 
 					idColumn.push(`\`${c.uid}\``)
@@ -77,9 +78,9 @@ module.exports = {
 						{ name: 'Thông tin', value: infoColumn.join('\n'), inline: true }
 					)
 				}
-				return embed
+				return { embeds: [embed] }
 			}
-			await initPage(message, generateEmbed, totalPages, '!cokemon')
+			await initPage(message, generateDisplay, totalPages, '!cokemon')
 		} catch (error) {
 			console.log(error)
 			await message.reply(error.message)

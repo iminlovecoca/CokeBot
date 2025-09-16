@@ -6,7 +6,7 @@ const {
 } = require('../../utils/cooldown')
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
-const config = require('../../data/config.json')
+const config = require('../../data/config')
 const emoji = config.emoji
 const currency = emoji.money
 

@@ -2,7 +2,8 @@ const mongoose = require('mongoose')
 
 const validTypes = [
 	'Fire', 'Water', 'Grass', 'Electric', 'Flying', 'Rock',
-	'Dragon', 'Bug', 'Fighting', 'Psychic', 'Ground', 'Steel'
+	'Dragon', 'Bug', 'Fighting', 'Psychic', 'Ground', 'Steel',
+	'Normal', 'Poison', 'Ice', 'Fairy', 'Ghost'
 ]
 
 const evolutionDetailSchema = new mongoose.Schema({
@@ -62,10 +63,16 @@ const speciesSchema = new mongoose.Schema({
 		required: true,
 		enum: ['Male', 'Female', 'Genderless']
 	},
+	appearance: {
+		height: Number,   // in meters
+		weight: Number    // in kilograms
+	},
+	description: {
+		type: String,
+		default: 'Mô tả cho loài này chưa được viết.'
+	},
 	image_file: String,
 	shiny_image_file: String,
-	icon_file: String,
-	shiny_icon_file: String,
 	emoji: String,
 	shiny_emoji: String,
 

@@ -1,7 +1,7 @@
 const { getOrCreateUser, decBalance } = require('../../utils/userUtil');
 const { getDrop, addDrop, delDrop } = require('../../utils/dropUtil');
 const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-const config = require('../../data/config.json');
+const config = require('../../data/config');
 
 module.exports = {
   name: 'drop',

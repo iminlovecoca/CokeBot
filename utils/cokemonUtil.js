@@ -1,5 +1,5 @@
 const Species = require('../models/cokemon/Species')
-const MAX_IV = 15
+const config = require('../data/config')
 const tierWeights = {
 	'Common': 100,
 	'Rare': 25,
@@ -7,25 +7,36 @@ const tierWeights = {
 	'Ancient': 2,
 	'Legendary': 0.2
 }
+const natureNames = Object.keys(config.natures)
 
 const generateRandomIVs = () => {
 	return {
-		hp: Math.floor(Math.random() * (MAX_IV + 1)),
-		atk: Math.floor(Math.random() * (MAX_IV + 1)),
-		def: Math.floor(Math.random() * (MAX_IV + 1)),
-		spd: Math.floor(Math.random() * (MAX_IV + 1))
+		hp: Math.floor(Math.random() * (config.cokemon_settings.max_iv + 1)),
+		atk: Math.floor(Math.random() * (config.cokemon_settings.max_iv + 1)),
+		def: Math.floor(Math.random() * (config.cokemon_settings.max_iv + 1)),
+		spd: Math.floor(Math.random() * (config.cokemon_settings.max_iv + 1))
 	}
 }
 
 const calculateIVPercentage = (ivs) => {
 	const totalIVs = ivs.hp + ivs.atk + ivs.def + ivs.spd
-	const maxIVs = MAX_IV * 4
+	const maxIVs = config.cokemon_settings.max_iv * 4
 	const percentage = (totalIVs / maxIVs) * 100
 	return parseFloat(percentage.toFixed(2))
 }
 
-const calculateStat = (base, iv, level) => {
-	return Math.floor(((2 * base + iv) * level) / 100 + 5)
+const calculateStat = (base, iv, level, natureName, statName) => {
+	const nature = config.natures[natureName]
+	let natureMultiplier = 1.0
+	if (nature) {
+		if (nature.plus === statName) {
+			natureMultiplier = 1.1;
+		} else if (nature.minus === statName) {
+			natureMultiplier = 0.9;
+		}
+	}
+	const stat = Math.floor(((2 * base + iv) * level) / 100 + 5)
+	return Math.floor(stat * natureMultiplier)
 }
 
 const createRandomCokemon = async (lure, theme) => {
@@ -61,6 +72,7 @@ const createRandomCokemon = async (lure, theme) => {
 	if (!selectedSpecies) {
 		selectedSpecies = spawnPool[spawnPool.length - 1]
 	}
+	const assignedNature = natureNames[Math.floor(Math.random() * natureNames.length)]
 
 	const availableGenders = selectedSpecies.available_genders
 	const gender = availableGenders[Math.floor(Math.random() * availableGenders.length)]
@@ -74,7 +86,8 @@ const createRandomCokemon = async (lure, theme) => {
 		gender: gender,
 		ivs: ivs,
 		level: level,
-		speciesData: selectedSpecies
+		speciesData: selectedSpecies,
+		nature: assignedNature
 	}
 }
 
