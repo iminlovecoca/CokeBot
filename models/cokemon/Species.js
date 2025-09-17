@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const validTypes = [
 	'Fire', 'Water', 'Grass', 'Electric', 'Flying', 'Rock',
 	'Dragon', 'Bug', 'Fighting', 'Psychic', 'Ground', 'Steel',
-	'Normal', 'Poison', 'Ice', 'Fairy', 'Ghost'
+	'Normal', 'Poison', 'Ice', 'Fairy', 'Ghost', 'Dark'
 ]
 
 const evolutionDetailSchema = new mongoose.Schema({
@@ -15,7 +15,7 @@ const evolutionDetailSchema = new mongoose.Schema({
 	method: {
 		type: String,
 		required: true,
-		enum: ['level', 'item', 'trade']
+		enum: ['level', 'item', 'trade', 'friendship']
 	},
 	level: Number, // Only required if method is 'level'
 	item_id: String // Only required if method is 'item'

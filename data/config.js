@@ -82,7 +82,7 @@ module.exports = {
 	channel_themes: {
 		"1415143151307329536": null,
 		"1415143238871814255": {
-			"main_types": ["Water"],
+			"main_types": ["Water", "Ice"],
 			"weight": 0.9
 		},
 		"1415143289136353372": {
@@ -90,20 +90,24 @@ module.exports = {
 			"weight": 0.9
 		},
 		"1415143406241583186": {
-			"main_types": ["Rock", "Ground"],
+			"main_types": ["Rock", "Ground", "Dragon"],
 			"weight": 0.9
 		},
 		"1415143555655143534": {
-			"main_types": ["Electric", "Psychic"],
+			"main_types": ["Electric", "Psychic", "Fairy"],
 			"weight": 0.9
 		},
 		"1415143658382037132": {
-			"main_types": ["Grass", "Bug", "Flying"],
+			"main_types": ["Grass", "Bug", "Flying", 'Poison'],
 			"weight": 0.9
 		},
 		"1415143688597667901": {
-			"main_types": ["Fighting", "Dragon", "Steel"],
+			"main_types": ["Fighting", "Steel", "Normal"],
 			"weight": 0.9
+		},
+		"CHANNEL_ID_FOR_GRAVEYARD": {
+			main_types: ["Dark", "Ghost"],
+			weight: 0.9
 		}
 	},
 	cokemon_settings: {
@@ -154,7 +158,8 @@ module.exports = {
 		'Poison': '#A040A0',
 		'Ice': '#98D8D8',
 		'Fairy': '#EE99AC',
-		'Ghost': '#705898'
+		'Ghost': '#705898',
+		'Dark': '#705848'
 	},
 	type_emojis: {
 		'Fire': "<:fire:1417090001430118441>",
@@ -169,11 +174,12 @@ module.exports = {
 		'Psychic': "<:psychic:1417090018123583630>",
 		'Dragon': "<:dragon:1417090096485765161>",
 		'Steel': "<:steel:1417090118107402321>",
-		'Normal': "<:normal:1417161770941943858",
+		'Normal': "<:normal:1417161770941943858>",
 		'Poison': "<:poison:1417089975144419450>",
 		'Ice': "<:ice:1417090041007706134>",
 		'Fairy': "<:fairy:1417090032124035112>",
-		'Ghost': "<:ghost:1417090065448042546>"
+		'Ghost': "<:ghost:1417090065448042546>",
+		'Dark': "<:dark:1417955762000625745>"
 	},
 	type_backgrounds: {
 		'Fire': 'fire-bg.png',
@@ -193,6 +199,7 @@ module.exports = {
 		'Ice': 'ice-bg.png',
 		'Fairy': 'fairy-bg.png',
 		'Ghost': 'ghost-bg.png',
+		'Dark': 'dark-bg.png',
 		'default': 'default-bg.png'
 	},
 }

@@ -51,7 +51,11 @@ const cokemonSchema = new mongoose.Schema({
   is_favorite: {
     type: Boolean,
     default: false
-  }
+  },
+  friendship: {
+    type: Number,
+    default: 70
+  },
 }, { timestamps: true })
 
 module.exports = mongoose.model('Cokemon', cokemonSchema)

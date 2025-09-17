@@ -6,7 +6,7 @@ const MONS_PER_PAGE = 21
 
 module.exports = {
 	name: 'dex',
-	aliases: ['d', 'z'],
+	aliases: ['d'],
 	description: 'Hiển thị Cokedex của bạn.',
 	async execute(message, args) {
 		try {
@@ -49,47 +49,50 @@ module.exports = {
 					const getEvoMethod = nextEvoData => {
 						let evoMethod = ''
 						if (nextEvoData.method === 'level') {
-							evoMethod = `(cấp ${nextEvoData.level})`
+							evoMethod = `cấp ${nextEvoData.level}`
 						} else if (nextEvoData.method === 'item') {
-							evoMethod = `(dùng ${nextEvoData.item_id.toLowerCase().split('-').map(
+							evoMethod = `dùng ${nextEvoData.item_id.toLowerCase().split('-').map(
 								w => w.charAt(0).toUpperCase() + w.slice(1)
-							).join(' ')})`
+							).join(' ')}`
+						} else if (nextEvoData.method === 'trade') {
+							evoMethod = 'trao đổi'
 						} else {
-							evoMethod = '(trao đổi)'
+							evoMethod = 'tình bạn'
 						}
 						return evoMethod
 					}
 
-					// Check if the base form has branching evolutions
-					if (baseForm.evolution && baseForm.evolution.length > 1) {
-						const branchingEvolutions = baseForm.evolution.map(evo => {
+					const getEvoLineParts = (currentEvo, currentEvoText) => {
+						return currentEvo.evolution.map(evo => {
 							const evoSpecies = allSpecies.find(s => s._id.equals(evo.species_id))
 							const evoMethod = getEvoMethod(evo)
-							const baseDisplayName = baseForm.name === species.name ? `*${baseForm.name}*` : `**${baseForm.name}**`
 							const evoDisplayName = evoSpecies.name === species.name ? `*${evoSpecies.name}*` : `**${evoSpecies.name}**`
-							return `${baseDisplayName} ${evoMethod} → ${evoDisplayName}`
-						}).join('\n');
-						embed.addFields({ name: 'Chuỗi Tiến Hóa', value: branchingEvolutions })
-					} else {
-						const evoLineParts = []
-						let currentEvo = baseForm
-						while (currentEvo) {
-							const displayName = currentEvo.name === species.name ? `*${currentEvo.name}*` : `**${currentEvo.name}**`
-							evoLineParts.push(displayName)
+							return { evoForm: evoSpecies, evoLinePartText: `${currentEvoText} (${evoMethod}) → ${evoDisplayName}` }
+						})
+					}
 
-							if (currentEvo.evolution && currentEvo.evolution.length > 0) {
-								const nextEvoData = currentEvo.evolution[0]
-								const evoMethod = getEvoMethod(nextEvoData)
-								evoLineParts.push(`${evoMethod} →`)
-								// Find the next cokemon in the chain from our cached array
-								currentEvo = allSpecies.find(s => s._id.equals(nextEvoData.species_id))
-							} else {
-								currentEvo = null
-							}
+					const baseDisplayName = baseForm.name === species.name ? `*${baseForm.name}*` : `**${baseForm.name}**`
+					const evoLineParts = []
+					const evolutions = [baseForm]
+					const evoTexts = [baseDisplayName]
+
+					while (evolutions.length > 0) {
+						currentEvo = evolutions.pop()
+						currentEvoText = evoTexts.pop()
+
+						if (currentEvo.evolution.length === 0 && currentEvo.name !== baseForm.name) {
+							evoLineParts.push(currentEvoText)
+							continue
+						} else {
+							getEvoLineParts(currentEvo, currentEvoText).forEach(e => {
+								evolutions.push(e.evoForm)
+								evoTexts.push(e.evoLinePartText)
+							})
 						}
-						if (evoLineParts.length > 1) {
-							embed.addFields({ name: 'Chuỗi Tiến Hóa', value: evoLineParts.join(' ') })
-						}
+					}
+
+					if (evoLineParts.length > 0) {
+						embed.addFields({ name: 'Chuỗi Tiến Hóa', value: evoLineParts.join('\n') })
 					}
 
 					// Other info
