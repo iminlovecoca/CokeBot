@@ -50,7 +50,7 @@ async function processXp(message) {
   if (currentXp >= getXpNeeded(currentLevel)) {
     currentXp -= getXpNeeded(currentLevel);
     currentLevel++;
-    totalReward += 10000 + (currentLevel - 1) * 5000;
+    totalReward += 5000 + (currentLevel - 1) * 2000;
     leveledUp = true;
   }
 

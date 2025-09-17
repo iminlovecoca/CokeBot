@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js')
-const { createRandomCokemon } = require('../utils/cokemonUtil')
+const { createRandomCokemon } = require('../utils/CokemonUtil')
 const { addCokemon } = require('../utils/userUtil')
 const { compositeImages } = require('../utils/imageUtil')
 const path = require('path')
@@ -71,7 +71,7 @@ const initializeSpawner = (client) => {
                                 summaryLines.push(`- ${name} (x${count})`);
                             }
                             const summaryMessage = `Lưới Bắt của bạn đã hết! Bạn đã bắt được:\n${summaryLines.join('\n')}`;
-                            await user.send(summaryMessage).catch(() => {})
+                            await user.send(summaryMessage).catch(() => { })
                         }
                         client.activeNets.delete(userId)
                     }
@@ -98,7 +98,8 @@ const initializeSpawner = (client) => {
                         continue
                     }
 
-                    const channel = await client.channels.fetch(channelId)
+                    const channel = await client.channels.fetch(channelId).catch(() => null)
+                    if (!channel) continue
                     const newCokemon = await createRandomCokemon(lure, theme)
                     if (!newCokemon) {
                         // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`)

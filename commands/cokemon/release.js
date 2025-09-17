@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
-const { getAllCokemonWithUids, removeCokemon } = require('../../utils/userUtil')
+const { getAllCokemonWithUids, removeCokemon, getUserCokemon } = require('../../utils/userUtil')
 const { calculateIVPercentage } = require('../../utils/CokemonUtil')
 const config = require('../../data/config')
 
@@ -8,32 +8,44 @@ const cokemonInfo = cokemon => {
 	const genderSymbol = cokemon.gender === 'Male' ? config.emoji.male : cokemon.gender === 'Female' ? config.emoji.female : config.emoji.genderless
 	const shinySymbol = cokemon.is_shiny ? '✨' : ''
 	const ivPercent = calculateIVPercentage(cokemon.ivs)
-	return `${displayName}${shinySymbol}${genderSymbol} (No. ${cokemon.uid} • Lv.${cokemon.level} • ${ivPercent}%)`
+	return `${displayName}${shinySymbol}${genderSymbol} (No.${cokemon.uid} • Lv.${cokemon.level} • ${ivPercent}%)`
 }
 
 module.exports = {
 	name: 'release',
-	description: 'Thử một hoặc nhiều cokemon về với tự nhiên.',
+	description: 'Thả một hoặc nhiều Cokemon về với tự nhiên.',
 	aliases: ['rl', 'r'],
 	async execute(message, args) {
 		try {
 			if (args.length === 0) {
-				throw new Error("Bạn cần cung cấp ID của (các) cokemon muốn thả. Ví dụ: `!release 3 13 27`")
+				throw new Error("Bạn cần cung cấp ID của (các) cokemon muốn thả. Ví dụ: `!release 3 13 27` hoặc `!release all`")
 			}
 
-			const uidsToRelease = [...new Set(args.map(id => parseInt(id)).filter(id => !isNaN(id)))]
-			if (uidsToRelease.length === 0) {
-				throw new Error("ID cung cấp không hợp lệ.");
-			}
+			let cokemonToRelease = []
+			let isReleaseAll = false
 
-			const cokemonToRelease = await getAllCokemonWithUids(message.author.id, uidsToRelease)
-			if (cokemonToRelease.length === 0) {
-				throw new Error("Không có ID hợp lệ nào được tìm thấy trong bộ sưu tập của bạn.")
+			if (args[0].toLowerCase() === 'all') {
+				isReleaseAll = true
+				cokemonToRelease = await getUserCokemon(message.author.id)
+				if (cokemonToRelease.length === 0) {
+					throw new Error("Bạn không có Cokemon nào để thả.")
+				}
+			} else {
+				const uidsToRelease = [...new Set(args.map(id => parseInt(id)).filter(id => !isNaN(id)))]
+				if (uidsToRelease.length === 0) {
+					throw new Error("ID cung cấp không hợp lệ.")
+				}
+				cokemonToRelease = await getAllCokemonWithUids(message.author.id, uidsToRelease)
+				if (cokemonToRelease.length === 0) {
+					throw new Error("Không có ID hợp lệ nào được tìm thấy trong bộ sưu tập của bạn.")
+				}
 			}
 
 			const totalReward = cokemonToRelease.length * config.cokemon_settings.release_reward
 			let msgContent = ''
-			if (cokemonToRelease.length === 1) {
+			if (isReleaseAll) {
+				msgContent = `⚠️ Bạn có chắc muốn **THẢ TOÀN BỘ** (${cokemonToRelease.length}) Cokemon của bạn với giá ${totalReward} ${config.emoji.money}?`
+			} else if (cokemonToRelease.length === 1) {
 				msgContent = `Bạn có chắc muốn thả ${cokemonInfo(cokemonToRelease[0])} với giá ${totalReward} ${config.emoji.money}?`
 			} else {
 				msgContent = `Bạn có chắc muốn thả ${cokemonToRelease.length} cokemon sau với giá ${totalReward} ${config.emoji.money}?`
@@ -63,7 +75,9 @@ module.exports = {
 					const validUidsToRelease = cokemonToRelease.map(c => c.uid)
 					const result = await removeCokemon(message.author.id, validUidsToRelease)
 					if (result.success) {
-						const cokemonStr = result.releasedCount === 1 ? `${cokemonInfo(cokemonToRelease[0])}` : `${result.releasedCount} cokemon`
+						const cokemonStr = result.releasedCount === 1 
+							? `${cokemonInfo(cokemonToRelease[0])}` 
+							: `${result.releasedCount} cokemon`
 						await i.editReply({
 							content: `Bạn đã thả ${cokemonStr} về với tự nhiên và nhận được **${result.reward}** ${config.emoji.money}!`,
 							embeds: [],
