@@ -3728,7 +3728,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '233.png',
         shiny_image_file: '233-shiny.png',
-        emoji: '<:233:1417705998076084264>',
+        emoji: '<:233:1417702847306403890>',
         shiny_emoji: ''
     },
     {
@@ -3792,7 +3792,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '237.png',
         shiny_image_file: '237-shiny.png',
-        emoji: '<:237:1417706057131622486>',
+        emoji: '<:237:1417702965485244528>',
         shiny_emoji: ''
     },
     {
