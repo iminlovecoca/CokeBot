@@ -173,6 +173,7 @@ module.exports = {
 						const caughtText = entry.count > 0 ? `${entry.count} đã bắt!` : 'Chưa bắt được!'
 						embed.addFields({ name: `${entry.emoji} ${entry.name} #${entry.dex_id}`, value: `${isCaught} ${caughtText}`, inline: true })
 					})
+					embed.addFields({ name: '\u200B', value: '\u200B', inline: true })
 					return { embeds: [embed] }
 				}
 				await initPage(message, generateDisplay, totalPages, '!dex')
