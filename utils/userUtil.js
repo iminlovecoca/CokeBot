@@ -359,14 +359,19 @@ const useItem = async (client, user, channelId, itemId) => {
 		}
 
 		const consumeTransaction = async (session) => {
-			const updateResult = await User.updateOne(
-				{ userId: user.id, [`inventory.${itemId}`]: { $gte: 1 } },
-				{ $inc: { [`inventory.${itemId}`]: -1 } },
-				{ session }
-			)
-			if (updateResult.modifiedCount === 0) {
-				throw new Error('Không thể sử dụng vật phẩm, có thể số lượng đã thay đổi.')
+			const userInSession = await User.findOne({ userId: user.id }).session(session)
+			const currentQuantity = userInSession.inventory.get(itemId) || 0
+			if (currentQuantity < 1) {
+				throw new Error('Không thể sử dụng vật phẩm, số lượng đã thay đổi.')
 			}
+
+			const newQuantity = currentQuantity - 1
+			if (newQuantity === 0) {
+				userInSession.inventory.delete(itemId);
+			} else {
+				userInSession.inventory.set(itemId, newQuantity);
+			}
+			await userInSession.save({ session })
 		}
 		await runTransactionWithRetry(consumeTransaction)
 
@@ -383,7 +388,6 @@ const useItem = async (client, user, channelId, itemId) => {
 		}
 		return { success: true, message: successMessage, itemType: item.item_type }
 	} catch (error) {
-		console.error(error)
 		return { success: false, message: error.message }
 	}
 }
@@ -427,7 +431,6 @@ const addCokemon = async (cokemonData) => {
 		})
 		return { success: true, cokemon: newCokemon }
 	} catch (error) {
-		console.error(error)
 		return { success: false, message: '❌ | Lỗi trong quá trình bắt, hãy thử lại nào.' }
 	} finally {
 		session.endSession()

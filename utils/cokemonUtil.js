@@ -87,7 +87,9 @@ const createRandomCokemon = async (lure, theme) => {
 		ivs: ivs,
 		level: level,
 		speciesData: selectedSpecies,
-		nature: assignedNature
+		nature: assignedNature,
+		emoji: selectedSpecies.emoji,
+		shiny_emoji: selectedSpecies.shiny_emoji
 	}
 }
 

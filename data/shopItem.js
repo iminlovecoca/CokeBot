@@ -21,46 +21,54 @@ const items = new Map([
 		boosts_type: ['Fire'],
 		emoji: '🔥'
 	}],
-	['lure-ocean', {
-		name: 'Bả Đại Dương',
-		description: 'Thu hút cokemon hệ Water trong 30 phút.',
-		price: 300,
+	['lure-frozen', {
+		name: 'Bả Băng Giá',
+		description: 'Thu hút cokemon hệ Water và Ice trong 30 phút.',
+		price: 400,
 		item_type: 'lure',
-		boosts_type: ['Water'],
-		emoji: '🌊'
+		boosts_type: ['Water', 'Ice'],
+		emoji: '🧊'
 	}],
 	['lure-cavern', {
 		name: 'Bả Hang Động',
-		description: 'Thu hút cokemon hệ Rock và Ground trong 30 phút.',
-		price: 400,
+		description: 'Thu hút cokemon hệ Rock, Ground và Dragon trong 30 phút.',
+		price: 550,
 		item_type: 'lure',
-		boosts_type: ['Rock', 'Ground'],
+		boosts_type: ['Rock', 'Ground', 'Dragon'],
 		emoji: '⛰️'
 	}],
 	['lure-power', {
 		name: 'Bả Năng Lượng',
-		description: 'Thu hút cokemon hệ Electric và Psychic trong 30 phút.',
-		price: 400,
+		description: 'Thu hút cokemon hệ Electric, Psychic và Fairy trong 30 phút.',
+		price: 500,
 		item_type: 'lure',
-		boosts_type: ['Electric', 'Psychic'],
+		boosts_type: ['Electric', 'Psychic', 'Fairy'],
 		emoji: '⚡️'
 	}],
 	['lure-forest', {
 		name: 'Bả Rừng Rậm',
-		description: 'Thu hút cokemon hệ Grass, Bug and Flying trong 30 phút.',
+		description: 'Thu hút cokemon hệ Grass, Bug, Flying và Poison trong 30 phút.',
 		price: 500,
 		item_type: 'lure',
-		boosts_type: ['Grass', 'Bug', 'Flying'],
+		boosts_type: ['Grass', 'Bug', 'Flying', 'Poison'],
 		emoji: '🌳'
 	}],
 	['lure-warlord', {
 		name: 'Bả Chiến Tướng',
-		description: 'Thu hút cokemon hệ Fighting, Dragon, và Steel trong 30 phút.',
-		price: 550,
+		description: 'Thu hút cokemon hệ Fighting, Steel và Normal trong 30 phút.',
+		price: 500,
 		item_type: 'lure',
-		boosts_type: ['Fighting', 'Dragon', 'Steel'],
+		boosts_type: ['Fighting', 'Steel', 'Nornal'],
 		emoji: '⚔️ '
-	}]
+	}],
+	['lure-eerie', {
+		name: 'Bả Ma Quái',
+		description: 'Thu hút cokemon hệ Dark và Ghost trong 30 phút.',
+		price: 450,
+		item_type: 'lure',
+		boosts_type: ['Dark', 'Ghost'],
+		emoji: '👻'
+	}],
 ])
 
 module.exports = items

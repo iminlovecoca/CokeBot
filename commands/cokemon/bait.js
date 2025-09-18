@@ -1,5 +1,6 @@
 module.exports = {
 	name: 'bait',
+	aliases: ['b'],
 	description: 'Ném mồi dụ cokemon. Giảm tỉ lệ nó bỏ chạy nhưng cũng giảm tỉ lệ bắt.',
 	async execute(message) {
 		if (message.client.actionLocks.has(message.author.id)) {

@@ -2,6 +2,7 @@ const MULTIPLIER = 1.5
 
 module.exports = {
 	name: 'rock',
+	aliases: ['r'],
 	description: 'Ném đá vào cokemon. Tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ nó bỏ chạy.',
 	async execute(message) {
 		if (message.client.actionLocks.has(message.author.id)) {
