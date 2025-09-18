@@ -10,7 +10,6 @@ const {
   isBust,
   isBlackJack,
   isDoubleAce,
-  isFiveCard,
   isDealerStay
 } = require('../../utils/blackJackUtil')
 const {
@@ -137,7 +136,7 @@ const generateEmbed = (author, playerHand, dealerHand, bet, hide = true, result,
 const handleHit = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
   const card = drawNewCard(deck)
   playerHand.push(card)
-  if (isBust(playerHand) || isFiveCard(playerHand)) {
+  if (isBust(playerHand)) {
     collector.stop()
     await handleStand(message, author, playerHand, dealerHand, deck, bet, collector)
   } else {
@@ -149,7 +148,7 @@ const handleHit = async (message, author, playerHand, dealerHand, deck, bet, col
 }
 
 const handleStand = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
-  while (!isDealerStay(dealerHand) && dealerHand.length < 5) {
+  while (!isDealerStay(dealerHand)) {
     card = drawNewCard(deck)
     dealerHand.push(card)
   }
@@ -161,15 +160,11 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
     ? 'Xì bàng'
     : isBlackJack(playerHand)
       ? 'Xì dách'
-      : isFiveCard(playerHand)
-        ? 'Ngũ linh'
         : null
   const dealerSpecial = isDoubleAce(dealerHand)
     ? 'Xì bàng'
     : isBlackJack(dealerHand)
       ? 'Xì dách'
-      : isFiveCard(dealerHand)
-        ? 'Ngũ linh'
         : null
 
   let reward = 0;
@@ -185,7 +180,7 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
     net = -bet;
     result = `Dealer thắng với ${dealerSpecial}! Bạn mất ${bet.toLocaleString()} coke.`;
   } else if (playerSpecial && dealerSpecial) {
-    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
+    const rank = { 'Xì bàng': 2, 'Xì dách': 1 };
     if (rank[playerSpecial] > rank[dealerSpecial]) {
       reward = bet * 3;
       net = reward - bet;

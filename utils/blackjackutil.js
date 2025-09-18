@@ -94,17 +94,12 @@ const isBust = cards => getBestHandValue(cards) > 21
 
 const isBlackJack = cards => getBestHandValue(cards) === 21 && cards.length == 2
 
-const isDoubleAce = cards =>
-  cards.length === 2 && cards.every((c) => c.startsWith('A'))
-
-const isFiveCard = cards => getBestHandValue(cards) <= 21 && cards.length == 5
+const isDoubleAce = cards => cards.length === 2 && cards.every((c) => c.startsWith('A'))
 
 const isDealerStay = cards => {
-  const value = getBestHandValue(cards)
-  if (value === 17 && cards.some(c => c.startsWith('A'))) return false
-  return value >= 17
+  if (isDoubleAce(cards)) return true
+  return getBestHandValue(cards) >= 17
 }
-
 
 module.exports = {
   createNewDeck,
@@ -118,6 +113,5 @@ module.exports = {
   isBust,
   isBlackJack,
   isDoubleAce,
-  isFiveCard,
   isDealerStay
 };
