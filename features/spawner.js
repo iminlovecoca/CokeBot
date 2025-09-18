@@ -146,7 +146,7 @@ const initializeSpawner = (client) => {
 
                 // Check for lure expiration
                 if (lure && Date.now() > lure.expires_at) {
-                    const channel = await client.channel.fetch(channelId)
+                    const channel = await client.channels.fetch(channelId)
                     const isDefaultChannel = !config.channel_themes[channelId]
                     if (isDefaultChannel) {
                         client.lureCooldowns.set(lure.ownerId, Date.now() + settings.lure_user_cooldown_ms)
