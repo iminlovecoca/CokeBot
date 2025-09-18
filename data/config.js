@@ -105,7 +105,7 @@ module.exports = {
 			"main_types": ["Fighting", "Steel", "Normal"],
 			"weight": 0.9
 		},
-		"CHANNEL_ID_FOR_GRAVEYARD": {
+		"1418029393972039800": {
 			main_types: ["Dark", "Ghost"],
 			weight: 0.9
 		}

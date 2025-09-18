@@ -177,7 +177,7 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
   let result = '';
 
   if (playerSpecial && !dealerSpecial) {
-    reward = bet * 3;
+    reward = bet * 2;
     net = reward - bet;
     result = `${playerSpecial}, bạn thắng ${net.toLocaleString()} coke!`;
   } else if (!playerSpecial && dealerSpecial) {
@@ -187,7 +187,7 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
   } else if (playerSpecial && dealerSpecial) {
     const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
     if (rank[playerSpecial] > rank[dealerSpecial]) {
-      reward = bet * 3;
+      reward = bet * 2;
       net = reward - bet;
       result = `${playerSpecial}, bạn thắng ${net.toLocaleString()} coke!`;
     } else if (rank[playerSpecial] < rank[dealerSpecial]) {
