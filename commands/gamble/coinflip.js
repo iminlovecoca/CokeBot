@@ -16,8 +16,10 @@ const cooldownSeconds = 15
 
 module.exports = {
 	name: 'cf',
-	aliases: ['coinflip', 'coin', 'flip'],
-	description: 'Chơi coinflip!',
+	aliases: ['coinflip', 'flip'],
+	description: 'Chơi tung đồng xu!',
+	usage: '`!cf <h/t> [tiền cược|all]`',
+	examples: '`!cf t`\n`!coinflip h all`',
 	async execute(message, args) {
 		try {
 			const userId = message.author.id;

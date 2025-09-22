@@ -20,6 +20,8 @@ module.exports = {
   name: 'rps',
   aliases: ['keobuabao', 'kbb'],
   description: 'Chơi kéo-búa-bao có cược, react emoji để chơi',
+  usage: '`!rps [tiền cược|all]`',
+  examples: '`!rps all`\n`!kbb 100000`',
   async execute(message, args) {
     try {
       const userId = message.author.id

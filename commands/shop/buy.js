@@ -1,10 +1,11 @@
 const { buyItem } = require('../../utils/userUtil')
-const shopItems = require('../../data/shopItem')
 const config = require('../../data/config')
 
 module.exports = {
 	name: 'buy',
 	description: 'Mua một vật phẩm từ cửa hàng.',
+	usage: '`!buy <item-id> [số lượng]`',
+	examples: '`!buy sun-stone 3`',
 	async execute(message, args) {
 		try {
 			const itemId = args[0]
@@ -20,10 +21,10 @@ module.exports = {
 				}
 			}
 
-			const result = await buyItem(message.author.id, itemId, quantity)
+			const result = await buyItem(message.client ,message.author.id, itemId, quantity)
 			if (result.success) {
 				return await message.reply(
-					`✅ **${message.author.username}** đã mua thành công **${result.quantity} x ${result.item.name}** với giá **${result.cost}** ${config.emoji.money}!`
+					`✅ **${message.author.username}** đã mua thành công **${result.quantity} x ${result.item.name}** với giá ${config.emoji.money} **${result.cost}**!`
 				)
 			} else {
 				throw new Error(result.message)

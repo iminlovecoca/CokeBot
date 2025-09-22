@@ -1,9 +1,8 @@
 const { EmbedBuilder } = require('discord.js')
 const { getOrCreateUser } = require('../../utils/userUtil')
 const { initPage } = require('../../utils/pageUtil')
-const shopItems = require('../../data/shopItem')
 const config = require('../../data/config')
-const ITEMS_PER_PAGE = 5
+const ITEMS_PER_PAGE = 9
 
 module.exports = {
 	name: 'inventory',
@@ -12,16 +11,18 @@ module.exports = {
 	async execute(message) {
 		try {
 			const user = await getOrCreateUser(message.author.id)
-			const userItems = Array.from(user.inventory.entries())
-				.map(([id, quantity]) => {
-					const itemData = shopItems.get(id)
-					if (!itemData) return null
-					return { ...itemData, id, quantity }
-				})
-				.filter(item => item !== null)
-			if (userItems.length === 0) {
-				return await message.reply('Túi đồ của bạn trống trơn!');
+			if (!user || user.inventory.size === 0) {
+				throw new Error(`${config.emoji.no} Túi đồ của bạn trống trơn!`)
 			}
+
+			const allItems = message.client.allItems
+			const userItems = Array.from(user.inventory.entries())
+				.map(([itemId, quantity]) => {
+					const itemData = allItems.find(i => i.item_id === itemId)
+					if (!itemData) return null
+					return { ...itemData.toObject(), quantity }
+				})
+				.filter(Boolean)
 
 			const totalPages = Math.ceil(userItems.length / ITEMS_PER_PAGE)
 			const generateDisplay = (page) => {
@@ -30,26 +31,14 @@ module.exports = {
 
 				const embed = new EmbedBuilder()
 					.setColor('#0099ff')
-					.setTitle('Túi đồ của bạn')
+					.setTitle(`Túi đồ của ${message.author.username}`)
+					.setDescription("Những vật phẩm trong túi đồ của bạn. Dùng `!use <id>` để sử dụng chúng.")
 					.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
-						
-				const itemColumn = []
-				const quantityColumn = []
 
 				pageItems.forEach(item => {
-					const emojiDisplay = item.emoji
-					itemColumn.push(`${emojiDisplay} ${item.name}`)
-					quantityColumn.push(`**${item.quantity}**`)
+					embed.addFields({ name: `${item.emoji} ${item.name} (x${item.quantity})`, value: '', inline: true })
 				})
-
-				if (itemColumn.length > 0) {
-					embed.addFields(
-						{ name: 'Vật Phẩm', value: itemColumn.join('\n'), inline: true },
-						{ name: 'Số lượng', value: quantityColumn.join('\n'), inline: true },
-					)
-				} else {
-					embed.setDescription('Không có vật phẩm nào trong danh mục này.')
-				}
+				embed.addFields({ name: '\u200B', value: '\u200B', inline: true })
 				return { embeds: [embed] }
 			}
 

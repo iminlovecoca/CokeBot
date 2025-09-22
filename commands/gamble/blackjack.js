@@ -30,8 +30,10 @@ const cooldownSeconds = 15
 
 module.exports = {
   name: 'bj',
-  aliases: ['blackjack', '21'],
-  description: 'Chơi bài xì dách (blackjack) bằng emoji',
+  aliases: ['blackjack'],
+  description: 'Chơi bài xì dách (blackjack).',
+  usage: '`!bj [tiền cược|all]`',
+  examples: '`!bj all`\n`!blackjack 10000`',
   execute: async (message, args) => {
     try {
       const userId = message.author.id

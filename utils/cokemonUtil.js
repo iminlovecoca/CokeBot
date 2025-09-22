@@ -1,12 +1,5 @@
 const Species = require('../models/cokemon/Species')
 const config = require('../data/config')
-const tierWeights = {
-	'Common': 100,
-	'Rare': 25,
-	'Epic': 5,
-	'Ancient': 2,
-	'Legendary': 0.2
-}
 const natureNames = Object.keys(config.natures)
 
 const generateRandomIVs = () => {
@@ -58,12 +51,13 @@ const createRandomCokemon = async (lure, theme) => {
 		return null
 	}
 
-	const totalWeight = spawnPool.reduce((sum, species) => sum + (tierWeights[species.tier] || 0), 0)
+	const totalWeight = spawnPool.reduce(
+		(sum, species) => sum + (config.cokemon_settings.tier_weights[species.tier] || 0), 0)
 	let randomWeight = Math.random() * totalWeight
 
 	let selectedSpecies = null
 	for (const species of spawnPool) {
-		randomWeight -= (tierWeights[species.tier] || 0)
+		randomWeight -= (config.cokemon_settings.tier_weights[species.tier] || 0)
 		if (randomWeight <= 0) {
 			selectedSpecies = species
 			break
@@ -77,6 +71,7 @@ const createRandomCokemon = async (lure, theme) => {
 	const availableGenders = selectedSpecies.available_genders
 	const gender = availableGenders[Math.floor(Math.random() * availableGenders.length)]
 	const ivs = generateRandomIVs()
+	const iv_percent = calculateIVPercentage(ivs)
 	const level = Math.floor(Math.random() * 10) + 1 // level 1-10
 	return {
 		species_id: selectedSpecies._id,
@@ -85,6 +80,7 @@ const createRandomCokemon = async (lure, theme) => {
 		flee_rate: selectedSpecies.flee_rate,
 		gender: gender,
 		ivs: ivs,
+		iv_percent: iv_percent,
 		level: level,
 		speciesData: selectedSpecies,
 		nature: assignedNature,

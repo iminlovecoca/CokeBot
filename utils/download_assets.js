@@ -4,6 +4,8 @@ const path = require('path')
 
 const GEN_1_COUNT = 151
 const GEN_2_COUNT = 100
+const GEN_3_COUNT = 135
+const GEN_4_COUNT = 107
 const NORMAL_URL = 'https://cdn.poketwo.net/images/'
 const SHINY_URL = 'https://cdn.poketwo.net/shiny/'
 const OUTPUT_DIR = path.join(__dirname, '..', 'assets', 'images')
@@ -36,7 +38,7 @@ const startDownload = async () => {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true })
     }
 
-    for (let id = 1; id <= GEN_1_COUNT + GEN_2_COUNT; id++) {
+    for (let id = 1; id <= GEN_1_COUNT + GEN_2_COUNT + GEN_3_COUNT; id++) {
         const normalUrl = `${NORMAL_URL}${id}.png`
         const normalFilepath = path.join(OUTPUT_DIR, `${id}.png`)
         await downloadImage(normalUrl, normalFilepath)
