@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 require('dotenv').config()
 const Cokemon = require('../models/cokemon/Cokemon')
-const { calculateIVPercentage } = require('./cokemonUtil')
+const { calculateIVPercentage } = require('./CokemonUtil')
 
 // Migrate IV percentages for existing cokemon.
 const migrateIVs = async () => {

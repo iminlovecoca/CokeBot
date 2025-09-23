@@ -150,7 +150,7 @@ module.exports = {
 			'Ancient': 2,
 			'Legendary': 0.2
 		},
-		legendary_ping_role_id: "ID_TO_PING",
+		legendary_ping_role_id: "1243064840180994088",
 	},
 	natures: {
 		'Hardy': { plus: null, minus: null },
