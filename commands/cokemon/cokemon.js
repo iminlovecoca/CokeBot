@@ -1,39 +1,48 @@
 const { EmbedBuilder } = require('discord.js')
-const { getAllCokemon } = require('../../utils/userUtil')
+const { getFilteredCokemon } = require('../../utils/userUtil')
 const { initPage } = require('../../utils/pageUtil')
-const { calculateIVPercentage } = require('../../utils/CokemonUtil')
+const { buildCokemonQuery } = require('../../utils/queryUtil')
 const config = require('../../data/config')
 const MONS_PER_PAGE = 20
 
 module.exports = {
 	name: 'cokemon',
-	description: 'Hiển thị danh sách cokemon bạn đã bắt.',
+	description: 'Hiển thị danh sách những cokemon bạn đã bắt.',
+	usage: '`!cokemon [tag] [tag-value]`',
+	examples: '`!cokemon`\n`!cokemon --lvl+ 5 --tier legendary --sort iv`',
 	async execute(message, args) {
 		try {
-			const sortBy = args[0]?.toLowerCase() || 'recent' // sort by most recent by default
 			const validSorts = ['recent', 'iv', 'level', 'dex']
+			let sortBy = validSorts[0] // sort by most recent by default
+
+			const orderIndex = args.findIndex(arg => arg.toLowerCase() === '--sort')
+			if (orderIndex !== -1 && args[orderIndex + 1]) {
+				sortBy = args[orderIndex + 1].toLowerCase()
+				// Remove --sort and its value from the arguments array
+				args.splice(orderIndex, 2)
+			}
+			const filterArgs = args
 
 			if (!validSorts.includes(sortBy)) {
-				throw new Error(`❌ | Tùy chọn sắp xếp không hợp lệ. Các kiểu hợp lệ là: \`${validSorts.join(', ')}\`.`)
-			}
-			const userCokemon = await getAllCokemon(message.author.id)
-			if (userCokemon.length === 0) {
-				throw new Error("Bạn chưa có cokemon nào cả! Dùng `!catch` để bắt một con.")
+				throw new Error(`${config.emoji.no} Tùy chọn sắp xếp không hợp lệ. Các kiểu hợp lệ là: \`${validSorts.join(', ')}\`.`)
 			}
 
-			const maxId = Math.max(...userCokemon.map(c => c.uid))
-			const maxIdLength = maxId.toString().length
+			const { cokemonQuery, speciesQuery } = buildCokemonQuery(filterArgs)
+			const userCokemon = await getFilteredCokemon(message.author.id, cokemonQuery, speciesQuery)
+			if (userCokemon.length === 0) {
+				if (filterArgs.length === 0) {
+					throw new Error(`${config.emoji.no} Bạn chưa có cokemon nào cả! Dùng \`!catch\` để bắt một con.`)
+				}
+				throw new Error(`${config.emoji.no} Không tìm thấy cokemon nào khớp với bộ lọc của bạn.`)
+			}
+
 			let sortedCokemon
 			switch (sortBy) {
 				case 'level':
 					sortedCokemon = userCokemon.sort((a, b) => b.level - a.level)
 					break
 				case 'iv':
-					sortedCokemon = userCokemon
-						.map(c => {
-							return { ...c.toObject(), iv_percent: calculateIVPercentage(c.ivs) }
-						})
-						.sort((a, b) => b.iv_percent - a.iv_percent)
+					sortedCokemon = userCokemon.sort((a, b) => b.iv_percent - a.iv_percent)
 					break
 				case 'dex':
 					sortedCokemon = userCokemon.sort((a, b) => a.species_id.dex_id - b.species_id.dex_id)
@@ -49,15 +58,18 @@ module.exports = {
 			const generateDisplay = (page) => {
 				const startIdx = page * MONS_PER_PAGE
 				const pageCokemon = sortedCokemon.slice(startIdx, startIdx + MONS_PER_PAGE)
+				const maxId = Math.max(...pageCokemon.map(c => c.uid))
+				const maxIdLength = maxId.toString().length
 				const paddingChar = '\u2003'
 
 				const tableLines = pageCokemon.map(c => {
 					const species = c.species_id
-					const ivPercent = c.iv_percent || calculateIVPercentage(c.ivs)
+					const ivPercent = c.iv_percent
 					const idString = c.uid.toString().padStart(maxIdLength, ' ')
-					const emoji = c.is_shiny ? (species.shiny_emoji || `${species.emoji}✨`) : species.emoji;
+					const emoji = c.is_shiny ? (species.shiny_emoji || `${species.emoji}✨`) : species.emoji
 					const genderSymbol = c.gender === 'Male' ? config.emoji.male : c.gender === 'Female' ? config.emoji.female : config.emoji.genderless
-					const nameCol = `${emoji} ${c.nickname || species.name} ${genderSymbol}`
+					const favSymbol = c.is_favorite ? '❤️' : ''
+					const nameCol = `${emoji} ${c.nickname || species.name} ${genderSymbol}${favSymbol}`
 					return `\`${idString}\`${paddingChar}${nameCol}${paddingChar}•${paddingChar}Lv. ${c.level}${paddingChar}•${paddingChar}${ivPercent}%`
 				}).join('\n')
 
@@ -71,7 +83,6 @@ module.exports = {
 			}
 			await initPage(message, generateDisplay, totalPages, '!cokemon')
 		} catch (error) {
-			console.log(error)
 			await message.reply(error.message)
 		}
 	}

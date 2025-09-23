@@ -1,11 +1,13 @@
 const { EmbedBuilder } = require('discord.js')
 const Cokemon = require('../../models/cokemon/Cokemon')
-const { calculateIVPercentage, calculateStat } = require('../../utils/cokemonUtil')
+const { calculateStat } = require('../../utils/cokemonUtil')
 const config = require('../../data/config')
 
 module.exports = {
 	name: 'info',
 	description: 'Xem thông tin chi tiết của một cokemon bạn sở hữu.',
+	usage: '`!info <id>`',
+	examples: '`!info 12`',
 	async execute(message, args) {
 		try {
 			const cokemonUid = parseInt(args[0])
@@ -23,7 +25,6 @@ module.exports = {
 			}
 
 			const species = cokemon.species_id
-			const ivPercent = calculateIVPercentage(cokemon.ivs)
 			const genderSymbol = cokemon.gender === 'Male' ? config.emoji.male : cokemon.gender === 'Female' ? config.emoji.female : config.emoji.genderless
 
 			const info = []
@@ -44,7 +45,7 @@ module.exports = {
 			stats.push(`**Tấn công:** ${atk} • IV: ${cokemon.ivs.atk}/${config.cokemon_settings.max_iv}`)
 			stats.push(`**Phòng thủ:** ${def} • IV: ${cokemon.ivs.def}/${config.cokemon_settings.max_iv}`)
 			stats.push(`**Tốc độ:** ${spd} • IV: ${cokemon.ivs.spd}/${config.cokemon_settings.max_iv}`)
-			stats.push(`**IV Tổng:** ${ivPercent}%`)
+			stats.push(`**IV Tổng:** ${cokemon.iv_percent}%`)
 
 			const imageFile = cokemon.is_shiny ? species.shiny_image_file : species.image_file
 			const imagePath = `./assets/images/${imageFile}`

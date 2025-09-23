@@ -128,6 +128,11 @@ const initializeSpawner = (client) => {
                         }
                         const finalImageFile = path.basename(finalImagePath)
 
+                        let announcementContent = null
+                        if (newCokemon.speciesData.tier === 'Legendary' && settings.legendary_ping_role_id) {
+                            announcementContent = `<@&${settings.legendary_ping_role_id}> Một Cokemon Huyền Thoại đã xuất hiện!`
+                        }
+
                         const spawnEmbed = new EmbedBuilder()
                             .setColor(config.type_colors[primaryType] || '#FFFFFF')
                             .setTitle('Một Cokemon hoang dã đã xuất hiện!')
@@ -138,7 +143,7 @@ const initializeSpawner = (client) => {
                                 "`!bait`: giảm tỉ lệ chạy nhưng cũng giảm tỉ lệ bắt\n"
                             )
                             .setImage(`attachment://${finalImageFile}`)
-                        await channel.send({ embeds: [spawnEmbed], files: [finalImagePath] })
+                        await channel.send({ content: announcementContent, embeds: [spawnEmbed], files: [finalImagePath] })
 
                         const spawnState = {
                             cokemon: newCokemon,

@@ -14,12 +14,18 @@ const cokemonSchema = new mongoose.Schema({
   species_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Species',
-    required: true
+    required: true,
+    index: true
+  },
+  nickname: {
+    type: String,
+    default: null
   },
   gender: {
     type: String,
     required: true,
-    enum: ['Male', 'Female', 'Genderless']
+    enum: ['Male', 'Female', 'Genderless'],
+    index: true
   },
   ivs: {
     hp: { type: Number, required: true },
@@ -27,9 +33,15 @@ const cokemonSchema = new mongoose.Schema({
     def: { type: Number, required: true },
     spd: { type: Number, required: true },
   },
+  iv_percent: {
+    type: Number,
+    required: true,
+    index: true
+  },
   level: {
     type: Number,
-    default: 1
+    default: 1,
+    index: true
   },
   experience: {
     type: Number,
@@ -37,7 +49,8 @@ const cokemonSchema = new mongoose.Schema({
   },
   is_shiny: {
     type: Boolean,
-    default: false
+    default: false,
+    index: true
   },
   moves: {
     type: [String],
@@ -46,11 +59,13 @@ const cokemonSchema = new mongoose.Schema({
   nature: {
     type: String,
     enum: ['Hardy', 'Lonely', 'Brave', 'Bold', 'Relaxed', 'Timid', 'Hasty'],
-    default: 'Hardy'
+    default: 'Hardy',
+    index: true
   },
   is_favorite: {
     type: Boolean,
-    default: false
+    default: false,
+    index: true
   },
   friendship: {
     type: Number,

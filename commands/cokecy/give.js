@@ -10,7 +10,8 @@ module.exports = {
   name: 'give',
   aliases: ['send'],
   description: 'Chuyển coke cho người khác (ghi lại lịch sử chuyển nhận)',
-
+  usage: '`!give @người-nhận <số tiền>`',
+  examples: '`!give @mythological 1000000`',
   async execute(message, args) {
     const mention = message.mentions.users.first();
     const amount = parseInt(args[1]);

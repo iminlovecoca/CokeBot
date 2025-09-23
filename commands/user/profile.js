@@ -54,7 +54,7 @@ module.exports = {
     const canvas = createCanvas(700, 250);
     const ctx = canvas.getContext('2d');
 
-    const bgPath = path.join(__dirname, '../assets/backgrounds/bg1.png');
+    const bgPath = path.join(__dirname, '../../assets/backgrounds/profile-bg.png');
     const bg = await loadImage(bgPath);
     ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
 

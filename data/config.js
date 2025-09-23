@@ -79,6 +79,16 @@ module.exports = {
 		"yes": "<:yes:1417090203188723722>",
 		"no": "<:no:1417090195702153258>",
 	},
+	category_emojis: {
+		'action': '🕹️',
+		'admin': '🛡️',
+		'cokecy': '💵',
+		'cokemon': '🐶',
+		'gamble': '🎲',
+		'shop': '🛒',
+		'user': '👤',
+		'default': '➡️'
+	},
 	channel_themes: {
 		"1415143151307329536": null,
 		"1415143238871814255": {
@@ -131,6 +141,16 @@ module.exports = {
 
 		// Stats
 		max_iv: 31,
+
+		// Others
+		tier_weights: {
+			'Common': 100,
+			'Rare': 25,
+			'Epic': 5,
+			'Ancient': 2,
+			'Legendary': 0.2
+		},
+		legendary_ping_role_id: "ID_TO_PING",
 	},
 	natures: {
 		'Hardy': { plus: null, minus: null },

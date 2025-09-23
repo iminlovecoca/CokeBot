@@ -23,6 +23,8 @@ module.exports = {
   name: 'tx',
   aliases: ['taixiu', 'doden'],
   description: '🎲 Chơi tài xỉu bằng coke!',
+  usage: '`!tx <t/x> [tiền cược|all]`',
+  examples: '`!tx t all`\n`!taixiu x 100000`',
   async execute(message, args) {
     try {
       const userId = message.author.id;
@@ -31,7 +33,7 @@ module.exports = {
 
       let choice
       if (args.length == 0) {
-        return await message.reply('❌ **|** Cú pháp: `!tx <t/x> <số tiền|all>`')
+        return await message.reply('❌ **|** Cú pháp: `!tx <t/x> [số tiền|all]`')
       } else {
         choice = args[0].toLowerCase();
         if (['tai', 't'].includes(choice)) {
