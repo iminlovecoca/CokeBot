@@ -48,6 +48,7 @@ const initializeSpawner = (client) => {
                             species_id: cokemon.species_id,
                             gender: cokemon.gender,
                             ivs: cokemon.ivs,
+                            iv_percent: cokemon.iv_percent,
                             level: cokemon.level,
                             is_shiny: isShiny
                         }
