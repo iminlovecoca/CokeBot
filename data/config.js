@@ -78,6 +78,7 @@ module.exports = {
 		"genderless": "<:genderless:1417090211640250438>",
 		"yes": "<:yes:1417090203188723722>",
 		"no": "<:no:1417090195702153258>",
+		"warning": "<:warning:1419916751604547704>",
 	},
 	category_emojis: {
 		'action': '🕹️',

@@ -1,6 +1,9 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const { getAllCokemonWithUids, removeCokemon } = require('../../utils/userUtil')
+const { buildCokemonQuery } = require('../../utils/queryUtil')
+const { getFilteredCokemon } = require('../../utils/userUtil')
 const config = require('../../data/config')
+const MAX_DETAILED_RELEASE = 20
 
 const cokemonInfo = cokemon => {
 	const displayName = cokemon.nickname || cokemon.species_id.name
@@ -33,7 +36,7 @@ module.exports = {
 				cokemonToRelease = await getAllCokemonWithUids(message.author.id, uidsToRelease)
 				if (cokemonToRelease.length !== uidsToRelease.length) {
 					// Warns if some IDs were invalid
-					msgContent = "⚠️ Một hoặc nhiều ID không hợp lệ đã được bỏ qua.\n"
+					msgContent = `${config.emoji.warning} Một hoặc nhiều ID không hợp lệ đã được bỏ qua.\n`
 				}
 			} else {
 				// Releasing by filter
@@ -48,18 +51,42 @@ module.exports = {
 			// Check if the list contains favorited cokemon
 			const favCokemon = cokemonToRelease.filter(c => c.is_favorite)
 			if (favCokemon.length > 0) {
-				const favIds = favCokemon.map(c => `\`${c.uid}\``).join(', ')
-				throw new Error(`${config.emoji.no} Bạn không thể thả cokemon yêu thích! Hãy bỏ yêu thích cho các cokemon có ID: ${favIds} trước.`)
+				const favIds = favCokemon.map(c => `${c.uid}`).join(', ')
+				throw new Error(`${config.emoji.no} Bạn không thể thả cokemon yêu thích! Hãy bỏ yêu thích cho các cokemon có ID: ${favIds} trước, hoặc sử dụng tag \`--nofav\``)
 			}
 
 			const totalReward = cokemonToRelease.length * config.cokemon_settings.release_reward
 			if (cokemonToRelease.length === 1) {
-				msgContent += `Bạn có chắc muốn thả ${cokemonInfo(cokemonToRelease[0])} với giá ${config.emoji.money} ${totalReward}?`
-			} else {
-				msgContent += `Bạn có chắc muốn thả ${cokemonToRelease.length} cokemon sau với giá ${config.emoji.money} ${totalReward}?`
+				msgContent += `Bạn có chắc muốn thả ${cokemonInfo(cokemonToRelease[0])} để nhận ${config.emoji.money} ${totalReward}?`
+			} else if (cokemonToRelease.length <= MAX_DETAILED_RELEASE) {
+				msgContent += `Bạn có chắc muốn thả ${cokemonToRelease.length} cokemon sau để nhận ${config.emoji.money} ${totalReward}?`
 				cokemonToRelease.forEach(c => {
 					msgContent += `\n- ${cokemonInfo(c)}`
 				})
+			} else {
+				let tierCounts = {}
+				let shinyCount = 0
+				let highIvCount = 0
+				const HIGH_IV_THRESHOLD = 80
+
+				for (const c of cokemonToRelease) {
+					const tier = c.species_id.tier
+					tierCounts[tier] = (tierCounts[tier] || 0) + 1
+
+					if (c.is_shiny) shinyCount++
+					if (c.iv_percent >= HIGH_IV_THRESHOLD) highIvCount++
+				}
+				let summaryLines = [`Bạn có chắc muốn thả ${cokemonToRelease.length} cokemon sau để nhận ${config.emoji.money} ${totalReward}? Trong đó bao gồm:`]
+				for (const [tier, count] of Object.entries(tierCounts)) {
+					summaryLines.push(`- **${count}** x ${tier}`)
+				}
+				if (shinyCount > 0) {
+					summaryLines.push(`- ${config.emoji.warning} **${shinyCount}** trong số đó là SHINY!`)
+				}
+				if (highIvCount > 0) {
+					summaryLines.push(`- ${config.emoji.warning} **${highIvCount}** trong số đó có IV cao (>= ${HIGH_IV_THRESHOLD}%)!`)
+				}
+				msgContent += summaryLines.join('\n')
 			}
 
 			const confirm = new ButtonBuilder()
