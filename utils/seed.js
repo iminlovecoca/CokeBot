@@ -6518,7 +6518,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ với hoa văn tia sét đặc trưng, khiến một số loài cokemon nhất định tiến hóa.',
 		item_type: 'evolution_stone',
 		buy_price: 2000,
-		emoji: '<:thunder_stone:1419302402527592488>',
+		emoji: '<:thunder_stone:1419643353099927553>',
 		effects: {}
 	},
 	{
@@ -6527,7 +6527,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ, đen như màn đêm, khiến một số loài cokemon tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:moon_stone:1419302432562872381>',
+		emoji: '<:moon_stone:1419643279070335088>',
 		effects: {}
 	},
 	{
@@ -6536,7 +6536,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có chứa năng lượng lửa, khiến một số loài cokemon tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:fire_stone:1419302413965463573>',
+		emoji: '<:fire_stone:1419643296384553082>',
 		effects: {}
 	},
 	{
@@ -6545,7 +6545,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có khắc hình chiếc lá, khiến một số loài cokemon tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:leaf_stone:1419302374392070316>',
+		emoji: '<:leaf_stone:1419643372070633525>',
 		effects: {}
 	},
 	{
@@ -6554,7 +6554,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có màu xanh như biển, khiến một số loài cokemon tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:water_stone:1419302388136804443>',
+		emoji: '<:water_stone:1419643326461775962>',
 		effects: {}
 	},
 	{
@@ -6563,7 +6563,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có màu đỏ rực như mặt trời, khiến một số loài cokemon tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:sun_stone:1419302446232109126>',
+		emoji: '<:sun_stone:1419643257041981481>',
 		effects: {}
 	},
 	{
@@ -6572,7 +6572,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có thể khiến một số loài cokemon nhất định tiến hóa. Nó tối như màn đêm.',
 		item_type: 'evolution_stone',
 		price: 2500,
-		emoji: '<:dusk_stone:1419632299997401159>',
+		emoji: '<:dusk_stone:1419643383567224931>',
 		effects: {}
 	},
 	{
@@ -6581,7 +6581,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ có thể khiến một số loài cokemon nhất định tiến hóa. Nó lấp lánh như một con mắt xinh đẹp.',
 		item_type: 'evolution_stone',
 		price: 2000,
-		emoji: '<:dawn_stone:1419632316203925605>',
+		emoji: '<:dawn_stone:1419643394162032641>',
 		effects: {}
 	},
 	{
@@ -6590,7 +6590,7 @@ const itemsData = [
 		description: 'Một viên đá kỳ lạ lấp lánh rực rỡ. Nó có thể khiến một số loài cokemon nhất định tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 2500,
-		emoji: '<:shiny_stone:1419632330338865172>',
+		emoji: '<:shiny_stone:1419643403733565635>',
 		effects: {}
 	},
 	{
@@ -6599,7 +6599,7 @@ const itemsData = [
 		description: 'Một vảy có vầng sáng như cầu vồng. Nó được yêu thích bởi một số loài cokemon nhất định.',
 		item_type: 'evolution_stone',
 		price: 2500,
-		emoji: '<:prism_scale:1419632368419078176>',
+		emoji: '<:prism_scale:1419643438676312175>',
 		effects: {}
 	},
 	{
@@ -6608,7 +6608,7 @@ const itemsData = [
 		description: 'Một chiếc nanh sắc nhọn và dài. Nó có thể khiến một số loài cokemon nhất định tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 3000,
-		emoji: '<:razor_fang:1419632346696646769>',
+		emoji: '<:razor_fang:1419643413778792619>',
 		effects: {}
 	},
 	{
@@ -6617,7 +6617,7 @@ const itemsData = [
 		description: 'Một móng vuốt sắc và nhọn. Nó có thể khiến một số loài cokemon nhất định tiến hóa.',
 		item_type: 'evolution_stone',
 		price: 3000,
-		emoji: '<:razor_claw:1419632359187415151>',
+		emoji: '<:razor_claw:1419643423773819002>',
 		effects: {}
 	},
 ]
