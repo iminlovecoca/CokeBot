@@ -45,10 +45,10 @@ const initializeSpawner = (client) => {
                         const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
                         const cokemonData = {
                             owner_id: userId,
-                            species_id: spawnState.cokemon.species_id,
-                            gender: spawnState.cokemon.gender,
-                            ivs: spawnState.cokemon.ivs,
-                            level: spawnState.cokemon.level,
+                            species_id: cokemon.species_id,
+                            gender: cokemon.gender,
+                            ivs: cokemon.ivs,
+                            level: cokemon.level,
                             is_shiny: isShiny
                         }
                         const result = await addCokemon(cokemonData)
@@ -56,11 +56,12 @@ const initializeSpawner = (client) => {
                             if (!netState.caught) {
                                 netState.caught = []
                             }
-                            const name = isShiny ? `✨ ${cokemon.name}` : cokemon.name
-                            const currentCount = netState.caught.get(name) || 0
-                            netState.caught.set(name, currentCount + 1)
+                            spawnState.userStates.set(userId, { hasCaught: true })
+                            const displayEmoji = isShiny ? (cokemon.shiny_emoji || `${cokemon.emoji}✨`) : cokemon.emoji
+                            const displayName = `${displayEmoji} ${cokemon.name}`
+                            const currentCount = netState.caught.get(displayName) || 0
+                            netState.caught.set(displayName, currentCount + 1)
                         }
-                        console.log(netState)
                     }
 
                     if (netState.uses <= 0) {
@@ -71,7 +72,7 @@ const initializeSpawner = (client) => {
                                 summaryLines.push(`- ${name} (x${count})`);
                             }
                             const summaryMessage = `Lưới Bắt của bạn đã hết! Bạn đã bắt được:\n${summaryLines.join('\n')}`;
-                            await user.send(summaryMessage).catch(() => { })
+                            await user.send(summaryMessage).catch(() => {})
                         }
                         client.activeNets.delete(userId)
                     }
@@ -94,12 +95,21 @@ const initializeSpawner = (client) => {
 
                 if (Date.now() - lastSpawn > cooldown) {
                     spawningInProgress.add(channelId)
+
+                    // Check if a cokemon is already active in this channel
                     if (client.activeSpawns.has(channelId)) {
-                        continue
+                        // If so, delete the old one before spawning a new one
+                        const oldSpawn = client.activeSpawns.get(channelId)
+                        client.activeSpawns.delete(channelId)
+                        try {
+                            const channel = await client.channels.fetch(channelId)
+                            await channel.send(`**${oldSpawn.cokemon.name}** đã chạy mất khi một cokemon mới xuất hiện!`)
+                        } catch (error) {
+                            console.error(error)
+                        }
                     }
 
-                    const channel = await client.channels.fetch(channelId).catch(() => null)
-                    if (!channel) continue
+                    const channel = await client.channels.fetch(channelId)
                     const newCokemon = await createRandomCokemon(lure, theme)
                     if (!newCokemon) {
                         // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`)
@@ -132,7 +142,7 @@ const initializeSpawner = (client) => {
 
                         const spawnState = {
                             cokemon: newCokemon,
-                            // [[userId, { catchRateModifier, fleeRateModifier, hasFled } ]]
+                            // [[userId, { catchRateModifier, fleeRateModifier, hasFled, hasCaught } ]]
                             userStates: new Map(),
                             despawn_at: Date.now() + settings.despawn_duration_ms,
                             spawn_at: Date.now(),
@@ -140,7 +150,7 @@ const initializeSpawner = (client) => {
                         }
                         client.activeSpawns.set(channelId, spawnState)
                         client.lastSpawn.set(channelId, Date.now())
-                        console.log(`Spawned a ${newCokemon.name} in channel ${channel.name}.`)
+                        console.log(`Spawned a ${newCokemon.name} in channel ${channel.name} at ${new Date(Date.now()).toLocaleTimeString('vi-VN')}.`)
                     }
                 }
 
@@ -159,7 +169,6 @@ const initializeSpawner = (client) => {
                         await channel.send('Hiệu ứng của bả đã hết.')
                     }
                 }
-
             } catch (error) {
                 console.error(`Error in spawner for channel ${channelId}:`, error)
             } finally {
