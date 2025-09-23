@@ -1,7 +1,6 @@
 const mongoose = require('mongoose')
 const User = require('../models/User')
 const Cokemon = require('../models/cokemon/Cokemon')
-const shopItems = require('../data/shopItem')
 const { runTransactionWithRetry } = require('./miscUtil')
 const { formatVNCurrency } = require('./format')
 const { getPerDayLimit, getPerTransactionLimit } = require('./transactionUtil')
@@ -31,7 +30,7 @@ const withdrawCmd = async (userId, amount) => {
 	try {
 		const user = await User.findOne({ userId }).session(session)
 		if (!amount || amount <= 0 || user.bank < amount) {
-			return '❌ | Số tiền không hợp lệ hoặc bạn không đủ coke!'
+			return `${config.emoji.no} Số tiền không hợp lệ hoặc bạn không đủ coke!`
 		}
 
 		await User.updateOne(
@@ -39,7 +38,7 @@ const withdrawCmd = async (userId, amount) => {
 			{ $inc: { bank: -amount, coke: amount } }
 		).session(session)
 		await session.commitTransaction()
-		return `✅ | Đã rút **${formatVNCurrency(amount)} coke** từ ngân hàng.`
+		return `${config.emoji.yes} Đã rút **${formatVNCurrency(amount)} coke** từ ngân hàng.`
 	} catch (error) {
 		await session.abortTransaction()
 		return 'Lỗi giao dịch, vui lòng thử lại.'
@@ -56,7 +55,7 @@ const sendCmd = async (userId, amount) => {
 	try {
 		const user = await User.findOne({ userId }).session(session)
 		if (!amount || amount <= 0 || user.coke < amount) {
-			return '❌ | Số tiền không hợp lệ hoặc bạn không đủ coke!'
+			return `${config.emoji.no} Số tiền không hợp lệ hoặc bạn không đủ coke!`
 		}
 
 		await User.updateOne(
@@ -64,10 +63,10 @@ const sendCmd = async (userId, amount) => {
 			{ $inc: { bank: amount, coke: -amount } }
 		).session(session)
 		await session.commitTransaction()
-		return `✅ | Đã gửi **${formatVNCurrency(amount)} coke** vào ngân hàng.`
+		return `${config.emoji.yes} Đã gửi **${formatVNCurrency(amount)} coke** vào ngân hàng.`
 	} catch (error) {
 		await session.abortTransaction()
-		return '❌ | Lỗi giao dịch, vui lòng thử lại.'
+		return `${config.emoji.no} Lỗi giao dịch, vui lòng thử lại.`
 	} finally {
 		session.endSession()
 	}
@@ -109,19 +108,19 @@ const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
 	const receiver = await User.findOne({ userId: receiverId })
 
 	if (senderId === receiverId) {
-		return '❌ | Không thể tự chuyển cho chính mình.'
+		return `${config.emoji.no} Không thể tự chuyển cho chính mình.`
 	}
 	if (!sender || sender.coke < amount) {
-		return ':dollar: | Bạn không đủ coke để chuyển.'
+		return `${config.emoji.no} Bạn không đủ coke để chuyển.`
 	}
 	if (!sender || sender.coke < amount) {
-		return '❌ | Người nhận chưa có tài khoản trong hệ thống.'
+		return `${config.emoji.no} Người nhận chưa có tài khoản trong hệ thống.`
 	}
 	if (!receiver) {
-		return '❌ | Người nhận chưa có tài khoản trong hệ thống.'
+		return `${config.emoji.no} Người nhận chưa có tài khoản trong hệ thống.`
 	}
 	if (receiver.bannedUntil && receiver.bannedUntil > Date.now()) {
-		return '❌ | Người nhận hiện đang bị cấm sử dụng bot.'
+		return `${config.emoji.no} Người nhận hiện đang bị cấm sử dụng bot.`
 	}
 
 	const senderPerDayLimit = sender.vipLevel ? Infinity : getPerDayLimit(sender.level || 1)[0]
@@ -133,13 +132,13 @@ const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
 	const receivedToday = receiverDailyReceive[dateKey] || 0
 
 	if (amount > senderPerTransLimit) {
-		return `❌ | Vượt giới hạn giao dịch (**${senderPerTransLimit.toLocaleString()}**).`
+		return `${config.emoji.no} Vượt giới hạn giao dịch (**${senderPerTransLimit.toLocaleString()}**).`
 	}
 	if (sentToday + amount > senderPerDayLimit && receiverPerDayLimit < Infinity) {
-		return `❌ | Vượt giới hạn chuyển hôm nay (**${senderPerDayLimit.toLocaleString()}**).`
+		return `${config.emoji.no} Vượt giới hạn chuyển hôm nay (**${senderPerDayLimit.toLocaleString()}**).`
 	}
 	if (receivedToday + amount > receiverPerDayLimit && senderPerDayLimit < Infinity) {
-		return `❌ | Người nhận đã vượt giới hạn nhận hôm nay (**${receiverPerDayLimit.toLocaleString()}**).`
+		return `${config.emoji.no} Người nhận đã vượt giới hạn nhận hôm nay (**${receiverPerDayLimit.toLocaleString()}**).`
 	}
 	return
 }
@@ -242,19 +241,19 @@ const removeReceiptOlderThanNDays = async (userId, n) => {
 	)
 }
 
-const buyItem = async (userId, itemId, quantity) => {
+const buyItem = async (client, userId, itemId, quantity) => {
 	let resultData = {}
 	try {
 		const buyTransaction = async (session) => {
-			const item = shopItems.get(itemId)
+			const item = client.allItems.find(i => i.item_id === itemId)
 			if (!item) {
-				throw new Error('❌ | Vật phẩm không tồn tại.')
+				throw new Error(`${config.emoji.no} Vật phẩm không tồn tại.`)
 			}
 
 			const user = await User.findOne({ userId }).session(session)
 			const totalCost = item.price * quantity
 			if (user.coke < totalCost) {
-				throw new Error(`❌ | Bạn không đủ tiền! Bạn cần ${totalCost} coke nhưng chỉ có ${user.coke} coke.`)
+				throw new Error(`${config.emoji.no} Bạn không đủ tiền! Bạn cần ${totalCost} coke nhưng chỉ có ${user.coke} coke.`)
 			}
 
 			user.coke -= totalCost
@@ -270,23 +269,23 @@ const buyItem = async (userId, itemId, quantity) => {
 	}
 }
 
-const sellItem = async (userId, itemId, quantity) => {
+const sellItem = async (client, userId, itemId, quantity) => {
 	let resultData = {}
 	try {
 		const sellTransaction = async (session) => {
-			const item = shopItems.get(itemId)
+			const item = client.allItems.find(i => i.item_id === itemId)
 			if (!item) {
-				throw new Error('❌ | Vật phẩm không tồn tại.')
+				throw new Error(`${config.emoji.no} Vật phẩm không tồn tại.`)
 			}
 
 			const user = await User.findOne({ userId }).session(session)
 			if (!user) {
-				throw new Error('❌ | Bạn không có vật phẩm nào để bán.')
+				throw new Error(`${config.emoji.no} Bạn không có vật phẩm nào để bán.`)
 			}
 
 			const ownedQuantity = user.inventory.get(itemId) || 0
 			if (ownedQuantity < quantity) {
-				throw new Error(`❌ | Bạn không có đủ vật phẩm để bán. Bạn chỉ có ${ownedQuantity} ${item.name}.`)
+				throw new Error(`${config.emoji.no} Bạn không có đủ vật phẩm để bán. Bạn chỉ có ${ownedQuantity} ${item.name}.`)
 			}
 
 			const sellPrice = Math.floor(item.price * settings.sell_percentage)
@@ -311,19 +310,19 @@ const sellItem = async (userId, itemId, quantity) => {
 
 const useItem = async (client, user, channelId, itemId) => {
 	try {
-		item = shopItems.get(itemId)
+		const item = client.allItems.find(i => i.item_id === itemId)
 		if (!item) {
-			throw new Error('❌ | Vật phẩm không tồn tại.')
+			throw new Error(`${config.emoji.no} Vật phẩm không tồn tại.`)
 		}
 
 		const userData = await User.findOne({ userId: user.id })
 		if (!userData) {
-			throw new Error('❌ | Không thể tìm thấy dữ liệu người chơi.')
+			throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
 		}
 
 		const ownedQuantity = userData.inventory.get(itemId) || 0
 		if (ownedQuantity < 1) {
-			throw new Error(`❌ | Bạn không có vật phẩm ${item.name} để sử dụng.`)
+			throw new Error(`${config.emoji.no} Bạn không có vật phẩm ${item.name} để sử dụng.`)
 		}
 
 		let successMessage = ''
@@ -333,29 +332,29 @@ const useItem = async (client, user, channelId, itemId) => {
 				const cooldownEndTime = client.lureCooldowns.get(user.id)
 				if (cooldownEndTime && Date.now() < cooldownEndTime) {
 					const remainingMinutes = Math.ceil((cooldownEndTime - Date.now()) / 60000)
-					throw new Error(`❌ | Bạn đang trong thời gian hồi. Bạn có thể dùng bả tiếp theo sau ${remainingMinutes} phút.`)
+					throw new Error(`${config.emoji.no} Bạn đang trong thời gian hồi. Bạn có thể dùng bả tiếp theo sau ${remainingMinutes} phút.`)
 				}
 			}
 
 			if (client.activeLures.has(channelId)) {
-				throw new Error('❌ | Đã có một loại bả đang hoạt động ở kênh này.')
+				throw new Error(`${config.emoji.no} Đã có một loại bả đang hoạt động ở kênh này.`)
 			}
 
 			const channelTheme = config.channel_themes[channelId]
 			if (channelTheme && item.boosts_type) {
 				const isCompatible = item.boosts_type.some(type => channelTheme.main_types.includes(type))
 				if (!isCompatible) {
-					throw new Error('❌ | Loại bả này không tương thích với hệ sinh thái ở đây!')
+					throw new Error(`${config.emoji.no} Loại bả này không tương thích với hệ sinh thái ở đây!`)
 				}
 			}
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
 			const activeNets = client.activeNets
 			const currentUses = activeNets.get(user.id)?.uses || 0
 			if (currentUses > (settings.max_stacked_nets - 1) * settings.catch_net_uses) {
-				throw new Error(`❌ | Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm.`)
+				throw new Error(`${config.emoji.no} Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm.`)
 			}
 		} else {
-			throw new Error('❌ | Vật phẩm này không thể sử dụng được.')
+			throw new Error(`${config.emoji.no} Vật phẩm này không thể sử dụng được.`)
 		}
 
 		const consumeTransaction = async (session) => {
@@ -384,7 +383,7 @@ const useItem = async (client, user, channelId, itemId) => {
 			const currentNetState = activeNets.get(user.id) || { uses: 0, caught: new Map() }
 			const newTotal = currentNetState.uses + settings.catch_net_uses
 			activeNets.set(user.id, { uses: newTotal, caught: currentNetState.caught })
-			successMessage = `✅ Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
+			successMessage = `${config.emoji.yes} Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
 		}
 		return { success: true, message: successMessage, itemType: item.item_type }
 	} catch (error) {
@@ -392,12 +391,21 @@ const useItem = async (client, user, channelId, itemId) => {
 	}
 }
 
-const getAllCokemon = async userId => {
-	return await Cokemon.find({ owner_id: userId }).populate('species_id')
-}
-
 const getAllCokemonWithUids = async (userId, Uids) => {
 	return await Cokemon.find({ owner_id: userId, uid: { $in: Uids } }).populate('species_id')
+}
+
+const getFilteredCokemon = async (userId, cokemonQuery, speciesQuery) => {
+	const finalCokemonQuery = { ...cokemonQuery, owner_id: userId }
+	let userCokemon = await Cokemon.find(finalCokemonQuery).populate({
+		path: 'species_id',
+		match: speciesQuery
+	})
+	
+	// Because a 'match' on a populated field can leave nulls, we must filter them out.
+	// This ensures we only return cokemon where the species also matched the filter.
+	userCokemon = userCokemon.filter(c => c.species_id)
+	return userCokemon
 }
 
 const addCokemon = async (cokemonData) => {
@@ -431,7 +439,7 @@ const addCokemon = async (cokemonData) => {
 		})
 		return { success: true, cokemon: newCokemon }
 	} catch (error) {
-		return { success: false, message: '❌ | Lỗi trong quá trình bắt, hãy thử lại nào.' }
+		return { success: false, message: `${config.emoji.no} Lỗi trong quá trình bắt, hãy thử lại nào.` }
 	} finally {
 		session.endSession()
 	}
@@ -471,6 +479,32 @@ const removeCokemon = async (userId, cokemonUids) => {
 	}
 }
 
+const toggleFavorite = async (userId, cokemonUid) => {
+	try {
+		let resultData = {}
+		const favoriteTransaction = async (session) => {
+			const cokemon = await Cokemon.findOne({ owner_id: userId, uid: cokemonUid }).session(session)
+			if (!cokemon) {
+				throw new Error(`Không tìm thấy cokemon với ID \`${cokemonUid}\` trong bộ sưu tập của bạn.`)
+			}
+
+			const newStatus = !cokemon.is_favorite
+			cokemon.is_favorite = newStatus
+			await cokemon.save({ session })
+
+			const species = await cokemon.populate('species_id')
+			resultData = {
+				is_favorite: newStatus,
+				cokemonName: cokemon.nickname || species.species_id.name // todo: nickname
+			}
+		}
+		await runTransactionWithRetry(favoriteTransaction)
+		return { success: true, ...resultData }
+	} catch (error) {
+		return { success: false, message: error.message }
+	}
+}
+
 module.exports = {
 	getOrCreateUser,
 	withdrawCmd,
@@ -485,8 +519,9 @@ module.exports = {
 	buyItem,
 	sellItem,
 	useItem,
-	getAllCokemon,
-	addCokemon,
 	getAllCokemonWithUids,
-	removeCokemon
+	getFilteredCokemon,
+	addCokemon,
+	removeCokemon,
+	toggleFavorite
 }

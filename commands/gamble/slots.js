@@ -28,6 +28,8 @@ module.exports = {
   name: 's',
   aliases: ['slot', 'slots'],
   description: 'Chơi slot để kiếm coke!',
+  usage: '`!s [tiền cược|all]`',
+  examples: '`!s`\n`!slot all`',
   async execute(message, args) {
     try {
       const userId = message.author.id

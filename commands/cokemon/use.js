@@ -3,6 +3,8 @@ const { useItem } = require('../../utils/userUtil')
 module.exports = {
 	name: 'use',
 	description: 'Sử dụng một vật phẩm từ túi đồ của bạn.',
+	usage: '`!use <item-id>`',
+	examples: '`!use catch-net`',
 	async execute(message, args) {
 		try {
 			const itemId = args[0]

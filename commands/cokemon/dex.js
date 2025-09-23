@@ -8,6 +8,8 @@ module.exports = {
 	name: 'dex',
 	aliases: ['d'],
 	description: 'Hiển thị Cokedex của bạn.',
+	usage: '`!dex [cokemon]`',
+	examples: '`!dex`\n`!dex bulbasaur`',
 	async execute(message, args) {
 		try {
 			const allSpecies = message.client.allSpecies

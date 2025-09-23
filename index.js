@@ -11,6 +11,7 @@ const {
 } = require('discord.js');
 const User = require('./models/User');
 const Species = require('./models/cokemon/Species');
+const Item = require('./models/cokemon/Item');
 const spawner = require('./features/spawner');
 
 const client = new Client({
@@ -48,7 +49,10 @@ const loadCommands = (dir) => {
       loadCommands(fullPath);
     } else if (file.name.endsWith('.js')) {
       const cmd = require(fullPath);
-      if (cmd.name) client.commands.set(cmd.name, cmd);
+      if (cmd.name) {
+        cmd.filePath = fullPath
+        client.commands.set(cmd.name, cmd)
+      }
     }
   }
 };
@@ -135,8 +139,10 @@ client.once(Events.ClientReady, async () => {
   try {
     client.allSpecies = await Species.find({}).sort({ dex_id: 'asc' });
     console.log(`✅ Successfully cached ${client.allSpecies.length} species.`);
+    client.allItems = await Item.find({});
+    console.log(`✅ Successfully cached ${client.allItems.length} items.`);
   } catch (error) {
-    console.error("Could not cache species data:", error);
+    console.error("❌ Could not cache species data:", error);
     client.allSpecies = []
   }
 

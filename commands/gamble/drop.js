@@ -5,9 +5,9 @@ const config = require('../../data/config');
 
 module.exports = {
   name: 'drop',
-  aliases: ['drp'],
   description: 'Thả coke xuống kênh để người khác nhặt',
-
+  usage: '`!drop <số tiền>`',
+  examples: '`!drop 7777777`',
   async execute(message, args) {
     const amount = parseInt(args[0]);
     const userId = message.author.id;

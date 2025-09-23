@@ -17,7 +17,8 @@ module.exports = {
 				throw new Error('Không có gì ở đây để ném cả.')
 			}
 
-			let userState = spawnState.userStates.get(message.author.id) || { catchRateModifier: 1.0, fleeRateModifier: 1.0, hasFled: false, hasCaught: false }
+			let userState = spawnState.userStates.get(
+				message.author.id) || { catchRateModifier: 1.0, fleeRateModifier: 1.0, hasFled: false, hasCaught: false }
 			if (userState.hasCaught) {
 				throw new Error(`Bạn đã bắt được **${spawnState.cokemon.name}** rồi!`)
 			}
@@ -33,6 +34,7 @@ module.exports = {
 					species_id: spawnState.cokemon.species_id,
 					gender: spawnState.cokemon.gender,
 					ivs: spawnState.cokemon.ivs,
+					iv_percent: spawnState.cokemon.iv_percent,
 					level: spawnState.cokemon.level,
 					is_shiny: isShiny
 				}
@@ -40,10 +42,15 @@ module.exports = {
 				if (result.success) {
 					userState.hasCaught = true
 					spawnState.userStates.set(message.author.id, userState)
-					const speciesData = spawnState.cokemon.speciesData;
+					const speciesData = spawnState.cokemon.speciesData
+					const genderSymbol = spawnState.cokemon.gender === 'Male'
+						? config.emoji.male : spawnState.cokemon.gender === 'Female'
+						? config.emoji.female : config.emoji.genderless
+					const iv_percent = spawnState.cokemon.iv_percent
 					const displayEmoji = isShiny ? (speciesData.shiny_emoji || `${speciesData.emoji}✨`) : speciesData.emoji
-					await message.reply(isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY ${speciesData.name}** ${displayEmoji}!`
-						: `Chúc mừng! **${message.author.username}** đã bắt được **${speciesData.name}** ${displayEmoji}!`)
+					const displayInfo = `${displayEmoji} **${speciesData.name}**${genderSymbol}(${iv_percent}%)`
+					await message.reply(isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY** ${displayInfo}!`
+						: `Chúc mừng! **${message.author.username}** đã bắt được ${displayInfo}!`)
 				} else {
 					throw new Error(result.message)
 				}
