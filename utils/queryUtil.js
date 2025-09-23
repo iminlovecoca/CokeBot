@@ -27,6 +27,17 @@ const buildCokemonQuery = args => {
         if (arg.startsWith('--')) {
             let flag = arg.substring(2)
 
+            if (flag.startsWith('no')) {
+                const positiveFlag = flag.substring(2) // e.g., 'shiny' from 'noshiny'
+                if (positiveFlag === 'shiny') {
+                    query.is_shiny = false
+                }
+                if (positiveFlag === 'favorite' || positiveFlag === 'fav') {
+                    query.is_favorite = false
+                }
+                continue
+            }
+
             if (flag === 'shiny') {
                 query.is_shiny = true
                 continue
