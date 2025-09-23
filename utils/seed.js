@@ -4033,7 +4033,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '252.png',
         shiny_image_file: '252-shiny.png',
-        emoji: '<:252:1419563816877817927>',
+        emoji: '<:252:1419641515831070721>',
         shiny_emoji: ''
     },
     {
@@ -4049,7 +4049,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '253.png',
         shiny_image_file: '253-shiny.png',
-        emoji: '<:253:1419563863610757131>',
+        emoji: '<:253:1419641531878473799>',
         shiny_emoji: ''
     },
     {
@@ -4065,7 +4065,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '254.png',
         shiny_image_file: '254-shiny.png',
-        emoji: '<:254:1419563880002097174>',
+        emoji: '<:254:1419641545014902816>',
         shiny_emoji: ''
     },
     {
@@ -4081,7 +4081,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '255.png',
         shiny_image_file: '255-shiny.png',
-        emoji: '<:255:1419563893738442842>',
+        emoji: '<:255:1419641557245493298>',
         shiny_emoji: ''
     },
     {
@@ -4097,7 +4097,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '256.png',
         shiny_image_file: '256-shiny.png',
-        emoji: '<:256:1419563926466723870>',
+        emoji: '<:256:1419641569157578772>',
         shiny_emoji: ''
     },
     {
@@ -4113,7 +4113,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '257.png',
         shiny_image_file: '257-shiny.png',
-        emoji: '<:257:1419563939699626185>',
+        emoji: '<:257:1419641581840891975>',
         shiny_emoji: ''
     },
     {
@@ -4129,7 +4129,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '258.png',
         shiny_image_file: '258-shiny.png',
-        emoji: '<:258:1419563951854714910>',
+        emoji: '<:258:1419641592934957056>',
         shiny_emoji: ''
     },
     {
@@ -4145,7 +4145,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '259.png',
         shiny_image_file: '259-shiny.png',
-        emoji: '<:259:1419563996104757369>',
+        emoji: '<:259:1419641604175564800>',
         shiny_emoji: ''
     },
     {
@@ -4161,7 +4161,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '260.png',
         shiny_image_file: '260-shiny.png',
-        emoji: '<:260:1419564017621532692>',
+        emoji: '<:260:1419641615718551573>',
         shiny_emoji: ''
     },
     {
@@ -4177,7 +4177,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '261.png',
         shiny_image_file: '261-shiny.png',
-        emoji: '<:261:1419564031408209952>',
+        emoji: '<:261:1419641627353546802>',
         shiny_emoji: ''
     },
     {
@@ -4193,7 +4193,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '262.png',
         shiny_image_file: '262-shiny.png',
-        emoji: '<:262:1419564041860288583>',
+        emoji: '<:262:1419641638929825803>',
         shiny_emoji: ''
     },
     {
@@ -4209,7 +4209,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '263.png',
         shiny_image_file: '263-shiny.png',
-        emoji: '<:263:1419564053331968146>',
+        emoji: '<:263:1419641652397608991>',
         shiny_emoji: ''
     },
     {
@@ -4225,7 +4225,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '264.png',
         shiny_image_file: '264-shiny.png',
-        emoji: '<:264:1419564068808953876>',
+        emoji: '<:264:1419641657896206516>',
         shiny_emoji: ''
     },
     {
@@ -4241,7 +4241,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '265.png',
         shiny_image_file: '265-shiny.png',
-        emoji: '<:265:1419564123104084019>',
+        emoji: '<:265:1419641675566940161>',
         shiny_emoji: ''
     },
     {
@@ -4257,7 +4257,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '266.png',
         shiny_image_file: '266-shiny.png',
-        emoji: '<:266:1419564136693764228>',
+        emoji: '<:266:1419641679022919710>',
         shiny_emoji: ''
     },
     {
@@ -4273,7 +4273,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '267.png',
         shiny_image_file: '267-shiny.png',
-        emoji: '<:267:1419564149461090344>',
+        emoji: '<:267:1419641690699988992>',
         shiny_emoji: ''
     },
     {
@@ -4289,7 +4289,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '268.png',
         shiny_image_file: '268-shiny.png',
-        emoji: '<:268:1419564164359127040>',
+        emoji: '<:268:1419641701580013640>',
         shiny_emoji: ''
     },
     {
@@ -4305,7 +4305,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '269.png',
         shiny_image_file: '269-shiny.png',
-        emoji: '<:269:1419564182533046415>',
+        emoji: '<:269:1419641712602513480>',
         shiny_emoji: ''
     },
     {
@@ -4321,7 +4321,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '270.png',
         shiny_image_file: '270-shiny.png',
-        emoji: '<:270:1419564198190387280>',
+        emoji: '<:270:1419641722912243742>',
         shiny_emoji: ''
     },
     {
@@ -4337,7 +4337,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '271.png',
         shiny_image_file: '271-shiny.png',
-        emoji: '<:271:1419564207753658460>',
+        emoji: '<:271:1419641733754519552>',
         shiny_emoji: ''
     },
     {
@@ -4353,7 +4353,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '272.png',
         shiny_image_file: '272-shiny.png',
-        emoji: '<:272:1419564217802948608>',
+        emoji: '<:272:1419641743032193184>',
         shiny_emoji: ''
     },
     {
@@ -4369,7 +4369,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '273.png',
         shiny_image_file: '273-shiny.png',
-        emoji: '<:273:1419564264846266378>',
+        emoji: '<:273:1419641752045879327>',
         shiny_emoji: ''
     },
     {
@@ -4385,7 +4385,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '274.png',
         shiny_image_file: '274-shiny.png',
-        emoji: '<:274:1419564279241244763>',
+        emoji: '<:274:1419641763076903023>',
         shiny_emoji: ''
     },
     {
@@ -4401,7 +4401,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '275.png',
         shiny_image_file: '275-shiny.png',
-        emoji: '<:275:1419564293598478336>',
+        emoji: '<:275:1419641798694801488>',
         shiny_emoji: ''
     },
     {
@@ -4417,7 +4417,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '276.png',
         shiny_image_file: '276-shiny.png',
-        emoji: '<:276:1419564313026236427>',
+        emoji: '<:276:1419641808408805497>',
         shiny_emoji: ''
     },
     {
@@ -4433,7 +4433,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '277.png',
         shiny_image_file: '277-shiny.png',
-        emoji: '<:277:1419564324258844863>',
+        emoji: '<:277:1419641825806778440>',
         shiny_emoji: ''
     },
     {
@@ -4449,7 +4449,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '278.png',
         shiny_image_file: '278-shiny.png',
-        emoji: '<:278:1419564340725420052>',
+        emoji: '<:278:1419641836380618802>',
         shiny_emoji: ''
     },
     {
@@ -4465,7 +4465,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '279.png',
         shiny_image_file: '279-shiny.png',
-        emoji: '<:279:1419564353874821171>',
+        emoji: '<:279:1419641848301092905>',
         shiny_emoji: ''
     },
     {
@@ -4481,7 +4481,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '280.png',
         shiny_image_file: '280-shiny.png',
-        emoji: '<:280:1419564368437182526>',
+        emoji: '<:280:1419641867422662816>',
         shiny_emoji: ''
     },
     {
@@ -4497,7 +4497,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '281.png',
         shiny_image_file: '281-shiny.png',
-        emoji: '<:281:1419564384077746287>',
+        emoji: '<:281:1419641874469228544>',
         shiny_emoji: ''
     },
     {
@@ -4513,7 +4513,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '282.png',
         shiny_image_file: '282-shiny.png',
-        emoji: '<:282:1419564396694339615>',
+        emoji: '<:282:1419641887492542545>',
         shiny_emoji: ''
     },
     {
@@ -4529,7 +4529,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '283.png',
         shiny_image_file: '283-shiny.png',
-        emoji: '<:283:1419564424355774464>',
+        emoji: '<:283:1419641896384466955>',
         shiny_emoji: ''
     },
     {
@@ -4545,7 +4545,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '284.png',
         shiny_image_file: '284-shiny.png',
-        emoji: '<:284:1419564441216876635>',
+        emoji: '<:284:1419641910129332424>',
         shiny_emoji: ''
     },
     {
@@ -4561,7 +4561,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '285.png',
         shiny_image_file: '285-shiny.png',
-        emoji: '<:285:1419564453766238248>',
+        emoji: '<:285:1419641923957821492>',
         shiny_emoji: ''
     },
     {
@@ -4577,7 +4577,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '286.png',
         shiny_image_file: '286-shiny.png',
-        emoji: '<:286:1419564466089234482>',
+        emoji: '<:286:1419641936922284112>',
         shiny_emoji: ''
     },
     {
@@ -4593,7 +4593,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '287.png',
         shiny_image_file: '287-shiny.png',
-        emoji: '<:287:1419564479967924326>',
+        emoji: '<:287:1419641958984450058>',
         shiny_emoji: ''
     },
     {
@@ -4609,7 +4609,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '288.png',
         shiny_image_file: '288-shiny.png',
-        emoji: '<:288:1419564492777590816>',
+        emoji: '<:288:1419641970183241748>',
         shiny_emoji: ''
     },
     {
@@ -4625,7 +4625,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '289.png',
         shiny_image_file: '289-shiny.png',
-        emoji: '<:289:1419564506492833892>',
+        emoji: '<:289:1419641982128619671>',
         shiny_emoji: ''
     },
     {
@@ -4641,7 +4641,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '290.png',
         shiny_image_file: '290-shiny.png',
-        emoji: '<:290:1419564518945853450>',
+        emoji: '<:290:1419641993209843886>',
         shiny_emoji: ''
     },
     {
@@ -4657,7 +4657,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '291.png',
         shiny_image_file: '291-shiny.png',
-        emoji: '<:291:1419564530194714624>',
+        emoji: '<:291:1419642006556115035>',
         shiny_emoji: ''
     },
     {
@@ -4673,7 +4673,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '292.png',
         shiny_image_file: '292-shiny.png',
-        emoji: '<:292:1419564868071194746>',
+        emoji: '<:292:1419642020108046336>',
         shiny_emoji: ''
     },
     {
@@ -4689,7 +4689,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '293.png',
         shiny_image_file: '293-shiny.png',
-        emoji: '<:293:1419564880771678298>',
+        emoji: '<:293:1419642030237417582>',
         shiny_emoji: ''
     },
     {
@@ -4705,7 +4705,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '294.png',
         shiny_image_file: '294-shiny.png',
-        emoji: '<:294:1419564954792497192>',
+        emoji: '<:294:1419642049098944512>',
         shiny_emoji: ''
     },
     {
@@ -4721,7 +4721,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '295.png',
         shiny_image_file: '295-shiny.png',
-        emoji: '<:295:1419564967228608584>',
+        emoji: '<:295:1419642066870341742>',
         shiny_emoji: ''
     },
     {
@@ -4737,7 +4737,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '296.png',
         shiny_image_file: '296-shiny.png',
-        emoji: '<:296:1419564980432273499>',
+        emoji: '<:296:1419642078186573854>',
         shiny_emoji: ''
     },
     {
@@ -4753,7 +4753,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '297.png',
         shiny_image_file: '297-shiny.png',
-        emoji: '<:297:1419564993447464981>',
+        emoji: '<:297:1419642089288761446>',
         shiny_emoji: ''
     },
     {
@@ -4769,7 +4769,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '298.png',
         shiny_image_file: '298-shiny.png',
-        emoji: '<:298:1419565005912936478>',
+        emoji: '<:298:1419642101028884511>',
         shiny_emoji: ''
     },
     {
@@ -4785,7 +4785,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '299.png',
         shiny_image_file: '299-shiny.png',
-        emoji: '<:299:1419565017807982592>',
+        emoji: '<:299:1419642113792016485>',
         shiny_emoji: ''
     },
     {
@@ -4801,7 +4801,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '300.png',
         shiny_image_file: '300-shiny.png',
-        emoji: '<:300:1419565036011257957>',
+        emoji: '<:300:1419642124579897448>',
         shiny_emoji: ''
     },
     {
@@ -4817,7 +4817,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '301.png',
         shiny_image_file: '301-shiny.png',
-        emoji: '<:301:1419565110615212084>',
+        emoji: '<:301:1419642140597817465>',
         shiny_emoji: ''
     },
     {
@@ -4833,7 +4833,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '302.png',
         shiny_image_file: '302-shiny.png',
-        emoji: '<:302:1419565121188921364>',
+        emoji: '<:302:1419642150605426709>',
         shiny_emoji: ''
     },
     {
@@ -4849,7 +4849,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '303.png',
         shiny_image_file: '303-shiny.png',
-        emoji: '<:303:1419565130345222215>',
+        emoji: '<:303:1419642161904746577>',
         shiny_emoji: ''
     },
     {
@@ -4865,7 +4865,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '304.png',
         shiny_image_file: '304-shiny.png',
-        emoji: '<:304:1419565140424130680>',
+        emoji: '<:304:1419642174135341056>',
         shiny_emoji: ''
     },
     {
@@ -4881,7 +4881,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '305.png',
         shiny_image_file: '305-shiny.png',
-        emoji: '<:305:1419565152629428284>',
+        emoji: '<:305:1419642186324119637>',
         shiny_emoji: ''
     },
     {
@@ -4897,7 +4897,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '306.png',
         shiny_image_file: '306-shiny.png',
-        emoji: '<:306:1419565164348309534>',
+        emoji: '<:306:1419642200295346308>',
         shiny_emoji: ''
     },
     {
@@ -4913,7 +4913,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '307.png',
         shiny_image_file: '307-shiny.png',
-        emoji: '<:307:1419565177589858335>',
+        emoji: '<:307:1419642211401994410>',
         shiny_emoji: ''
     },
     {
@@ -4929,7 +4929,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '308.png',
         shiny_image_file: '308-shiny.png',
-        emoji: '<:308:1419565190222975017>',
+        emoji: '<:308:1419642222638399538>',
         shiny_emoji: ''
     },
     {
@@ -4945,7 +4945,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '309.png',
         shiny_image_file: '309-shiny.png',
-        emoji: '<:309:1419565201262514176>',
+        emoji: '<:309:1419642237272326224>',
         shiny_emoji: ''
     },
     {
@@ -4961,7 +4961,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '310.png',
         shiny_image_file: '310-shiny.png',
-        emoji: '<:310:1419565213622997082>',
+        emoji: '<:310:1419642244683530381>',
         shiny_emoji: ''
     },
     {
@@ -4977,7 +4977,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '311.png',
         shiny_image_file: '311-shiny.png',
-        emoji: '<:311:1419565233218916362>',
+        emoji: '<:311:1419642255165362227>',
         shiny_emoji: ''
     },
     {
@@ -4993,7 +4993,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '312.png',
         shiny_image_file: '312-shiny.png',
-        emoji: '<:312:1419565247072571412>',
+        emoji: '<:312:1419642266150109285>',
         shiny_emoji: ''
     },
     {
@@ -5009,7 +5009,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '313.png',
         shiny_image_file: '313-shiny.png',
-        emoji: '<:313:1419565260200738887>',
+        emoji: '<:313:1419642277525196800>',
         shiny_emoji: ''
     },
     {
@@ -5025,7 +5025,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '314.png',
         shiny_image_file: '314-shiny.png',
-        emoji: '<:314:1419565275803680799>',
+        emoji: '<:314:1419642290661621930>',
         shiny_emoji: ''
     },
     {
@@ -5041,7 +5041,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '315.png',
         shiny_image_file: '315-shiny.png',
-        emoji: '<:315:1419565289191903282>',
+        emoji: '<:315:1419642302137106472>',
         shiny_emoji: ''
     },
     {
@@ -5057,7 +5057,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '316.png',
         shiny_image_file: '316-shiny.png',
-        emoji: '<:316:1419565301850181652>',
+        emoji: '<:316:1419642316951392357>',
         shiny_emoji: ''
     },
     {
@@ -5073,7 +5073,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '317.png',
         shiny_image_file: '317-shiny.png',
-        emoji: '<:317:1419565322561912903>',
+        emoji: '<:317:1419642329391693824>',
         shiny_emoji: ''
     },
     {
@@ -5089,7 +5089,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '318.png',
         shiny_image_file: '318-shiny.png',
-        emoji: '<:318:1419565335387963463>',
+        emoji: '<:318:1419642340930486403>',
         shiny_emoji: ''
     },
     {
@@ -5105,7 +5105,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '319.png',
         shiny_image_file: '319-shiny.png',
-        emoji: '<:319:1419565346855325716>',
+        emoji: '<:319:1419642352997236816>',
         shiny_emoji: ''
     },
     {
@@ -5121,7 +5121,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '320.png',
         shiny_image_file: '320-shiny.png',
-        emoji: '<:320:1419565362466394122>',
+        emoji: '<:320:1419642364263137380>',
         shiny_emoji: ''
     },
     {
@@ -5137,7 +5137,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '321.png',
         shiny_image_file: '321-shiny.png',
-        emoji: '<:321:1419565376261324851>',
+        emoji: '<:321:1419642378272247871>',
         shiny_emoji: ''
     },
     {
@@ -5153,7 +5153,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '322.png',
         shiny_image_file: '322-shiny.png',
-        emoji: '<:322:1419565399615471656>',
+        emoji: '<:322:1419642393988436080>',
         shiny_emoji: ''
     },
     {
@@ -5169,7 +5169,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '323.png',
         shiny_image_file: '323-shiny.png',
-        emoji: '<:323:1419565413225988188>',
+        emoji: '<:323:1419642404700553319>',
         shiny_emoji: ''
     },
     {
@@ -5185,7 +5185,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '324.png',
         shiny_image_file: '324-shiny.png',
-        emoji: '<:324:1419565425293004911>',
+        emoji: '<:324:1419642421633093793>',
         shiny_emoji: ''
     },
     {
@@ -5201,7 +5201,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '325.png',
         shiny_image_file: '325-shiny.png',
-        emoji: '<:325:1419565450810884116>',
+        emoji: '<:325:1419642437265129613>',
         shiny_emoji: ''
     },
     {
@@ -5217,7 +5217,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '326.png',
         shiny_image_file: '326-shiny.png',
-        emoji: '<:326:1419565482171695174>',
+        emoji: '<:326:1419642451328766023>',
         shiny_emoji: ''
     },
     {
@@ -5233,7 +5233,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '327.png',
         shiny_image_file: '327-shiny.png',
-        emoji: '<:327:1419565494700081235>',
+        emoji: '<:327:1419642463295111310>',
         shiny_emoji: ''
     },
     {
@@ -5249,7 +5249,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '328.png',
         shiny_image_file: '328-shiny.png',
-        emoji: '<:328:1419565506125496331>',
+        emoji: '<:328:1419642473847853106>',
         shiny_emoji: ''
     },
     {
@@ -5265,7 +5265,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '329.png',
         shiny_image_file: '329-shiny.png',
-        emoji: '<:329:1419565520784457791>',
+        emoji: '<:329:1419642487726673951>',
         shiny_emoji: ''
     },
     {
@@ -5281,7 +5281,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '330.png',
         shiny_image_file: '330-shiny.png',
-        emoji: '<:330:1419565536840388610>',
+        emoji: '<:330:1419642499869184000>',
         shiny_emoji: ''
     },
     {
@@ -5297,7 +5297,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '331.png',
         shiny_image_file: '331-shiny.png',
-        emoji: '<:331:1419565547858952212>',
+        emoji: '<:331:1419642512196243496>',
         shiny_emoji: ''
     },
     {
@@ -5313,7 +5313,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '332.png',
         shiny_image_file: '332-shiny.png',
-        emoji: '<:332:1419565561805013052>',
+        emoji: '<:332:1419642522011172864>',
         shiny_emoji: ''
     },
     {
@@ -5329,7 +5329,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '333.png',
         shiny_image_file: '333-shiny.png',
-        emoji: '<:333:1419565572877713448>',
+        emoji: '<:333:1419642532664447026>',
         shiny_emoji: ''
     },
     {
@@ -5345,7 +5345,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '334.png',
         shiny_image_file: '334-shiny.png',
-        emoji: '<:334:1419565584646930473>',
+        emoji: '<:334:1419642544748236941>',
         shiny_emoji: ''
     },
     {
@@ -5361,7 +5361,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '335.png',
         shiny_image_file: '335-shiny.png',
-        emoji: '<:335:1419565596957474956>',
+        emoji: '<:335:1419642556760723467>',
         shiny_emoji: ''
     },
     {
@@ -5377,7 +5377,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '336.png',
         shiny_image_file: '336-shiny.png',
-        emoji: '<:336:1419565634823393321>',
+        emoji: '<:336:1419642570195210321>',
         shiny_emoji: ''
     },
     {
@@ -5393,7 +5393,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '337.png',
         shiny_image_file: '337-shiny.png',
-        emoji: '<:337:1419565647305900053>',
+        emoji: '<:337:1419642582375333899>',
         shiny_emoji: ''
     },
     {
@@ -5409,7 +5409,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '338.png',
         shiny_image_file: '338-shiny.png',
-        emoji: '<:338:1419565658060099584>',
+        emoji: '<:338:1419642593737703496>',
         shiny_emoji: ''
     },
     {
@@ -5425,7 +5425,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '339.png',
         shiny_image_file: '339-shiny.png',
-        emoji: '<:339:1419565668139008091>',
+        emoji: '<:339:1419642604856807454>',
         shiny_emoji: ''
     },
     {
@@ -5441,7 +5441,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '340.png',
         shiny_image_file: '340-shiny.png',
-        emoji: '<:340:1419565680788766770>',
+        emoji: '<:340:1419642615128915968>',
         shiny_emoji: ''
     },
     {
@@ -5457,7 +5457,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '341.png',
         shiny_image_file: '341-shiny.png',
-        emoji: '<:341:1419565700875292762>',
+        emoji: '<:341:1419642635479547955>',
         shiny_emoji: ''
     },
     {
@@ -5473,7 +5473,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '342.png',
         shiny_image_file: '342-shiny.png',
-        emoji: '<:342:1419565728062902302>',
+        emoji: '<:342:1419642648200740916>',
         shiny_emoji: ''
     },
     {
@@ -5489,7 +5489,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '343.png',
         shiny_image_file: '343-shiny.png',
-        emoji: '<:343:1419565761323597825>',
+        emoji: '<:343:1419642660276142141>',
         shiny_emoji: ''
     },
     {
@@ -5505,7 +5505,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '344.png',
         shiny_image_file: '344-shiny.png',
-        emoji: '<:344:1419565777438375987>',
+        emoji: '<:344:1419642670862565487>',
         shiny_emoji: ''
     },
     {
@@ -5521,7 +5521,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '345.png',
         shiny_image_file: '345-shiny.png',
-        emoji: '<:345:1419565790713221140>',
+        emoji: '<:345:1419642682384584724>',
         shiny_emoji: ''
     },
     {
@@ -5537,7 +5537,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '346.png',
         shiny_image_file: '346-shiny.png',
-        emoji: '<:346:1419565802910257323>',
+        emoji: '<:346:1419642692459298877>',
         shiny_emoji: ''
     },
     {
@@ -5553,7 +5553,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '347.png',
         shiny_image_file: '347-shiny.png',
-        emoji: '<:347:1419565816382492702>',
+        emoji: '<:347:1419642706564747334>',
         shiny_emoji: ''
     },
     {
@@ -5569,7 +5569,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '348.png',
         shiny_image_file: '348-shiny.png',
-        emoji: '<:348:1419565830097866862>',
+        emoji: '<:348:1419642727301382227>',
         shiny_emoji: ''
     },
     {
@@ -5585,7 +5585,7 @@ const speciesData = [
         flee_rate: 0.2,
         image_file: '349.png',
         shiny_image_file: '349-shiny.png',
-        emoji: '<:349:1419565851274776616>',
+        emoji: '<:349:1419642740861571214>',
         shiny_emoji: ''
     },
     {
@@ -5601,7 +5601,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '350.png',
         shiny_image_file: '350-shiny.png',
-        emoji: '<:350:1419565863404703794>',
+        emoji: '<:350:1419642752639176865>',
         shiny_emoji: ''
     },
     {
@@ -5617,7 +5617,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '351.png',
         shiny_image_file: '351-shiny.png',
-        emoji: '<:351:1419565877724184638>',
+        emoji: '<:351:1419642765532201030>',
         shiny_emoji: ''
     },
     {
@@ -5633,7 +5633,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '352.png',
         shiny_image_file: '352-shiny.png',
-        emoji: '<:352:1419565890793377945>',
+        emoji: '<:352:1419642777096032276>',
         shiny_emoji: ''
     },
     {
@@ -5649,7 +5649,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '353.png',
         shiny_image_file: '353-shiny.png',
-        emoji: '<:353:1419565902747271179>',
+        emoji: '<:353:1419642792866746378>',
         shiny_emoji: ''
     },
     {
@@ -5665,7 +5665,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '354.png',
         shiny_image_file: '354-shiny.png',
-        emoji: '<:354:1419565923806740490>',
+        emoji: '<:354:1419642804941885573>',
         shiny_emoji: ''
     },
     {
@@ -5681,7 +5681,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '355.png',
         shiny_image_file: '355-shiny.png',
-        emoji: '<:355:1419565939883773973>',
+        emoji: '<:355:1419642816279351377>',
         shiny_emoji: ''
     },
     {
@@ -5697,7 +5697,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '356.png',
         shiny_image_file: '356-shiny.png',
-        emoji: '<:356:1419565966634913813>',
+        emoji: '<:356:1419642826131636331>',
         shiny_emoji: ''
     },
     {
@@ -5713,7 +5713,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '357.png',
         shiny_image_file: '357-shiny.png',
-        emoji: '<:357:1419565980736159825>',
+        emoji: '<:357:1419642837808447513>',
         shiny_emoji: ''
     },
     {
@@ -5729,7 +5729,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '358.png',
         shiny_image_file: '358-shiny.png',
-        emoji: '<:358:1419565998717145098>',
+        emoji: '<:358:1419642848508116992>',
         shiny_emoji: ''
     },
     {
@@ -5745,7 +5745,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '359.png',
         shiny_image_file: '359-shiny.png',
-        emoji: '<:359:1419566014219419679>',
+        emoji: '<:359:1419642860533317764>',
         shiny_emoji: ''
     },
     {
@@ -5761,7 +5761,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '360.png',
         shiny_image_file: '360-shiny.png',
-        emoji: '<:360:1419566027074699304>',
+        emoji: '<:360:1419642872680022016>',
         shiny_emoji: ''
     },
     {
@@ -5777,7 +5777,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '361.png',
         shiny_image_file: '361-shiny.png',
-        emoji: '<:361:1419566046368633016>',
+        emoji: '<:361:1419642887028740136>',
         shiny_emoji: ''
     },
     {
@@ -5793,7 +5793,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '362.png',
         shiny_image_file: '362-shiny.png',
-        emoji: '<:362:1419566059534549023>',
+        emoji: '<:362:1419642900769144852>',
         shiny_emoji: ''
     },
     {
@@ -5809,7 +5809,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '363.png',
         shiny_image_file: '363-shiny.png',
-        emoji: '<:363:1419566074587779153>',
+        emoji: '<:363:1419642914543505568>',
         shiny_emoji: ''
     },
     {
@@ -5825,7 +5825,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '364.png',
         shiny_image_file: '364-shiny.png',
-        emoji: '<:364:1419566142120530000>',
+        emoji: '<:364:1419642931102355578>',
         shiny_emoji: ''
     },
     {
@@ -5841,7 +5841,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '365.png',
         shiny_image_file: '365-shiny.png',
-        emoji: '<:365:1419566153839284234>',
+        emoji: '<:365:1419642948945055785>',
         shiny_emoji: ''
     },
     {
@@ -5857,7 +5857,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '366.png',
         shiny_image_file: '366-shiny.png',
-        emoji: '<:366:1419566164517847113>',
+        emoji: '<:366:1419642963360878632>',
         shiny_emoji: ''
     },
     {
@@ -5873,7 +5873,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '367.png',
         shiny_image_file: '367-shiny.png',
-        emoji: '<:367:1419566180858986648>',
+        emoji: '<:367:1419642982969249893>',
         shiny_emoji: ''
     },
     {
@@ -5889,7 +5889,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '368.png',
         shiny_image_file: '368-shiny.png',
-        emoji: '<:368:1419566222286127124>',
+        emoji: '<:368:1419642997473153045>',
         shiny_emoji: ''
     },
     {
@@ -5905,7 +5905,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '369.png',
         shiny_image_file: '369-shiny.png',
-        emoji: '<:369:1419566235418493031>',
+        emoji: '<:369:1419643009544491100>',
         shiny_emoji: ''
     },
     {
@@ -5921,7 +5921,7 @@ const speciesData = [
         flee_rate: 0.15,
         image_file: '370.png',
         shiny_image_file: '370-shiny.png',
-        emoji: '<:370:1419566247380779069>',
+        emoji: '<:370:1419643018595795034>',
         shiny_emoji: ''
     },
     {
@@ -5937,7 +5937,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '371.png',
         shiny_image_file: '371-shiny.png',
-        emoji: '<:371:1419566256666972241>',
+        emoji: '<:371:1419643031568650301>',
         shiny_emoji: ''
     },
     {
@@ -5953,7 +5953,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '372.png',
         shiny_image_file: '372-shiny.png',
-        emoji: '<:372:1419566269530898546>',
+        emoji: '<:372:1419643045179031615>',
         shiny_emoji: ''
     },
     {
@@ -5969,7 +5969,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '373.png',
         shiny_image_file: '373-shiny.png',
-        emoji: '<:373:1419566314086993920>',
+        emoji: '<:373:1419643058303144051>',
         shiny_emoji: ''
     },
     {
@@ -5985,7 +5985,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '374.png',
         shiny_image_file: '374-shiny.png',
-        emoji: '<:374:1419566327638524036>',
+        emoji: '<:374:1419643070710022225>',
         shiny_emoji: ''
     },
     {
@@ -6001,7 +6001,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '375.png',
         shiny_image_file: '375-shiny.png',
-        emoji: '<:375:1419566341878186054>',
+        emoji: '<:375:1419643081614950411>',
         shiny_emoji: ''
     },
     {
@@ -6017,7 +6017,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '376.png',
         shiny_image_file: '376-shiny.png',
-        emoji: '<:376:1419566356923416648>',
+        emoji: '<:376:1419643097259704351>',
         shiny_emoji: ''
     },
     {
@@ -6033,7 +6033,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '377.png',
         shiny_image_file: '377-shiny.png',
-        emoji: '<:377:1419566369510391939>',
+        emoji: '<:377:1419643107712172074>',
         shiny_emoji: ''
     },
     {
@@ -6049,7 +6049,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '378.png',
         shiny_image_file: '378-shiny.png',
-        emoji: '<:378:1419566387063689257>',
+        emoji: '<:378:1419643119422668892>',
         shiny_emoji: ''
     },
     {
@@ -6065,7 +6065,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '379.png',
         shiny_image_file: '379-shiny.png',
-        emoji: '<:379:1419566405673811978>',
+        emoji: '<:379:1419643129849577502>',
         shiny_emoji: ''
     },
     {
@@ -6081,7 +6081,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '380.png',
         shiny_image_file: '380-shiny.png',
-        emoji: '<:380:1419566418365644860>',
+        emoji: '<:380:1419643142314918020>',
         shiny_emoji: ''
     },
     {
@@ -6097,7 +6097,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '381.png',
         shiny_image_file: '381-shiny.png',
-        emoji: '<:381:1419566434933018714>',
+        emoji: '<:381:1419643157083193394>',
         shiny_emoji: ''
     },
     {
@@ -6113,7 +6113,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '382.png',
         shiny_image_file: '382-shiny.png',
-        emoji: '<:382:1419566452289044551>',
+        emoji: '<:382:1419643169473040495>',
         shiny_emoji: ''
     },
     {
@@ -6129,7 +6129,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '383.png',
         shiny_image_file: '383-shiny.png',
-        emoji: '<:383:1419566470161240137>',
+        emoji: '<:383:1419643184182722560>',
         shiny_emoji: ''
     },
     {
@@ -6145,7 +6145,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '384.png',
         shiny_image_file: '384-shiny.png',
-        emoji: '<:384:1419566489895309395>',
+        emoji: '<:384:1419643197189263421>',
         shiny_emoji: ''
     },
     {
@@ -6161,7 +6161,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '385.png',
         shiny_image_file: '385-shiny.png',
-        emoji: '<:385:1419566503316946995>',
+        emoji: '<:385:1419643212221513848>',
         shiny_emoji: ''
     },
     {
@@ -6177,7 +6177,7 @@ const speciesData = [
         flee_rate: 0.1,
         image_file: '386.png',
         shiny_image_file: '386-shiny.png',
-        emoji: '<:386:1419639667178868878>',
+        emoji: '<:386:1419643224623939725>',
         shiny_emoji: ''
     }
 ]
