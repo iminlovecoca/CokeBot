@@ -13,6 +13,8 @@ const User = require('./models/User');
 const Species = require('./models/cokemon/Species');
 const Item = require('./models/cokemon/Item');
 const spawner = require('./features/spawner');
+const { loadBotLock, shouldBlockCommand } = require('./utils/botLock');
+
 
 const client = new Client({
   intents: [
@@ -145,7 +147,7 @@ client.once(Events.ClientReady, async () => {
     console.error("❌ Could not cache species data:", error);
     client.allSpecies = []
   }
-
+  await loadBotLock(client);
   spawner.initializeSpawner(client);
 });
 

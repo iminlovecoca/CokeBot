@@ -17,6 +17,11 @@ module.exports = {
                         client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName))
         if (!command) return
 
+        const OWNER_ID = process.env.OWNER_ID
+        if (client.botLocked && message.author.id !== OWNER_ID) {
+            return
+        }
+        
         const userData = await User.findOne({ userId: message.author.id })
         if (userData?.bannedUntil && userData.bannedUntil > Date.now()) {
             const until = `<t:${Math.floor(userData.bannedUntil / 1000)}:R>`
@@ -24,10 +29,10 @@ module.exports = {
         }
         
         try {
-            await command.execute(message, args);
+            await command.execute(message, args)
         } catch (error) {
-            console.error(`Error executing command ${commandName}:`, error);
-            await message.reply('Đã có lỗi xảy ra khi thực thi lệnh này!');
+            console.error(`Error executing command ${commandName}:`, error)
+            await message.reply('Đã có lỗi xảy ra khi thực thi lệnh này!')
         }
     },
 }
