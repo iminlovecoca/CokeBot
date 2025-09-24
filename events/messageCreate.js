@@ -14,20 +14,22 @@ module.exports = {
         const args = message.content.slice(PREFIX.length).trim().split(/ +/)
         const commandName = args.shift().toLowerCase()
         const command = client.commands.get(commandName) ||
-                        client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName))
+            client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName))
         if (!command) return
 
         const OWNER_ID = process.env.OWNER_ID
-        if (client.botLocked && message.author.id !== OWNER_ID) {
-            return
+        if (client.botLocked) {
+            const allowedIds = client.allowedIds || [process.env.OWNER_ID];
+            if (!allowedIds.includes(message.author.id)) return;
         }
-        
+
+
         const userData = await User.findOne({ userId: message.author.id })
         if (userData?.bannedUntil && userData.bannedUntil > Date.now()) {
             const until = `<t:${Math.floor(userData.bannedUntil / 1000)}:R>`
             return message.reply(`🚫 Bạn đang bị cấm sử dụng bot cho đến ${until}`)
         }
-        
+
         try {
             await command.execute(message, args)
         } catch (error) {
