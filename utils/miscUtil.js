@@ -27,11 +27,11 @@ const getDebuffPercentage = async userId => {
         const { getTotalCoke } = require('./userUtil')
         const totalCoke = await getTotalCoke(userId)
         if (totalCoke > 10000000) {
-            debuffPercentage = 0.5
-        } else if (totalCoke > 5000000) {
             debuffPercentage = 0.35
+        } else if (totalCoke > 5000000) {
+            debuffPercentage = 0.25
         } else if (totalCoke > 2000000) {
-            debuffPercentage = 0.2
+            debuffPercentage = 0.15
         }
     }
     return debuffPercentage
