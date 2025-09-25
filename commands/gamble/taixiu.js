@@ -6,18 +6,16 @@ const {
 } = require('../../utils/cooldown')
 const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
+const { getDebuffPercentage } = require('../../utils/miscUtil')
 const config = require('../../data/config')
 const emoji = config.emoji
+const settings = config.gamble_settings
 
 const diceEmojis = [
   emoji.dice_1, emoji.dice_2, emoji.dice_3,
   emoji.dice_4, emoji.dice_5, emoji.dice_6
 ]
 const moving = emoji.dice_rolling
-const currency = emoji.money
-const maxBet = 250000
-const minBet = 1
-const cooldownSeconds = 15
 
 module.exports = {
   name: 'tx',
@@ -33,7 +31,7 @@ module.exports = {
 
       let choice
       if (args.length == 0) {
-        return await message.reply('❌ **|** Cú pháp: `!tx <t/x> [số tiền|all]`')
+        return await message.reply(`${emoji.no} Cú pháp: \`!tx <t/x> [số tiền|all]\``)
       } else {
         choice = args[0].toLowerCase();
         if (['tai', 't'].includes(choice)) {
@@ -41,13 +39,14 @@ module.exports = {
         } else if (['xiu', 'x'].includes(choice)) {
           choice = 'xiu'
         } else {
-          return await message.reply('❌ **|** Bạn phải chọn `tai` hoặc `xiu`!')
+          return await message.reply(`${emoji.no} Bạn phải chọn \`tai\` hoặc \`xiu\`!`)
         }
       }
       let bet = args.length == 1 ? 'min' : args[1]
-      const amount = await getBetAmount(bet, userId, maxBet, minBet)
+      const amount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
 
       // Random xúc xắc
+      const debuffPercentage = await getDebuffPercentage(userId)
       let rolls = [];
       let sum, triple;
       do {
@@ -65,7 +64,7 @@ module.exports = {
 
       let win = 0;
       let multiplier = 0;
-      if (outcome === choice) {
+      if (outcome === choice && Math.random() > debuffPercentage) {
         multiplier = 2;
         win = amount * multiplier;
       }
@@ -73,8 +72,8 @@ module.exports = {
       const member = await message.guild.members.fetch(userId).catch(() => null);
       const name = member?.displayName || message.author.username;
 
-      const betText = `${currency} ${amount.toLocaleString()}`;
-      const winText = win > 0 ? `${currency} ${win.toLocaleString()} (x${multiplier})` : 'trắng... 😢';
+      const betText = `${emoji.money} ${amount.toLocaleString()}`;
+      const winText = win > 0 ? `${emoji.money} ${win.toLocaleString()} (x${multiplier})` : 'trắng... 😢';
 
       const wait = ms => new Promise(res => setTimeout(res, ms));
 
@@ -94,7 +93,7 @@ module.exports = {
       display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
       await msg.edit(display);
 
-      setCooldown(userId, 'tx', cooldownSeconds);
+      setCooldown(userId, 'tx', settings.cooldown_second);
     } catch(error) {
       return await message.reply(error.message)
     }

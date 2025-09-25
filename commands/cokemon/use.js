@@ -1,4 +1,5 @@
 const { useItem } = require('../../utils/userUtil')
+const config = require('../../data/config')
 
 module.exports = {
 	name: 'use',
@@ -9,7 +10,7 @@ module.exports = {
 		try {
 			const itemId = args[0]
 			if (!itemId) {
-				throw new Error('❌ | Bạn cần chỉ định ID của vật phẩm để sử dụng. Ví dụ: `!use lure-flame`')
+				throw new Error(`${config.emoji.no} Bạn cần chỉ định ID của vật phẩm để sử dụng. Ví dụ: \`!use lure-flame\``)
 			}
 
 			const result = await useItem(message.client, message.author, message.channel.id, itemId)

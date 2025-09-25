@@ -2,6 +2,7 @@ const { EmbedBuilder } = require('discord.js')
 const { createRandomCokemon } = require('../utils/CokemonUtil')
 const { addCokemon } = require('../utils/userUtil')
 const { compositeImages } = require('../utils/imageUtil')
+const ActiveNet = require('../models/cokemon/ActiveNet')
 const path = require('path')
 const fs = require('fs')
 const config = require('../data/config')
@@ -31,20 +32,21 @@ const initializeSpawner = (client) => {
         for (const [channelId, spawnState] of client.activeSpawns.entries()) {
             if (!spawnState.autoCatchProcessed && Date.now() > spawnState.spawn_at + settings.grace_period_ms) {
                 spawnState.autoCatchProcessed = true
-                for (const [userId, netState] of client.activeNets.entries()) {
+                const activeNets = await ActiveNet.find({})
+                for (const net of activeNets) {
                     // Check if this user has acted manually in this encounter
-                    if (spawnState.userStates.has(userId)) {
+                    if (spawnState.userStates.has(net.userId)) {
                         continue
                     }
 
                     const cokemon = spawnState.cokemon
                     const isCaught = (Math.random() < cokemon.catch_rate)
-                    netState.uses--
+                    net.uses--
 
                     if (isCaught) {
                         const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
                         const cokemonData = {
-                            owner_id: userId,
+                            owner_id: net.userId,
                             species_id: cokemon.species_id,
                             gender: cokemon.gender,
                             ivs: cokemon.ivs,
@@ -54,28 +56,27 @@ const initializeSpawner = (client) => {
                         }
                         const result = await addCokemon(cokemonData)
                         if (result.success) {
-                            if (!netState.caught) {
-                                netState.caught = []
-                            }
-                            spawnState.userStates.set(userId, { hasCaught: true })
+                            spawnState.userStates.set(net.userId, { hasCaught: true })
                             const displayEmoji = isShiny ? (cokemon.shiny_emoji || `${cokemon.emoji}✨`) : cokemon.emoji
                             const displayName = `${displayEmoji} ${cokemon.name}`
-                            const currentCount = netState.caught.get(displayName) || 0
-                            netState.caught.set(displayName, currentCount + 1)
+                            const currentCount = net.caught.get(displayName) || 0
+                            net.caught.set(displayName, currentCount + 1)
                         }
                     }
 
-                    if (netState.uses <= 0) {
-                        if (netState.caught.size > 0) {
-                            const user = await client.users.fetch(userId)
+                    if (net.uses <= 0) {
+                        if (net.caught.size > 0) {
+                            const user = await client.users.fetch(net.userId)
                             const summaryLines = []
-                            for (const [name, count] of netState.caught.entries()) {
+                            for (const [name, count] of net.caught.entries()) {
                                 summaryLines.push(`- ${name} (x${count})`);
                             }
                             const summaryMessage = `Lưới Bắt của bạn đã hết! Bạn đã bắt được:\n${summaryLines.join('\n')}`;
                             await user.send(summaryMessage).catch(() => {})
                         }
-                        client.activeNets.delete(userId)
+                        await ActiveNet.deleteOne({ userId: net.userId })
+                    } else {
+                        await net.save()
                     }
                 }
             }
@@ -130,8 +131,8 @@ const initializeSpawner = (client) => {
                         const finalImageFile = path.basename(finalImagePath)
 
                         let announcementContent = null
-                        if (newCokemon.speciesData.tier === 'Legendary' && settings.legendary_ping_role_id) {
-                            announcementContent = `<@&${settings.legendary_ping_role_id}> Một Cokemon Huyền Thoại đã xuất hiện!`
+                        if (newCokemon.speciesData.tier === 'Legendary') {
+                            announcementContent = `@everyone Một Cokemon Huyền Thoại đã xuất hiện!`
                         }
 
                         const spawnEmbed = new EmbedBuilder()

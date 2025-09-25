@@ -90,6 +90,12 @@ module.exports = {
 		'user': '👤',
 		'default': '➡️'
 	},
+	gamble_settings: {
+		enable_special_treatment: true,
+		max_bet: 250000,
+		min_bet: 1,
+		cooldown_second: 15,
+	},
 	channel_themes: {
 		"1415143151307329536": null,
 		"1415143238871814255": {
@@ -151,7 +157,6 @@ module.exports = {
 			'Ancient': 2,
 			'Legendary': 0.2
 		},
-		legendary_ping_role_id: "1243064840180994088",
 	},
 	natures: {
 		'Hardy': { plus: null, minus: null },

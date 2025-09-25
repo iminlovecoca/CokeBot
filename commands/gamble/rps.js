@@ -6,15 +6,14 @@ const {
 } = require('../../utils/cooldown')
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
+const { getDebuffPercentage } = require('../../utils/miscUtil')
 const config = require('../../data/config')
 const emoji = config.emoji
 const currency = emoji.money
+const settings = config.gamble_settings
 
 const EMOJIS = { keo: '✌️', bua: '👊', bao: '🖐️' }
 const choices = ['keo', 'bua', 'bao']
-const maxBet = 250000
-const minBet = 1
-const cooldownSeconds = 15
 
 module.exports = {
   name: 'rps',
@@ -29,20 +28,20 @@ module.exports = {
 
       const cooldown = getRemainingCooldown(userId, 'rps')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
-      setCooldown(userId, 'rps', cooldownSeconds)
+      setCooldown(userId, 'rps', settings.cooldown_second)
 
       if (game) {
         await rps(message, game.bet, game.botChoice, true)
       } else {
         let bet = args.length == 0 ? 'min' : args[0]
-        const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+        const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
         const botChoice = choices[Math.floor(Math.random() * choices.length)]
         await decBalance(userId, betAmount)
         await addGame(userId, betAmount, botChoice)
         await rps(message, betAmount, botChoice)
       }
     } catch (error) {
-      return await message.reply(error.message)
+      await message.reply(error.message)
     }
   }
 }
@@ -68,7 +67,7 @@ const rps = async (message, bet, botChoice, resume) => {
     collector.stop()
     const game = await getGame(message.author.id)
     if (!game) {
-      sentMessage.edit('**❌ |** Ván chơi đã kết thúc!')
+      sentMessage.edit(`${emoji.no} Ván chơi đã kết thúc!`)
       return
     } 
 
@@ -77,6 +76,7 @@ const rps = async (message, bet, botChoice, resume) => {
 
     let resultText = ''
     let reward = 0
+    const debuffPercentage = await getDebuffPercentage(userId)
 
     if (playerChoice === botChoice) {
       resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận lại ${currency} **${bet.toLocaleString()}.**`
@@ -86,8 +86,15 @@ const rps = async (message, bet, botChoice, resume) => {
       (playerChoice === 'bua' && botChoice === 'keo') ||
       (playerChoice === 'bao' && botChoice === 'bua')
     ) {
-      resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận được ${currency} **${(bet * 2).toLocaleString()}.**`
-      reward = bet * 2
+      if (Math.random() < debuffPercentage) {
+        const winningMoves = { keo: 'bua', bua: 'bao', bao: 'keo' };
+        botChoice = winningMoves[playerChoice];
+        resultText = `${config.emoji.blank} **| Coke** ra ${EMOJIS[botChoice]} và bạn mất ${currency} **${bet.toLocaleString()}.**`
+        reward = 0
+      } else {
+        resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận được ${currency} **${(bet * 2).toLocaleString()}.**`
+        reward = bet * 2
+      }
     } else {
       resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn mất ${currency} **${bet.toLocaleString()}.**`
       reward = 0

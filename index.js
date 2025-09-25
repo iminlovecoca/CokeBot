@@ -29,8 +29,6 @@ const client = new Client({
 
 // [[channelId: {expires_at, boosts_type, ownerId}]]
 client.activeLures = new Map();
-// [[userId: { uses }]]
-client.activeNets = new Map();
 // [[channelId: {
 //    cokemon: { species_id, name, catch_rate, flee_rate, gender, ivs, level, speciesData },
 //    userStates, despawn_at, spawn_at, autoCatchProcessed
