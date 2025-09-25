@@ -45,29 +45,40 @@ module.exports = {
       let bet = args.length == 1 ? 'min' : args[1]
       const amount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
 
-      // Random xúc xắc
       const debuffPercentage = await getDebuffPercentage(userId)
-      let rolls = [];
-      let sum, triple;
-      do {
-        const r1 = await random(1, 6);
-        const r2 = await random(1, 6);
-        const r3 = await random(1, 6);
-        sum = r1 + r2 + r3;
-        triple = r1 === r2 && r2 === r3;
-        rolls = [r1, r2, r3];
-      } while (triple);
+      const winProbability = 0.5 * (1 - debuffPercentage);
+      const playerWins = Math.random() < winProbability
+      const finalOutcome = playerWins ? choice : (choice === 'tai' ? 'xiu' : 'tai');
 
-      const outcome = sum >= 11 ? 'tai' : 'xiu';
-      const [roll1, roll2, roll3] = rolls;
-      const rollEmoji = rolls.map(i => diceEmojis[i - 1]);
+      const generateDiceRolls = async (targetOutcome) => {
+        let rolls, sum, isTriple
+        while (true) {
+          const r1 = await random(1, 6)
+          const r2 = await random(1, 6)
+          const r3 = await random(1, 6)
+          sum = r1 + r2 + r3
+          isTriple = r1 === r2 && r2 === r3
+          const currentOutcome = sum >= 11 ? 'tai' : 'xiu'
+          console.log(currentOutcome, targetOutcome)
 
-      let win = 0;
-      let multiplier = 0;
-      if (outcome === choice && Math.random() > debuffPercentage) {
-        multiplier = 2;
-        win = amount * multiplier;
+          if (!isTriple && currentOutcome === targetOutcome) {
+            rolls = [r1, r2, r3]
+            return { rolls, sum }
+          }
+        }
       }
+
+      const { rolls, sum } = await generateDiceRolls(finalOutcome)
+      const [roll1, roll2, roll3] = rolls
+      const rollEmoji = rolls.map(i => diceEmojis[i - 1])
+
+      let win = 0
+      let multiplier = 0
+      if (playerWins) {
+        multiplier = 2
+        win = amount * multiplier
+      }
+
       await incBalance(userId, win - amount)
       const member = await message.guild.members.fetch(userId).catch(() => null);
       const name = member?.displayName || message.author.username;
@@ -90,7 +101,7 @@ module.exports = {
 
       await wait(1000);
 
-      display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
+      display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${finalOutcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
       await msg.edit(display);
 
       setCooldown(userId, 'tx', settings.cooldown_second);
