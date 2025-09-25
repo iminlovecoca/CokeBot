@@ -19,14 +19,13 @@ const {
 } = require('../../utils/cooldown')
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
+const { getDebuffPercentage } = require('../../utils/miscUtil')
 const config = require('../../data/config')
 const emoji = config.emoji
+const settings = config.gamble_settings
 
 const hitEmoji = '👊'
 const standEmoji = '🛑'
-const maxBet = 250000
-const minBet = 1
-const cooldownSeconds = 15
 
 module.exports = {
   name: 'bj',
@@ -41,7 +40,7 @@ module.exports = {
 
       const cooldown = getRemainingCooldown(userId, 'bj')
       if (cooldown > 0) return notifyCooldown(message, cooldown)
-      setCooldown(userId, 'bj', cooldownSeconds)
+      setCooldown(userId, 'bj', settings.cooldown_second)
 
       if (game) {
         const playerHand = game.player
@@ -50,7 +49,7 @@ module.exports = {
         await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
       } else {
         let bet = args.length == 0 ? 'min' : args[0]
-        const betAmount = await getBetAmount(bet, userId, maxBet, minBet)
+        const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
         const deck = createNewDeck()
         const playerHand = [drawNewCard(deck), drawNewCard(deck)]
         const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
@@ -82,7 +81,7 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
     const game = await getGame(message.author.id)
     if (!game) {
       collector.stop()
-      sentMessage.edit('**❌ |** Ván bài đã kết thúc!')
+      sentMessage.edit(`${emoji.no} Ván bài đã kết thúc!`)
       return
     }
 
@@ -150,8 +149,20 @@ const handleHit = async (message, author, playerHand, dealerHand, deck, bet, col
 }
 
 const handleStand = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
+  const debuffPercentage = await getDebuffPercentage(author.id)
   while (!isDealerStay(dealerHand)) {
-    card = drawNewCard(deck)
+    if (Math.random() < debuffPercentage) {
+      const nextCard = deck[deck.length - 1];
+      if (getBestHandValue([...dealerHand, nextCard]) > 21) {
+        for (let i = deck.length - 2; i >= 0; i--) {
+          if (getBestHandValue([...dealerHand, deck[i]]) <= 21) {
+            [deck[deck.length - 1], deck[i]] = [deck[i], deck[deck.length - 1]];
+            break;
+          }
+        }
+      }
+    }
+    const card = drawNewCard(deck)
     dealerHand.push(card)
   }
 

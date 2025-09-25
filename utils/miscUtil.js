@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const config = require('../data/config')
 
 const runTransactionWithRetry = async (txnFunc) => {
     const MAX_RETRIES = 3
@@ -20,6 +21,22 @@ const runTransactionWithRetry = async (txnFunc) => {
     }
 }
 
+const getDebuffPercentage = async userId => {
+    let debuffPercentage = 0
+    if (config.gamble_settings.enable_special_treatment) {
+        const { getTotalCoke } = require('./userUtil')
+        const totalCoke = await getTotalCoke(userId)
+        if (totalCoke > 10000000) {
+            debuffPercentage = 0.5
+        } else if (totalCoke > 5000000) {
+            debuffPercentage = 0.35
+        } else if (totalCoke > 2000000) {
+            debuffPercentage = 0.2
+        }
+    }
+    return debuffPercentage
+}
+
 module.exports = {
-    runTransactionWithRetry
+    runTransactionWithRetry, getDebuffPercentage
 }

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose')
 const User = require('../models/User')
 const Cokemon = require('../models/cokemon/Cokemon')
+const ActiveNet = require('../models/cokemon/ActiveNet')
 const { runTransactionWithRetry } = require('./miscUtil')
 const { formatVNCurrency } = require('./format')
 const { getPerDayLimit, getPerTransactionLimit } = require('./transactionUtil')
@@ -199,6 +200,12 @@ const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
 	}
 }
 
+const getTotalCoke = async userId => {
+	const user = await User.findOne({ userId })
+	const totalCoke = (user?.coke || 0) + (user?.bank || 0)
+	return totalCoke
+}
+
 const decBalance = async (userId, amount) => {
 	await User.updateOne(
 		{ userId },
@@ -348,9 +355,8 @@ const useItem = async (client, user, channelId, itemId) => {
 				}
 			}
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
-			const activeNets = client.activeNets
-			const currentUses = activeNets.get(user.id)?.uses || 0
-			if (currentUses > (settings.max_stacked_nets - 1) * settings.catch_net_uses) {
+			const currentNet = await ActiveNet.findOne({ userId: user.id })
+			if (currentNet && currentNet.uses > (settings.max_stacked_nets - 1) * settings.catch_net_uses) {
 				throw new Error(`${config.emoji.no} Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm.`)
 			}
 		} else {
@@ -379,11 +385,10 @@ const useItem = async (client, user, channelId, itemId) => {
 			client.activeLures.set(channelId, { expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: user.id })
 			successMessage = `✨ **${user.username || user.id}** đã sử dụng **${item.name}** ${item.emoji}!`
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
-			const activeNets = client.activeNets
-			const currentNetState = activeNets.get(user.id) || { uses: 0, caught: new Map() }
-			const newTotal = currentNetState.uses + settings.catch_net_uses
-			activeNets.set(user.id, { uses: newTotal, caught: currentNetState.caught })
-			successMessage = `${config.emoji.yes} Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newTotal}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
+			const currentNet = await ActiveNet.findOne({ userId: user.id })
+			const newUses = (currentNet?.uses || 0) + settings.catch_net_uses
+			await ActiveNet.updateOne({ userId: user.id }, { uses: newUses }, { upsert: true })
+			successMessage = `${config.emoji.yes} Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newUses}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
 		}
 		return { success: true, message: successMessage, itemType: item.item_type }
 	} catch (error) {
@@ -516,6 +521,7 @@ module.exports = {
 	validateBeforeGiving,
 	decBalance,
 	incBalance,
+	getTotalCoke,
 	buyItem,
 	sellItem,
 	useItem,
