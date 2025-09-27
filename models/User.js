@@ -29,10 +29,10 @@ const userSchema = new mongoose.Schema({
   tea: { type: Number, default: 0 },
   luck: { type: Number, default: 0 },
 
-  bank: { type: Number, default: 0 },
-  bankLastUpdate: { type: Date },
-  transferHistory: { type: [Object], default: [] },
-  receiveHistory: { type: [Object], default: [] },
+  // bank: { type: Number, default: 0 },
+  // bankLastUpdate: { type: Date },
+  // transferHistory: { type: [Object], default: [] },
+  // receiveHistory: { type: [Object], default: [] },
 
   dailyGive: { type: Object, default: {} },
   dailyReceive: { type: Object, default: {} },
