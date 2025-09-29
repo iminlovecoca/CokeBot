@@ -98,7 +98,7 @@ module.exports = {
 	},
 	channel_themes: {
 		"1415143151307329536": null,
-		"1415143238871814255": {
+		"1422108084519698502": {
 			"main_types": ["Water", "Ice"],
 			"weight": 0.9
 		},
