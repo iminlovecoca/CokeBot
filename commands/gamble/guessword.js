@@ -3,7 +3,7 @@ const { getRandomWord, shuffleWord } = require('../../utils/dictionary');
 const { setCooldown, getRemainingCooldown, notifyCooldown } = require('../../utils/cooldown');
 
 const activeGames = new Map();
-const cooldownSeconds = 5; 
+const cooldownSeconds = 5;
 
 module.exports = {
   name: 'gw',
@@ -37,9 +37,12 @@ module.exports = {
         game.ended = true;
 
         const reward = 250;
-        await User.updateOne({ userId: m.author.id }, { $inc: { coke: reward } });
+        await User.updateOne(
+          { userId: m.author.id },
+          { $inc: { coke: reward, guesswordWins: 1 } }
+        );
 
-        await m.react('✅').catch(() => {});
+        await m.react('✅').catch(() => { });
         await m.channel.send(
           `🎉 **|** <@${m.author.id}> đoán đúng! Nhận được **${reward.toLocaleString()} coke**`
         );
@@ -47,8 +50,9 @@ module.exports = {
         activeGames.delete(channelId);
         setCooldown(channelId, 'guessword', cooldownSeconds);
         collector.stop();
-      } else {
-        await m.react('❌').catch(() => {});
+      }
+      else {
+        await m.react('❌').catch(() => { });
       }
     });
 

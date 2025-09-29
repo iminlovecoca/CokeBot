@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema({
   cookie: { type: Number, default: 0 },
   tea: { type: Number, default: 0 },
   luck: { type: Number, default: 0 },
+  guesswordWins: { type: Number, default: 0 },
+
 
   // bank: { type: Number, default: 0 },
   // bankLastUpdate: { type: Date },

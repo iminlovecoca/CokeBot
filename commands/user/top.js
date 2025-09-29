@@ -14,7 +14,7 @@ function getRankEmoji(level) {
 
 module.exports = {
   name: 'top',
-  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea hoặc stock',
+  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea, stock hoặc gw',
 
   async execute(message, args) {
     const type = args[0]?.toLowerCase() || 'cash';
@@ -81,6 +81,15 @@ module.exports = {
         unit = 'Tea';
         getValue = u => u.tea || 0;
         topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
+        break;
+
+      case 'gw':
+      case 'guessword':
+        title = `Top GuessWord - ${guildName}`;
+        unit = 'Đoán đúng';
+        getValue = u => u.guesswordWins || 0;
+        topUsers = await User.find({ guesswordWins: { $gt: 0 }, vipLevel: { $lte: 0 } })
+          .sort({ guesswordWins: -1 });
         break;
 
       case 'cash':
