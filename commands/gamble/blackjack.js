@@ -11,7 +11,7 @@ const {
   isBlackJack,
   isDoubleAce,
   isDealerStay
-} = require('../../utils/blackJackUtil')
+} = require('../../utils/blackJackUtil.js')
 const {
   setCooldown,
   getRemainingCooldown,
