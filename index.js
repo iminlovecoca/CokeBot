@@ -15,7 +15,6 @@ const Item = require('./models/cokemon/Item');
 const spawner = require('./features/spawner');
 const { loadBotLock, shouldBlockCommand } = require('./utils/botLock');
 
-
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -29,14 +28,8 @@ const client = new Client({
 
 // [[channelId: {expires_at, boosts_type, ownerId}]]
 client.activeLures = new Map();
-// [[channelId: {
-//    cokemon: { species_id, name, catch_rate, flee_rate, gender, ivs, level, speciesData },
-//    userStates, despawn_at, spawn_at, autoCatchProcessed
-// }]]
 client.activeSpawns = new Map();
-// [[channelId: date]]
 client.lastSpawn = new Map();
-// [[userId: cooldown]]
 client.lureCooldowns = new Map();
 client.actionLocks = new Set();
 client.commands = new Collection();
@@ -50,8 +43,8 @@ const loadCommands = (dir) => {
     } else if (file.name.endsWith('.js')) {
       const cmd = require(fullPath);
       if (cmd.name) {
-        cmd.filePath = fullPath
-        client.commands.set(cmd.name, cmd)
+        cmd.filePath = fullPath;
+        client.commands.set(cmd.name, cmd);
       }
     }
   }
@@ -138,12 +131,12 @@ client.once(Events.ClientReady, async () => {
 
   try {
     client.allSpecies = await Species.find({}).sort({ dex_id: 'asc' });
-    console.log(`✅ Successfully cached ${client.allSpecies.length} species.`);
+    console.log(`✅ Cached ${client.allSpecies.length} species.`);
     client.allItems = await Item.find({});
-    console.log(`✅ Successfully cached ${client.allItems.length} items.`);
+    console.log(`✅ Cached ${client.allItems.length} items.`);
   } catch (error) {
     console.error("❌ Could not cache species data:", error);
-    client.allSpecies = []
+    client.allSpecies = [];
   }
   await loadBotLock(client);
   spawner.initializeSpawner(client);
@@ -151,7 +144,10 @@ client.once(Events.ClientReady, async () => {
 
 async function connectWithRetry() {
   try {
-    await mongoose.connect(process.env.MONGO_URL, {
+    await mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      tls: true,                // Bắt buộc cho Atlas
       maxPoolSize: 50,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
@@ -166,8 +162,8 @@ async function connectWithRetry() {
     client.login(process.env.TOKEN);
 
   } catch (err) {
-    console.error('❌ MongoDB lỗi kết nối:', err);
-    setTimeout(connectWithRetry, 5000); 
+    console.error('❌ MongoDB lỗi kết nối:', err.message);
+    setTimeout(connectWithRetry, 5000);
   }
 }
 
