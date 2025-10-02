@@ -145,9 +145,7 @@ client.once(Events.ClientReady, async () => {
 async function connectWithRetry() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      tls: true,                // Bắt buộc cho Atlas
+      tls: true,                
       maxPoolSize: 50,
       minPoolSize: 5,
       socketTimeoutMS: 45000,
