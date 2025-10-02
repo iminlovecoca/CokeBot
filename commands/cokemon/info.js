@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require('discord.js')
 const Cokemon = require('../../models/cokemon/Cokemon')
-const { calculateStat } = require('../../utils/cokemonUtil')
+const { calculateStat } = require('../../utils/CokemonUtil')
 const config = require('../../data/config')
 
 module.exports = {
