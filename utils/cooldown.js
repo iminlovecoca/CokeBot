@@ -14,7 +14,7 @@ const checkAndSetCooldown = (userId, commandName, seconds) => {
 }
 
 const notifyCooldown = (message, cooldown) => {
-  message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để chơi lại.`).then(msg => {
+  message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để dùng lại.`).then(msg => {
     setTimeout(() => {
       msg.delete().catch(() => {})
     }, cooldown * 1000)

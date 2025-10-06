@@ -1,6 +1,5 @@
 const User = require('../../models/User');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-
+const { checkAndSetCooldown } = require('../../utils/cooldown')
 const COOLDOWN = 5 * 60;
 
 async function getUserLuck(userId) {
@@ -19,7 +18,7 @@ module.exports = {
   async execute(message, args) {
     const authorId = message.author.id;
 
-    const cd = getRemainingCooldown(authorId, 'pray');
+    const cd = checkAndSetCooldown(authorId, 'pray', COOLDOWN)
     if (cd > 0) {
       const minutes = Math.floor(cd / 60);
       const seconds = cd % 60;
@@ -61,7 +60,5 @@ module.exports = {
     }
 
     message.channel.send(reply);
-
-    setCooldown(authorId, 'pray', COOLDOWN);
   }
 };

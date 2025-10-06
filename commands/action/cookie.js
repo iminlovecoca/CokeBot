@@ -1,8 +1,8 @@
 const danisaEmoji = '<:danisa:1404057793920635043>';
 const ownerId = process.env.OWNER_ID;
 const User = require('../../models/User');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
-
+const { checkAndSetCooldown } = require('../../utils/cooldown')
+const config = require('../../data/config')
 const COOLDOWN = 300;
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
     const authorId = message.author.id;
 
     if (authorId !== ownerId) {
-      const cd = getRemainingCooldown(authorId, 'cookie');
+      const cd = checkAndSetCooldown(authorId, 'cookie', COOLDOWN)
       if (cd > 0) {
         const minutes = Math.floor(cd / 60);
         const seconds = cd % 60;
@@ -44,16 +44,16 @@ module.exports = {
 
     const userMention = message.mentions.users.first();
     if (!userMention) {
-      return message.reply('❌ Bạn phải tag một người dùng hợp lệ!');
+      return message.reply(`${config.emoji.no} Bạn phải tag một người dùng hợp lệ!`);
     }
 
     if (userMention.id === authorId) {
-      return message.reply('❌ Bạn không thể tặng bánh **Danisa** cho chính mình!');
+      return message.reply(`${config.emoji.no} Bạn không thể tặng bánh **Danisa** cho chính mình!`);
     }
 
     if (authorId !== ownerId) {
       if (authorUser.cookie <= 0) {
-        return message.reply('❌ Bạn không còn hộp **Danisa** nào để tặng!');
+        return message.reply(`${config.emoji.no} Bạn không còn hộp **Danisa** nào để tặng!`);
       }
       authorUser.cookie -= 1;
       await authorUser.save();
@@ -70,9 +70,6 @@ module.exports = {
 
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
     const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
-
-    if (authorId !== ownerId) setCooldown(authorId, 'cookie', COOLDOWN);
-
     return message.channel.send(
       `${danisaEmoji} **| ${authorDisplayName}** vừa tặng 1 hộp **Danisa** cho **${targetDisplayName}**!\n` +
       `📦 Bạn còn lại **${authorUser.cookie} hộp**.`

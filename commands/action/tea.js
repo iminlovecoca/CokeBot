@@ -1,7 +1,8 @@
 const teaEmoji = '🍵'; 
 const ownerId = process.env.OWNER_ID;
 const User = require('../../models/User');
-const { setCooldown, getRemainingCooldown, notifyCooldown } = require('../../utils/cooldown');
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
+const config = require('../../data/config')
 
 module.exports = {
   name: 'tea',
@@ -10,9 +11,9 @@ module.exports = {
     const authorId = message.author.id;
 
     if (authorId !== ownerId) {
-      const cd = getRemainingCooldown(authorId, 'tea');
-      if (cd > 0) {
-        return notifyCooldown(message, cd);
+      const remainingCooldown = checkAndSetCooldown(authorId, 'tea', 300)
+      if (remainingCooldown > 0) {
+        return notifyCooldown(message, remainingCooldown)
       }
     }
 
@@ -34,16 +35,16 @@ module.exports = {
 
     const userMention = message.mentions.users.first();
     if (!userMention) {
-      return message.reply('❌ Bạn phải tag một người dùng hợp lệ!');
+      return message.reply(`${config.emoji.no} Bạn phải tag một người dùng hợp lệ!`);
     }
 
     if (userMention.id === authorId) {
-      return message.reply('❌ Bạn không thể tặng trà cho chính mình khi đã dùng tag!');
+      return message.reply(`${config.emoji.no} Bạn không thể tặng trà cho chính mình khi đã dùng tag!`);
     }
 
     if (authorId !== ownerId) {
       if (authorUser.tea <= 0) {
-        return message.reply('❌ Bạn không còn tách trà nào để tặng!');
+        return message.reply(`${config.emoji.no} Bạn không còn tách trà nào để tặng!`);
       }
       authorUser.tea -= 1;
       await authorUser.save();
@@ -58,9 +59,6 @@ module.exports = {
 
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
     const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
-
-    if (authorId !== ownerId) setCooldown(authorId, 'tea', 300);
-
     return message.channel.send(
       `${teaEmoji} **| ${authorDisplayName}** vừa tặng 1 tách trà cho **${targetDisplayName}**!\n` +
       `Bạn còn lại **${authorUser.tea} tách trà**.`

@@ -1,6 +1,6 @@
 const { getOrCreateUser, decBalance } = require('../../utils/userUtil');
 const { getDrop, addDrop, delDrop } = require('../../utils/dropUtil');
-const { setCooldown, getRemainingCooldown } = require('../../utils/cooldown');
+const { checkAndSetCooldown } = require('../../utils/cooldown')
 const config = require('../../data/config');
 
 module.exports = {
@@ -18,7 +18,7 @@ module.exports = {
       return message.reply('❌ **|** Vui lòng nhập số coke hợp lệ để thả.');
     }
 
-    const remaining = getRemainingCooldown(userId, 'drop');
+    const remaining = checkAndSetCooldown(userId, 'drop', 10)
     if (remaining > 0) {
       return message.reply(`⏱ **|** Bạn cần chờ **${remaining} giây** trước khi dùng lại \`!drop\`.`);
     }
@@ -39,8 +39,6 @@ module.exports = {
 
     await decBalance(userId, amount);
     await addDrop(channelId, finalAmount, duration);
-
-    setCooldown(userId, 'drop', 10);
 
     const taxNote = `${config.emoji.money} **| ${tax.toLocaleString()} coke** (5%) đã bị đánh thuế.\n`;
 
