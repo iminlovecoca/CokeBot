@@ -1,9 +1,5 @@
-const { getGame, addGame, delGame } = require('../../utils/rpsUtil')
-const {
-  setCooldown,
-  getRemainingCooldown,
-  notifyCooldown
-} = require('../../utils/cooldown')
+const { getGame, addGame, delGame, claimGame } = require('../../utils/rpsUtil')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const { getDebuffPercentage } = require('../../utils/miscUtil')
@@ -26,9 +22,10 @@ module.exports = {
       const userId = message.author.id
       const game = await getGame(userId)
 
-      const cooldown = getRemainingCooldown(userId, 'rps')
-      if (cooldown > 0) return notifyCooldown(message, cooldown)
-      setCooldown(userId, 'rps', settings.cooldown_second)
+      const remainingCooldown = checkAndSetCooldown(userId, 'rps', settings.cooldown_second)
+      if (remainingCooldown > 0) {
+        return notifyCooldown(message, remainingCooldown)
+      }
 
       if (game) {
         await rps(message, game.bet, game.botChoice, true)
@@ -65,18 +62,18 @@ const rps = async (message, bet, botChoice, resume) => {
 
   collector.on('collect', async (reaction) => {
     collector.stop()
-    const game = await getGame(message.author.id)
+    const game = await claimGame(message.author.id)
     if (!game) {
-      sentMessage.edit(`${emoji.no} Ván chơi đã kết thúc!`)
-      return
-    } 
+      return sentMessage.edit(`${emoji.no} Ván chơi đã kết thúc!`)
+    }
+    const { bet, botChoice } = game
 
     const playerChoice = Object.entries(EMOJIS).find(([k, v]) => v === reaction.emoji.name)[0]
     const playerEmoji = EMOJIS[playerChoice]
 
     let resultText = ''
     let reward = 0
-    const debuffPercentage = await getDebuffPercentage(userId)
+    const debuffPercentage = await getDebuffPercentage(message.client, userId)
 
     if (playerChoice === botChoice) {
       resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận lại ${currency} **${bet.toLocaleString()}.**`

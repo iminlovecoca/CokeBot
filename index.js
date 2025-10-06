@@ -134,8 +134,14 @@ client.once(Events.ClientReady, async () => {
     console.log(`✅ Cached ${client.allSpecies.length} species.`);
     client.allItems = await Item.find({});
     console.log(`✅ Cached ${client.allItems.length} items.`);
+    client.blacklistedUsers = new Set()
+    const blacklisted = await User.find({ isBlacklisted: true }).select('userId');
+    for (const user of blacklisted) {
+      client.blacklistedUsers.add(user.userId);
+    }
+    console.log(`✅ Successfully cached ${client.blacklistedUsers.size} blacklisted users.`);
   } catch (error) {
-    console.error("❌ Could not cache species data:", error);
+    console.error("❌ Could not cache data:", error);
     client.allSpecies = [];
   }
   await loadBotLock(client);
@@ -144,7 +150,7 @@ client.once(Events.ClientReady, async () => {
 
 async function connectWithRetry() {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(process.env.MONGO_URL, {
       tls: true,                
       maxPoolSize: 50,
       minPoolSize: 5,

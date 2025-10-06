@@ -66,7 +66,7 @@ module.exports = {
                     const commandsInCategory = commands.filter(cmd => {
                         const commandPath = require.resolve(cmd.filePath)
                         return path.dirname(commandPath).endsWith(category)
-                    })
+                    }).filter(cmd => !cmd.hidden)
 
                     if (commandsInCategory.size > 0) {
                         commandsInCategory.forEach(cmd => {

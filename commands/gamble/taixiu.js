@@ -1,9 +1,5 @@
 ﻿const random = require('random-number-csprng');
-const {
-  setCooldown,
-  getRemainingCooldown,
-  notifyCooldown
-} = require('../../utils/cooldown')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const { getDebuffPercentage } = require('../../utils/miscUtil')
@@ -26,8 +22,10 @@ module.exports = {
   async execute(message, args) {
     try {
       const userId = message.author.id;
-      const cooldown = getRemainingCooldown(userId, 'tx')
-      if (cooldown > 0) return notifyCooldown(message, cooldown)
+      const remainingCooldown = checkAndSetCooldown(userId, 'tx', settings.cooldown_second)
+      if (remainingCooldown > 0) {
+        return notifyCooldown(message, remainingCooldown)
+      }
 
       let choice
       if (args.length == 0) {
@@ -45,7 +43,7 @@ module.exports = {
       let bet = args.length == 1 ? 'min' : args[1]
       const amount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
 
-      const debuffPercentage = await getDebuffPercentage(userId)
+      const debuffPercentage = await getDebuffPercentage(message.client, userId)
       const winProbability = 0.5 * (1 - debuffPercentage);
       const playerWins = Math.random() < winProbability
       const finalOutcome = playerWins ? choice : (choice === 'tai' ? 'xiu' : 'tai');
@@ -59,7 +57,6 @@ module.exports = {
           sum = r1 + r2 + r3
           isTriple = r1 === r2 && r2 === r3
           const currentOutcome = sum >= 11 ? 'tai' : 'xiu'
-          console.log(currentOutcome, targetOutcome)
 
           if (!isTriple && currentOutcome === targetOutcome) {
             rolls = [r1, r2, r3]
@@ -103,8 +100,6 @@ module.exports = {
 
       display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${finalOutcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? 'thắng' : 'thua'} ${winText}`;
       await msg.edit(display);
-
-      setCooldown(userId, 'tx', settings.cooldown_second);
     } catch(error) {
       return await message.reply(error.message)
     }

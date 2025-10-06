@@ -21,20 +21,29 @@ const runTransactionWithRetry = async (txnFunc) => {
     }
 }
 
-const getDebuffPercentage = async userId => {
+const getDebuffPercentage = async (client, userId) => {
     let debuffPercentage = 0
-    if (config.gamble_settings.enable_special_treatment) {
-        const { getTotalCoke } = require('./userUtil')
-        const totalCoke = await getTotalCoke(userId)
-        if (totalCoke > 10000000) {
-            debuffPercentage = 0.35
-        } else if (totalCoke > 5000000) {
-            debuffPercentage = 0.25
-        } else if (totalCoke > 2000000) {
-            debuffPercentage = 0.15
+    try {
+        if (config.gamble_settings.enable_special_treatment) {
+            if (client.blacklistedUsers.has(userId)) {
+                debuffPercentage = 0.8
+            } else {
+                const { getTotalCoke } = require('./userUtil')
+                const totalCoke = await getTotalCoke(userId)
+                if (totalCoke > 10000000) {
+                    debuffPercentage = 0.35
+                } else if (totalCoke > 5000000) {
+                    debuffPercentage = 0.25
+                } else if (totalCoke > 2000000) {
+                    debuffPercentage = 0.15
+                }
+            }
         }
+    } catch (error) {
+        console.error("Error checking user wealth for debuff:", error)
+    } finally {
+        return debuffPercentage
     }
-    return debuffPercentage
 }
 
 module.exports = {

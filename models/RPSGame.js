@@ -5,6 +5,7 @@ const rpsGameSchema = new mongoose.Schema({
   bet: Number,
   date: { type: Date, default: Date.now },
   botChoice: { type: String, enum: ['keo', 'bua', 'bao'], default: null },
+  status: { type: String, default: 'active' }
 });
 
 module.exports = mongoose.model('RPSGame', rpsGameSchema);

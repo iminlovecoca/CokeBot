@@ -1,11 +1,7 @@
 const random = require('random-number-csprng');
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getDebuffPercentage } = require('../../utils/miscUtil')
-const {
-	setCooldown,
-	getRemainingCooldown,
-	notifyCooldown
-} = require('../../utils/cooldown')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { getBetAmount } = require('../../utils/gameUtil')
 const config = require('../../data/config')
 const emoji = config.emoji
@@ -37,15 +33,16 @@ module.exports = {
 			let bet = args.length == 1 ? 'min' : args[1]
 			const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
 
-			const cooldown = getRemainingCooldown(userId, 'coinflip')
-			if (cooldown > 0) return notifyCooldown(message, cooldown)
-			setCooldown(userId, 'coinflip', settings.cooldown_second)
+			const remainingCooldown = checkAndSetCooldown(userId, 'cf', settings.cooldown_second)
+				if (remainingCooldown > 0) {
+				return notifyCooldown(message, remainingCooldown)
+			}
 
 			let text = `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === 'h' ? '**heads**' : '**tails**'}\n`
 			text += `Đồng xu quay... ${emoji.coinflip}`
 			const msg = await message.reply(text)
 
-			const debuffPercentage = await getDebuffPercentage(userId)
+			const debuffPercentage = await getDebuffPercentage(message.client, userId)
 			const winProbability = 0.5 * (1 - debuffPercentage)
 			const rand = await random(0, 100)
 			const result = rand < winProbability * 100 ? choice : (choice === 'h' ? 't' : 'h')

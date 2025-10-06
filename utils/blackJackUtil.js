@@ -90,6 +90,13 @@ const updateGame = async (userId, card) => {
   )
 }
 
+const claimGame = async userId => {
+  return await BlackJackGame.findOneAndUpdate(
+    { userId: userId, status: 'active' },
+    { $set: { status: 'processing' } }
+  )
+}
+
 const isBust = cards => getBestHandValue(cards) > 21
 
 const isBlackJack = cards => getBestHandValue(cards) === 21 && cards.length == 2
@@ -110,6 +117,7 @@ module.exports = {
   addGame,
   delGame,
   updateGame,
+  claimGame,
   isBust,
   isBlackJack,
   isDoubleAce,

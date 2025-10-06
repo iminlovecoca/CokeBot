@@ -6,7 +6,8 @@ const blackJackSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
   player: { type: [String], default: [] },
   dealer: { type: [String], default: [] },
-  deck: { type: [String], default: [] }
+  deck: { type: [String], default: [] },
+  status: { type: String, default: 'active' }
 });
 
 module.exports = mongoose.model('BlackJackGame', blackJackSchema);
