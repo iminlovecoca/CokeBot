@@ -1,9 +1,5 @@
 const User = require('../../models/User');
-const {
-  setCooldown,
-  getRemainingCooldown,
-  notifyCooldown
-} = require('../../utils/cooldown');
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { formatVNCurrency } = require('../../utils/format');
 const config = require('../../data/config')
 
@@ -18,8 +14,10 @@ module.exports = {
     const userId = message.author.id;
     const cooldownSeconds = 3;
 
-    const cooldown = getRemainingCooldown(userId, 'cash');
-    if (cooldown > 0) return notifyCooldown(message, cooldown)
+    const remainingCooldown = checkAndSetCooldown(userId, 'cash', cooldownSeconds)
+    if (remainingCooldown > 0) {
+      return notifyCooldown(message, remainingCooldown)
+    }
 
     let targetId = userId;
     let displayName = message.member.displayName;
@@ -42,7 +40,5 @@ module.exports = {
     const emoji = config.emoji.money;
 
     await message.reply(`${emoji} **|** **${displayName}**, hiện có **${formatted} coke**.`);
-
-    setCooldown(userId, 'cash', cooldownSeconds);
   }
 };

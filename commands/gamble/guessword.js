@@ -1,9 +1,8 @@
 const User = require('../../models/User');
 const { getRandomWord, shuffleWord } = require('../../utils/dictionary');
-const { setCooldown, getRemainingCooldown, notifyCooldown } = require('../../utils/cooldown');
-
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
+const config = require('../../data/config')
 const activeGames = new Map();
-const cooldownSeconds = 5;
 
 module.exports = {
   name: 'gw',
@@ -12,8 +11,10 @@ module.exports = {
 
   async execute(message) {
     const channelId = message.channel.id;
-    const cd = getRemainingCooldown(channelId, 'guessword');
-    if (cd > 0) return notifyCooldown(message, cd);
+    const remainingCooldown = checkAndSetCooldown(channelId, 'guessword', config.gamble_settings.cooldown_second)
+    if (remainingCooldown > 0) {
+      return notifyCooldown(message, remainingCooldown)
+    }
 
     if (activeGames.has(channelId)) {
       return message.reply('⚠️ **|** Trò chơi đang diễn ra trong kênh này.');
@@ -63,7 +64,6 @@ module.exports = {
           `⏰ **|** Hết giờ! Không ai trả lời đúng.\n🔍 Đáp án là: **${game.answer}**`
         );
         activeGames.delete(channelId);
-        setCooldown(channelId, 'guessword', cooldownSeconds);
       }
     });
   }
