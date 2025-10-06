@@ -5,6 +5,7 @@ const {
   getBestHandValue,
   getGame,
   addGame,
+  claimGame,
   delGame,
   updateGame,
   isBust,
@@ -12,11 +13,7 @@ const {
   isDoubleAce,
   isDealerStay
 } = require('../../utils/blackJackUtil.js')
-const {
-  setCooldown,
-  getRemainingCooldown,
-  notifyCooldown
-} = require('../../utils/cooldown')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { decBalance, incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const { getDebuffPercentage } = require('../../utils/miscUtil')
@@ -38,9 +35,10 @@ module.exports = {
       const userId = message.author.id
       const game = await getGame(userId)
 
-      const cooldown = getRemainingCooldown(userId, 'bj')
-      if (cooldown > 0) return notifyCooldown(message, cooldown)
-      setCooldown(userId, 'bj', settings.cooldown_second)
+      const remainingCooldown = checkAndSetCooldown(userId, 'bj', settings.cooldown_second)
+      if (remainingCooldown > 0) {
+        return notifyCooldown(message, remainingCooldown)
+      }
 
       if (game) {
         const playerHand = game.player
@@ -81,8 +79,7 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
     const game = await getGame(message.author.id)
     if (!game) {
       collector.stop()
-      sentMessage.edit(`${emoji.no} Ván bài đã kết thúc!`)
-      return
+      return sentMessage.edit(`${emoji.no} Ván bài đã kết thúc!`)
     }
 
     if (react.emoji.name === hitEmoji) {
@@ -149,15 +146,35 @@ const handleHit = async (message, author, playerHand, dealerHand, deck, bet, col
 }
 
 const handleStand = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
-  const debuffPercentage = await getDebuffPercentage(author.id)
+  const game = await claimGame(author.id)
+  if (!game) {
+    return message.edit(`${emoji.no} Ván bài đã kết thúc!`)
+  }
+
+  const playerValue = getBestHandValue(playerHand)
+  const debuffPercentage = await getDebuffPercentage(message.client, author.id)
   while (!isDealerStay(dealerHand)) {
     if (Math.random() < debuffPercentage) {
-      const nextCard = deck[deck.length - 1];
-      if (getBestHandValue([...dealerHand, nextCard]) > 21) {
-        for (let i = deck.length - 2; i >= 0; i--) {
-          if (getBestHandValue([...dealerHand, deck[i]]) <= 21) {
-            [deck[deck.length - 1], deck[i]] = [deck[i], deck[deck.length - 1]];
-            break;
+      const nextCard = deck[deck.length - 1]
+      const potentialHandValue = getBestHandValue([...dealerHand, nextCard])
+
+      if (isBust(playerHand)) {
+        if (potentialHandValue > 21) {
+          for (let i = deck.length - 2; i >= 0; i--) {
+            if (getBestHandValue([...dealerHand, deck[i]]) <= 21) {
+              [deck[deck.length - 1], deck[i]] = [deck[i], deck[deck.length - 1]]
+              break
+            }
+          }
+        }
+      } else {
+        if (potentialHandValue > 21 || potentialHandValue < playerValue) {
+          for (let i = deck.length - 2; i >= 0; i--) {
+            const testValue = getBestHandValue([...dealerHand, deck[i]])
+            if (testValue <= 21 && testValue >= playerValue) {
+              [deck[deck.length - 1], deck[i]] = [deck[i], deck[deck.length - 1]]
+              break
+            }
           }
         }
       }
@@ -166,7 +183,6 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
     dealerHand.push(card)
   }
 
-  const playerValue = getBestHandValue(playerHand)
   const dealerValue = getBestHandValue(dealerHand)
 
   const playerSpecial = isDoubleAce(playerHand)

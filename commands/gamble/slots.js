@@ -1,9 +1,5 @@
 const random = require('random-number-csprng');
-const {
-  setCooldown,
-  getRemainingCooldown,
-  notifyCooldown
-} = require('../../utils/cooldown')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
 const { getDebuffPercentage } = require('../../utils/miscUtil')
@@ -30,17 +26,19 @@ module.exports = {
   async execute(message, args) {
     try {
       const userId = message.author.id
+      const remainingCooldown = checkAndSetCooldown(userId, 's', settings.cooldown_second)
+      if (remainingCooldown > 0) {
+        return notifyCooldown(message, remainingCooldown)
+      }
+
       let bet = args.length == 0 ? 'min' : args[0]
       const amount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
-
-      const cooldown = getRemainingCooldown(userId, 's')
-      if (cooldown > 0) return notifyCooldown(message, cooldown)
 
       let rslots = [];
       const rand = (await random(1, 1000)) / 10;
       let win = 0;
 
-      const debuffPercentage = await getDebuffPercentage(userId)
+      const debuffPercentage = await getDebuffPercentage(message.client, userId)
       if (rand <= 20 * (1 - debuffPercentage)) {
         win = amount;
         rslots.push(symbols[0], symbols[0], symbols[0]);
@@ -110,8 +108,6 @@ module.exports = {
         '\n  `|         |`   và ăn ' + winText +
         '\n  `|   COKE  |`';
       await msg.edit(machine);
-
-      setCooldown(userId, 's', settings.cooldown_second);
     } catch (error) {
       return await message.reply(error.message)
     }

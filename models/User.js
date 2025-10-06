@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema({
 
   warned: { type: Boolean, default: false },
   warnedAt: { type: Number, default: null },
+  isBlacklisted: { type: Boolean, default: false }
 
 });
 

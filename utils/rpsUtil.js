@@ -10,6 +10,13 @@ const delGame = async userId => {
   await RPSGame.deleteOne({ userId })
 }
 
+const claimGame = async (userId) => {
+  return await RPSGame.findOneAndUpdate(
+    { userId: userId, status: 'active' },
+    { $set: { status: 'processing' } }
+  )
+}
+
 module.exports = {
-	getGame, addGame, delGame
+	getGame, addGame, delGame, claimGame
 }
