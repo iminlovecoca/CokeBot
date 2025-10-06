@@ -150,7 +150,7 @@ client.once(Events.ClientReady, async () => {
 
 async function connectWithRetry() {
   try {
-    await mongoose.connect(process.env.MONGO_URL, {
+    await mongoose.connect(process.env.MONGO_URI, {
       tls: true,                
       maxPoolSize: 50,
       minPoolSize: 5,
