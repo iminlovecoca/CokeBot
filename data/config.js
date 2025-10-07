@@ -79,7 +79,18 @@ module.exports = {
 		"yes": "<:yes:1417090203188723722>",
 		"no": "<:no:1417090195702153258>",
 		"warning": "<:warning:1419916751604547704>",
+
+		streakMilestones: {
+			1: "<:fire1:1424934338356711534>",
+			50: "<:fire50:1424934106080215100>",
+			100: "<:fire100:1424934784769200138>",
+			200: "<:fire200:1422828717335515206>",
+			300: "<:fire300:1422828753804857425>",
+			500: "<:fire500:1422828932130148352>"
+		},
+		fireBreak: "<:firebreak:1422828420735176876>"
 	},
+
 	category_emojis: {
 		'action': '🕹️',
 		'admin': '🛡️',
@@ -90,12 +101,14 @@ module.exports = {
 		'user': '👤',
 		'default': '➡️'
 	},
+
 	gamble_settings: {
 		enable_special_treatment: true,
 		max_bet: 250000,
 		min_bet: 1,
 		cooldown_second: 15,
 	},
+
 	channel_themes: {
 		"1415143151307329536": null,
 		"1422108084519698502": {
@@ -127,12 +140,10 @@ module.exports = {
 			weight: 0.9
 		}
 	},
+
 	cokemon_settings: {
-		// Economy
 		release_reward: 100,
 		sell_percentage: 0.75,
-
-		// Timers (in milliseconds)
 		spawn_interval_ms: 15 * 1000,
 		lure_duration_ms: 30 * 60 * 1000,
 		lure_user_cooldown_ms: 30 * 60 * 1000,
@@ -140,16 +151,10 @@ module.exports = {
 		lure_spawn_cooldown_ms: 2 * 60 * 1000,
 		despawn_duration_ms: 5 * 60 * 1000,
 		grace_period_ms: 60 * 1000,
-		shiny_rate: 4096, // represent 1/4096
-
-		// Item stats
+		shiny_rate: 4096,
 		catch_net_uses: 20,
 		max_stacked_nets: 5,
-
-		// Stats
 		max_iv: 31,
-
-		// Others
 		tier_weights: {
 			'Common': 100,
 			'Rare': 25,
@@ -158,6 +163,7 @@ module.exports = {
 			'Legendary': 0.2
 		},
 	},
+
 	natures: {
 		'Hardy': { plus: null, minus: null },
 		'Lonely': { plus: 'atk', minus: 'def' },
@@ -167,6 +173,7 @@ module.exports = {
 		'Timid': { plus: 'spd', minus: 'atk' },
 		'Hasty': { plus: 'spd', minus: 'def' }
 	},
+
 	type_colors: {
 		'Fire': '#FF4500',
 		'Water': '#1E90FF',
@@ -187,6 +194,7 @@ module.exports = {
 		'Ghost': '#705898',
 		'Dark': '#705848'
 	},
+
 	type_emojis: {
 		'Fire': "<:fire:1417090001430118441>",
 		'Water': "<:water:1417090025891565598>",
@@ -207,6 +215,7 @@ module.exports = {
 		'Ghost': "<:ghost:1417090065448042546>",
 		'Dark': "<:dark:1417955762000625745>"
 	},
+
 	type_backgrounds: {
 		'Fire': 'fire-bg.png',
 		'Water': 'water-bg.png',
@@ -228,4 +237,4 @@ module.exports = {
 		'Dark': 'dark-bg.png',
 		'default': 'default-bg.png'
 	},
-}
+};
