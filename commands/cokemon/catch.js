@@ -1,4 +1,5 @@
 const { addCokemon } = require('../../utils/userUtil')
+const { getGenderEmoji } = require('../../utils/cokemonUtil')
 const config = require('../../data/config')
 
 module.exports = {
@@ -7,20 +8,20 @@ module.exports = {
 	description: 'Thử bắt cokemon.',
 	async execute(message) {
 		if (message.client.actionLocks.has(message.author.id)) {
-			return await message.reply('❌ | Bạn đang thực hiện một hành động khác! Vui lòng đợi một lát.')
+			return await message.reply(`${config.emoji.no} Bạn đang thực hiện một hành động khác! Vui lòng đợi một lát.`)
 		}
 
 		try {
 			message.client.actionLocks.add(message.author.id)
 			const spawnState = message.client.activeSpawns.get(message.channel.id)
 			if (!spawnState) {
-				throw new Error('Không có gì ở đây để ném cả.')
+				throw new Error(`${config.emoji.no} Không có gì ở đây để ném cả.`)
 			}
 
 			let userState = spawnState.userStates.get(
 				message.author.id) || { catchRateModifier: 1.0, fleeRateModifier: 1.0, hasFled: false, hasCaught: false }
 			if (userState.hasCaught) {
-				throw new Error(`Bạn đã bắt được **${spawnState.cokemon.name}** rồi!`)
+				throw new Error(`${config.emoji.no} Bạn đã bắt được **${spawnState.cokemon.name}** rồi!`)
 			}
 			if (userState.hasFled) {
 				throw new Error(`**${spawnState.cokemon.name}** đã chạy mất khỏi bạn rồi!`)
@@ -28,31 +29,48 @@ module.exports = {
 
 			const finalCatchChance = spawnState.cokemon.catch_rate * userState.catchRateModifier
 			if (Math.random() <= finalCatchChance) {
-				const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
-				const cokemonData = {
-					owner_id: message.author.id,
-					species_id: spawnState.cokemon.species_id,
-					gender: spawnState.cokemon.gender,
-					ivs: spawnState.cokemon.ivs,
-					iv_percent: spawnState.cokemon.iv_percent,
-					level: spawnState.cokemon.level,
-					is_shiny: isShiny
-				}
-				const result = await addCokemon(cokemonData)
-				if (result.success) {
-					userState.hasCaught = true
-					spawnState.userStates.set(message.author.id, userState)
-					const speciesData = spawnState.cokemon.speciesData
-					const genderSymbol = spawnState.cokemon.gender === 'Male'
-						? config.emoji.male : spawnState.cokemon.gender === 'Female'
-						? config.emoji.female : config.emoji.genderless
-					const iv_percent = spawnState.cokemon.iv_percent
-					const displayEmoji = isShiny ? (speciesData.shiny_emoji || `${speciesData.emoji}✨`) : speciesData.emoji
-					const displayInfo = `${displayEmoji} **${speciesData.name}**${genderSymbol}(${iv_percent}%)`
-					await message.reply(isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY** ${displayInfo}!`
-						: `Chúc mừng! **${message.author.username}** đã bắt được ${displayInfo}!`)
+				let successfullyClaimed = false
+				if (spawnState.cokemon.speciesData.tier === 'Legendary') {
+					successfullyClaimed = message.client.activeSpawns.delete(message.channel.id)
 				} else {
-					throw new Error(result.message)
+					successfullyClaimed = true
+				}
+
+				if (successfullyClaimed) {
+					const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
+					const cokemonData = {
+						owner_id: message.author.id,
+						original_owner_id: message.author.id,
+						species_id: spawnState.cokemon.species_id,
+						gender: spawnState.cokemon.gender,
+						ivs: spawnState.cokemon.ivs,
+						iv_percent: spawnState.cokemon.iv_percent,
+						ability: spawnState.cokemon.ability,
+						level: spawnState.cokemon.level,
+						nature: spawnState.cokemon.nature,
+						is_shiny: isShiny,
+						catch_method: 'manual'
+					}
+					const result = await addCokemon(cokemonData)
+					if (result.success) {
+						userState.hasCaught = true
+						spawnState.userStates.set(message.author.id, userState)
+						const speciesData = spawnState.cokemon.speciesData
+						const genderSymbol = getGenderEmoji(spawnState.cokemon)
+						const iv_percent = spawnState.cokemon.iv_percent
+						const displayEmoji = isShiny ? (speciesData.shiny_emoji || `${speciesData.emoji}✨`) : speciesData.emoji
+						const displayInfo = `${displayEmoji} **${speciesData.name}**${genderSymbol}(${iv_percent}%)`
+						let msg = isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY** ${displayInfo}!`
+							: `Chúc mừng! **${message.author.username}** đã bắt được ${displayInfo}!`
+						if (result.isFirstCatch) {
+							msg += `\n**Thưởng lần bắt đầu tiên:** Bạn nhận được **${result.bonusReward.toLocaleString()} coke** vì đã đăng ký loài này vào Cokedex!`
+						}
+						await message.reply(msg)
+					} else {
+						throw new Error(result.message)
+					}
+				} else {
+					throw new Error(`Trâu chậm thì uống nước đục, có ai đó đã bắt được **${spawnState.cokemon.name}** rồi!`)
 				}
 			} else {
 				await message.reply(`Oh no! **${spawnState.cokemon.name}** đã thoát ra!`)

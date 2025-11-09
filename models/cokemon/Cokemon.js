@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const config = require('../../data/config')
 
 const cokemonSchema = new mongoose.Schema({
   uid: {
@@ -10,6 +11,16 @@ const cokemonSchema = new mongoose.Schema({
     type: String,
     required: true,
     index: true
+  },
+  original_owner_id: {
+    type: String,
+    required: true,
+    index: true
+  },
+  catch_method: {
+    type: String,
+    enum: ['manual', 'net', 'gifted', 'traded'],
+    default: 'manual'
   },
   species_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -31,10 +42,18 @@ const cokemonSchema = new mongoose.Schema({
     hp: { type: Number, required: true },
     atk: { type: Number, required: true },
     def: { type: Number, required: true },
+    spatk: { type: Number, required: true },
+    spdef: { type: Number, required: true },
     spd: { type: Number, required: true },
   },
   iv_percent: {
     type: Number,
+    required: true,
+    index: true
+  },
+  ability: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ability',
     required: true,
     index: true
   },
@@ -58,7 +77,7 @@ const cokemonSchema = new mongoose.Schema({
   },
   nature: {
     type: String,
-    enum: ['Hardy', 'Lonely', 'Brave', 'Bold', 'Relaxed', 'Timid', 'Hasty'],
+    enum: Object.keys(config.natures),
     default: 'Hardy',
     index: true
   },
@@ -69,7 +88,12 @@ const cokemonSchema = new mongoose.Schema({
   },
   friendship: {
     type: Number,
-    default: 70
+    default: config.cokemon_settings.base_friendship
+  },
+  held_item_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Item',
+    default: null
   },
 }, { timestamps: true })
 

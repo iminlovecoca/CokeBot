@@ -49,7 +49,7 @@ module.exports = {
         );
 
         activeGames.delete(channelId);
-        setCooldown(channelId, 'guessword', cooldownSeconds);
+        checkAndSetCooldown(channelId, 'guessword', config.gamble_settings.cooldown_second);
         collector.stop();
       }
       else {

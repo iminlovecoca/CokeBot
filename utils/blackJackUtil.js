@@ -76,7 +76,7 @@ const getGame = async userId => {
 }
 
 const addGame = async (userId, bet, player, dealer, deck) => {
-  await BlackJackGame.insertOne({ userId, bet, player, dealer, deck })
+  await BlackJackGame.create({ userId, bet, player, dealer, deck, status: 'active' })
 }
 
 const delGame = async userId => {

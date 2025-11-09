@@ -1,16 +1,7 @@
 const User = require('../../models/User');
 const StockHolding = require('../../models/StockHolding');
 const StockSymbol = require('../../models/StockSymbol');
-
-function getRankEmoji(level) {
-  if (level <= 10) return 'Common';
-  if (level <= 20) return 'Uncommon';
-  if (level <= 30) return 'Rare';
-  if (level <= 40) return 'Epic';
-  if (level <= 50) return 'Mysthic';
-  if (level <= 60) return 'Legendary';
-  return 'Ancient';
-}
+const { getRankEmoji } = require('../../utils/userUtil')
 
 module.exports = {
   name: 'top',
@@ -81,15 +72,6 @@ module.exports = {
         unit = 'Tea';
         getValue = u => u.tea || 0;
         topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
-        break;
-
-      case 'gw':
-      case 'guessword':
-        title = `Top GuessWord - ${guildName}`;
-        unit = 'Đoán đúng';
-        getValue = u => u.guesswordWins || 0;
-        topUsers = await User.find({ guesswordWins: { $gt: 0 }, vipLevel: { $lte: 0 } })
-          .sort({ guesswordWins: -1 });
         break;
 
       case 'cash':

@@ -2,7 +2,8 @@
 
 const cokedexEntrySchema = new mongoose.Schema({
   caught: { type: Number, default: 0 },
-  has_shiny: { type: Boolean, default: false }
+  has_shiny: { type: Boolean, default: false },
+  owned: { type: Boolean, default: false }
 }, { _id: false })
 
 const userSchema = new mongoose.Schema({
@@ -20,16 +21,11 @@ const userSchema = new mongoose.Schema({
   vipLevel: { type: Number, default: 0 },
   vipUntil: { type: Date, default: null },
 
-  bannedUntil: { type: Number, default: null },
-  bannedReason: { type: String, default: '' },
-
   cookieDailyCount: { type: Number, default: 0 },
   cookieDailyDate: { type: String, default: '' },
   cookie: { type: Number, default: 0 },
   tea: { type: Number, default: 0 },
   luck: { type: Number, default: 0 },
-  guesswordWins: { type: Number, default: 0 },
-
 
   // bank: { type: Number, default: 0 },
   // bankLastUpdate: { type: Date },
@@ -65,10 +61,23 @@ const userSchema = new mongoose.Schema({
     of: cokedexEntrySchema,
     default: {}
   },
+  active_cokemon_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Cokemon',
+    default: null
+  },
+
+  anticheat: {
+    verification_code: { type: String, default: null },
+    last_flag_reason: { type: String, default: null },
+    verification_attempts: { type: Number, default: 0 }
+  },
+
+  bannedUntil: { type: Number, default: null },
+  bannedReason: { type: String, default: '' },
 
   warned: { type: Boolean, default: false },
   warnedAt: { type: Number, default: null },
-  isBlacklisted: { type: Boolean, default: false }
 
 });
 

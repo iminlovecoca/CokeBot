@@ -1,4 +1,5 @@
 const { toggleFavorite } = require('../../utils/userUtil')
+const config = require('../../data/config')
 
 module.exports = {
 	name: 'favourite',
@@ -10,7 +11,7 @@ module.exports = {
 		try {
 			const cokemonUid = parseInt(args[0])
 			if (isNaN(cokemonUid)) {
-				throw new Error("Bạn cần cung cấp ID của cokemon. Ví dụ: `!favorite 12`")
+				throw new Error(`${config.emoji.no} Bạn cần cung cấp ID của cokemon bạn muốn chọn. Ví dụ: \`!favorite 12\``)
 			}
 			
 			const result = await toggleFavorite(message.author.id, cokemonUid)
@@ -18,7 +19,7 @@ module.exports = {
 				if (result.is_favorite) {
 					await message.reply(`❤️ **${result.cokemonName}** (ID: ${cokemonUid}) đã được đánh dấu là yêu thích!`)
 				} else {
-					 await message.reply(`💔 **${result.cokemonName}** (ID: ${cokemonUid}) đã bị bỏ yêu thích.`)
+					await message.reply(`💔 **${result.cokemonName}** (ID: ${cokemonUid}) đã bị bỏ yêu thích.`)
 				}
 			} else {
 				throw new Error(result.message)

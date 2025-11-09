@@ -1,10 +1,32 @@
 const mongoose = require('mongoose')
+const config = require('../../data/config')
 
-const validTypes = [
-	'Fire', 'Water', 'Grass', 'Electric', 'Flying', 'Rock',
-	'Dragon', 'Bug', 'Fighting', 'Psychic', 'Ground', 'Steel',
-	'Normal', 'Poison', 'Ice', 'Fairy', 'Ghost', 'Dark'
-]
+const evolutionConditionSchema = new mongoose.Schema({
+	type: {
+		type: String,
+		required: true,
+		enum: [
+			'level_up',
+			'item',
+			'held_item',
+			'trade',
+			'trade_item',
+			'friendship',
+			'time_of_day',
+			'gender',
+			'location',
+			'personality',
+			'stat_comparison',
+			'move_known',
+			'other'
+		]
+	},
+	value: {
+		type: mongoose.Schema.Types.Mixed,
+		required: true
+	}
+}, { _id: false })
+
 
 const evolutionDetailSchema = new mongoose.Schema({
 	species_id: { // ID of the species it evolves into
@@ -12,13 +34,7 @@ const evolutionDetailSchema = new mongoose.Schema({
 		ref: 'Species',
 		required: true
 	},
-	method: {
-		type: String,
-		required: true,
-		enum: ['level', 'item', 'trade', 'friendship']
-	},
-	level: Number, // Only required if method is 'level'
-	item_id: String // Only required if method is 'item'
+	conditions: [evolutionConditionSchema]
 }, { _id: false })
 
 
@@ -37,7 +53,7 @@ const speciesSchema = new mongoose.Schema({
 	type: {
 		type: [String],
 		required: true,
-		enum: validTypes
+		enum: Object.keys(config.type_colors)
 	},
 	tier: {
 		type: String,
@@ -48,8 +64,20 @@ const speciesSchema = new mongoose.Schema({
 		hp: { type: Number, required: true },
 		atk: { type: Number, required: true },
 		def: { type: Number, required: true },
+		spatk: { type: Number, required: true },
+		spdef: { type: Number, required: true },
 		spd: { type: Number, required: true },
 	},
+	available_abilities: [{
+		ability: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'Ability'
+		},
+		is_hidden: {
+			type: Boolean,
+			default: false
+		}
+	}],
 	catch_rate: {
 		type: Number,
 		required: true
