@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js')
-const { createRandomCokemon } = require('../utils/CokemonUtil')
+const { createRandomCokemonByTheme } = require('../utils/CokemonUtil')
 const { addCokemon } = require('../utils/userUtil')
 const { compositeImages } = require('../utils/imageUtil')
 const ActiveNet = require('../models/cokemon/ActiveNet')
@@ -10,6 +10,7 @@ const settings = config.cokemon_settings
 
 const spawnChannels = Object.keys(config.channel_themes || {})
 const spawningInProgress = new Set()
+const DISCORD_CHAR_LIMIT = 2000
 
 const initializeSpawner = (client) => {
     console.log('✅ Spawner has been initialized.')
@@ -44,23 +45,42 @@ const initializeSpawner = (client) => {
                     net.uses--
 
                     if (isCaught) {
-                        const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
-                        const cokemonData = {
-                            owner_id: net.userId,
-                            species_id: cokemon.species_id,
-                            gender: cokemon.gender,
-                            ivs: cokemon.ivs,
-                            iv_percent: cokemon.iv_percent,
-                            level: cokemon.level,
-                            is_shiny: isShiny
+                        let successfullyClaimedByNet = false
+                        if (speciesDataForNet.tier === 'Legendary') {
+                            successfullyClaimedByNet = client.activeSpawns.delete(channelId)
+                        } else {
+                            if (client.activeSpawns.has(channelId)) {
+                                successfullyClaimedByNet = true
+                            }
                         }
-                        const result = await addCokemon(cokemonData)
-                        if (result.success) {
-                            spawnState.userStates.set(net.userId, { hasCaught: true })
-                            const displayEmoji = isShiny ? (cokemon.shiny_emoji || `${cokemon.emoji}✨`) : cokemon.emoji
-                            const displayName = `${displayEmoji} ${cokemon.name}`
-                            const currentCount = net.caught.get(displayName) || 0
-                            net.caught.set(displayName, currentCount + 1)
+
+                        if (successfullyClaimedByNet) {
+                            if (cokemon.speciesData.tier === 'Legendary') {
+                                client.activeSpawns.delete(channelId)
+                            }
+
+                            const isShiny = (Math.random() < (1 / config.cokemon_settings.shiny_rate))
+                            const cokemonData = {
+                                owner_id: net.userId,
+                                original_owner_id: net.userId,
+                                catch_method: 'net',
+                                species_id: cokemon.species_id,
+                                gender: cokemon.gender,
+                                ivs: cokemon.ivs,
+                                iv_percent: cokemon.iv_percent,
+                                ability: cokemon.ability,
+                                level: cokemon.level,
+                                nature: cokemon.nature,
+                                is_shiny: isShiny
+                            }
+                            const result = await addCokemon(cokemonData)
+                            if (result.success) {
+                                spawnState.userStates.set(net.userId, { hasCaught: true })
+                                const displayEmoji = isShiny ? (cokemon.shiny_emoji || `${cokemon.emoji}✨`) : cokemon.emoji
+                                const displayName = `${displayEmoji} ${cokemon.name}`
+                                const currentCount = net.caught.get(displayName) || 0
+                                net.caught.set(displayName, currentCount + 1)
+                            }
                         }
                     }
 
@@ -69,10 +89,25 @@ const initializeSpawner = (client) => {
                             const user = await client.users.fetch(net.userId)
                             const summaryLines = []
                             for (const [name, count] of net.caught.entries()) {
-                                summaryLines.push(`- ${name} (x${count})`);
+                                summaryLines.push(`- ${name} (x${count})`)
                             }
-                            const summaryMessage = `Lưới Bắt của bạn đã hết! Bạn đã bắt được:\n${summaryLines.join('\n')}`;
-                            await user.send(summaryMessage).catch(() => {})
+
+                            const notifyUser = async currentMessage => {
+                                await user.send(currentMessage).catch(error => {
+                                    console.error(`Could not send DM to ${user.tag}.`, error)
+                                })
+                            }
+                            const header = "Lưới Bắt của bạn đã hết! Bạn đã bắt được:\n"
+                            let currentMessage = header
+
+                            for (const line of summaryLines) {
+                                if (currentMessage.length + line.length + 1 > DISCORD_CHAR_LIMIT) {
+                                    await notifyUser(currentMessage)
+                                    currentMessage = ""
+                                }
+                                currentMessage += line + "\n"
+                            }
+                            if (currentMessage.length > 0) await notifyUser(currentMessage)
                         }
                         await ActiveNet.deleteOne({ userId: net.userId })
                     } else {
@@ -112,7 +147,7 @@ const initializeSpawner = (client) => {
                     }
 
                     const channel = await client.channels.fetch(channelId)
-                    const newCokemon = await createRandomCokemon(lure, theme)
+                    const newCokemon = await createRandomCokemonByTheme(lure, theme)
                     if (!newCokemon) {
                         // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`)
                         continue

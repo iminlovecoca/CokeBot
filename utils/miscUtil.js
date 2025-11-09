@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const { DateTime } = require('luxon')
 const config = require('../data/config')
 
 const runTransactionWithRetry = async (txnFunc) => {
@@ -21,31 +22,71 @@ const runTransactionWithRetry = async (txnFunc) => {
     }
 }
 
-const getDebuffPercentage = async (client, userId) => {
+const getDebuffPercentage = async userId => {
     let debuffPercentage = 0
-    try {
-        if (config.gamble_settings.enable_special_treatment) {
-            if (client.blacklistedUsers.has(userId)) {
-                debuffPercentage = 0.8
-            } else {
-                const { getTotalCoke } = require('./userUtil')
-                const totalCoke = await getTotalCoke(userId)
-                if (totalCoke > 10000000) {
-                    debuffPercentage = 0.35
-                } else if (totalCoke > 5000000) {
-                    debuffPercentage = 0.25
-                } else if (totalCoke > 2000000) {
-                    debuffPercentage = 0.15
-                }
-            }
+    if (config.gamble_settings.enable_special_treatment) {
+        const { getTotalCoke } = require('./userUtil')
+        const totalCoke = await getTotalCoke(userId)
+        if (totalCoke > 10000000) {
+            debuffPercentage = 0.35
+        } else if (totalCoke > 5000000) {
+            debuffPercentage = 0.25
+        // } else if (totalCoke > 2000000) {
+        //     debuffPercentage = 0.15
         }
-    } catch (error) {
-        console.error("Error checking user wealth for debuff:", error)
-    } finally {
-        return debuffPercentage
     }
 }
 
+const capitalizeFirstLetter = str => {
+    if (str.length === 0) return ""
+    return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+const formatDuration = totalSeconds => {
+    if (totalSeconds <= 0) {
+        return "0 giây"
+    }
+
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    const seconds = totalSeconds % 60
+
+    const parts = []
+    if (hours > 0) {
+        parts.push(`${hours} giờ`)
+    }
+    if (minutes > 0) {
+        parts.push(`${minutes} phút`)
+    }
+    if (seconds > 0) {
+        parts.push(`${seconds} giây`)
+    }
+    return parts.join(' ')
+}
+
+const formatDateTimeToVietnamese = (luxonDateTime) => {
+    if (!luxonDateTime || !luxonDateTime.isValid) {
+        return "Ngày không hợp lệ";
+    }
+
+    return luxonDateTime
+        .setZone('Asia/Ho_Chi_Minh')
+        .setLocale('vi')
+        .toFormat('EEEE, dd MMMM, yyyy, HH:mm:ss');
+}
+
+const calculateStd = arr => {
+    if (arr.length < 2) return 0
+    const mean = arr.reduce((acc, val) => acc + val, 0) / arr.length
+    const variance = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / arr.length
+    return Math.sqrt(variance)
+}
+
 module.exports = {
-    runTransactionWithRetry, getDebuffPercentage
+    runTransactionWithRetry,
+    getDebuffPercentage,
+    capitalizeFirstLetter,
+    formatDuration,
+    formatDateTimeToVietnamese,
+    calculateStd
 }

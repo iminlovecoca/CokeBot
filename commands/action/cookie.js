@@ -35,7 +35,7 @@ module.exports = {
       authorUser.cookie += 1;
       await authorUser.save();
 
-      if (authorId !== ownerId) setCooldown(authorId, 'cookie', COOLDOWN);
+      if (authorId !== ownerId) checkAndSetCooldown(authorId, 'cookie', COOLDOWN);
 
       return message.reply(
         `${danisaEmoji} **|** Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**`

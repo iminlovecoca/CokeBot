@@ -26,7 +26,7 @@ module.exports = {
       authorUser.tea += 1;
       await authorUser.save();
 
-      if (authorId !== ownerId) setCooldown(authorId, 'tea', 300);
+      if (authorId !== ownerId) checkAndSetCooldown(authorId, 'tea', 300);
 
       return message.reply(
         `${teaEmoji} | Bạn vừa tự thưởng cho mình 1 tách **trà**! Giờ bạn có **${authorUser.tea} tách**.`

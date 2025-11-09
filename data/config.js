@@ -1,4 +1,5 @@
 module.exports = {
+	prefix: '!',
 	emoji: {
 		"blank": "<:blank:1403928807395819671>",
 		"money": "<:money2:1403773842832359505>",
@@ -79,7 +80,18 @@ module.exports = {
 		"yes": "<:yes:1417090203188723722>",
 		"no": "<:no:1417090195702153258>",
 		"warning": "<:warning:1419916751604547704>",
+
+		streakMilestones: {
+			1: "<:fire1:1424934338356711534>",
+			50: "<:fire50:1424934106080215100>",
+			100: "<:fire100:1424934784769200138>",
+			200: "<:fire200:1422828717335515206>",
+			300: "<:fire300:1422828753804857425>",
+			500: "<:fire500:1422828932130148352>"
+		},
+		fireBreak: "<:firebreak:1422828420735176876>"
 	},
+
 	category_emojis: {
 		'action': '🕹️',
 		'admin': '🛡️',
@@ -90,12 +102,14 @@ module.exports = {
 		'user': '👤',
 		'default': '➡️'
 	},
+
 	gamble_settings: {
 		enable_special_treatment: true,
 		max_bet: 250000,
 		min_bet: 1,
 		cooldown_second: 15,
 	},
+
 	channel_themes: {
 		"1415143151307329536": null,
 		"1422108084519698502": {
@@ -127,12 +141,9 @@ module.exports = {
 			weight: 0.9
 		}
 	},
-	cokemon_settings: {
-		// Economy
-		release_reward: 100,
-		sell_percentage: 0.75,
 
-		// Timers (in milliseconds)
+	cokemon_settings: {
+		sell_percentage: 0.75,
 		spawn_interval_ms: 15 * 1000,
 		lure_duration_ms: 30 * 60 * 1000,
 		lure_user_cooldown_ms: 30 * 60 * 1000,
@@ -140,16 +151,17 @@ module.exports = {
 		lure_spawn_cooldown_ms: 2 * 60 * 1000,
 		despawn_duration_ms: 5 * 60 * 1000,
 		grace_period_ms: 60 * 1000,
-		shiny_rate: 4096, // represent 1/4096
-
-		// Item stats
+		xp_cooldown_ms: 60 * 1000,
+		friendship_cooldown_ms: 30 * 60 * 1000,
+		cuddle_cooldown_ms: 60 * 60 * 1000,
+		shiny_rate: 4096,
 		catch_net_uses: 20,
 		max_stacked_nets: 5,
-
-		// Stats
 		max_iv: 31,
-
-		// Others
+		max_level: 100,
+		base_friendship: 70,
+		max_friendship: 255,
+		max_nickname_len: 20,
 		tier_weights: {
 			'Common': 100,
 			'Rare': 25,
@@ -157,16 +169,55 @@ module.exports = {
 			'Ancient': 2,
 			'Legendary': 0.2
 		},
+		tier_release_rewards: {
+			'Common': 200,
+			'Rare': 300,
+			'Epic': 400,
+			'Ancient': 500,
+			'Legendary': 1000,
+			'Mythical': 2000
+		},
 	},
+
 	natures: {
-		'Hardy': { plus: null, minus: null },
-		'Lonely': { plus: 'atk', minus: 'def' },
-		'Brave': { plus: 'atk', minus: 'spd' },
-		'Bold': { plus: 'def', minus: 'atk' },
+		// Neutral natures (no effect)
+		'Hardy':   { plus: null, minus: null },
+		'Docile':  { plus: null, minus: null },
+		'Serious': { plus: null, minus: null },
+		'Bashful': { plus: null, minus: null },
+		'Quirky':  { plus: null, minus: null },
+
+		// Natures that boost atk
+		'Lonely':  { plus: 'atk', minus: 'def' },
+		'Brave':   { plus: 'atk', minus: 'spd' },
+		'Adamant': { plus: 'atk', minus: 'spatk' },
+		'Naughty': { plus: 'atk', minus: 'spdef' },
+
+		// Natures that boost def
+		'Bold':    { plus: 'def', minus: 'atk' },
 		'Relaxed': { plus: 'def', minus: 'spd' },
-		'Timid': { plus: 'spd', minus: 'atk' },
-		'Hasty': { plus: 'spd', minus: 'def' }
+		'Impish':  { plus: 'def', minus: 'spatk' },
+		'Lax':     { plus: 'def', minus: 'spdef' },
+
+		// Natures that boost spatk
+		'Modest':  { plus: 'spatk', minus: 'atk' },
+		'Mild':    { plus: 'spatk', minus: 'def' },
+		'Quiet':   { plus: 'spatk', minus: 'spd' },
+		'Rash':    { plus: 'spatk', minus: 'spdef' },
+
+		// Natures that boost spdef
+		'Calm':    { plus: 'spdef', minus: 'atk' },
+		'Gentle':  { plus: 'spdef', minus: 'def' },
+		'Sassy':   { plus: 'spdef', minus: 'spd' },
+		'Careful': { plus: 'spdef', minus: 'spatk' },
+
+		// Natures that boost spd
+		'Timid':   { plus: 'spd', minus: 'atk' },
+		'Hasty':   { plus: 'spd', minus: 'def' },
+		'Jolly':   { plus: 'spd', minus: 'spatk' },
+		'Naive':   { plus: 'spd', minus: 'spdef' }
 	},
+
 	type_colors: {
 		'Fire': '#FF4500',
 		'Water': '#1E90FF',
@@ -187,6 +238,7 @@ module.exports = {
 		'Ghost': '#705898',
 		'Dark': '#705848'
 	},
+
 	type_emojis: {
 		'Fire': "<:fire:1417090001430118441>",
 		'Water': "<:water:1417090025891565598>",
@@ -207,6 +259,7 @@ module.exports = {
 		'Ghost': "<:ghost:1417090065448042546>",
 		'Dark': "<:dark:1417955762000625745>"
 	},
+
 	type_backgrounds: {
 		'Fire': 'fire-bg.png',
 		'Water': 'water-bg.png',
@@ -228,4 +281,42 @@ module.exports = {
 		'Dark': 'dark-bg.png',
 		'default': 'default-bg.png'
 	},
-}
+
+	permissions: {
+		admin_user_ids: [
+			process.env.OWNER_ID,
+		],
+		anticheat_immune_ids: []
+	},
+
+	anticheat: {
+		mute_duration_ms: 60 * 60 * 1000,
+
+		// Burst Spam
+		burst_enabled: true,
+		burst_bucket_capacity: 5,
+		burst_refill_rate_ms: 2000,
+
+		bot_detection_enabled: true,
+
+		// Rhythm
+		rhythm_history_length: 15,
+		rhythm_min_messages: 10,
+		rhythm_std_dev_threshold_ms: 2000,
+
+		// Monotony (consecutive commands)
+		monotony_threshold: 30,
+
+		// Focus (command ratio)
+		focus_history_length: 50,
+		focus_min_commands: 25,
+		focus_high_value_commands: ['c', 'catch'],
+		focus_ratio_threshold: 0.85,
+
+		// Verification
+		verification_enabled: true,
+		verification_timeout_ms: 30 * 1000,
+		verification_code_length: 6,
+		verification_max_attempts: 5
+	}
+};

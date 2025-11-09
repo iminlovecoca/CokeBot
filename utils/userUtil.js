@@ -5,8 +5,19 @@ const ActiveNet = require('../models/cokemon/ActiveNet')
 const { runTransactionWithRetry } = require('./miscUtil')
 const { formatVNCurrency } = require('./format')
 const { getPerDayLimit, getPerTransactionLimit } = require('./transactionUtil')
+const { getCokemonName, getCokemonEmoji, getCokemonXpNeeded, addCokemonXp, getItem } = require('./cokemonUtil')
 const config = require('../data/config')
 const settings = config.cokemon_settings
+
+const getUser = async (userId, session = null) => {
+	const query = User.findOne({ userId })
+	if (session) query.session(session)
+	const user = await query
+	if (!user) {
+		throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
+	}
+	return user
+}
 
 const getOrCreateUser = async userId => {
 	let user = await User.findOne({ userId })
@@ -315,25 +326,17 @@ const sellItem = async (client, userId, itemId, quantity) => {
 	}
 }
 
-const useItem = async (client, user, channelId, itemId) => {
+const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
 	try {
-		const item = client.allItems.find(i => i.item_id === itemId)
-		if (!item) {
-			throw new Error(`${config.emoji.no} Vật phẩm không tồn tại.`)
-		}
-
-		const userData = await User.findOne({ userId: user.id })
-		if (!userData) {
-			throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
-		}
-
-		const ownedQuantity = userData.inventory.get(itemId) || 0
-		if (ownedQuantity < 1) {
-			throw new Error(`${config.emoji.no} Bạn không có vật phẩm ${item.name} để sử dụng.`)
-		}
-
+		const item = getItem(client, itemId)
+		let quantityToUse = quantity
 		let successMessage = ''
 		if (item.item_type === 'lure') {
+			const spawningChannels = Object.keys(config.channel_themes || {})
+			if (!spawningChannels.includes(channelId)) {
+				throw new Error(`${config.emoji.no} Bạn không thể dùng bả ở kênh này!`)
+			}
+
 			const isDefaultChannel = !config.channel_themes[channelId]
 			if (isDefaultChannel) {
 				const cooldownEndTime = client.lureCooldowns.get(user.id)
@@ -341,6 +344,10 @@ const useItem = async (client, user, channelId, itemId) => {
 					const remainingMinutes = Math.ceil((cooldownEndTime - Date.now()) / 60000)
 					throw new Error(`${config.emoji.no} Bạn đang trong thời gian hồi. Bạn có thể dùng bả tiếp theo sau ${remainingMinutes} phút.`)
 				}
+			}
+
+			if (quantity > 1) {
+				throw new Error(`${config.emoji.no} Bạn chỉ có thể sử dụng một bả mỗi lần.`)
 			}
 
 			if (client.activeLures.has(channelId)) {
@@ -356,39 +363,75 @@ const useItem = async (client, user, channelId, itemId) => {
 			}
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
 			const currentNet = await ActiveNet.findOne({ userId: user.id })
-			if (currentNet && currentNet.uses > (settings.max_stacked_nets - 1) * settings.catch_net_uses) {
-				throw new Error(`${config.emoji.no} Lưới Bắt Tự Động của bạn đã đầy! Bạn không thể nạp thêm.`)
+			const maxUses = settings.max_stacked_nets * settings.catch_net_uses
+			if (currentNet && currentNet.uses > maxUses - settings.catch_net_uses) {
+				throw new Error(`${config.emoji.no} ${item.name} của bạn đã đầy! Bạn không thể nạp thêm.`)
+			}
+
+			const remainingCapacity = maxUses - currentNet.uses
+			const usesToAdd = settings.catch_net_uses * quantity
+			if (usesToAdd > remainingCapacity) {
+				quantityToUse = Math.floor(remainingCapacity / settings.catch_net_uses)
+				successMessage = `${config.emoji.warning} Chỉ nạp thêm ${quantityToUse} lần do số lượng ${item.name}${item.emoji} tối đa cho phép là ${settings.max_stacked_nets}.\n`
+			}
+		} else if (item.item_type === 'consumable' && itemId === 'rare-candy') {
+			const cokemonId = parseInt(targetId)
+			if (isNaN(cokemonId)) {
+				throw new Error(`${config.emoji.no} Bạn phải cung cấp ID của Cokemon để cho ăn ${item.name}.`)
+			}
+
+			const cokemon = await getCokemon(user.id, cokemonId)
+			if (!cokemon) {
+				throw new Error(`${config.emoji.no} Không tìm thấy Cokemon với ID ${cokemonId}.`)
+			}
+
+			const maxLevel = config.cokemon_settings.max_level
+			if (cokemon.level >= maxLevel) {
+				throw new Error(`${config.emoji.no} **${cokemon.nickname || cokemon.species_id.name}** đã đạt cấp độ tối đa!`)
+			}
+
+			const levelsToMax = maxLevel - cokemon.level
+			if (quantity > levelsToMax) {
+				quantityToUse = levelsToMax
+				successMessage = `${config.emoji.warning} **${getCokemonName(cokemon)}** chỉ cần ${levelsToMax} cấp nữa để đạt cấp độ tối đa. Chỉ sử dụng **${quantityToUse} ${item.name} ${item.emoji}**.\n`
 			}
 		} else {
 			throw new Error(`${config.emoji.no} Vật phẩm này không thể sử dụng được.`)
 		}
 
-		const consumeTransaction = async (session) => {
-			const userInSession = await User.findOne({ userId: user.id }).session(session)
-			const currentQuantity = userInSession.inventory.get(itemId) || 0
-			if (currentQuantity < 1) {
-				throw new Error('Không thể sử dụng vật phẩm, số lượng đã thay đổi.')
-			}
-
-			const newQuantity = currentQuantity - 1
-			if (newQuantity === 0) {
-				userInSession.inventory.delete(itemId);
-			} else {
-				userInSession.inventory.set(itemId, newQuantity);
-			}
-			await userInSession.save({ session })
+		if (quantityToUse > 0) {
+			await consumeItem(user.id, itemId, quantityToUse)
+		} else {
+			return { success: true, message: `${config.emoji.no} Không có vật phẩm nào được sử dụng.` }
 		}
-		await runTransactionWithRetry(consumeTransaction)
 
 		if (item.item_type === 'lure') {
 			const expirationTime = Date.now() + settings.lure_duration_ms
 			client.activeLures.set(channelId, { expires_at: expirationTime, boosts_type: item.boosts_type, ownerId: user.id })
-			successMessage = `✨ **${user.username || user.id}** đã sử dụng **${item.name}** ${item.emoji}!`
+			successMessage += `✨ **${user.username || user.id}** đã sử dụng **${item.name}**${item.emoji}!`
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
-			const currentNet = await ActiveNet.findOne({ userId: user.id })
-			const newUses = (currentNet?.uses || 0) + settings.catch_net_uses
-			await ActiveNet.updateOne({ userId: user.id }, { uses: newUses }, { upsert: true })
-			successMessage = `${config.emoji.yes} Bạn đã nạp thêm Lưới Bắt! Tổng số lượt tự động bắt của bạn bây giờ là **${newUses}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
+			const updatedNet = await ActiveNet.findOneAndUpdate(
+				{ userId: user.id },
+				{
+					$inc: { uses: settings.catch_net_uses },
+					$setOnInsert: { caught: new Map() }
+				},
+				{ upsert: true, new: true }
+			)
+			if (successMessage === '') {
+				successMessage += `${config.emoji.yes} Bạn đã nạp thêm **${quantityToUse} x ${item.name}**${item.emoji}!\n`
+			}
+			successMessage += `Tổng số lượt của bạn bây giờ là **${updatedNet.uses}**. Một bản tổng kết sẽ được gửi khi hết lượt.`
+		} else if (item.item_type === 'consumable' && itemId === 'rare-candy') {
+			const cokemon = await getCokemon(user.id, parseInt(targetId))
+			const originalLevel = cokemon.level
+
+			for (let i = 0; i < quantityToUse; i++) {
+				if (cokemon.level >= config.cokemon_settings.max_level) break
+				const xpNeeded = getCokemonXpNeeded(cokemon.level + 1) - cokemon.experience
+				await addCokemonXp(cokemon, xpNeeded)
+			}
+			successMessage += `🎉 **${getCokemonName(cokemon)}** ${getCokemonEmoji(cokemon)} đã ăn ${quantityToUse} ${item.name} ${item.emoji} và tăng từ **cấp ${originalLevel}** lên **cấp ${cokemon.level}**!`
 		}
 		return { success: true, message: successMessage, itemType: item.item_type }
 	} catch (error) {
@@ -396,8 +439,41 @@ const useItem = async (client, user, channelId, itemId) => {
 	}
 }
 
+const consumeItem = async (userId, itemId, quantity = 1) => {
+	try {
+		const consumeTransaction = async (session) => {
+			const user = await getUser(userId, session)
+			const ownedQuantity = user.inventory.get(itemId) || 0
+			if (ownedQuantity < quantity) {
+				throw new Error(`${config.emoji.no} Bạn không có đủ vật phẩm. Cần ${quantity}, đang có ${ownedQuantity}.`)
+			}
+			
+			const newQuantity = ownedQuantity - quantity
+			if (newQuantity === 0) {
+				user.inventory.delete(itemId)
+			} else {
+				user.inventory.set(itemId, newQuantity)
+			}
+			await user.save({ session })
+		}
+		await runTransactionWithRetry(consumeTransaction)
+	} catch (error) {
+		throw error
+	}
+}
+
+const getCokemon = async (userId, cokemonUid) => {
+	return await Cokemon.findOne({ owner_id: userId, uid: cokemonUid })
+		.populate('species_id')
+		.populate('ability')
+		.populate('held_item_id')
+}
+
 const getAllCokemonWithUids = async (userId, Uids) => {
-	return await Cokemon.find({ owner_id: userId, uid: { $in: Uids } }).populate('species_id')
+	return await Cokemon.find({ owner_id: userId, uid: { $in: Uids } })
+		.populate('species_id')
+		.populate('ability')
+		.populate('held_item_id')
 }
 
 const getFilteredCokemon = async (userId, cokemonQuery, speciesQuery) => {
@@ -413,36 +489,55 @@ const getFilteredCokemon = async (userId, cokemonQuery, speciesQuery) => {
 	return userCokemon
 }
 
-const addCokemon = async (cokemonData) => {
+const registerDexEntry = async (userId, speciesId, isShiny) => {
+	const user = await getUser(userId)
+	const speciesIdString = speciesId.toString()
+	const dexEntry = user.cokedex.get(speciesIdString) || { caught: 0, has_shiny: false, owned: false }
+	dexEntry.owned = true
+	if (isShiny && !dexEntry.has_shiny) {
+		dexEntry.has_shiny = true
+	}
+	user.cokedex.set(speciesIdString, dexEntry)
+	await user.save()
+}
+
+const addCokemon = async cokemonData => {
 	const session = await mongoose.startSession()
 	try {
 		let newCokemon = null
-		await session.withTransaction(async (session) => {
-			const user = await User.findOneAndUpdate(
-				{ userId: cokemonData.owner_id },
-				{ $inc: { last_cokemon_id: 1 } },
-				{ new: true, upsert: true, session: session }
-			)
+		let bonusReward = 0
+		let isFirstCatch = false
+
+		await session.withTransaction(async session => {
+			const user = await getUser(cokemonData.owner_id, session)
+			user.last_cokemon_id++
+
+			const newCokemon = new Cokemon({
+				...cokemonData,
+				uid: user.last_cokemon_id,
+			})
 
 			const speciesIdString = cokemonData.species_id.toString()
-			const dexEntry = user.cokedex.get(speciesIdString) || { caught: 0, has_shiny: false }
-			dexEntry.caught += 1
-			if (cokemonData.is_shiny) {
+			const dexEntry = user.cokedex.get(speciesIdString) || { caught: 0, has_shiny: false, owned: false }
+			if (['manual', 'net'].includes(cokemonData.catch_method)) {
+				dexEntry.caught += 1
+			}
+			if (cokemonData.is_shiny && !dexEntry.has_shiny) {
 				dexEntry.has_shiny = true
 			}
-			user.cokedex.set(speciesIdString, dexEntry)
-
-			const newUid = user.last_cokemon_id
-			const finalCokemonData = {
-				...cokemonData,
-				uid: newUid
+			if (!dexEntry.owned) {
+				await newCokemon.populate('species_id')
+				const tier = newCokemon.species_id.tier
+				bonusReward = config.cokemon_settings.tier_release_rewards[tier]
+				user.coke += bonusReward
+				dexEntry.owned = true
+				isFirstCatch = true
 			}
-
-			const created = await Cokemon.create([finalCokemonData], { session })
-			newCokemon = created[0]
+			user.cokedex.set(speciesIdString, dexEntry)
+			await newCokemon.save({ session })
 			await user.save({ session })
 		})
-		return { success: true, cokemon: newCokemon }
+		return { success: true, cokemon: newCokemon, bonusReward, isFirstCatch }
 	} catch (error) {
 		return { success: false, message: `${config.emoji.no} Lỗi trong quá trình bắt, hãy thử lại nào.` }
 	} finally {
@@ -450,7 +545,44 @@ const addCokemon = async (cokemonData) => {
 	}
 }
 
-const removeCokemon = async (userId, cokemonUids) => {
+const addCokemons = async cokemonDataArray => {
+	if (!cokemonDataArray || cokemonDataArray.length === 0) return
+
+	const cokemonByOwner = new Map()
+	for (const data of cokemonDataArray) {
+		if (!cokemonByOwner.has(data.owner_id)) {
+			cokemonByOwner.set(data.owner_id, [])
+		}
+		cokemonByOwner.get(data.owner_id).push(data)
+	}
+
+	for (const [userId, userCokemons] of cokemonByOwner.entries()) {
+		const user = await getUser(userId)
+		let currentUid = user.last_cokemon_id
+		const cokemons = []
+
+		for (const data of userCokemons) {
+			currentUid++
+			cokemons.push({ ...data, uid: currentUid })
+			const speciesIdString = data.species_id.toString()
+			const dexEntry = user.cokedex.get(speciesIdString) || { caught: 0, has_shiny: false, owned: false }
+			if (['manual', 'net'].includes(data.catch_method)) {
+				dexEntry.caught++
+			}
+			if (data.is_shiny && !dexEntry.has_shiny) {
+				dexEntry.has_shiny = true
+			}
+			dexEntry.owned = true
+			user.cokedex.set(speciesIdString, dexEntry)
+		}
+
+		await Cokemon.insertMany(cokemons)
+		user.last_cokemon_id = currentUid
+		await user.save()
+	}
+}
+
+const removeCokemon = async (userId, cokemonUids, totalReward) => {
 	try {
 		let resultData = {}
 		const releaseTransaction = async (session) => {
@@ -463,19 +595,17 @@ const removeCokemon = async (userId, cokemonUids) => {
 				throw new Error('Một hoặc nhiều ID cokemon không hợp lệ hoặc không thuộc về bạn.')
 			}
 			if (cokemonToDelete.length === 0) {
-				throw new Error('Không có cokemon nào được chọn để thả.')
+				throw new Error(`${config.emoji.no} Không có cokemon nào được chọn để thả.`)
 			}
 
 			const idsToDelete = cokemonToDelete.map(c => c._id)
 			await Cokemon.deleteMany({ _id: { $in: idsToDelete } }, { session })
-
-			const totalReward = cokemonToDelete.length * settings.release_reward
 			await User.updateOne(
 				{ userId: userId },
 				{ $inc: { coke: totalReward } },
 				{ session }
 			)
-			resultData = { releasedCount: cokemonToDelete.length, reward: totalReward }
+			resultData = { releasedCount: cokemonToDelete.length }
 		}
 		await runTransactionWithRetry(releaseTransaction)
 		return { success: true, ...resultData }
@@ -490,7 +620,7 @@ const toggleFavorite = async (userId, cokemonUid) => {
 		const favoriteTransaction = async (session) => {
 			const cokemon = await Cokemon.findOne({ owner_id: userId, uid: cokemonUid }).session(session)
 			if (!cokemon) {
-				throw new Error(`Không tìm thấy cokemon với ID \`${cokemonUid}\` trong bộ sưu tập của bạn.`)
+				throw new Error(`${config.emoji.no} Không tìm thấy cokemon với ID ${cokemonUid} trong bộ sưu tập của bạn.`)
 			}
 
 			const newStatus = !cokemon.is_favorite
@@ -500,7 +630,7 @@ const toggleFavorite = async (userId, cokemonUid) => {
 			const species = await cokemon.populate('species_id')
 			resultData = {
 				is_favorite: newStatus,
-				cokemonName: cokemon.nickname || species.species_id.name // todo: nickname
+				cokemonName: getCokemonName(cokemon)
 			}
 		}
 		await runTransactionWithRetry(favoriteTransaction)
@@ -510,7 +640,92 @@ const toggleFavorite = async (userId, cokemonUid) => {
 	}
 }
 
+const getActiveCokemon = async userId => {
+	const user = await getUser(userId)
+	if (!user.active_cokemon_id) {
+		throw new Error(`${config.emoji.no} Bạn chưa chọn bạn đồng hành nào. Dùng \`!select <ID>\` để chọn một cokemon.`)
+	}
+	return await Cokemon.findById(user.active_cokemon_id).populate('species_id')
+}
+
+const selectActiveCokemon = async (userId, cokemonUid) => {
+	const session = await mongoose.startSession()
+	try {
+		const resultData = await session.withTransaction(async (session) => {
+			const cokemonToSelect = await Cokemon.findOne({ owner_id: userId, uid: cokemonUid }).session(session)
+			if (!cokemonToSelect) {
+				throw new Error(`${config.emoji.no} Không tìm thấy cokemon với ID ${cokemonUid} trong bộ sưu tập của bạn.`)
+			}
+
+			await User.updateOne(
+				{ userId: userId },
+				{ $set: { active_cokemon_id: cokemonToSelect._id } },
+				{ upsert: true, session: session }
+			)
+			const species = await cokemonToSelect.populate('species_id')
+			return {
+				cokemonName: cokemonToSelect.nickname || species.species_id.name,
+				emoji: cokemonToSelect.is_shiny ? (species.species_id.shiny_emoji || `${species.species_id.emoji}✨`) : species.species_id.emoji
+			}
+		})
+		return { success: true, ...resultData }
+	} catch (error) {
+		console.error(error)
+		return { success: false, message: error.message }
+	} finally {
+		session.endSession()
+	}
+}
+
+const getUserXpNeeded = level => 2000 + (level - 1) * 1000
+
+const addUserXp = async (user, amount) => {
+	const dailyXpMax = 3000
+	const today = new Date().toISOString().split('T')[0]
+	if (user.lastXpReset?.toISOString().split('T')[0] !== today) {
+		user.dailyXp = 0
+		user.lastXpReset = new Date()
+	}
+
+	if (user.dailyXp >= dailyXpMax) {
+		return { leveledUp: false }
+	}
+
+	const gain = Math.min(amount, dailyXpMax - user.dailyXp)
+	user.xp += gain
+	user.dailyXp += gain
+
+	let leveledUp = false
+	let oldLevel = user.level
+	let totalReward = 0
+
+	while (user.xp >= getUserXpNeeded(user.level)) {
+		user.xp -= getUserXpNeeded(user.level)
+		user.level++
+		const reward = 10000 + (user.level - 1) * 5000
+		totalReward += reward
+		user.coke += reward
+		leveledUp = true
+	}
+
+	if (leveledUp || gain > 0) {
+		await user.save()
+	}
+	return { leveledUp, oldLevel, newLevel: user.level, totalReward }
+}
+
+const getRankEmoji = level => {
+	if (level <= 10) return '<:Common:1390024512774471902>'
+	if (level <= 20) return '<:Uncommon:1390024590347997245>'
+	if (level <= 30) return '<:Rare:1390024624380706916>'
+	if (level <= 40) return '<:Epic:1390024749517770832>'
+	if (level <= 50) return '<:Mysthic:1390024772200567026>'
+	if (level <= 60) return '<:Legendary:1390024789279772833>'
+	return '<:Ancient:1390024806535004333>'
+}
+
 module.exports = {
+	getUser,
 	getOrCreateUser,
 	withdrawCmd,
 	sendCmd,
@@ -525,9 +740,18 @@ module.exports = {
 	buyItem,
 	sellItem,
 	useItem,
+	consumeItem,
+	getCokemon,
 	getAllCokemonWithUids,
 	getFilteredCokemon,
+	registerDexEntry,
 	addCokemon,
+	addCokemons,
 	removeCokemon,
-	toggleFavorite
+	toggleFavorite,
+	getActiveCokemon,
+	selectActiveCokemon,
+	getUserXpNeeded,
+	addUserXp,
+	getRankEmoji
 }
