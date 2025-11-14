@@ -4,7 +4,8 @@ const activeNetSchema = new mongoose.Schema({
     userId: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     uses: {
         type: Number,

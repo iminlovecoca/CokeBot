@@ -1,6 +1,8 @@
 const { EmbedBuilder } = require('discord.js')
-const Cokemon = require('../../models/cokemon/Cokemon')
-const { calculateStat } = require('../../utils/CokemonUtil')
+const { getCokemon } = require('../../utils/userUtil')
+const { calculateStat, getCokemonXpNeeded, getGenderEmoji, getCatchMethodText, getStatText } = require('../../utils/cokemonUtil')
+const { formatDateTimeToVietnamese, capitalizeFirstLetter } = require('../../utils/miscUtil')
+const { DateTime } = require('luxon')
 const config = require('../../data/config')
 
 module.exports = {
@@ -12,43 +14,38 @@ module.exports = {
 		try {
 			const cokemonUid = parseInt(args[0])
 			if (isNaN(cokemonUid)) {
-				throw new Error("Bạn cần cung cấp ID của cokemon bạn muốn xem. Ví dụ: `!info 3`")
+				throw new Error(`${config.emoji.no} Bạn cần cung cấp ID của cokemon bạn muốn xem. Ví dụ: \`!info 3\``)
 			}
 
-			const cokemon = await Cokemon.findOne({
-				owner_id: message.author.id, 
-				uid: cokemonUid 
-			}).populate('species_id')
-
+			const cokemon = await getCokemon(message.author.id, cokemonUid)
 			if (!cokemon) {
-				throw new Error(`Không tìm thấy cokemon với ID ${cokemonUid} trong bộ sưu tập của bạn.`)
+				throw new Error(`${config.emoji.no} Không tìm thấy Cokemon với ID ${cokemonUid} trong bộ sưu tập của bạn.`)
 			}
-
 			const species = cokemon.species_id
-			const genderSymbol = cokemon.gender === 'Male' ? config.emoji.male : cokemon.gender === 'Female' ? config.emoji.female : config.emoji.genderless
-
+			const heldItem = cokemon.held_item_id
 			const info = []
 			info.push(`**Loài:** ${species.name}`)
-			info.push(`**Bậc:** ${species.tier}`)
-			info.push(`**Hệ:** ${species.type.join(', ')}`)
-			info.push(`**Giới tính:** ${genderSymbol}`)
+			info.push(`**Giới tính:** ${getGenderEmoji(cokemon)}`)
 			info.push(`**Tính cách:** ${cokemon.nature}`)
+			info.push(`**Khả năng:** ${cokemon.ability.name}`)
+			info.push(`**Vật phẩm:** ${heldItem ? heldItem.emoji : 'Không có'}`)
 			info.push(`**Level:** ${cokemon.level}`)
+			const xpForNextLevel = getCokemonXpNeeded(cokemon.level + 1)
+			info.push(`**XP:** ${cokemon.experience.toLocaleString()} / ${xpForNextLevel.toLocaleString()}`)
+			info.push(`**Tình bạn:** ${cokemon.friendship} / ${config.cokemon_settings.max_friendship}`)
+			info.push(`**Nhận từ:** ${getCatchMethodText(cokemon.catch_method)}`)
 
-			const hp = calculateStat(species.base_stats.hp, cokemon.ivs.hp, cokemon.level, cokemon.nature, 'hp')
-			const atk = calculateStat(species.base_stats.atk, cokemon.ivs.atk, cokemon.level, cokemon.nature, 'atk')
-			const def = calculateStat(species.base_stats.def, cokemon.ivs.def, cokemon.level, cokemon.nature, 'def')
-			const spd = calculateStat(species.base_stats.spd, cokemon.ivs.spd, cokemon.level, cokemon.nature, 'spd')
-
-			const stats = []
-			stats.push(`**HP:** ${hp} • IV: ${cokemon.ivs.hp}/${config.cokemon_settings.max_iv}`)
-			stats.push(`**Tấn công:** ${atk} • IV: ${cokemon.ivs.atk}/${config.cokemon_settings.max_iv}`)
-			stats.push(`**Phòng thủ:** ${def} • IV: ${cokemon.ivs.def}/${config.cokemon_settings.max_iv}`)
-			stats.push(`**Tốc độ:** ${spd} • IV: ${cokemon.ivs.spd}/${config.cokemon_settings.max_iv}`)
-			stats.push(`**IV Tổng:** ${cokemon.iv_percent}%`)
+			const statKeys = ['hp', 'atk', 'def', 'spatk', 'spdef', 'spd']
+            const stats = statKeys.map(key => {
+                const statName = capitalizeFirstLetter(getStatText(key))
+                const statValue = calculateStat(species.base_stats[key], cokemon.ivs[key], cokemon.level, cokemon.nature, key)
+                return `**${statName}:** ${statValue} • IV: ${cokemon.ivs[key]}/${config.cokemon_settings.max_iv}`
+            })
+            stats.push(`**IV Tổng:** ${cokemon.iv_percent}%`)
 
 			const imageFile = cokemon.is_shiny ? species.shiny_image_file : species.image_file
 			const imagePath = `./assets/images/${imageFile}`
+			const catchDate = formatDateTimeToVietnamese(DateTime.fromJSDate(cokemon.createdAt))
 
 			const embed = new EmbedBuilder()
 				.setColor(config.type_colors[species.type[0]] || '#FFFFFF')
@@ -60,7 +57,7 @@ module.exports = {
 					{ name: '\u200B', value: '\u200B' },
 					{ name: 'Chỉ số', value: stats.join('\n'), inline: true }
 				)
-				.setFooter({ text: `ID: ${cokemon.uid} | Bắt lúc: ${cokemon.createdAt.toLocaleTimeString('vi-VN')} ngày ${cokemon.createdAt.toLocaleDateString('vi-VN')}` })
+				.setFooter({ text: `ID: ${cokemon.uid} | Bắt lúc: ${catchDate}` })
 
 			await message.reply({
 				embeds: [embed],

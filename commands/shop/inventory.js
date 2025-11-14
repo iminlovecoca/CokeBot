@@ -36,7 +36,7 @@ module.exports = {
 					.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
 
 				pageItems.forEach(item => {
-					embed.addFields({ name: `${item.emoji} ${item.name} (x${item.quantity})`, value: '', inline: true })
+					embed.addFields({ name: `${item.emoji}${item.name} (x${item.quantity})`, value: `\`${item.item_id}\``, inline: true })
 				})
 				embed.addFields({ name: '\u200B', value: '\u200B', inline: true })
 				return { embeds: [embed] }

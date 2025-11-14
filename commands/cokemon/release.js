@@ -1,15 +1,15 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
-const { getAllCokemonWithUids, removeCokemon } = require('../../utils/userUtil')
+const { getAllCokemonWithUids, removeCokemon, getFilteredCokemon } = require('../../utils/userUtil')
 const { buildCokemonQuery } = require('../../utils/queryUtil')
-const { getFilteredCokemon } = require('../../utils/userUtil')
+const { getCokemonName, getCokemonEmoji, getGenderEmoji } = require('../../utils/cokemonUtil')
 const config = require('../../data/config')
 const MAX_DETAILED_RELEASE = 20
 
 const cokemonInfo = cokemon => {
-	const displayName = cokemon.nickname || cokemon.species_id.name
-	const genderSymbol = cokemon.gender === 'Male' ? config.emoji.male : cokemon.gender === 'Female' ? config.emoji.female : config.emoji.genderless
-	const shinySymbol = cokemon.is_shiny ? '✨' : ''
-	return `${displayName}${shinySymbol}${genderSymbol} (No. ${cokemon.uid} • Lv.${cokemon.level} • ${cokemon.iv_percent}%)`
+	const displayName = getCokemonName(cokemon)
+	const emoji = getCokemonEmoji(cokemon)
+	const genderSymbol = getGenderEmoji(cokemon)
+	return `${displayName} ${emoji}${genderSymbol} (No. ${cokemon.uid} • Cấp ${cokemon.level} • ${cokemon.iv_percent}%)`
 }
 
 module.exports = {
@@ -24,9 +24,11 @@ module.exports = {
 				throw new Error(`${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc. Ví dụ: \`!release 3 12\` hoặc \`!release --tier common\``)
 			}
 
+			const isIdBased = /^[0-9]+$/.test(args[0])
+			const isFilterBased = args[0].startsWith('--')
 			let cokemonToRelease = []
 			let msgContent = ''
-			if (!isNaN(parseInt(args[0]))) {
+			if (isIdBased) {
 				// Releasing by IDs
  				const uidsToRelease = [...new Set(args.map(id => parseInt(id)).filter(id => !isNaN(id)))]
 				if (uidsToRelease.length === 0) {
@@ -38,10 +40,12 @@ module.exports = {
 					// Warns if some IDs were invalid
 					msgContent = `${config.emoji.warning} Một hoặc nhiều ID không hợp lệ đã được bỏ qua.\n`
 				}
-			} else {
+			} else if (isFilterBased) {
 				// Releasing by filter
 				const { cokemonQuery, speciesQuery } = buildCokemonQuery(args)
 				cokemonToRelease = await getFilteredCokemon(message.author.id, cokemonQuery, speciesQuery)
+			} else {
+				throw new Error(`${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc (bắt đầu bằng \`--\`).`)
 			}
 
 			if (cokemonToRelease.length === 0) {
@@ -55,7 +59,13 @@ module.exports = {
 				throw new Error(`${config.emoji.no} Bạn không thể thả cokemon yêu thích! Hãy bỏ yêu thích cho các cokemon có ID: ${favIds} trước, hoặc sử dụng tag \`--nofav\``)
 			}
 
-			const totalReward = cokemonToRelease.length * config.cokemon_settings.release_reward
+			let totalReward = 0
+			for (const cokemon of cokemonToRelease) {
+				if (!cokemon.species_id.tier) {
+					await cokemon.populate('species_id')
+				}
+				totalReward += config.cokemon_settings.tier_release_rewards[cokemon.species_id.tier]
+			}
 			if (cokemonToRelease.length === 1) {
 				msgContent += `Bạn có chắc muốn thả ${cokemonInfo(cokemonToRelease[0])} để nhận ${config.emoji.money} ${totalReward}?`
 			} else if (cokemonToRelease.length <= MAX_DETAILED_RELEASE) {
@@ -108,11 +118,11 @@ module.exports = {
 				await i.deferUpdate();
 				if (i.customId === 'confirm') {
 					const validUidsToRelease = cokemonToRelease.map(c => c.uid)
-					const result = await removeCokemon(message.author.id, validUidsToRelease)
+					const result = await removeCokemon(message.author.id, validUidsToRelease, totalReward)
 					if (result.success) {
 						const cokemonStr = result.releasedCount === 1 ? `${cokemonInfo(cokemonToRelease[0])}` : `${result.releasedCount} cokemon`
 						await i.editReply({
-							content: `Bạn đã thả ${cokemonStr} về với tự nhiên và nhận được ${config.emoji.money} **${result.reward}**!`,
+							content: `Bạn đã thả ${cokemonStr} về với tự nhiên và nhận được ${config.emoji.money} **${totalReward}**!`,
 							embeds: [],
 							components: []
 						})
@@ -127,7 +137,7 @@ module.exports = {
 
 			collector.on('end', (_, reason) => {
 				if (reason === 'time') {
-					sentMsg.edit('Hết thời gian xác nhận, hành động đã được hủy.')
+					sentMsg.edit({ content: 'Hết thời gian xác nhận, hành động đã được hủy.', components: [] })
 				}
 			})
 		} catch (error) {

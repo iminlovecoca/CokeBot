@@ -38,7 +38,7 @@ const startDownload = async () => {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true })
     }
 
-    for (let id = 1; id <= GEN_1_COUNT + GEN_2_COUNT + GEN_3_COUNT; id++) {
+    for (let id = 1; id <= GEN_1_COUNT + GEN_2_COUNT + GEN_3_COUNT + GEN_4_COUNT; id++) {
         const normalUrl = `${NORMAL_URL}${id}.png`
         const normalFilepath = path.join(OUTPUT_DIR, `${id}.png`)
         await downloadImage(normalUrl, normalFilepath)
