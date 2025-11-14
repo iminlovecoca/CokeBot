@@ -285,6 +285,7 @@ module.exports = {
 	permissions: {
 		admin_user_ids: [
 			process.env.OWNER_ID,
+			'690168451255631934'
 		],
 		anticheat_immune_ids: []
 	},

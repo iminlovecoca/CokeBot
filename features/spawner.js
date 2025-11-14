@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js')
-const { createRandomCokemonByTheme } = require('../utils/CokemonUtil')
+const { createRandomCokemonByTheme } = require('../utils/cokemonUtil')
 const { addCokemon } = require('../utils/userUtil')
 const { compositeImages } = require('../utils/imageUtil')
 const ActiveNet = require('../models/cokemon/ActiveNet')
