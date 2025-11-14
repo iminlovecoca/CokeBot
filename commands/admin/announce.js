@@ -1,4 +1,3 @@
-const { EmbedBuilder } = require('discord.js')
 const https = require('https')
 const { splitMessage } = require('../../utils/miscUtil')
 const config = require('../../data/config')
@@ -20,7 +19,7 @@ module.exports = {
                 throw new Error(`${config.emoji.no} Cú pháp không hợp lệ. Dùng: \`${this.usage}\``)
             }
 
-            const channelArg = args[0];
+            const channelArg = args[0]
             let announcementContent = args.slice(1).join(' ')
             const targetChannel = message.mentions.channels.first() || await message.client.channels.fetch(channelArg.replace(/[<#>]/g, '')).catch(() => null)
             if (!targetChannel || !targetChannel.isTextBased()) {
@@ -46,7 +45,7 @@ module.exports = {
                 throw new Error(`${config.emoji.no} Bạn phải cung cấp nội dung thông báo hoặc đính kèm một file text.`)
             }
 
-            const messageChunks = splitMessage(announcementContent, DISCORD_CHAR_LIMIT)
+            const messageChunks = splitMessage(`${announcementContent}\n@everyone`, DISCORD_CHAR_LIMIT)
             for (const chunk of messageChunks) {
                 if (chunk.length > 0) {
                     await targetChannel.send(chunk)
@@ -54,10 +53,7 @@ module.exports = {
                 }
             }
 
-            const confirmationEmbed = new EmbedBuilder()
-                .setColor('#2ECC71')
-                .setDescription(`${config.emoji.yes} Thông báo đã được gửi thành công đến <#${targetChannel.id}>!`)
-            await message.channel.send({ embeds: [confirmationEmbed] })
+            await message.channel.send(`${config.emoji.yes} Thông báo đã được gửi thành công đến <#${targetChannel.id}>!`)
         } catch (error) {
             await message.reply(error.message)
         }
