@@ -549,8 +549,7 @@ const speciesData = [
 		available_genders: ['Male', 'Female'],
 		base_stats: { hp: 50, atk: 75, def: 85, spatk: 20, spdef: 30, spd: 40 },
 		available_abilities: [
-			{ name: 'Sand Veil', is_hidden: false },
-			{ name: 'Sand Rush', is_hidden: true }
+			{ name: 'Sand Veil', is_hidden: false }
 		],
 		catch_rate: 0.5,
 		flee_rate: 0.15,
@@ -570,8 +569,7 @@ const speciesData = [
 		available_genders: ['Male', 'Female'],
 		base_stats: { hp: 75, atk: 100, def: 110, spatk: 45, spdef: 55, spd: 65 },
 		available_abilities: [
-			{ name: 'Sand Veil', is_hidden: false },
-			{ name: 'Sand Rush', is_hidden: true }
+			{ name: 'Sand Veil', is_hidden: false }
 		],
 		catch_rate: 0.3,
 		flee_rate: 0.1,
@@ -1012,8 +1010,7 @@ const speciesData = [
 		base_stats: { hp: 70, atk: 65, def: 60, spatk: 90, spdef: 75, spd: 90 },
 		available_abilities: [
 			{ name: 'Shield Dust', is_hidden: false },
-			{ name: 'Tinted Lens', is_hidden: false },
-			{ name: 'Wonder Skin', is_hidden: true }
+			{ name: 'Tinted Lens', is_hidden: false }
 		],
 		catch_rate: 0.25,
 		flee_rate: 0.1,
@@ -1843,8 +1840,7 @@ const speciesData = [
 		base_stats: { hp: 80, atk: 80, def: 50, spatk: 40, spdef: 50, spd: 25 },
 		available_abilities: [
 			{ name: 'Stench', is_hidden: false },
-			{ name: 'Sticky Hold', is_hidden: false },
-			{ name: 'Poison Touch', is_hidden: true }
+			{ name: 'Sticky Hold', is_hidden: false }
 		],
 		catch_rate: 0.4,
 		flee_rate: 0.1,
@@ -1865,8 +1861,7 @@ const speciesData = [
 		base_stats: { hp: 105, atk: 105, def: 75, spatk: 65, spdef: 100, spd: 50 },
 		available_abilities: [
 			{ name: 'Stench', is_hidden: false },
-			{ name: 'Sticky Hold', is_hidden: false },
-			{ name: 'Poison Touch', is_hidden: true }
+			{ name: 'Sticky Hold', is_hidden: false }
 		],
 		catch_rate: 0.25,
 		flee_rate: 0.1,
@@ -2870,8 +2865,7 @@ const speciesData = [
 		available_genders: ['Genderless'],
 		base_stats: { hp: 65, atk: 60, def: 70, spatk: 85, spdef: 75, spd: 40 },
 		available_abilities: [
-			{ name: 'Trace', is_hidden: false },
-			{ name: 'Download', is_hidden: false }
+			{ name: 'Trace', is_hidden: false }
 		],
 		catch_rate: 0.2,
 		flee_rate: 0.1,
@@ -4329,7 +4323,10 @@ const speciesData = [
 		appearance: { height: 9.2, weight: 400.0 },
 		available_genders: ['Male', 'Female'],
 		base_stats: { hp: 75, atk: 85, def: 200, spatk: 55, spdef: 65, spd: 30 },
-		available_abilities: ['Rock Head', 'Sturdy'],
+		available_abilities: [
+			{ name: 'Rock Head', is_hidden: false },
+			{ name: 'Sturdy', is_hidden: false }
+		],
 		catch_rate: 0.15,
 		flee_rate: 0.1,
 		image_file: '208.png',
@@ -4843,8 +4840,7 @@ const speciesData = [
 		available_genders: ['Genderless'],
 		base_stats: { hp: 85, atk: 80, def: 90, spatk: 105, spdef: 95, spd: 60 },
 		available_abilities: [
-			{ name: 'Trace', is_hidden: false },
-			{ name: 'Download', is_hidden: false }
+			{ name: 'Trace', is_hidden: false }
 		],
 		catch_rate: 0.15,
 		flee_rate: 0.1,
@@ -9818,8 +9814,7 @@ const speciesData = [
 		available_genders: ['Genderless'],
 		base_stats: { hp: 85, atk: 80, def: 70, spatk: 135, spdef: 75, spd: 90 },
 		available_abilities: [
-			{ name: 'Adaptability', is_hidden: false },
-			{ name: 'Download', is_hidden: false }
+			{ name: 'Adaptability', is_hidden: false }
 		],
 		catch_rate: 0.1,
 		flee_rate: 0.1,
@@ -10194,65 +10189,66 @@ const speciesData = [
 ]
 
 const seedSpecies = async () => {
-	try {
-		console.log('Preparing to seed species...')
-		const allAbilities = await Ability.find({})
-		const abilityMap = new Map(allAbilities.map(a => [a.name, a._id]))
-		const allSpecies = await Species.find({})
-		const speciesMap = new Map(allSpecies.map(s => [s.name, s._id]))
+    try {
+        const allAbilities = await Ability.find({})
+        const abilityMap = new Map(allAbilities.map(a => [a.name, a._id]))
+        const speciesMap = new Map(speciesData.map(s => [s.name, s.dex_id]))
+        const operations = []
+        let errorCount = 0
 
-		const finalOps = speciesData.map(species => {
-			const { available_abilities, evolution, ...speciesDetails } = species
+        for (const species of speciesData) {
+            const populatedAbilities = (species.available_abilities || []).map(abilityInfo => {
+                const abilityId = abilityMap.get(abilityInfo.name)
+                if (!abilityId) {
+                    console.error(`[Error for ${species.name}] Ability not found: '${abilityInfo.name}'`)
+                    errorCount++
+                }
+                return { ability: abilityId, is_hidden: abilityInfo.is_hidden }
+            }).filter(a => a.ability)
 
-			const populatedAbilities = available_abilities.map(abilityInfo => {
-				const abilityId = abilityMap.get(abilityInfo.name)
-				if (abilityId) {
-					return {
-						ability: abilityId,
-						is_hidden: abilityInfo.is_hidden
-					}
-				}
-				return null
-			}).filter(a => a)
+            if (populatedAbilities.length !== (species.available_abilities || []).length) {
+                continue 
+            }
 
-			let populatedEvolutions = []
-			if (evolution && evolution.length > 0) {
-				populatedEvolutions = evolution.map(evo => {
-					const targetId = speciesMap.get(evo.to)
-					if (targetId) {
-						return {
-							species_id: targetId,
-							conditions: evo.conditions
-						}
-					}
-					return null
-				}).filter(e => e)
-			}
+            const populatedEvolutions = (species.evolution || []).map(evo => {
+                const to_dex_id = speciesMap.get(evo.to)
+                if (!to_dex_id) {
+                    console.error(`[Error for ${species.name}] Evolution target not found: '${evo.to}'`)
+                    errorCount++
+                }
+                return { ...evo, to_dex_id: to_dex_id || null }
+            }).filter(e => e.to_dex_id)
 
-			return {
-				updateOne: {
-					filter: { dex_id: species.dex_id },
-					update: {
-						$set: {
-							...speciesDetails,
-							available_abilities: populatedAbilities,
-							evolution: populatedEvolutions
-						}
-					}
-				}
-			}
-		})
+            const { available_abilities, evolution, ...speciesDetails } = species
+            operations.push({
+                updateOne: {
+                    filter: { dex_id: species.dex_id },
+                    update: {
+                        $set: {
+                            ...speciesDetails,
+                            available_abilities: populatedAbilities,
+                            evolution: populatedEvolutions
+                        }
+                    },
+                    upsert: true
+                }
+            })
+        }
 
-		if (finalOps.length > 0) {
-			const result = await Species.bulkWrite(finalOps)
-			console.log('✅ Species data seeded successfully!')
+        if (errorCount > 0) {
+            console.warn(`⚠️ Found ${errorCount} errors during data mapping`)
+        }
+
+        if (operations.length > 0) {
+            const result = await Species.bulkWrite(operations)
+            console.log('✅ Species data seeded successfully!')
 			console.log(`   - Matched: ${result.matchedCount}`)
 			console.log(`   - Modified: ${result.modifiedCount}`)
 			console.log(`   - Upserted: ${result.upsertedCount}`)
-		}
-	} catch (error) {
-		console.error('❌ Error seeding species:', error)
-	}
+        }
+    } catch (error) {
+        console.error('❌ Error seeding species:', error)
+    }
 }
 
 module.exports = seedSpecies
