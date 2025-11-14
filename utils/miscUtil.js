@@ -82,11 +82,35 @@ const calculateStd = arr => {
     return Math.sqrt(variance)
 }
 
+const splitMessage = (text, maxLength = 2000) => {
+    if (text.length <= maxLength) {
+        return [text]
+    }
+
+    const chunks = []
+    const lines = text.split('\n')
+    let currentChunk = ''
+
+    for (const line of lines) {
+        if (currentChunk.length + line.length + 1 > maxLength) {
+            chunks.push(currentChunk)
+            currentChunk = ''
+        }
+        currentChunk += (currentChunk ? '\n' : '') + line
+    }
+
+    if (currentChunk) {
+        chunks.push(currentChunk)
+    }
+    return chunks
+}
+
 module.exports = {
     runTransactionWithRetry,
     getDebuffPercentage,
     capitalizeFirstLetter,
     formatDuration,
     formatDateTimeToVietnamese,
-    calculateStd
+    calculateStd,
+    splitMessage
 }
