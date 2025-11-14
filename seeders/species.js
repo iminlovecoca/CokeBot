@@ -10192,60 +10192,61 @@ const seedSpecies = async () => {
     try {
         const allAbilities = await Ability.find({})
         const abilityMap = new Map(allAbilities.map(a => [a.name, a._id]))
-        const speciesMap = new Map(speciesData.map(s => [s.name, s.dex_id]))
-        const operations = []
-        let errorCount = 0
 
-        for (const species of speciesData) {
-            const populatedAbilities = (species.available_abilities || []).map(abilityInfo => {
+        const firstPassOps = speciesData.map(species => {
+            const { available_abilities, evolution, ...speciesDetails } = species
+            const populatedAbilities = (available_abilities || []).map(abilityInfo => {
                 const abilityId = abilityMap.get(abilityInfo.name)
-                if (!abilityId) {
-                    console.error(`[Error for ${species.name}] Ability not found: '${abilityInfo.name}'`)
-                    errorCount++
-                }
                 return { ability: abilityId, is_hidden: abilityInfo.is_hidden }
             }).filter(a => a.ability)
 
-            if (populatedAbilities.length !== (species.available_abilities || []).length) {
-                continue 
-            }
-
-            const populatedEvolutions = (species.evolution || []).map(evo => {
-                const to_dex_id = speciesMap.get(evo.to)
-                if (!to_dex_id) {
-                    console.error(`[Error for ${species.name}] Evolution target not found: '${evo.to}'`)
-                    errorCount++
-                }
-                return { ...evo, to_dex_id: to_dex_id || null }
-            }).filter(e => e.to_dex_id)
-
-            const { available_abilities, evolution, ...speciesDetails } = species
-            operations.push({
+            return {
                 updateOne: {
                     filter: { dex_id: species.dex_id },
                     update: {
                         $set: {
                             ...speciesDetails,
                             available_abilities: populatedAbilities,
-                            evolution: populatedEvolutions
+                            evolution: []
                         }
                     },
                     upsert: true
                 }
-            })
+            }
+        })
+
+        await Species.bulkWrite(firstPassOps)
+        const allSeededSpecies = await Species.find({})
+        const nameToIdMap = new Map(allSeededSpecies.map(s => [s.name, s._id]))
+
+        const secondPassOps = []
+        for (const species of speciesData) {
+            if (!species.evolution || species.evolution.length === 0) {
+                continue
+            }
+
+            const populatedEvolutions = species.evolution.map(evo => {
+                const targetId = nameToIdMap.get(evo.to)
+                return {
+                    ...evo,
+                    species_id: targetId
+                }
+            }).filter(e => e)
+
+            if (populatedEvolutions.length > 0) {
+                secondPassOps.push({
+                    updateOne: {
+                        filter: { dex_id: species.dex_id },
+                        update: { $set: { evolution: populatedEvolutions } }
+                    }
+                })
+            }
         }
 
-        if (errorCount > 0) {
-            console.warn(`⚠️ Found ${errorCount} errors during data mapping`)
+        if (secondPassOps.length > 0) {
+            await Species.bulkWrite(secondPassOps)
         }
-
-        if (operations.length > 0) {
-            const result = await Species.bulkWrite(operations)
-            console.log('✅ Species data seeded successfully!')
-			console.log(`   - Matched: ${result.matchedCount}`)
-			console.log(`   - Modified: ${result.modifiedCount}`)
-			console.log(`   - Upserted: ${result.upsertedCount}`)
-        }
+		console.log('✅ Species data seeded successfully!')
     } catch (error) {
         console.error('❌ Error seeding species:', error)
     }
