@@ -28,8 +28,7 @@ module.exports = {
 
             const attachment = message.attachments.first()
             if (attachment) {
-                const fileUrl = attachment.url
-                if (!attachment.name.endsWith('.txt') && !attachment.url.name.endsWith('.md')) {
+                if (!attachment.name.endsWith('.txt') && !attachment.name.endsWith('.md')) {
                     throw new Error(`${config.emoji.no} File đính kèm phải là file \`.txt\` hoặc \`.md\`.`)
                 }
 
