@@ -43,7 +43,7 @@ module.exports = {
       let bet = args.length == 1 ? 'min' : args[1]
       const amount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
 
-      const debuffPercentage = await getDebuffPercentage(message.client, userId)
+      const debuffPercentage = await getDebuffPercentage(userId)
       const winProbability = 0.5 * (1 - debuffPercentage);
       const playerWins = Math.random() < winProbability
       const finalOutcome = playerWins ? choice : (choice === 'tai' ? 'xiu' : 'tai');

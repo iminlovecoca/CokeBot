@@ -42,7 +42,7 @@ module.exports = {
 			text += `Đồng xu quay... ${emoji.coinflip}`
 			const msg = await message.reply(text)
 
-			const debuffPercentage = await getDebuffPercentage(message.client, userId)
+			const debuffPercentage = await getDebuffPercentage(userId)
 			const winProbability = 0.5 * (1 - debuffPercentage)
 			const rand = await random(0, 100)
 			const result = rand < winProbability * 100 ? choice : (choice === 'h' ? 't' : 'h')

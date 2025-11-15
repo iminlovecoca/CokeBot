@@ -152,7 +152,7 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
   }
 
   const playerValue = getBestHandValue(playerHand)
-  const debuffPercentage = await getDebuffPercentage(message.client, author.id)
+  const debuffPercentage = await getDebuffPercentage(author.id)
   while (!isDealerStay(dealerHand)) {
     if (Math.random() < debuffPercentage) {
       const nextCard = deck[deck.length - 1]

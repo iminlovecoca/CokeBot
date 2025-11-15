@@ -73,7 +73,7 @@ const rps = async (message, bet, botChoice, resume) => {
 
     let resultText = ''
     let reward = 0
-    const debuffPercentage = await getDebuffPercentage(message.client, userId)
+    const debuffPercentage = await getDebuffPercentage(userId)
 
     if (playerChoice === botChoice) {
       resultText = `${config.emoji.blank} **| Coke** ra ${botEmoji} và bạn nhận lại ${currency} **${bet.toLocaleString()}.**`
