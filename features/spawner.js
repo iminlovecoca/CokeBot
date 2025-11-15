@@ -46,7 +46,7 @@ const initializeSpawner = (client) => {
 
                     if (isCaught) {
                         let successfullyClaimedByNet = false
-                        if (speciesDataForNet.tier === 'Legendary') {
+                        if (cokemon.speciesData.tier === 'Legendary') {
                             successfullyClaimedByNet = client.activeSpawns.delete(channelId)
                         } else {
                             if (client.activeSpawns.has(channelId)) {

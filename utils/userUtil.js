@@ -329,6 +329,10 @@ const sellItem = async (client, userId, itemId, quantity) => {
 const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
 	try {
 		const item = getItem(client, itemId)
+		if (!item) {                                                                                                                                                                                                                              
+			throw new Error(`${config.emoji.no} Vật phẩm với ID \`${itemId}\` không tồn tại.`)
+		}
+
 		let quantityToUse = quantity
 		let successMessage = ''
 		if (item.item_type === 'lure') {
@@ -364,11 +368,12 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
 		} else if (item.item_type === 'tool' && itemId === 'catch-net') {
 			const currentNet = await ActiveNet.findOne({ userId: user.id })
 			const maxUses = settings.max_stacked_nets * settings.catch_net_uses
-			if (currentNet && currentNet.uses > maxUses - settings.catch_net_uses) {
+			const currentUses = currentNet ? currentNet.uses : 0
+			if (currentUses > maxUses - settings.catch_net_uses) {
 				throw new Error(`${config.emoji.no} ${item.name} của bạn đã đầy! Bạn không thể nạp thêm.`)
 			}
 
-			const remainingCapacity = maxUses - currentNet.uses
+			const remainingCapacity = maxUses - currentUses
 			const usesToAdd = settings.catch_net_uses * quantity
 			if (usesToAdd > remainingCapacity) {
 				quantityToUse = Math.floor(remainingCapacity / settings.catch_net_uses)
@@ -413,7 +418,7 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
 			const updatedNet = await ActiveNet.findOneAndUpdate(
 				{ userId: user.id },
 				{
-					$inc: { uses: settings.catch_net_uses },
+					$inc: { uses: quantityToUse * settings.catch_net_uses },
 					$setOnInsert: { caught: new Map() }
 				},
 				{ upsert: true, new: true }
