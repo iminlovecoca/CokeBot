@@ -38,7 +38,7 @@ module.exports = {
       const rand = (await random(1, 1000)) / 10;
       let win = 0;
 
-      const debuffPercentage = await getDebuffPercentage(message.client, userId)
+      const debuffPercentage = await getDebuffPercentage(userId)
       if (rand <= 20 * (1 - debuffPercentage)) {
         win = amount;
         rslots.push(symbols[0], symbols[0], symbols[0]);
