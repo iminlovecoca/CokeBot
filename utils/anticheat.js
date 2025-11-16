@@ -64,6 +64,7 @@ const handleVerification = async (message, user) => {
 		user.anticheat.verification_code = null
 		user.anticheat.last_flag_reason = null
 		user.anticheat.verification_attempts = 0
+		userBehaviorHistory.delete(user.userId)
 		msg = `${config.emoji.yes} Cảm ơn bạn đã xác thực! Bạn có thể tiếp tục chơi.`
 	} else {
 		user.anticheat.verification_attempts = (user.anticheat.verification_attempts || 0) + 1
