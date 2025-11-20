@@ -31,6 +31,9 @@ module.exports = {
 			switch (action) {
 				case 'nickname':
 					const nickname = isNaN(cokemonId) ? args[1] : args[2]
+					if (!nickname) {
+						throw new Error(`${config.emoji.no} Bạn phải đưa ra biệt danh muốn đặt.`)
+					}
 					result = await setNickname(targetCokemon, nickname)
 					break
 				case 'give':

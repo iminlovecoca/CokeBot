@@ -45,7 +45,7 @@ module.exports = {
 
 			const imageFile = cokemon.is_shiny ? species.shiny_image_file : species.image_file
 			const imagePath = `./assets/images/${imageFile}`
-			const catchDate = formatDateTimeToVietnamese(DateTime.fromJSDate(cokemon.createdAt))
+			const catchDate = formatDateTimeToVietnamese(DateTime.fromJSDate(cokemon.acquiredAt))
 
 			const embed = new EmbedBuilder()
 				.setColor(config.type_colors[species.type[0]] || '#FFFFFF')
@@ -57,7 +57,7 @@ module.exports = {
 					{ name: '\u200B', value: '\u200B' },
 					{ name: 'Chỉ số', value: stats.join('\n'), inline: true }
 				)
-				.setFooter({ text: `ID: ${cokemon.uid} | Bắt lúc: ${catchDate}` })
+				.setFooter({ text: `ID: ${cokemon.uid} | Nhận lúc: ${catchDate}` })
 
 			await message.reply({
 				embeds: [embed],

@@ -45,7 +45,7 @@ module.exports = {
 							}
 							break
 						case 'held_item':
-							if (cokemon.held_item_id !== condition.value) {
+							if (cokemon.held_item_id.item_id !== condition.value) {
 								conditionsMet = false
 							}
 							break
