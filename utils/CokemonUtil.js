@@ -291,7 +291,8 @@ const takeHeldItem = async (userId, cokemon) => {
 	const session = await mongoose.startSession()
 
 	try {
-		const cokemonName = getCokemonName(cokemon) 
+		const cokemonName = getCokemonName(cokemon)
+		await cokemon.populate('held_item_id')
 		const itemToTake = cokemon.held_item_id
 		if (!itemToTake) {
 			throw new Error(`${cokemonName} đang không giữ vật phẩm nào.`)
@@ -303,12 +304,12 @@ const takeHeldItem = async (userId, cokemon) => {
 				throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
 			}
 
-			user.inventory.set(itemToTake.item_id, (user.inventory.get(itemToTake) || 0) + 1)
+			user.inventory.set(itemToTake.item_id, (user.inventory.get(itemToTake.item_id) || 0) + 1)
 			cokemon.held_item_id = null
 			await user.save({ session })
 			await cokemon.save({ session })
 		})
-		return { success: true, message: `${config.emoji.yes} Bạn đã lấy lại **${itemToTake.name}**${item.emoji} từ **${cokemonName}**.` }
+		return { success: true, message: `${config.emoji.yes} Bạn đã lấy lại **${itemToTake.name}** ${itemToTake.emoji} từ **${cokemonName}** ${getCokemonEmoji(cokemon)}.` }
 	} catch (error) {
 		return { success: false, message: error.message }
 	} finally {
@@ -356,6 +357,7 @@ const giftCokemon = async (cokemon, originalOwnerId, newOwnerId) => {
 			freshCokemon.owner_id = newOwnerId
 			freshCokemon.catch_method = 'gifted'
 			freshCokemon.uid = newOwner.last_cokemon_id
+			freshCokemon.acquiredAt = new Date()
 			freshCokemon.friendship = config.cokemon_settings.base_friendship
 			await freshCokemon.save({ session })
 			await newOwner.save({ session })
@@ -387,14 +389,17 @@ const swapCokemonOwnership = async (p1Cokemon, p2Cokemon) => {
 			freshP1Cokemon.owner_id = p2Id
 			freshP1Cokemon.uid = p2.last_cokemon_id
 			freshP1Cokemon.catch_method = 'traded'
+			freshP1Cokemon.acquiredAt = new Date()
 			freshP1Cokemon.friendship = config.cokemon_settings.base_friendship
 
 			freshP2Cokemon.owner_id = p1Id
 			freshP2Cokemon.uid = p1.last_cokemon_id
 			freshP2Cokemon.catch_method = 'traded'
+			freshP2Cokemon.acquiredAt = new Date()
 			freshP2Cokemon.friendship = config.cokemon_settings.base_friendship
 
 			const processTradeEvolution = async (cokemon) => {
+				await cokemon.populate('species_id held_item_id')
 				const species = await cokemon.species_id
 				if (species.evolution && species.evolution.length > 0) {
 					let evolutionTargetId = null

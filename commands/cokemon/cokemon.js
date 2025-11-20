@@ -49,7 +49,7 @@ module.exports = {
 					break
 				case 'recent':
 				default:
-					sortedCokemon = userCokemon.sort((a, b) => b.createdAt - a.createdAt)
+					sortedCokemon = userCokemon.sort((a, b) => b.acquiredAt - a.acquiredAt)
 					break
 			}
 
@@ -73,7 +73,7 @@ module.exports = {
 					return `\`${idString}\`${paddingChar}${nameCol}${paddingChar}•${paddingChar}Lv. ${c.level}${paddingChar}•${paddingChar}${ivPercent}%`
 				}).join('\n')
 
-				const sortByVi = sortBy === 'recent' ? 'thời gian bắt' : sortBy === 'dex' ? 'thứ tự dex' : sortBy
+				const sortByVi = sortBy === 'recent' ? 'thời gian nhận' : sortBy === 'dex' ? 'thứ tự dex' : sortBy
 				const embed = new EmbedBuilder()
 					.setColor('#3498DB')
 					.setTitle(`Danh sách Cokemon của ${message.author.username}`)

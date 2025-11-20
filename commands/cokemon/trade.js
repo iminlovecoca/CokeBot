@@ -86,7 +86,7 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 			const execute = async () => {
 				if (isGift) {
 					const msg = await giftCokemon(p1Cokemon, p1Id, p2Id)
-					await registerDexEntry(p2Id, p1Cokemon.species_id, p1Cokemon.is_shiny)
+					await registerDexEntry(p2Id, p1Cokemon.species_id._id, p1Cokemon.is_shiny)
 					const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: msg })
 					await interactionMsg.edit({ embeds: [successEmbed] })
 				} else {
@@ -98,19 +98,19 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 							const p1CokemonEvolvedTo = tradeResult.p1CokemonEvolvedTo
 							const oldEmoji = getCokemonEmoji(p2Cokemon)
 							const newEmoji = p1CokemonEvolvedTo.emoji
-							resultMessage += `\n🎉 **${getCokemonName(p2Cokemon)}**${oldEmoji} của ${message.author.username} đã tiến hóa thành **${p1CokemonEvolvedTo.name}**${newEmoji}!`
+							resultMessage += `\n🎉 **${getCokemonName(p2Cokemon)}** ${oldEmoji} của **${message.author.username}** đã tiến hóa thành **${p1CokemonEvolvedTo.name}** ${newEmoji}!`
 							await registerDexEntry(p1Id, p1CokemonEvolvedTo._id, p2Cokemon.is_shiny)
 						} else {
-							await registerDexEntry(p1Id, p2Cokemon.species_id, p2Cokemon.is_shiny)
+							await registerDexEntry(p1Id, p2Cokemon.species_id._id, p2Cokemon.is_shiny)
 						}
 						if (tradeResult.p2CokemonEvolvedTo) {
 							const p2CokemonEvolvedTo = tradeResult.p2CokemonEvolvedTo
 							const oldEmoji = getCokemonEmoji(p1Cokemon)
 							const newEmoji = p2CokemonEvolvedTo.emoji
-							resultMessage += `\n🎉 **${getCokemonName(p1Cokemon)}**${oldEmoji} của ${p2.username} đã tiến hóa thành **${p2CokemonEvolvedTo.name}**${newEmoji}!`
+							resultMessage += `\n🎉 **${getCokemonName(p1Cokemon)}** ${oldEmoji} của **${p2.username}** đã tiến hóa thành **${p2CokemonEvolvedTo.name}** ${newEmoji}!`
 							await registerDexEntry(p2Id, p2CokemonEvolvedTo._id, p1Cokemon.is_shiny)
 						} else {
-							await registerDexEntry(p2Id, p1Cokemon.species_id, p1Cokemon.is_shiny)
+							await registerDexEntry(p2Id, p1Cokemon.species_id._id, p1Cokemon.is_shiny)
 						}
 
 						const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: '🐶 Trao đổi hoàn tất!' })

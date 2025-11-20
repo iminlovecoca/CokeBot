@@ -650,7 +650,11 @@ const getActiveCokemon = async userId => {
 	if (!user.active_cokemon_id) {
 		throw new Error(`${config.emoji.no} Bạn chưa chọn bạn đồng hành nào. Dùng \`!select <ID>\` để chọn một cokemon.`)
 	}
-	return await Cokemon.findById(user.active_cokemon_id).populate('species_id')
+	const cokemon = await Cokemon.findById(user.active_cokemon_id).populate('species_id')
+	if (!cokemon) {                                                                                                                                                                                            
+		throw new Error(`${config.emoji.warning} Cokemon đồng hành của bạn không còn tồn tại. Vui lòng chọn một Cokemon khác.`)                                                                              
+	}
+	return cokemon
 }
 
 const selectActiveCokemon = async (userId, cokemonUid) => {
@@ -675,7 +679,6 @@ const selectActiveCokemon = async (userId, cokemonUid) => {
 		})
 		return { success: true, ...resultData }
 	} catch (error) {
-		console.error(error)
 		return { success: false, message: error.message }
 	} finally {
 		session.endSession()

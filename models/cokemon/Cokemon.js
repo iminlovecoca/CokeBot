@@ -95,6 +95,17 @@ const cokemonSchema = new mongoose.Schema({
     ref: 'Item',
     default: null
   },
+  acquiredAt: {
+    type: Date,
+    default: Date.now
+  }
 }, { timestamps: true })
+
+cokemonSchema.pre('save', (next) => {
+  if (this.isNew) {
+    this.acquiredAt = this.createdAt
+  }
+  next()
+})
 
 module.exports = mongoose.model('Cokemon', cokemonSchema)

@@ -10189,67 +10189,96 @@ const speciesData = [
 ]
 
 const seedSpecies = async () => {
-    try {
-        const allAbilities = await Ability.find({})
-        const abilityMap = new Map(allAbilities.map(a => [a.name, a._id]))
+	try {
+		console.log('Preparing to seed species...')
+		const allAbilities = await Ability.find({})
+		const abilityMap = new Map(allAbilities.map(a => [a.name, a._id]))
 
-        const firstPassOps = speciesData.map(species => {
-            const { available_abilities, evolution, ...speciesDetails } = species
-            const populatedAbilities = (available_abilities || []).map(abilityInfo => {
-                const abilityId = abilityMap.get(abilityInfo.name)
-                return { ability: abilityId, is_hidden: abilityInfo.is_hidden }
-            }).filter(a => a.ability)
+		const firstPassOps = speciesData.map(species => {
+			const { available_abilities, evolution, ...speciesDetails } = species
+			const populatedAbilities = (available_abilities || []).map(abilityInfo => {
+				const abilityId = abilityMap.get(abilityInfo.name)
+				return { ability: abilityId, is_hidden: abilityInfo.is_hidden }
+			}).filter(a => a.ability)
 
-            return {
-                updateOne: {
-                    filter: { dex_id: species.dex_id },
-                    update: {
-                        $set: {
-                            ...speciesDetails,
-                            available_abilities: populatedAbilities,
-                            evolution: []
-                        }
-                    },
-                    upsert: true
-                }
-            }
-        })
+			return {
+				updateOne: {
+					filter: { dex_id: species.dex_id },
+					update: {
+						$set: {
+							...speciesDetails,
+							available_abilities: populatedAbilities,
+							evolution: [],
+							preevolution_species_id: null
+						}
+					},
+					upsert: true
+				}
+			}
+		})
 
-        await Species.bulkWrite(firstPassOps)
-        const allSeededSpecies = await Species.find({})
-        const nameToIdMap = new Map(allSeededSpecies.map(s => [s.name, s._id]))
+		await Species.bulkWrite(firstPassOps)
+		const allSeededSpecies = await Species.find({})
+		const nameToIdMap = new Map(allSeededSpecies.map(s => [s.name, s._id]))
 
-        const secondPassOps = []
-        for (const species of speciesData) {
-            if (!species.evolution || species.evolution.length === 0) {
-                continue
-            }
+		const secondPassOps = []
+		for (const species of speciesData) {
+			if (!species.evolution || species.evolution.length === 0) {
+				continue
+			}
 
-            const populatedEvolutions = species.evolution.map(evo => {
-                const targetId = nameToIdMap.get(evo.to)
-                return {
-                    ...evo,
-                    species_id: targetId
-                }
-            }).filter(e => e)
+			const populatedEvolutions = species.evolution.map(evo => {
+				const targetId = nameToIdMap.get(evo.to)
+				if (targetId) {
+					return {
+						species_id: targetId,
+						conditions: evo.conditions
+					}
+				}
+				return null
+			}).filter(e => e)
 
-            if (populatedEvolutions.length > 0) {
-                secondPassOps.push({
-                    updateOne: {
-                        filter: { dex_id: species.dex_id },
-                        update: { $set: { evolution: populatedEvolutions } }
-                    }
-                })
-            }
-        }
+			if (populatedEvolutions.length > 0) {
+				secondPassOps.push({
+					updateOne: {
+						filter: { dex_id: species.dex_id },
+						update: { $set: { evolution: populatedEvolutions } }
+					}
+				})
+			}
+		}
 
-        if (secondPassOps.length > 0) {
-            await Species.bulkWrite(secondPassOps)
-        }
+		if (secondPassOps.length > 0) {
+			await Species.bulkWrite(secondPassOps)
+		}
+
+		const thirdPassOps = []
+		for (const species of speciesData) {
+			const preEvolutionId = nameToIdMap.get(species.name)
+			if (!preEvolutionId || !species.evolution || species.evolution.length === 0) {
+				continue
+			}
+
+			for (const evo of species.evolution) {
+				const evolutionTargetId = nameToIdMap.get(evo.to)
+				if (evolutionTargetId) {
+					thirdPassOps.push({
+						updateOne: {
+							filter: { _id: evolutionTargetId },
+							update: { $set: { preevolution_species_id: preEvolutionId } }
+						}
+					})
+				}
+			}
+		}
+
+		if (thirdPassOps.length > 0) {
+			await Species.bulkWrite(thirdPassOps)
+		}
 		console.log('✅ Species data seeded successfully!')
-    } catch (error) {
-        console.error('❌ Error seeding species:', error)
-    }
+	} catch (error) {
+		console.error('❌ Error seeding species:', error)
+	}
 }
 
 module.exports = seedSpecies

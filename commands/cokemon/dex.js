@@ -163,7 +163,7 @@ module.exports = {
                         { name: 'Hệ', value: types.join('\n'), inline: true },
                         { name: 'Bậc', value: species.tier, inline: true },
                         { name: 'Có thể bắt', value: isCatchable, inline: true },
-                        { name: 'Đặc điểm', value: `**Cao:** ${species.appearance.height} m\n**Nặng:** ${species.appearance.weight} kg`, inline: true},
+                        { name: 'Đặc điểm', value: `**Cao:** ${species.appearance.height}m\n**Nặng:** ${species.appearance.weight}kg`, inline: true},
                         { name: 'Giới tính', value: genders.join('\n'), inline: true },
                         { name: 'Khả năng', value: abilities.join('\n'), inline: true },
                         { name: 'Chỉ số cơ bản', value: stats.join('\n'), inline: true },
@@ -232,7 +232,6 @@ module.exports = {
                 await initPage(message, generateDisplay, totalPages, '!dex')
             }
         } catch (error) {
-            console.error(error)
             await message.reply(error.message)
         }
     }
