@@ -31,32 +31,28 @@ module.exports = {
   usage: '`!bj [tiền cược|all]`',
   examples: '`!bj all`\n`!blackjack 10000`',
   execute: async (message, args) => {
-    try {
-      const userId = message.author.id
-      const game = await getGame(userId)
+    const userId = message.author.id
+    const game = await getGame(userId)
 
-      const remainingCooldown = checkAndSetCooldown(userId, 'bj', settings.cooldown_second)
-      if (remainingCooldown > 0) {
-        return notifyCooldown(message, remainingCooldown)
-      }
+    const remainingCooldown = checkAndSetCooldown(userId, 'bj', settings.cooldown_second)
+    if (remainingCooldown > 0) {
+      return notifyCooldown(message, remainingCooldown)
+    }
 
-      if (game) {
-        const playerHand = game.player
-        const dealerHand = game.dealer
-        const deck = game.deck
-        await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
-      } else {
-        let bet = args.length == 0 ? 'min' : args[0]
-        const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
-        const deck = createNewDeck()
-        const playerHand = [drawNewCard(deck), drawNewCard(deck)]
-        const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
-        await decBalance(userId, betAmount)
-        await addGame(userId, betAmount, playerHand, dealerHand, deck)
-        await blackjack(message, playerHand, dealerHand, deck, betAmount)
-      }
-    } catch (error) {
-      return await message.reply(error.message)
+    if (game) {
+      const playerHand = game.player
+      const dealerHand = game.dealer
+      const deck = game.deck
+      await blackjack(message, playerHand, dealerHand, deck, game.bet, true)
+    } else {
+      let bet = args.length == 0 ? 'min' : args[0]
+      const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
+      const deck = createNewDeck()
+      const playerHand = [drawNewCard(deck), drawNewCard(deck)]
+      const dealerHand = [drawNewCard(deck), drawNewCard(deck)]
+      await decBalance(userId, betAmount)
+      await addGame(userId, betAmount, playerHand, dealerHand, deck)
+      await blackjack(message, playerHand, dealerHand, deck, betAmount)
     }
   }
 }

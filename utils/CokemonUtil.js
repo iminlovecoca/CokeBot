@@ -4,6 +4,7 @@ const Species = require('../models/cokemon/Species')
 const Item = require('../models/cokemon/Item')
 const User = require('../models/User')
 const { formatDuration } = require('./miscUtil')
+const { UserFriendlyError, handleUtilityError } = require('./errors')
 const config = require('../data/config')
 const natureNames = Object.keys(config.natures)
 
@@ -60,7 +61,7 @@ const createRandomCokemon = async (speciesName = null, level = null, shiny = fal
 		selectedSpecies = await Species.findOne({ name: new RegExp(`^${speciesName}$`, 'i') })
 			.populate('available_abilities')
 		if (!selectedSpecies) {
-			throw new Error(`${config.emoji.no} Không tìm thấy loài Cokemon nào có tên \`${selectedSpecies}\`.`)
+			throw new UserFriendlyError(`${config.emoji.no} Không tìm thấy loài Cokemon nào có tên \`${speciesName}\`.`)
 		}
 	} else {
 		const spawnPool = await Species.find({}).populate('available_abilities')
@@ -213,241 +214,234 @@ const getCokemonName = cokemon => {
 }
 
 const setNickname = async (cokemon, nickname) => {
-	let message
-	const cokemonName = getCokemonName(cokemon)
-	const cokemonEmoji = getCokemonEmoji(cokemon)
+	return handleUtilityError(async () => {
+		const cokemonName = getCokemonName(cokemon)
+		const cokemonEmoji = getCokemonEmoji(cokemon)
 
-	try {
 		if (!nickname) {
 			cokemon.nickname = null
 			await cokemon.save()
-			message = `${config.emoji.yes} Bạn đã xóa biệt danh của **${cokemonName}** ${cokemonEmoji}.`
+			return `${config.emoji.yes} Bạn đã xóa biệt danh của **${cokemonName}** ${cokemonEmoji}.`
 		}
 
 		if (nickname.length > config.cokemon_settings.max_nickname_len) {
-			throw new Error(`${config.emoji.no} Biệt danh không được dài quá ${config.cokemon_settings.max_nickname_len} ký tự.`)
+			throw new UserFriendlyError(`${config.emoji.no} Biệt danh không được dài quá ${config.cokemon_settings.max_nickname_len} ký tự.`)
 		}
 
 		cokemon.nickname = nickname
 		await cokemon.save()
-		message = `${config.emoji.yes} Bạn đã đổi biệt danh của **${cokemonName}** ${cokemonEmoji} thành **${nickname}**.`
-		return { success: true, message }
-	} catch (error) {
-		return { success: false, message: error.message }
-	}
+		return `${config.emoji.yes} Bạn đã đổi biệt danh của **${cokemonName}** ${cokemonEmoji} thành **${nickname}**.`
+	}, 'setNickname')
 }
 
 const giveHeldItem = async (userId, cokemon, itemIdToGive) => {
-	const session = await mongoose.startSession()
-	try {
-		let message
-		await session.withTransaction(async () => {
-			const user = await User.findOne({ userId }).session(session)
-			if (!user) {
-				throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
-			}
+	return handleUtilityError(async () => {
+		const session = await mongoose.startSession()
+		try {
+			let message = null
+			await session.withTransaction(async () => {
+				const user = await User.findOne({ userId }).session(session)
+				if (!user) {
+					throw new UserFriendlyError(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
+				}
 
-			const itemToGive = await Item.findOne({ item_id: itemIdToGive }).session(session)
-			if (!itemToGive) {
-				throw new Error(`${config.emoji.no} Không tìm thấy vật phẩm nào có ID \`${itemIdToGive}\`.`)
-			}
+				const itemToGive = await Item.findOne({ item_id: itemIdToGive }).session(session)
+				if (!itemToGive) {
+					throw new UserFriendlyError(`${config.emoji.no} Không tìm thấy vật phẩm nào có ID \`${itemIdToGive}\`.`)
+				}
 
-			const ownedQuantity = user.inventory.get(itemIdToGive) || 0
-			if (ownedQuantity < 1) {
-				throw new Error(`${config.emoji.no} Bạn không có vật phẩm \`${itemIdToGive}\`.`)
-			}
+				const ownedQuantity = user.inventory.get(itemIdToGive) || 0
+				if (ownedQuantity < 1) {
+					throw new UserFriendlyError(`${config.emoji.no} Bạn không có vật phẩm \`${itemIdToGive}\`.`)
+				}
 
-			const newQuantity = ownedQuantity - 1
-			if (newQuantity === 0) {
-				user.inventory.delete(itemIdToGive)
-			} else {
-				user.inventory.set(itemIdToGive, newQuantity)
-			}
+				const newQuantity = ownedQuantity - 1
+				if (newQuantity === 0) {
+					user.inventory.delete(itemIdToGive)
+				} else {
+					user.inventory.set(itemIdToGive, newQuantity)
+				}
 
-			await cokemon.populate('held_item_id')
-			const heldItem = cokemon.held_item_id
-			const cokemonName = getCokemonName(cokemon)
-			const cokemonEmoji = getCokemonEmoji(cokemon)
-			if (heldItem) {
-				user.inventory.set(heldItem.item_id, (user.inventory.get(heldItem.item_id) || 0) + 1)
-				message = `${config.emoji.yes} Bạn đã lấy lại **${heldItem.name}** ${heldItem.emoji} và đưa **${itemToGive.name}** ${itemToGive.emoji} cho **${cokemonName}** ${cokemonEmoji} giữ.`
-			} else {
-				message = `${config.emoji.yes} Bạn đã đưa **${itemToGive.name}** ${itemToGive.emoji} cho **${cokemonName}** ${cokemonEmoji} giữ.`
-			}
+				await cokemon.populate('held_item_id')
+				const heldItem = cokemon.held_item_id
+				const cokemonName = getCokemonName(cokemon)
+				const cokemonEmoji = getCokemonEmoji(cokemon)
+				if (heldItem) {
+					user.inventory.set(heldItem.item_id, (user.inventory.get(heldItem.item_id) || 0) + 1)
+					message = `${config.emoji.yes} Bạn đã lấy lại **${heldItem.name}** ${heldItem.emoji} và đưa **${itemToGive.name}** ${itemToGive.emoji} cho **${cokemonName}** ${cokemonEmoji} giữ.`
+				} else {
+					message = `${config.emoji.yes} Bạn đã đưa **${itemToGive.name}** ${itemToGive.emoji} cho **${cokemonName}** ${cokemonEmoji} giữ.`
+				}
 
-			cokemon.held_item_id = itemToGive._id
-			await user.save({ session })
-			await cokemon.save({ session })
-		})
-		return { success: true, message: message }
-	} catch (error) {
-		return { success: false, message: error.message }
-	} finally {
-		session.endSession()
-	}
+				cokemon.held_item_id = itemToGive._id
+				await user.save({ session })
+				await cokemon.save({ session })
+			})
+			return message
+		} finally {
+			session.endSession()
+		}
+	}, 'giveHeldItem')
 }
 
 const takeHeldItem = async (userId, cokemon) => {
-	const session = await mongoose.startSession()
-
-	try {
-		const cokemonName = getCokemonName(cokemon)
-		await cokemon.populate('held_item_id')
-		const itemToTake = cokemon.held_item_id
-		if (!itemToTake) {
-			throw new Error(`${cokemonName} đang không giữ vật phẩm nào.`)
-		}
-
-		await session.withTransaction(async () => {
-			const user = await User.findOne({ userId }).session(session)
-			if (!user) {
-				throw new Error(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
+	return handleUtilityError(async () => {
+		const session = await mongoose.startSession()
+		try {
+			const cokemonName = getCokemonName(cokemon)
+			await cokemon.populate('held_item_id')
+			const itemToTake = cokemon.held_item_id
+			if (!itemToTake) {
+				throw new UserFriendlyError(`${cokemonName} đang không giữ vật phẩm nào.`)
 			}
 
-			user.inventory.set(itemToTake.item_id, (user.inventory.get(itemToTake.item_id) || 0) + 1)
-			cokemon.held_item_id = null
-			await user.save({ session })
-			await cokemon.save({ session })
-		})
-		return { success: true, message: `${config.emoji.yes} Bạn đã lấy lại **${itemToTake.name}** ${itemToTake.emoji} từ **${cokemonName}** ${getCokemonEmoji(cokemon)}.` }
-	} catch (error) {
-		return { success: false, message: error.message }
-	} finally {
-		session.endSession()
-	}
+			await session.withTransaction(async () => {
+				const user = await User.findOne({ userId }).session(session)
+				if (!user) {
+					throw new UserFriendlyError(`${config.emoji.no} Không thể tìm thấy dữ liệu người chơi.`)
+				}
+
+				user.inventory.set(itemToTake.item_id, (user.inventory.get(itemToTake.item_id) || 0) + 1)
+				cokemon.held_item_id = null
+				await user.save({ session })
+				await cokemon.save({ session })
+			})
+			return `${config.emoji.yes} Bạn đã lấy lại **${itemToTake.name}** ${itemToTake.emoji} từ **${cokemonName}** ${getCokemonEmoji(cokemon)}.`
+		} finally {
+			session.endSession()
+		}
+	}, 'takeHeldItem')
 }
 
 const cuddleCokemon = async (client, userId, cokemon) => {
-	try {
+	return handleUtilityError(async () => {
 		const now = Date.now()
 		const cooldown = client.cuddleCooldowns.get(userId) || 0
 		const cokemonName = getCokemonName(cokemon)
 		if (now < cooldown) {
 			const remaining = Math.ceil((cooldown - now) / 1000)
-			throw new Error(`${config.emoji.no} Bạn có thể âu yếm ${cokemonName} lại sau ${formatDuration(remaining)}.`)
+			throw new UserFriendlyError(`${config.emoji.no} Bạn có thể âu yếm ${cokemonName} lại sau ${formatDuration(remaining)}.`)
 		}
 
 		cokemon.friendship = Math.min((cokemon.friendship || 0) + 2, config.cokemon_settings.max_friendship)
 		await cokemon.save()
 		client.cuddleCooldowns.set(userId, now + config.cokemon_settings.cuddle_cooldown_ms)
-		return { success: true, message: `♥️ Bạn vừa âu yếm **${cokemonName}** ${getCokemonEmoji(cokemon)}, tình bạn càng thêm khăng khít!` }
-	} catch (error) {
-		return { success: false, message: error.message }
-	}
+		return `♥️ Bạn vừa âu yếm **${cokemonName}** ${getCokemonEmoji(cokemon)}, tình bạn càng thêm khăng khít!`
+	}, 'cuddleCokemon')
 }
 
 const giftCokemon = async (cokemon, originalOwnerId, newOwnerId) => {
-	const session = await mongoose.startSession()
-	const cokemonName = getCokemonName(cokemon)
+	return handleUtilityError(async () => {
+		const session = await mongoose.startSession()
+		const cokemonName = getCokemonName(cokemon)
 
-	try {
-		await session.withTransaction(async () => {
-			const freshCokemon = await Cokemon.findById(cokemon._id).session(session)
+		try {
+			await session.withTransaction(async () => {
+				const freshCokemon = await Cokemon.findById(cokemon._id).session(session)
+				if (freshCokemon.owner_id !== originalOwnerId) {
+					return `${cokemonName} đã được tặng hoặc trao đổi với người khác rồi.`
+				}
 
-			if (freshCokemon.owner_id !== originalOwnerId) {
-				return `${cokemonName} đã được tặng hoặc trao đổi với người khác rồi.`
-			}
+				const newOwner = await User.findOne({ userId: newOwnerId }).session(session)
+				if (!newOwner) {
+					throw new UserFriendlyError(`${config.emoji.no} Không tìm thấy người nhận cokemon.`)
+				}
 
-			const newOwner = await User.findOne({ userId: newOwnerId }).session(session)
-			if (!newOwner) {
-				throw new Error(`${config.emoji.no} Không tìm thấy người nhận Cokemon.`)
-			}
-
-			newOwner.last_cokemon_id++
-			freshCokemon.owner_id = newOwnerId
-			freshCokemon.catch_method = 'gifted'
-			freshCokemon.uid = newOwner.last_cokemon_id
-			freshCokemon.acquiredAt = new Date()
-			freshCokemon.friendship = config.cokemon_settings.base_friendship
-			await freshCokemon.save({ session })
-			await newOwner.save({ session })
-		})
-		return `🐶 ${cokemonName} đã được gửi thành công!`
-	} catch (error) {
-		throw error
-	} finally {
-		session.endSession()
-	}
+				newOwner.last_cokemon_id++
+				freshCokemon.owner_id = newOwnerId
+				freshCokemon.catch_method = 'gifted'
+				freshCokemon.uid = newOwner.last_cokemon_id
+				freshCokemon.acquiredAt = new Date()
+				freshCokemon.friendship = config.cokemon_settings.base_friendship
+				await freshCokemon.save({ session })
+				await newOwner.save({ session })
+			})
+			return `🐶 ${cokemonName} đã được gửi thành công!`
+		} finally {
+			session.endSession()
+		}
+	}, 'giftCokemon')
 }
 
 const swapCokemonOwnership = async (p1Cokemon, p2Cokemon) => {
-	const p1Id = p1Cokemon.owner_id
-	const p2Id = p2Cokemon.owner_id
+	return handleUtilityError(async () => {
+		const p1Id = p1Cokemon.owner_id
+		const p2Id = p2Cokemon.owner_id
 
-	const session = await mongoose.startSession()
-	let evolutionResults = { p1CokemonEvolvedTo: null, p2CokemonEvolvedTo: null }
-	try {
-		await session.withTransaction(async () => {
-			const p1 = await User.findOne({ userId: p1Id }).session(session)
-			const p2 = await User.findOne({ userId: p2Id }).session(session)
-			const freshP1Cokemon = await Cokemon.findById(p1Cokemon._id).session(session)
-			const freshP2Cokemon = await Cokemon.findById(p2Cokemon._id).session(session)
+		const session = await mongoose.startSession()
+		let evolutionResults = { p1CokemonEvolvedTo: null, p2CokemonEvolvedTo: null }
+		try {
+			await session.withTransaction(async () => {
+				const p1 = await User.findOne({ userId: p1Id }).session(session)
+				const p2 = await User.findOne({ userId: p2Id }).session(session)
+				const freshP1Cokemon = await Cokemon.findById(p1Cokemon._id).session(session)
+				const freshP2Cokemon = await Cokemon.findById(p2Cokemon._id).session(session)
 
-			p1.last_cokemon_id++
-			p2.last_cokemon_id++
+				p1.last_cokemon_id++
+				p2.last_cokemon_id++
 
-			freshP1Cokemon.owner_id = p2Id
-			freshP1Cokemon.uid = p2.last_cokemon_id
-			freshP1Cokemon.catch_method = 'traded'
-			freshP1Cokemon.acquiredAt = new Date()
-			freshP1Cokemon.friendship = config.cokemon_settings.base_friendship
+				freshP1Cokemon.owner_id = p2Id
+				freshP1Cokemon.uid = p2.last_cokemon_id
+				freshP1Cokemon.catch_method = 'traded'
+				freshP1Cokemon.acquiredAt = new Date()
+				freshP1Cokemon.friendship = config.cokemon_settings.base_friendship
 
-			freshP2Cokemon.owner_id = p1Id
-			freshP2Cokemon.uid = p1.last_cokemon_id
-			freshP2Cokemon.catch_method = 'traded'
-			freshP2Cokemon.acquiredAt = new Date()
-			freshP2Cokemon.friendship = config.cokemon_settings.base_friendship
+				freshP2Cokemon.owner_id = p1Id
+				freshP2Cokemon.uid = p1.last_cokemon_id
+				freshP2Cokemon.catch_method = 'traded'
+				freshP2Cokemon.acquiredAt = new Date()
+				freshP2Cokemon.friendship = config.cokemon_settings.base_friendship
 
-			const processTradeEvolution = async (cokemon) => {
-				await cokemon.populate('species_id held_item_id')
-				const species = await cokemon.species_id
-				if (species.evolution && species.evolution.length > 0) {
-					let evolutionTargetId = null
+				const processTradeEvolution = async (cokemon) => {
+					await cokemon.populate('species_id held_item_id')
+					const species = await cokemon.species_id
+					if (species.evolution && species.evolution.length > 0) {
+						let evolutionTargetId = null
 
-					for (const evo of species.evolution) {
-						const tradeCondition = evo.conditions.find(c => c.type === 'trade')
-						const tradeItemCondition = evo.conditions.find(c => c.type === 'trade_item')
-						if (tradeCondition) {
-							evolutionTargetId = evo.species_id
-							break
-						}
-
-						if (tradeItemCondition) {
-							if (cokemon.held_item_id && cokemon.held_item_id.item_id === tradeItemCondition.value) {
+						for (const evo of species.evolution) {
+							const tradeCondition = evo.conditions.find(c => c.type === 'trade')
+							const tradeItemCondition = evo.conditions.find(c => c.type === 'trade_item')
+							if (tradeCondition) {
 								evolutionTargetId = evo.species_id
 								break
 							}
-						}
-					}
 
-					if (evolutionTargetId) {
-						const newSpecies = await Species.findById(evolutionTargetId).populate('available_abilities').session(session)
-						if (newSpecies) {
-							const hasAbility = newSpecies.available_abilities.some(a => a._id.equals(cokemon.ability))
-							if (!hasAbility) {
-								cokemon.ability = getRandomAbility(newSpecies)
+							if (tradeItemCondition) {
+								if (cokemon.held_item_id && cokemon.held_item_id.item_id === tradeItemCondition.value) {
+									evolutionTargetId = evo.species_id
+									cokemon.held_item_id = null
+									break
+								}
 							}
-							cokemon.species_id = newSpecies._id
-							return newSpecies
+						}
+
+						if (evolutionTargetId) {
+							const newSpecies = await Species.findById(evolutionTargetId).populate('available_abilities').session(session)
+							if (newSpecies) {
+								const hasAbility = newSpecies.available_abilities.some(a => a._id.equals(cokemon.ability))
+								if (!hasAbility) {
+									cokemon.ability = getRandomAbility(newSpecies)
+								}
+								cokemon.species_id = newSpecies._id
+								return newSpecies
+							}
 						}
 					}
+					return null
 				}
-				return null
-			}
 
-			evolutionResults.p1CokemonEvolvedTo = await processTradeEvolution(freshP2Cokemon)
-			evolutionResults.p2CokemonEvolvedTo = await processTradeEvolution(freshP1Cokemon)
-			await p1.save({ session })
-			await p2.save({ session })
-			await freshP1Cokemon.save({ session })
-			await freshP2Cokemon.save({ session })
-		})
-		return { success: true, ...evolutionResults }
-	} catch (error) {
-		return { success: false, message: `${config.emoji.no} Lỗi trong quá trình trao đổi, hãy thử lại nào.` }
-	} finally {
-		session.endSession()
-	}
+				evolutionResults.p1CokemonEvolvedTo = await processTradeEvolution(freshP2Cokemon)
+				evolutionResults.p2CokemonEvolvedTo = await processTradeEvolution(freshP1Cokemon)
+				await p1.save({ session })
+				await p2.save({ session })
+				await freshP1Cokemon.save({ session })
+				await freshP2Cokemon.save({ session })
+			})
+			return evolutionResults
+		} finally {
+			session.endSession()
+		}
+	}, 'swapCokemonOwnership')
 }
 
 const getPersonalityValue = cokemon => {
@@ -513,7 +507,7 @@ const getStatText = stat => {
 const getItem = (client, itemId) => {
 	const item = client.allItems.find(i => i.item_id === itemId)
 	if (!item) {
-		throw new Error(`${config.emoji.no} Vật phẩm không tồn tại.`)
+		throw new UserFriendlyError(`${config.emoji.no} Vật phẩm không tồn tại.`)
 	}
 	return item
 }

@@ -1,4 +1,25 @@
-const buildCokemonQuery = args => {
+const Ability = require('../models/cokemon/Ability')
+const { UserFriendlyError } = require('./errors')
+const config = require('../data/config')
+
+const validateFilterArgs = args => {
+    if (!args || args.length === 0) {
+        throw new UserFriendlyError(`${config.emoji.no} Bạn phải cung cấp ít nhất một bộ lọc.`)
+    }
+
+    const hasInvalidFilter = args.some(arg => arg === '--')
+    if (hasInvalidFilter) {
+        throw new UserFriendlyError(`${config.emoji.no} Bộ lọc không hợp lệ. Hãy chỉ định một bộ lọc (ví dụ: \`--tier common\`).`)
+    }
+
+    const hasValidFilterKey = args.some(arg => arg.length > 2 && arg.startsWith('--'))
+    if (!hasValidFilterKey) {
+        throw new UserFriendlyError(`${config.emoji.no} Bạn phải cung cấp ít nhất một bộ lọc hợp lệ (ví dụ: \`--tier common\`).`)
+    }
+    return true
+}
+
+const buildCokemonQuery = async (args) => {
     const cokemonQueryParts = []
     const speciesQueryParts = []
 
@@ -8,6 +29,7 @@ const buildCokemonQuery = args => {
         'name': { target: speciesQueryParts, field: 'name', type: 'string' },
         'nickname': { target: cokemonQueryParts, field: 'nickname', type: 'string' },
         'nature': { target: cokemonQueryParts, field: 'nature', type: 'string' },
+        'ability': { target: cokemonQueryParts, field: 'ability', type: 'ability_filter' },
         'gender': { target: cokemonQueryParts, field: 'gender', type: 'string' },
         'lvl': { target: cokemonQueryParts, field: 'level', type: 'numeric' },
         'iv': { target: cokemonQueryParts, field: 'iv_percent', type: 'numeric' },
@@ -60,14 +82,24 @@ const buildCokemonQuery = args => {
         const filterConfig = filters[flag]
         if (!filterConfig) continue
 
-        let valueParts = [];
+        let valueParts = []
         while (i + 1 < args.length && !args[i + 1].startsWith('--')) {
             valueParts.push(args[++i])
         }
         if (valueParts.length === 0) continue
 
         const { target, field, type } = filterConfig
-        if (type === 'string') {
+        if (type === 'ability_filter') {
+            const abilityNames = valueParts.map(s => new RegExp(`^${s.trim()}$`, 'i'))
+            const matchingAbilities = await Ability.find({ name: { $in: abilityNames } })
+
+            if (matchingAbilities.length > 0) {
+                const abilityIds = matchingAbilities.map(a => a._id)
+                target.push({ [field]: { $in: abilityIds } })
+            } else {
+                target.push({ [field]: null })
+            }
+        } else if (type === 'string') {
             const orClauses = valueParts.map(group => {
                 const andValues = group.split(',').map(t => new RegExp(`^${t.trim()}$`, 'i'))
 
@@ -81,7 +113,7 @@ const buildCokemonQuery = args => {
             if (orClauses.length > 1) {
                 target.push({ $or: orClauses })
             } else {
-                target.push(orClauses[0]);
+                target.push(orClauses[0])
             }
         } else if (type === 'numeric') {
             const numValue = parseFloat(valueParts[0]) // Numeric filters only take the first value
@@ -100,4 +132,4 @@ const buildItemQuery = args => {
 
 }
 
-module.exports = { buildCokemonQuery, buildItemQuery }
+module.exports = { validateFilterArgs, buildCokemonQuery, buildItemQuery }

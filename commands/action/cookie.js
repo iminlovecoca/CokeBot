@@ -2,6 +2,7 @@ const danisaEmoji = '<:danisa:1404057793920635043>';
 const ownerId = process.env.OWNER_ID;
 const User = require('../../models/User');
 const { checkAndSetCooldown } = require('../../utils/cooldown')
+const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 const COOLDOWN = 300;
 
@@ -20,8 +21,7 @@ module.exports = {
         if (minutes > 0) timeString += `${minutes} phút`;
         if (minutes > 0 && seconds > 0) timeString += ' ';
         if (seconds > 0) timeString += `${seconds} giây`;
-
-        return message.reply(`⏱ | Bạn phải chờ **${timeString}** để dùng lại lệnh.`);
+        throw new UserFriendlyError(`⏱ | Bạn phải chờ **${timeString}** để dùng lại lệnh.`);
       }
     }
 
@@ -44,16 +44,16 @@ module.exports = {
 
     const userMention = message.mentions.users.first();
     if (!userMention) {
-      return message.reply(`${config.emoji.no} Bạn phải tag một người dùng hợp lệ!`);
+      throw new UserFriendlyError(`${config.emoji.no} Bạn phải tag một người dùng hợp lệ!`);
     }
 
     if (userMention.id === authorId) {
-      return message.reply(`${config.emoji.no} Bạn không thể tặng bánh **Danisa** cho chính mình!`);
+      throw new UserFriendlyError(`${config.emoji.no} Bạn không thể tặng bánh **Danisa** cho chính mình!`);
     }
 
     if (authorId !== ownerId) {
       if (authorUser.cookie <= 0) {
-        return message.reply(`${config.emoji.no} Bạn không còn hộp **Danisa** nào để tặng!`);
+        throw new UserFriendlyError(`${config.emoji.no} Bạn không còn hộp **Danisa** nào để tặng!`);
       }
       authorUser.cookie -= 1;
       await authorUser.save();
@@ -70,7 +70,7 @@ module.exports = {
 
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
     const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
-    return message.channel.send(
+    await message.channel.send(
       `${danisaEmoji} **| ${authorDisplayName}** vừa tặng 1 hộp **Danisa** cho **${targetDisplayName}**!\n` +
       `📦 Bạn còn lại **${authorUser.cookie} hộp**.`
     );

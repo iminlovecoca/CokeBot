@@ -9,7 +9,6 @@ const {
   Events,
   Partials
 } = require('discord.js');
-const User = require('./models/User');
 const Species = require('./models/cokemon/Species');
 const Item = require('./models/cokemon/Item');
 const spawner = require('./features/spawner');
@@ -121,7 +120,6 @@ async function connectWithRetry() {
 
     console.log('✅ Đã kết nối MongoDB');
     client.login(process.env.TOKEN);
-
   } catch (err) {
     console.error('❌ MongoDB lỗi kết nối:', err);
     setTimeout(connectWithRetry, 5000); 

@@ -7,33 +7,29 @@ module.exports = {
 	name: 'shop',
 	description: 'Hiển thị giao diện cửa hàng.',
 	async execute(message) {
-		try {
-			const allItems = message.client.allItems.filter(item => item.price !== null)
-			const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE)
+		const allItems = message.client.allItems.filter(item => item.price !== null)
+		const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE)
 
-			const generateDisplay = (page) => {
-				const startIdx = page * ITEMS_PER_PAGE
-				const pageItems = allItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
-				const paddingChar = '\u2003'
+		const generateDisplay = (page) => {
+			const startIdx = page * ITEMS_PER_PAGE
+			const pageItems = allItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+			const paddingChar = '\u2003'
 
-				const embed = new EmbedBuilder()
-					.setColor('#0099ff')
-					.setTitle('Cửa Hàng Cokemon')
-					.setDescription("Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng `!buy <id> [số lượng]` để mua hoặc `!sell <id> [số lượng]` để bán.")
-					.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
+			const embed = new EmbedBuilder()
+				.setColor('#0099ff')
+				.setTitle('Cửa Hàng Cokemon')
+				.setDescription("Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng `!buy <id> [số lượng]` để mua hoặc `!sell <id> [số lượng]` để bán.")
+				.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
 
-				pageItems.forEach(item => {
-					embed.addFields({
-						name: `${item.emoji} ${item.name}${paddingChar}•${paddingChar}\`${item.item_id}\``,
-						value: `*${item.description}*\n**Giá:** ${config.emoji.money} ${item.price}`,
-						inline: false
-					})
+			pageItems.forEach(item => {
+				embed.addFields({
+					name: `${item.emoji} ${item.name}${paddingChar}•${paddingChar}\`${item.item_id}\``,
+					value: `*${item.description}*\n**Giá:** ${config.emoji.money} ${item.price}`,
+					inline: false
 				})
-				return { embeds: [embed] }
-			}
-			await initPage(message, generateDisplay, totalPages, '!shop')
-		} catch(error) {
-			return await message.reply(error.message)
+			})
+			return { embeds: [embed] }
 		}
+		await initPage(message, generateDisplay, totalPages, '!shop')
 	}
 }

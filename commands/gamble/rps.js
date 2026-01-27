@@ -18,27 +18,23 @@ module.exports = {
   usage: '`!rps [tiền cược|all]`',
   examples: '`!rps all`\n`!kbb 100000`',
   async execute(message, args) {
-    try {
-      const userId = message.author.id
-      const game = await getGame(userId)
+    const userId = message.author.id
+    const game = await getGame(userId)
 
-      const remainingCooldown = checkAndSetCooldown(userId, 'rps', settings.cooldown_second)
-      if (remainingCooldown > 0) {
-        return notifyCooldown(message, remainingCooldown)
-      }
+    const remainingCooldown = checkAndSetCooldown(userId, 'rps', settings.cooldown_second)
+    if (remainingCooldown > 0) {
+      return notifyCooldown(message, remainingCooldown)
+    }
 
-      if (game) {
-        await rps(message, game.bet, game.botChoice, true)
-      } else {
-        let bet = args.length == 0 ? 'min' : args[0]
-        const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
-        const botChoice = choices[Math.floor(Math.random() * choices.length)]
-        await decBalance(userId, betAmount)
-        await addGame(userId, betAmount, botChoice)
-        await rps(message, betAmount, botChoice)
-      }
-    } catch (error) {
-      await message.reply(error.message)
+    if (game) {
+      await rps(message, game.bet, game.botChoice, true)
+    } else {
+      let bet = args.length == 0 ? 'min' : args[0]
+      const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet)
+      const botChoice = choices[Math.floor(Math.random() * choices.length)]
+      await decBalance(userId, betAmount)
+      await addGame(userId, betAmount, botChoice)
+      await rps(message, betAmount, botChoice)
     }
   }
 }

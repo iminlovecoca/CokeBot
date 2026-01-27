@@ -1,3 +1,6 @@
+const { UserFriendlyError } = require('../../utils/errors')
+const config = require('../../data/config')
+
 module.exports = {
     name: 'choose',
     description: 'Chọn ngẫu nhiên 1 lựa chọn từ danh sách',
@@ -12,20 +15,17 @@ module.exports = {
         ];
 
         if (!args.length) {
-            return message.reply('❌ Bạn phải nhập ít nhất 1 lựa chọn, ví dụ: `!choose táo, cam, chuối`');
+            throw new UserFriendlyError(`${config.emoji.no} Bạn phải nhập ít nhất 2 lựa chọn, ví dụ: \`!choose táo, cam, chuối\``)
         }
 
         const choices = args.join(' ').split(',').map(c => c.trim()).filter(c => c.length > 0);
-
         if (choices.length < 2) {
-            return message.reply('❌ Bạn cần ít nhất 2 lựa chọn để tôi chọn!');
+            throw new UserFriendlyError(`${config.emoji.no} Bạn cần ít nhất 2 lựa chọn để tôi chọn!`);
         }
 
         const choice = choices[Math.floor(Math.random() * choices.length)];
-
         let msgTemplate = msgs[Math.floor(Math.random() * msgs.length)];
         msgTemplate = msgTemplate.replace('?', choice);
-
         message.channel.send(`🎲 **|** **${message.author.username}**, ${msgTemplate}`);
     }
-};
+}

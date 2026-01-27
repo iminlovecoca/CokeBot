@@ -27,11 +27,8 @@ const userSchema = new mongoose.Schema({
   tea: { type: Number, default: 0 },
   luck: { type: Number, default: 0 },
 
-  // bank: { type: Number, default: 0 },
-  // bankLastUpdate: { type: Date },
-  // transferHistory: { type: [Object], default: [] },
-  // receiveHistory: { type: [Object], default: [] },
-
+  transferHistory: { type: [Object], default: [] },
+  receiveHistory: { type: [Object], default: [] },
   dailyGive: { type: Object, default: {} },
   dailyReceive: { type: Object, default: {} },
   lastWork: { type: Number, default: 0 },
@@ -78,7 +75,6 @@ const userSchema = new mongoose.Schema({
 
   warned: { type: Boolean, default: false },
   warnedAt: { type: Number, default: null },
-
 });
 
 module.exports = mongoose.model('User', userSchema);

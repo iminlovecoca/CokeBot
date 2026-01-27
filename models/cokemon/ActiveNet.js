@@ -13,8 +13,13 @@ const activeNetSchema = new mongoose.Schema({
     },
     caught: {
         type: Map,
-        of: Number,
-        default: {}
+        of: new mongoose.Schema({
+            name: String,
+            emoji: String,
+            shiny_emoji: String,
+            normal_caught: { type: Number, default: 0 },
+            shiny_caught: { type: Number, default: 0 }
+        }, { _id: false })
     }
 })
 

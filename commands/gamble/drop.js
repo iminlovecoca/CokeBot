@@ -1,6 +1,7 @@
-const { getOrCreateUser, decBalance } = require('../../utils/userUtil');
+const { getUser, decBalance } = require('../../utils/userUtil');
 const { getDrop, addDrop, delDrop } = require('../../utils/dropUtil');
 const { checkAndSetCooldown } = require('../../utils/cooldown')
+const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config');
 
 module.exports = {
@@ -12,13 +13,13 @@ module.exports = {
     const amount = parseInt(args[0]);
     const userId = message.author.id;
     const channelId = message.channel.id;
-    const duration = 10000;
+    const duration = 10;
 
     if (isNaN(amount) || amount <= 0) {
-      return message.reply('❌ **|** Vui lòng nhập số coke hợp lệ để thả.');
+      throw new UserFriendlyError(`${config.emoji.no} **|** Vui lòng nhập số coke hợp lệ để thả.`);
     }
 
-    const remaining = checkAndSetCooldown(userId, 'drop', 10)
+    const remaining = checkAndSetCooldown(userId, 'drop', duration)
     if (remaining > 0) {
       return message.reply(`⏱ **|** Bạn cần chờ **${remaining} giây** trước khi dùng lại \`!drop\`.`);
     }
@@ -28,27 +29,19 @@ module.exports = {
       return message.reply('⚠️ **|** Đã có một drop đang diễn ra trong kênh này! Hãy chờ drop kết thúc trước khi thả mới.');
     }
 
-    const user = await getOrCreateUser(userId);
+    const user = await getUser(userId);
     if (user.coke < amount) {
-      return message.reply('❌ **|** Bạn không đủ coke để thả!');
+      throw new UserFriendlyError(`${config.emoji.no} **|** Bạn không đủ coke để thả!`);
     }
 
-    const taxRate = 0.05;
-    const tax = Math.floor(amount * taxRate);
-    const finalAmount = amount - tax;
-
     await decBalance(userId, amount);
-    await addDrop(channelId, finalAmount, duration);
-
-    const taxNote = `${config.emoji.money} **| ${tax.toLocaleString()} coke** (5%) đã bị đánh thuế.\n`;
-
+    await addDrop(channelId, amount, duration * 1000);
     const dropMsg = await message.channel.send(
-      `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${finalAmount.toLocaleString()} coke** xuống!\n` +
-      taxNote +
-      `⏱  **|** Dùng \`!pickup\` để nhặt trong **10 giây**!`
+      `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${amount.toLocaleString()} coke** xuống!\n` +
+      `⏱  **|** Dùng \`!pickup\` để nhặt trong **${duration} giây**!`
     );
 
-    let remainingSec = 10;
+    let remainingSec = duration;
     const interval = setInterval(async () => {
       remainingSec--;
 
@@ -58,7 +51,7 @@ module.exports = {
         dropMsg.edit(`${config.emoji.money} **|** Drop đã kết thúc!`).catch(() => {});
       } else {
         dropMsg.edit(
-          `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${finalAmount.toLocaleString()} coke**!\n` +
+          `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${amount.toLocaleString()} coke**!\n` +
           taxNote +
           `⏱  **|** Dùng \`!pickup\` để nhặt. Còn lại: **${remainingSec}s**`
         ).catch(() => {});

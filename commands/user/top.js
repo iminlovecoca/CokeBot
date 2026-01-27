@@ -1,7 +1,7 @@
 const User = require('../../models/User');
 const StockHolding = require('../../models/StockHolding');
 const StockSymbol = require('../../models/StockSymbol');
-const { getRankEmoji } = require('../../utils/userUtil')
+const { getUser, getRankEmoji } = require('../../utils/userUtil')
 
 module.exports = {
   name: 'top',
@@ -12,7 +12,7 @@ module.exports = {
     const inputLimit = parseInt(args[1]);
     const limit = (!inputLimit || inputLimit <= 0) ? 5 : Math.min(inputLimit, 50);
     const authorId = message.author.id;
-    const authorData = await User.findOne({ userId: authorId });
+    const authorData = await getUser(authorId);
 
     let topUsers = [], unit = '', getValue;
     let title = `Bảng Xếp Hạng`;

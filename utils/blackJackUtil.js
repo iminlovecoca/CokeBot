@@ -1,4 +1,5 @@
 const BlackJackGame = require('../models/BlackJackGame')
+const { UserFriendlyError } = require('./errors')
 const config = require('../data/config')
 const emoji = config.emoji
 
@@ -25,10 +26,10 @@ function shuffle(array) {
 
 function drawNewCard(deck) {
   if (!deck || !Array.isArray(deck)) {
-    throw new Error("Deck không hợp lệ");
+    throw new UserFriendlyError("Deck không hợp lệ");
   }
   if (deck.length === 0) {
-    throw new Error("Deck đã hết bài");
+    throw new UserFriendlyError("Deck đã hết bài");
   }
   return deck.pop();
 }

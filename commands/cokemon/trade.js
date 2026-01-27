@@ -7,6 +7,7 @@ const {
 	swapCokemonOwnership
 } = require('../../utils/cokemonUtil')
 const { registerDexEntry, getCokemon } = require('../../utils/userUtil')
+const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 
 const formatCokemonInfo = cokemon => {
@@ -90,36 +91,30 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 					const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: msg })
 					await interactionMsg.edit({ embeds: [successEmbed] })
 				} else {
-					const tradeResult = await swapCokemonOwnership(p1Cokemon, p2Cokemon)
-					if (tradeResult.success) {
-						let resultMessage = `${config.emoji.yes} Trao đổi giữa **${message.author.username}** và **${p2.username}** đã thành công!`
-						if (tradeResult.p1CokemonEvolvedTo) {
-							// Belongs to P1
-							const p1CokemonEvolvedTo = tradeResult.p1CokemonEvolvedTo
-							const oldEmoji = getCokemonEmoji(p2Cokemon)
-							const newEmoji = p1CokemonEvolvedTo.emoji
-							resultMessage += `\n🎉 **${getCokemonName(p2Cokemon)}** ${oldEmoji} của **${message.author.username}** đã tiến hóa thành **${p1CokemonEvolvedTo.name}** ${newEmoji}!`
-							await registerDexEntry(p1Id, p1CokemonEvolvedTo._id, p2Cokemon.is_shiny)
-						} else {
-							await registerDexEntry(p1Id, p2Cokemon.species_id._id, p2Cokemon.is_shiny)
-						}
-						if (tradeResult.p2CokemonEvolvedTo) {
-							const p2CokemonEvolvedTo = tradeResult.p2CokemonEvolvedTo
-							const oldEmoji = getCokemonEmoji(p1Cokemon)
-							const newEmoji = p2CokemonEvolvedTo.emoji
-							resultMessage += `\n🎉 **${getCokemonName(p1Cokemon)}** ${oldEmoji} của **${p2.username}** đã tiến hóa thành **${p2CokemonEvolvedTo.name}** ${newEmoji}!`
-							await registerDexEntry(p2Id, p2CokemonEvolvedTo._id, p1Cokemon.is_shiny)
-						} else {
-							await registerDexEntry(p2Id, p1Cokemon.species_id._id, p1Cokemon.is_shiny)
-						}
-
-						const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: '🐶 Trao đổi hoàn tất!' })
-						await interactionMsg.edit({ embeds: [successEmbed] })
-						if (tradeResult.p1CokemonEvolvedTo || tradeResult.p2CokemonEvolvedTo) {
-							await message.channel.send(resultMessage)
-						}
+					const { p1CokemonEvolvedTo, p2CokemonEvolvedTo } = await swapCokemonOwnership(p1Cokemon, p2Cokemon)
+					let resultMessage = `${config.emoji.yes} Trao đổi giữa **${message.author.username}** và **${p2.username}** đã thành công!`
+					if (p1CokemonEvolvedTo) {
+						// Belongs to P1
+						const oldEmoji = getCokemonEmoji(p2Cokemon)
+						const newEmoji = p1CokemonEvolvedTo.emoji
+						resultMessage += `\n🎉 **${getCokemonName(p2Cokemon)}** ${oldEmoji} của **${message.author.username}** đã tiến hóa thành **${p1CokemonEvolvedTo.name}** ${newEmoji}!`
+						await registerDexEntry(p1Id, p1CokemonEvolvedTo._id, p2Cokemon.is_shiny)
 					} else {
-						await interactionMsg.edit({ content: tradeResult.message, embeds: [] })
+						await registerDexEntry(p1Id, p2Cokemon.species_id._id, p2Cokemon.is_shiny)
+					}
+					if (p2CokemonEvolvedTo) {
+						const oldEmoji = getCokemonEmoji(p1Cokemon)
+						const newEmoji = p2CokemonEvolvedTo.emoji
+						resultMessage += `\n🎉 **${getCokemonName(p1Cokemon)}** ${oldEmoji} của **${p2.username}** đã tiến hóa thành **${p2CokemonEvolvedTo.name}** ${newEmoji}!`
+						await registerDexEntry(p2Id, p2CokemonEvolvedTo._id, p1Cokemon.is_shiny)
+					} else {
+						await registerDexEntry(p2Id, p1Cokemon.species_id._id, p1Cokemon.is_shiny)
+					}
+
+					const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: '🐶 Trao đổi hoàn tất!' })
+					await interactionMsg.edit({ embeds: [successEmbed] })
+					if (p1CokemonEvolvedTo || p2CokemonEvolvedTo) {
+						await message.channel.send(resultMessage)
 					}
 				}
 			}
@@ -143,44 +138,34 @@ module.exports = {
 	usage: '`!trade <@user> <your_cokemon_id> [their_cokemon_id]`',
 	examples: '`!trade @user 123 456` (Trao đổi)\n`!trade @user 123` (Tặng)',
 	async execute(message, args) {
-		try {
-			const p2 = message.mentions.users.first()
-			const p1CokemonId = parseInt(args[1])
-			const p2CokemonId = args[2] ? parseInt(args[2]) : null
+		const p2 = message.mentions.users.first()
+		const p1CokemonId = parseInt(args[1])
+		const p2CokemonId = args[2] ? parseInt(args[2]) : null
 
-			if (!p2 || p2.bot || p2.id === message.author.id) {
-				throw new Error(`${config.emoji.no} Bạn phải tag một người chơi khác để trao đổi.`)
-			}
-			if (isNaN(p1CokemonId)) {
-				throw new Error(`${config.emoji.no} Bạn phải cung cấp ID Cokemon của mình.`)
-			}
+		if (!p2 || p2.bot || p2.id === message.author.id) {
+			throw new UserFriendlyError(`${config.emoji.no} Bạn phải tag một người chơi khác để trao đổi.`)
+		}
+		if (isNaN(p1CokemonId)) {
+			throw new UserFriendlyError(`${config.emoji.no} Bạn phải cung cấp ID Cokemon của mình.`)
+		}
 
-			const p1Id = message.author.id
-			const p2Id = p2.id
-			const p1Cokemon = await getCokemon(p1Id, p1CokemonId)
-			if (!p1Cokemon) {
-				throw new Error(`${config.emoji.no} Không tìm thấy Cokemon với ID ${p1CokemonId} trong bộ sưu tập của bạn.`)
-			}
-			if (p1Cokemon.is_favorite) {
-				throw new Error(`${config.emoji.no} Bạn không thể trao đổi Cokemon yêu thích.`)
-			}
+		const p1Id = message.author.id
+		const p2Id = p2.id
+		const p1Cokemon = await getCokemon(p1Id, p1CokemonId)
+		if (p1Cokemon.is_favorite) {
+			throw new UserFriendlyError(`${config.emoji.no} Bạn không thể trao đổi Cokemon yêu thích.`)
+		}
 
-			if (p2CokemonId === null) {
-				// Gifting
-				await startTradeInteraction(message, 'gift', message.author, p2, p1Cokemon)
-			} else {
-				// Trading
-				const p2Cokemon = await getCokemon(p2Id, p2CokemonId)
-				if (!p2Cokemon) {
-					throw new Error(`${config.emoji.no} Không tìm thấy Cokemon với ID ${p2CokemonId} trong bộ sưu tập của ${p2.username}.`)
-				}
-				if (p2Cokemon.is_favorite) {
-					throw new Error(`${config.emoji.no} Bạn không thể yêu cầu trao đổi Cokemon yêu thích của người khác.`)
-				}
-				await startTradeInteraction(message, 'trade', message.author, p2, p1Cokemon, p2Cokemon)
+		if (p2CokemonId === null) {
+			// Gifting
+			await startTradeInteraction(message, 'gift', message.author, p2, p1Cokemon)
+		} else {
+			// Trading
+			const p2Cokemon = await getCokemon(p2Id, p2CokemonId)
+			if (p2Cokemon.is_favorite) {
+				throw new UserFriendlyError(`${config.emoji.no} Bạn không thể yêu cầu trao đổi Cokemon yêu thích của người khác.`)
 			}
-		} catch (error) {
-			await message.reply(error.message)
+			await startTradeInteraction(message, 'trade', message.author, p2, p1Cokemon, p2Cokemon)
 		}
 	}
 }

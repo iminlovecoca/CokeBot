@@ -1,4 +1,5 @@
 const { createCanvas, registerFont } = require('canvas')
+const { isDev } = require('./userUtil')
 const { calculateStd, formatDuration } = require('./miscUtil')
 const path = require('path')
 const config = require('../data/config')
@@ -89,7 +90,7 @@ const checkMessage = message => {
 	const username = author.username
 	const channelId = channel.id
 
-	if (config.permissions.admin_user_ids.includes(userId) || config.permissions.anticheat_immune_ids.includes(userId)) {
+	if (isDev(userId) || config.permissions.anticheat_immune_ids.includes(userId)) {
 		return { status: 'PROCESS', reason: null }
 	}
 

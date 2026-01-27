@@ -1,4 +1,5 @@
-const User = require('../../models/User');
+const { getUser } = require('../../utils/userUtil');
+const { UserFriendlyError } = require('../../utils/errors')
 const jobs = require('../../data/jobs.json');
 
 module.exports = {
@@ -8,7 +9,7 @@ module.exports = {
 
   async execute(message) {
     const userId = message.author.id;
-    const user = await User.findOne({ userId }) || await User.create({ userId });
+    const user = await getUser(userId)
 
     const now = Date.now();
     const cooldown = 3 * 60 * 60 * 1000;
@@ -20,7 +21,7 @@ module.exports = {
       const h = Math.floor(remaining / 3600000);
       const m = Math.floor((remaining % 3600000) / 60000);
       const s = Math.floor((remaining % 60000) / 1000);
-      return message.reply(`⏱ **|** Bạn cần chờ **${h}h ${m}m ${s}s** nữa để làm việc lại.`);
+      throw new UserFriendlyError(`⏱ **|** Bạn cần chờ **${h}h ${m}m ${s}s** nữa để làm việc lại.`);
     }
 
     const reward = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;

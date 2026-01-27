@@ -2,9 +2,11 @@
 const mongoose = require('mongoose')
 const User = require('../../models/User');
 const {
-  getOrCreateUser, giveCmd, removeTransferalOlderThanNDays,
+  giveCmd, removeTransferalOlderThanNDays,
   removeReceiptOlderThanNDays, validateBeforeGiving
 } = require('../../utils/userUtil')
+const { UserFriendlyError } = require('../../utils/errors')
+const config = require('../../data/config')
 
 module.exports = {
   name: 'give',
@@ -16,19 +18,16 @@ module.exports = {
     const mention = message.mentions.users.first();
     const amount = parseInt(args[1]);
     if (!mention || isNaN(amount) || amount <= 0) {
-      await message.reply('❌ | Dùng đúng cú pháp: `!give @user <số tiền>`');
-      return
+      throw new UserFriendlyError(`${config.emoji.no} Vui lòng sử dụng đúng cú pháp: \`!give @user <coke>\``);
     }
 
     const senderId = message.author.id;
     const receiverId = mention.id;
-
     const vnNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
     const dateKey = `${vnNow.getFullYear()}-${vnNow.getMonth() + 1}-${vnNow.getDate()}`
     const msg = await validateBeforeGiving(senderId, receiverId, amount, dateKey)
     if (msg) {
-      await message.reply(msg)
-      return
+      return message.reply(msg)
     }
 
     const embed = new EmbedBuilder()
@@ -60,30 +59,26 @@ module.exports = {
     });
 
     collector.on('collect', async interaction => {
-      try {
-        await interaction.deferUpdate();
-        row.components.forEach(btn => btn.setDisabled(true));
+      await interaction.deferUpdate();
+      row.components.forEach(btn => btn.setDisabled(true));
 
-        if (interaction.customId === 'confirm') {
-          await removeTransferalOlderThanNDays(senderId, 30)     
-          await removeReceiptOlderThanNDays(receiverId, 30)
-          const msg = await giveCmd(senderId, receiverId, amount, vnNow, dateKey)
+      if (interaction.customId === 'confirm') {
+        await removeTransferalOlderThanNDays(senderId, 30)     
+        await removeReceiptOlderThanNDays(receiverId, 30)
+        const msg = await giveCmd(senderId, receiverId, amount, vnNow, dateKey)
 
-          if (msg) {
-            embed.setColor(0x00cc66).setDescription(
-              `✅ **${message.member.displayName}** đã chuyển **${amount.toLocaleString()} coke** cho **${mention.displayName || mention.username}** lúc **${vnNow.toLocaleTimeString('vi-VN')}**`
-            );
-          } else {
-            embed.setColor(0xcc0000).setDescription('❌ **|** Giao dịch đã bị huỷ do người nhận đang thực hiện một giao dịch khác.');
-          }
+        if (msg) {
+          embed.setColor(0x00cc66).setDescription(
+            `✅ **${message.member.displayName}** đã chuyển **${amount.toLocaleString()} coke** cho **${mention.displayName || mention.username}** lúc **${vnNow.toLocaleTimeString('vi-VN')}**`
+          );
         } else {
-          embed.setColor(0xcc0000).setDescription('❌ **|** Giao dịch đã bị huỷ.');
+          embed.setColor(0xcc0000).setDescription(`${config.emoji.no} **|** Giao dịch đã bị huỷ do người nhận đang thực hiện một giao dịch khác.`);
         }
-
-        await confirmMsg.edit({ embeds: [embed], components: [row] });
-      } catch (err) {
-        console.error(err);
+      } else {
+        embed.setColor(0xcc0000).setDescription(`${config.emoji.no} **|** Giao dịch đã bị huỷ.`);
       }
+
+      await confirmMsg.edit({ embeds: [embed], components: [row] });
     });
 
     collector.on('end', collected => {
