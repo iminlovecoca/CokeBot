@@ -52,7 +52,6 @@ module.exports = {
       } else {
         dropMsg.edit(
           `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${amount.toLocaleString()} coke**!\n` +
-          taxNote +
           `⏱  **|** Dùng \`!pickup\` để nhặt. Còn lại: **${remainingSec}s**`
         ).catch(() => {});
       }
