@@ -73,13 +73,26 @@ const initializeSpawner = (client) => {
                                 nature: cokemon.nature,
                                 is_shiny: isShiny
                             }
-                            const result = await addCokemon(cokemonData)
-                            if (result.success) {
+
+                            try {
+                                await addCokemon(cokemonData)
                                 spawnState.userStates.set(net.userId, { hasCaught: true })
-                                const displayEmoji = isShiny ? (cokemon.shiny_emoji || `${cokemon.emoji}✨`) : cokemon.emoji
-                                const displayName = `${displayEmoji} ${cokemon.name}`
-                                const currentCount = net.caught.get(displayName) || 0
-                                net.caught.set(displayName, currentCount + 1)
+                                const dexIdKey = cokemon.speciesData.dex_id.toString()
+                                const caughtInfo = net.caught.get(dexIdKey) || {
+                                    name: cokemon.name,
+                                    emoji: cokemon.emoji,
+                                    shiny_emoji: cokemon.shiny_emoji,
+                                    normal_caught: 0,
+                                    shiny_caught: 0
+                                }
+                                if (isShiny) {
+                                    caughtInfo.shiny_caught++
+                                } else {
+                                    caughtInfo.normal_caught++
+                                }
+                                net.caught.set(dexIdKey, caughtInfo)
+                            } catch (error) {
+                                console.error("Error within auto catching:", error)
                             }
                         }
                     }
@@ -87,9 +100,18 @@ const initializeSpawner = (client) => {
                     if (net.uses <= 0) {
                         if (net.caught.size > 0) {
                             const user = await client.users.fetch(net.userId)
+                            const caughtArray = Array.from(net.caught.entries())
+                            caughtArray.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+
                             const summaryLines = []
-                            for (const [name, count] of net.caught.entries()) {
-                                summaryLines.push(`- ${name} (x${count})`)
+                            for (const [dexId, info] of net.caught.entries()) {
+                                if (info.normal_caught > 0) {
+                                    summaryLines.push(`- ${info.emoji} ${info.name} (x${info.normal_caught})`)
+                                }
+                                if (info.shiny_caught > 0) {
+                                    const shinyEmoji = info.shiny_emoji || `${info.emoji}✨`;
+                                    summaryLines.push(`- ${shinyEmoji} ${info.name} (x${info.shiny_caught})`)
+                                }
                             }
 
                             const notifyUser = async currentMessage => {
@@ -192,7 +214,9 @@ const initializeSpawner = (client) => {
                         }
                         client.activeSpawns.set(channelId, spawnState)
                         client.lastSpawn.set(channelId, Date.now())
-                        console.log(`Spawned a ${newCokemon.name} in channel ${channel.name} at ${new Date(Date.now()).toLocaleTimeString('vi-VN')}.`)
+                        if (settings.spawn_verbose) {
+                            console.log(`[SPAWN] Cokemon: ${newCokemon.name}, Channel: ${channel.name}, At: ${new Date(Date.now()).toLocaleTimeString('vi-VN')}.`)
+                        }
                     }
                 }
 
@@ -208,7 +232,7 @@ const initializeSpawner = (client) => {
                     client.activeLures.delete(channelId)
                     channel = await client.channels.fetch(channelId)
                     if (channel) {
-                        await channel.send('Hiệu ứng của bả đã hết.')
+                        await channel.send('⌛️ Hiệu ứng của bả đã hết.')
                     }
                 }
             } catch (error) {

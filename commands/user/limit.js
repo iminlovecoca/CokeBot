@@ -1,4 +1,4 @@
-const { getOrCreateUser } = require('../../utils/userUtil')
+const { getUser } = require('../../utils/userUtil')
 const { formatVNCurrency } = require('../../utils/format')
 const { getPerDayLimit, getPerTransactionLimit } = require('../../utils/transactionUtil')
 
@@ -7,7 +7,7 @@ module.exports = {
     description: 'Xem giới hạn chuyển/nhận coke.',
     async execute(message) {
         const userId = message.author.id
-        const user = await getOrCreateUser(userId)
+        const user = await getUser(userId)
 
         const vnNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
         const dateKey = `${vnNow.getFullYear()}-${vnNow.getMonth() + 1}-${vnNow.getDate()}`

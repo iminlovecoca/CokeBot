@@ -1,30 +1,31 @@
 const { addCokemon } = require('../../utils/userUtil')
 const { getGenderEmoji } = require('../../utils/cokemonUtil')
 const config = require('../../data/config')
+const { UserFriendlyError } = require('../../utils/errors')
 
 module.exports = {
 	name: 'catch',
 	aliases: ['c'],
 	description: 'Thử bắt cokemon.',
 	async execute(message) {
-		if (message.client.actionLocks.has(message.author.id)) {
-			return await message.reply(`${config.emoji.no} Bạn đang thực hiện một hành động khác! Vui lòng đợi một lát.`)
-		}
-
 		try {
+			if (message.client.actionLocks.has(message.author.id)) {
+				throw new UserFriendlyError(`${config.emoji.no} Bạn đang thực hiện một hành động khác! Vui lòng đợi một lát.`)
+			}
+
 			message.client.actionLocks.add(message.author.id)
 			const spawnState = message.client.activeSpawns.get(message.channel.id)
 			if (!spawnState) {
-				throw new Error(`${config.emoji.no} Không có gì ở đây để ném cả.`)
+				throw new UserFriendlyError(`${config.emoji.no} Không có gì ở đây để ném cả.`)
 			}
 
 			let userState = spawnState.userStates.get(
 				message.author.id) || { catchRateModifier: 1.0, fleeRateModifier: 1.0, hasFled: false, hasCaught: false }
 			if (userState.hasCaught) {
-				throw new Error(`${config.emoji.no} Bạn đã bắt được **${spawnState.cokemon.name}** rồi!`)
+				throw new UserFriendlyError(`${config.emoji.no} Bạn đã bắt được **${spawnState.cokemon.name}** rồi!`)
 			}
 			if (userState.hasFled) {
-				throw new Error(`**${spawnState.cokemon.name}** đã chạy mất khỏi bạn rồi!`)
+				throw new UserFriendlyError(`**${spawnState.cokemon.name}** đã chạy mất khỏi bạn rồi!`)
 			}
 
 			const finalCatchChance = spawnState.cokemon.catch_rate * userState.catchRateModifier
@@ -51,26 +52,23 @@ module.exports = {
 						is_shiny: isShiny,
 						catch_method: 'manual'
 					}
-					const result = await addCokemon(cokemonData)
-					if (result.success) {
-						userState.hasCaught = true
-						spawnState.userStates.set(message.author.id, userState)
-						const speciesData = spawnState.cokemon.speciesData
-						const genderSymbol = getGenderEmoji(spawnState.cokemon)
-						const iv_percent = spawnState.cokemon.iv_percent
-						const displayEmoji = isShiny ? (speciesData.shiny_emoji || `${speciesData.emoji}✨`) : speciesData.emoji
-						const displayInfo = `${displayEmoji} **${speciesData.name}**${genderSymbol}(${iv_percent}%)`
-						let msg = isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY** ${displayInfo}!`
-							: `Chúc mừng! **${message.author.username}** đã bắt được ${displayInfo}!`
-						if (result.isFirstCatch) {
-							msg += `\n**Thưởng lần bắt đầu tiên:** Bạn nhận được **${result.bonusReward.toLocaleString()} coke** vì đã đăng ký loài này vào Cokedex!`
-						}
-						await message.reply(msg)
-					} else {
-						throw new Error(result.message)
+
+					const { cokemon, bonusReward } = await addCokemon(cokemonData)
+					userState.hasCaught = true
+					spawnState.userStates.set(message.author.id, userState)
+					const speciesData = spawnState.cokemon.speciesData
+					const genderSymbol = getGenderEmoji(spawnState.cokemon)
+					const iv_percent = spawnState.cokemon.iv_percent
+					const displayEmoji = isShiny ? (speciesData.shiny_emoji || `${speciesData.emoji}✨`) : speciesData.emoji
+					const displayInfo = `${displayEmoji} **${speciesData.name}**${genderSymbol}(${iv_percent}%)`
+					let msg = isShiny ? `✨ UNBELIEVABLE! ✨ **${message.author.username}** đã bắt được một **SHINY** ${displayInfo}!`
+						: `Chúc mừng! **${message.author.username}** đã bắt được ${displayInfo}!`
+					if (bonusReward > 0) {
+						msg += `\n**Thưởng lần bắt đầu tiên:** Bạn nhận được **${bonusReward.toLocaleString()} coke** vì đã đăng ký loài này vào Cokedex!`
 					}
+					await message.reply(msg)
 				} else {
-					throw new Error(`Trâu chậm thì uống nước đục, có ai đó đã bắt được **${spawnState.cokemon.name}** rồi!`)
+					throw new UserFriendlyError(`${config.emoji.no} Trâu chậm thì uống nước đục, có ai đó đã bắt được **${spawnState.cokemon.name}** rồi!`)
 				}
 			} else {
 				await message.reply(`Oh no! **${spawnState.cokemon.name}** đã thoát ra!`)
@@ -80,8 +78,6 @@ module.exports = {
 					await message.channel.send(`**${spawnState.cokemon.name}** đã chạy mất khỏi ${message.author.username}!`)
 				}
 			}
-		} catch (error) {
-			await message.reply(error.message)
 		} finally {
 			message.client.actionLocks.delete(message.author.id)
 		}

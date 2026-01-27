@@ -1,22 +1,20 @@
-const User = require('../../models/User');
+const { getUser, isDev } = require('../../utils/userUtil')
+const { UserFriendlyError } = require('../../utils/errors')
+const config = require('../../data/config')
 
 module.exports = {
   name: 'givelog',
   description: '📜 Xem lịch sử chuyển và nhận coke trong 30 ngày gần nhất',
   async execute(message, args) {
     const target = message.mentions.users.first() || message.author;
-    const isOwner = message.author.id === process.env.OWNER_ID;
-
-    if (target.id !== message.author.id && !isOwner) {
-      return message.reply('❌ Bạn chỉ có thể xem lịch sử của chính mình.');
+    if (target.id !== message.author.id && !isDev(message.author.id)) {
+      throw new UserFriendlyError(`${config.emoji.no} Bạn chỉ có thể xem lịch sử của chính mình.`);
     }
 
-    const user = await User.findOne({ userId: target.id });
-    if (!user) return message.reply('❌ Người dùng này chưa có tài khoản.');
-
+    const user = await getUser(target.id);
     const transferLog = (user.transferHistory || []).filter(t => {
       const date = new Date(t.date);
-      return Date.now() - date.getTime() <= 30 * 24 * 60 * 60 * 1000; // 30 ngày
+      return Date.now() - date.getTime() <= 30 * 24 * 60 * 60 * 1000;
     }).slice(-20).reverse();
 
     const receiveLog = (user.receiveHistory || []).filter(r => {

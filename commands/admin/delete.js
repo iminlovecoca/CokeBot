@@ -25,8 +25,6 @@ async function resetUserData(user) {
   user.tea = 0;
   user.luck = 0;
 
-  user.bank = 0;
-  user.bankLastUpdate = null;
   user.transferHistory = [];
   user.receiveHistory = [];
 

@@ -1,4 +1,4 @@
-const User = require('../../models/User')
+const { getUser } = require('../../utils/userUtil')
 const { getUserXpNeeded, getRankEmoji } = require('../../utils/userUtil')
 
 module.exports = {
@@ -7,27 +7,21 @@ module.exports = {
   description: '🔰 Xem cấp bậc rank và level',
 
   async execute(message) {
-    const user = message.author;
-    const displayName = message.member?.displayName || user.username;
-
-    let userData = await User.findOne({ userId: user.id });
-    if (!userData) {
-      userData = await User.create({ userId: user.id, level: 1, xp: 0, coke: 0 });
-    }
-
-    const xpNeed = getUserXpNeeded(userData.level);
-    const xpPercent = Math.floor((userData.xp / xpNeed) * 100);
+    const displayName = message.member?.displayName || message.author.username;
+    let user = await getUser(message.author.id);
+    const xpNeed = getUserXpNeeded(user.level);
+    const xpPercent = Math.floor((user.xp / xpNeed) * 100);
     const progressBar =
       `▰`.repeat(Math.floor(xpPercent / 10)) +
       `▱`.repeat(10 - Math.floor(xpPercent / 10));
 
-    const rankEmoji = getRankEmoji(userData.level);
+    const rankEmoji = getRankEmoji(user.level);
 
     const output =
       `🔰 **${displayName}** 🔰\n` +
       `**Rank **|** ${rankEmoji}\n` +
-      `XP \t**|** ${userData.xp} / ${xpNeed}\n` +
-      `Level ${userData.level} ${progressBar} ${xpPercent}%**`;
+      `XP \t**|** ${user.xp} / ${xpNeed}\n` +
+      `Level ${user.level} ${progressBar} ${xpPercent}%**`;
 
     return message.channel.send(output);
   }

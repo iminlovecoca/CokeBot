@@ -35,6 +35,7 @@ const getDebuffPercentage = async userId => {
         //     debuffPercentage = 0.15
         }
     }
+    return debuffPercentage
 }
 
 const capitalizeFirstLetter = str => {

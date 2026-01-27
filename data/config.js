@@ -104,7 +104,7 @@ module.exports = {
 	},
 
 	gamble_settings: {
-		enable_special_treatment: true,
+		enable_special_treatment: false,
 		max_bet: 250000,
 		min_bet: 1,
 		cooldown_second: 15,
@@ -177,6 +177,7 @@ module.exports = {
 			'Legendary': 1000,
 			'Mythical': 2000
 		},
+		spawn_verbose: false,
 	},
 
 	natures: {
@@ -283,10 +284,11 @@ module.exports = {
 	},
 
 	permissions: {
-		admin_user_ids: [
+		dev_ids: [
 			process.env.OWNER_ID,
 			'690168451255631934'
 		],
+		admin_ids: [],
 		anticheat_immune_ids: []
 	},
 

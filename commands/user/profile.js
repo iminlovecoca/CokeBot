@@ -1,7 +1,7 @@
 const { AttachmentBuilder } = require('discord.js');
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const { getUser } = require('../../utils/userUtil')
 const path = require('path');
-const User = require('../../models/User');
 
 function getXpNeeded(level) {
   return 2000 + (level - 1) * 1000;
@@ -23,11 +23,7 @@ module.exports = {
 
   async execute(message) {
     const user = message.author;
-    let userData = await User.findOne({ userId: user.id });
-    if (!userData) {
-      userData = await User.create({ userId: user.id, level: 1, xp: 0, coke: 0 });
-    }
-
+    let userData = await getUser(user.id);
     const today = new Date().toISOString().split('T')[0];
     if (userData.lastXpDate !== today) {
       userData.dailyXp = 0;
