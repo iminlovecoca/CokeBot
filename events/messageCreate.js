@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 const Cokemon = require('../models/cokemon/Cokemon')
-const { getOrCreateUser, getActiveCokemon, addUserXp, getRankEmoji } = require('../utils/userUtil')
+const { getUser, getOrCreateUser, getActiveCokemon, addUserXp, getRankEmoji } = require('../utils/userUtil')
 const { addCokemonXp } = require('../utils/cokemonUtil')
 const { generateVerificationCode, generateCaptchaImage, handleVerification, checkMessage } = require('../utils/anticheat.js')
 const { formatDuration } = require('../utils/miscUtil.js')
