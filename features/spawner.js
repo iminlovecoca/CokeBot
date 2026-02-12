@@ -22,7 +22,7 @@ const initializeSpawner = (client) => {
                 client.activeSpawns.delete(channelId)
                 try {
                     const channel = await client.channels.fetch(channelId)
-                    await channel.send(`**${spawnState.cokemon.name}** đã chạy mất rồi!`)
+                    await channel.send(`💨 **${spawnState.cokemon.name}** đã chạy mất rồi!`)
                 } catch (error) {
                     console.error(error)
                 }
@@ -31,6 +31,8 @@ const initializeSpawner = (client) => {
 
         // Auto catch using catch-net
         for (const [channelId, spawnState] of client.activeSpawns.entries()) {
+            if (client.botLocked) continue
+
             if (!spawnState.autoCatchProcessed && Date.now() > spawnState.spawn_at + settings.grace_period_ms) {
                 spawnState.autoCatchProcessed = true
                 const activeNets = await ActiveNet.find({})
@@ -109,7 +111,7 @@ const initializeSpawner = (client) => {
                                     summaryLines.push(`- ${info.emoji} ${info.name} (x${info.normal_caught})`)
                                 }
                                 if (info.shiny_caught > 0) {
-                                    const shinyEmoji = info.shiny_emoji || `${info.emoji}✨`;
+                                    const shinyEmoji = info.shiny_emoji || `${info.emoji}✨`
                                     summaryLines.push(`- ${shinyEmoji} ${info.name} (x${info.shiny_caught})`)
                                 }
                             }
@@ -153,7 +155,13 @@ const initializeSpawner = (client) => {
                 const lastSpawn = client.lastSpawn.get(channelId) || 0
 
                 if (Date.now() - lastSpawn > cooldown) {
+                    const channel = await client.channels.fetch(channelId)
+                    const timestamp = new Date().toLocaleTimeString('vi-VN')
+                    console.log(`[SPAWN-CHECK ❓ @ ${timestamp}] Channel ${channel.name} is eligible for spawn. Old timestamp: ${lastSpawn}.`)
+
                     spawningInProgress.add(channelId)
+                    client.lastSpawn.set(channelId, Date.now())
+                    console.log(`[SPAWN-COMMIT ⚡️ @ ${timestamp}] Channel ${channel.name} timestamp UPDATED to ${client.lastSpawn.get(channel.name)}. Starting spawn process...`)
 
                     // Check if a cokemon is already active in this channel
                     if (client.activeSpawns.has(channelId)) {
@@ -168,7 +176,6 @@ const initializeSpawner = (client) => {
                         }
                     }
 
-                    const channel = await client.channels.fetch(channelId)
                     const newCokemon = await createRandomCokemonByTheme(lure, theme)
                     if (!newCokemon) {
                         // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`)
@@ -188,8 +195,8 @@ const initializeSpawner = (client) => {
                         const finalImageFile = path.basename(finalImagePath)
 
                         let announcementContent = null
-                        if (newCokemon.speciesData.tier === 'Legendary') {
-                            announcementContent = `@everyone Một Cokemon Huyền Thoại đã xuất hiện!`
+                        if (newCokemon.speciesData.tier === 'Legendary' && settings.legendary_ping_role_id) {
+                            announcementContent = `Một Cokemon Huyền Thoại xuất hiện nè <@&${settings.legendary_ping_role_id}>!`
                         }
 
                         const spawnEmbed = new EmbedBuilder()
@@ -202,8 +209,6 @@ const initializeSpawner = (client) => {
                                 "`!bait`: giảm tỉ lệ chạy nhưng cũng giảm tỉ lệ bắt\n"
                             )
                             .setImage(`attachment://${finalImageFile}`)
-                        await channel.send({ content: announcementContent, embeds: [spawnEmbed], files: [finalImagePath] })
-
                         const spawnState = {
                             cokemon: newCokemon,
                             // [[userId, { catchRateModifier, fleeRateModifier, hasFled, hasCaught } ]]
@@ -213,7 +218,9 @@ const initializeSpawner = (client) => {
                             autoCatchProcessed: false
                         }
                         client.activeSpawns.set(channelId, spawnState)
-                        client.lastSpawn.set(channelId, Date.now())
+                        await channel.send({ content: announcementContent, embeds: [spawnEmbed], files: [finalImagePath] })
+                        console.log(`[SPAWN-SUCCESS ✅ @ ${new Date().toLocaleTimeString('vi-VN')}] Spawn message sent for channel ${channel.name}.`)
+
                         if (settings.spawn_verbose) {
                             console.log(`[SPAWN] Cokemon: ${newCokemon.name}, Channel: ${channel.name}, At: ${new Date(Date.now()).toLocaleTimeString('vi-VN')}.`)
                         }
@@ -230,7 +237,6 @@ const initializeSpawner = (client) => {
                     }
 
                     client.activeLures.delete(channelId)
-                    channel = await client.channels.fetch(channelId)
                     if (channel) {
                         await channel.send('⌛️ Hiệu ứng của bả đã hết.')
                     }

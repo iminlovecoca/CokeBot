@@ -13,14 +13,14 @@ const getBetAmount = async (bet, userId, maxBet, minBet) => {
 	} else if (!isNaN(bet) && bet > 0) {
 		amount = parseInt(bet)
 	} else {
-		throw UserFriendlyError(`${config.emoji.no} Số tiền cược không hợp lệ!`)
+		throw new UserFriendlyError(`${config.emoji.no} Số tiền cược không hợp lệ!`)
 	}
 
 	if (bet === 'all' || bet === 'min') {
 		amount = Math.min(user.coke, amount)
 	}
 	if (amount == 0 || amount > user.coke) {
-		throw UserFriendlyError(`${config.emoji.no} Bạn không có đủ coke để cược!`)
+		throw new UserFriendlyError(`${config.emoji.no} Bạn không có đủ coke để cược!`)
 	}
 	return Math.min(amount, maxBet)
 }
