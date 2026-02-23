@@ -75,11 +75,17 @@ module.exports = {
             const xpCooldown = client.xpCooldowns.get(userId) || 0
             if (now > xpCooldown) {
                 if (user.active_cokemon_id) {
-                    const selectedCokemon = await getActiveCokemon(userId)
-                    const xpGained = 5 + Math.floor(selectedCokemon.level * 0.2)
-                    const { levelsGained } = await addCokemonXp(selectedCokemon, xpGained)
-                    if (levelsGained > 0) {
-                        await message.channel.send(`🎉 Chúc mừng **${selectedCokemon.nickname || selectedCokemon.species_id.name}** của bạn đã tăng lên **cấp ${selectedCokemon.level}**!`)
+                    try {
+                        const selectedCokemon = await getActiveCokemon(userId)
+                        const xpGained = 5 + Math.floor(selectedCokemon.level * 0.2)
+                        const { levelsGained } = await addCokemonXp(selectedCokemon, xpGained)
+                        if (levelsGained > 0) {
+                            await message.channel.send(`🎉 Chúc mừng **${selectedCokemon.nickname || selectedCokemon.species_id.name}** của bạn đã tăng lên **cấp ${selectedCokemon.level}**!`)
+                        }
+                    } catch (error) {
+                        if (!(error instanceof UserFriendlyError)) {
+                            console.error('Unexpected error during passive XP gain:', error)
+                        }
                     }
                 }
                 client.xpCooldowns.set(userId, now + config.cokemon_settings.xp_cooldown_ms)

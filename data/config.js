@@ -178,7 +178,7 @@ module.exports = {
 			'Mythical': 2000
 		},
 		spawn_verbose: false,
-		legendary_ping_role_id: "1465824132729016558",
+		legendary_ping_role_id: "1243064840180994088",
 	},
 
 	natures: {
@@ -323,4 +323,4 @@ module.exports = {
 		verification_code_length: 6,
 		verification_max_attempts: 5
 	}
-};
+}
