@@ -243,7 +243,7 @@ const sellItem = async (client, userId, itemId, quantity) => {
 const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
 	return handleUtilityError(async () => {
 		const item = getItem(client, itemId)
-		if (!item) {                                                                                                                                                                                                                              
+		if (!item) {
 			throw new UserFriendlyError(`${config.emoji.no} Vật phẩm với ID \`${itemId}\` không tồn tại.`)
 		}
 
@@ -512,12 +512,17 @@ const removeCokemon = async (userId, cokemonUids, totalReward) => {
 			}
 
 			const idsToDelete = cokemonToDelete.map(c => c._id)
+			const user = await getUser(userId, session)
+			if (user.active_cokemon_id) {
+				const isActiveBeingDeleted = idsToDelete.some(id => id.equals(user.active_cokemon_id))
+				if (isActiveBeingDeleted) {
+					user.active_cokemon_id = null
+				}
+			}
+
 			await Cokemon.deleteMany({ _id: { $in: idsToDelete } }, { session })
-			await User.updateOne(
-				{ userId: userId },
-				{ $inc: { coke: totalReward } },
-				{ session }
-			)
+			user.coke += totalReward
+			await user.save({ session })
 			releasedCount = cokemonToDelete.length
 		}
 		await runTransactionWithRetry(releaseTransaction)
@@ -555,7 +560,9 @@ const getActiveCokemon = async userId => {
 		throw new UserFriendlyError(`${config.emoji.no} Bạn chưa chọn bạn đồng hành nào. Dùng \`!select <ID>\` để chọn một cokemon.`)
 	}
 	const cokemon = await Cokemon.findById(user.active_cokemon_id).populate('species_id')
-	if (!cokemon) {                                                                                                                                                                                            
+	if (!cokemon) {
+		user.active_cokemon_id = null
+		await user.save()
 		throw new UserFriendlyError(`${config.emoji.warning} Cokemon đồng hành của bạn không còn tồn tại. Vui lòng chọn một cokemon khác.`)                                                                              
 	}
 	return cokemon
