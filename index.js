@@ -10,6 +10,7 @@ const Knowledge = require('./models/Knowledge')
 
 const spawner = require('./features/spawner')
 const { loadBotLock } = require('./utils/botLock')
+const { performStartupCleanup } = require('./utils/botCleanup')
 const config = require('./data/config')
 
 const client = new Client({
@@ -89,6 +90,8 @@ client.once(Events.ClientReady, async () => {
 
         await loadBotLock(client)
         spawner.initializeSpawner(client)
+
+        await performStartupCleanup(client)
     } catch (error) {
         console.error("❌ Error during startup sequence:", error)
         process.exit(1)
