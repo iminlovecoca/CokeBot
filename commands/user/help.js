@@ -7,8 +7,11 @@ module.exports = {
     name: 'help',
     aliases: ['h', 'commands'],
     description: 'Hiển thị danh sách tất cả các lệnh có sẵn.',
-    usage: '`!help [lệnh]`',
-    examples: '`!help`\n`!help cokemon`',
+    usage: `${config.prefix}help [lệnh]`,
+    examples: [
+        { intent: 'Xem danh sách các lệnh', command: `${config.prefix}help` },
+        { intent: 'Xem hướng dẫn chi tiết cho lệnh cokemon', command: `${config.prefix}help cokemon` }
+    ],
     async execute(message, args) {
         const commands = message.client.commands
 

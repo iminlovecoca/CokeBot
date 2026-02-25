@@ -4,6 +4,11 @@ const config = require('../../data/config');
 
 module.exports = {
   name: 'daily',
+  description: 'Nhận phần thưởng coke hàng ngày.',
+  usage: `${config.prefix}daily`,
+  examples: [
+    { intent: 'Nhận phần thưởng hàng ngày', command: `${config.prefix}daily` }
+  ],
   async execute(message) {
     const userId = message.author.id;
     const member = await message.guild.members.fetch(userId);

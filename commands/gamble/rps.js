@@ -15,8 +15,11 @@ module.exports = {
   name: 'rps',
   aliases: ['keobuabao', 'kbb'],
   description: 'Chơi kéo-búa-bao có cược, react emoji để chơi',
-  usage: '`!rps [tiền cược|all]`',
-  examples: '`!rps all`\n`!kbb 100000`',
+  usage: `${config.prefix}rps [tiền cược|all]`,
+  examples: [
+    { intent: 'Chơi kéo-búa-bao cược tất cả tiền', command: `${config.prefix}rps all` },
+    { intent: 'Chơi cược 100,000 coke', command: `${config.prefix}rps 100000` }
+  ],
   async execute(message, args) {
     const userId = message.author.id
     const game = await getGame(userId)
@@ -104,6 +107,6 @@ const rps = async (message, bet, botChoice, resume) => {
 
   collector.on('end', (_, reason) => {
     if (reason == 'time')
-      sentMessage.edit('**⏱ |** Đã hết thời gian tương tác. Nhập `!rps` để tiếp tục!')
+      sentMessage.edit(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${config.prefix}rps\` để tiếp tục!`)
   })
 }

@@ -13,7 +13,7 @@ module.exports = {
     const amount = parseInt(args[0]);
     const userId = message.author.id;
     const channelId = message.channel.id;
-    const duration = 10;
+    const duration = 30;
 
     if (isNaN(amount) || amount <= 0) {
       throw new UserFriendlyError(`${config.emoji.no} **|** Vui lòng nhập số coke hợp lệ để thả.`);

@@ -135,8 +135,11 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 module.exports = {
 	name: 'trade',
 	description: 'Trao đổi hoặc tặng Cokemon cho người chơi khác.',
-	usage: '`!trade <@user> <your_cokemon_id> [their_cokemon_id]`',
-	examples: '`!trade @user 123 456` (Trao đổi)\n`!trade @user 123` (Tặng)',
+	usage: `${config.prefix}trade <@user> <your_cokemon_id> [their_cokemon_id]`,
+	examples: [
+		{ intent: 'Trao đổi Cokemon lấy Cokemon của người khác', command: `${config.prefix}trade @PlayerName 123 456` },
+		{ intent: 'Tặng Cokemon cho người khác (không lấy lại)', command: `${config.prefix}trade @PlayerName 123` }
+	],
 	async execute(message, args) {
 		const p2 = message.mentions.users.first()
 		const p1CokemonId = parseInt(args[1])

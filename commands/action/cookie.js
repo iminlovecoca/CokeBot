@@ -9,6 +9,11 @@ const COOLDOWN = 300;
 module.exports = {
   name: 'cookie',
   description: 'Tặng hoặc tự thưởng bánh Danisa',
+  usage: `${config.prefix}cookie [@user]`,
+  examples: [
+    { intent: 'Tự tặng bánh cho mình', command: `${config.prefix}cookie` },
+    { intent: 'Tặng bánh cho người khác', command: `${config.prefix}cookie @PlayerName` }
+  ],
   async execute(message, args) {
     const authorId = message.author.id;
 

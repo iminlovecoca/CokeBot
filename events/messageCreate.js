@@ -6,6 +6,7 @@ const { generateVerificationCode, generateCaptchaImage, handleVerification, chec
 const { formatDuration } = require('../utils/miscUtil.js')
 const { handleCommandError } = require('../utils/errors')
 const { parseCommandArgs } = require('../utils/commandParser')
+const { answerQuestion, getThreadHistory } = require('../utils/qaSystem')
 const config = require('../data/config')
 
 module.exports = {
@@ -17,22 +18,27 @@ module.exports = {
         const isCommand = message.content.startsWith(config.prefix)
         try {
             const user = await getOrCreateUser(userId)
+
+            // Bot lock check
             if (client.botLocked) {
                 const allowedIds = client.allowedIds || config.permissions.dev_ids
                 if (!allowedIds.includes(userId)) return
             }
 
+            // Ban check
             if (user.bannedUntil && user.bannedUntil > new Date()) {
                 const banExpirationDate = new Date(user.bannedUntil)
                 const remainingMs = banExpirationDate.getTime() - Date.now()
                 return message.reply(`🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`)
             }
 
+            //  Pending verification check
             if (user.anticheat?.verification_code) {
                 await handleVerification(message, user)
                 return
             }
 
+            // Anti-cheat detection
             const check = checkMessage(message)
             if (check.status === 'TRIGGER_VERIFICATION') {
                 const code = generateVerificationCode()
@@ -59,6 +65,29 @@ module.exports = {
                 return
             }
 
+            // Conversation thread handler
+            if (message.channel.isThread() && message.channel.ownerId === client.user.id) {
+                if (!message.content.startsWith(config.prefix)) {
+                    const lastMsgTimestamp = message.channel.lastMessage?.createdTimestamp || 0
+                    const idleTime = Date.now() - lastMsgTimestamp
+                    if (idleTime > config.ai.thread_expiry_ms) {
+                        console.log(`[AI Thread] Session expired for thread ${message.channel.id}. Treating as normal message.`)
+                    } else {
+                        try {
+                            const thinkingMsg = await message.channel.send('🤔 *Đang suy nghĩ...*')
+                            const historyText = await getThreadHistory(message.channel, [message.id, thinkingMsg.id], client)
+                            const { answer } = await answerQuestion(message.content, client, historyText, userId)
+                            await thinkingMsg.edit(answer)
+                            return
+                        } catch (error) {
+                            console.error('Thread Conversation Error:', error)
+                            return
+                        }
+                    }
+                }
+            }
+
+            // User XP gain
             if (isCommand) {
                 const { leveledUp, oldLevel, newLevel, totalReward } = await addUserXp(user, 10)
                 if (leveledUp) {
@@ -71,6 +100,7 @@ module.exports = {
                 }
             }
 
+            // Passive Cokemon XP and friendship
             const now = Date.now()
             const xpCooldown = client.xpCooldowns.get(userId) || 0
             if (now > xpCooldown) {
@@ -99,6 +129,7 @@ module.exports = {
                 client.friendshipCooldowns.set(userId, now + config.cokemon_settings.friendship_cooldown_ms)
             }
 
+            // Command execution
             if (isCommand) {
                 const rawArgs = message.content.slice(config.prefix.length).trim().split(/ +/)
                 const parsedArgs = parseCommandArgs(rawArgs)

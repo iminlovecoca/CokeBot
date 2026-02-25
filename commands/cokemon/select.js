@@ -6,8 +6,11 @@ module.exports = {
 	name: 'select',
 	aliases: ['active'],
 	description: 'Chọn một cokemon làm bạn đồng hành để nhận XP và tăng tình bạn.',
-	usage: '`!select <id>`',
-	examples: '`!select 27`',
+	usage: `${config.prefix}select <id>`,
+	examples: [
+		{ intent: 'Xem bạn đồng hành hiện tại', command: `${config.prefix}select` },
+		{ intent: 'Chọn Cokemon có ID 27 làm bạn đồng hành', command: `${config.prefix}select 27` }
+	],
 	async execute(message, args) {
 		if (args.length === 0) {
 			const activeCokemon = await getActiveCokemon(message.author.id)

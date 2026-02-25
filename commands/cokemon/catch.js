@@ -7,6 +7,10 @@ module.exports = {
 	name: 'catch',
 	aliases: ['c'],
 	description: 'Thử bắt cokemon.',
+	usage: `${config.prefix}catch`,
+	examples: [
+		{ intent: 'Bắt Cokemon đang xuất hiện', command: `${config.prefix}catch` }
+	],
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {

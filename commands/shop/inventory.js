@@ -9,6 +9,10 @@ module.exports = {
 	name: 'inventory',
 	description: 'Kiểm tra túi đồ của bạn.',
 	aliases: ['inv'],
+	usage: `${config.prefix}inv`,
+	examples: [
+		{ intent: 'Xem túi đồ của bạn', command: `${config.prefix}inv` }
+	],
 	async execute(message) {
 		const user = await getUser(message.author.id)
 		if (user.inventory.size === 0) {
@@ -20,7 +24,7 @@ module.exports = {
 			.map(([itemId, quantity]) => {
 				const itemData = allItems.find(i => i.item_id === itemId)
 				if (!itemData) return null
-				return { ...itemData.toObject(), quantity }
+				return { ...itemData, quantity }
 			})
 			.filter(Boolean)
 
@@ -32,7 +36,7 @@ module.exports = {
 			const embed = new EmbedBuilder()
 				.setColor('#0099ff')
 				.setTitle(`Túi đồ của ${message.author.username}`)
-				.setDescription("Những vật phẩm trong túi đồ của bạn. Dùng `!use <id>` để sử dụng chúng.")
+				.setDescription(`Những vật phẩm trong túi đồ của bạn. Dùng \`${config.prefix}use <id>\` để sử dụng chúng.`)
 				.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
 
 			pageItems.forEach(item => {
@@ -42,6 +46,6 @@ module.exports = {
 			return { embeds: [embed] }
 		}
 
-		await initPage(message, generateDisplay, totalPages, '!inventory')
+		await initPage(message, generateDisplay, totalPages, `${config.prefix}inventory`)
 	}
 }

@@ -113,37 +113,40 @@ module.exports = {
 	channel_themes: {
 		"1415143151307329536": null,
 		"1422108084519698502": {
-			"main_types": ["Water", "Ice"],
-			"weight": 0.9
+			main_types: ["Water", "Ice"],
+			weight: 0.9
 		},
 		"1415143289136353372": {
-			"main_types": ["Fire"],
-			"weight": 0.9
+			main_types: ["Fire"],
+			weight: 0.9
 		},
 		"1415143406241583186": {
-			"main_types": ["Rock", "Ground", "Dragon"],
-			"weight": 0.9
+			main_types: ["Rock", "Ground", "Dragon"],
+			weight: 0.9
 		},
 		"1415143555655143534": {
-			"main_types": ["Electric", "Psychic", "Fairy"],
-			"weight": 0.9
+			main_types: ["Electric", "Psychic", "Fairy"],
+			weight: 0.9
 		},
 		"1415143658382037132": {
-			"main_types": ["Grass", "Bug", "Flying", 'Poison'],
-			"weight": 0.9
+			main_types: ["Grass", "Bug", "Flying", 'Poison'],
+			weight: 0.9
 		},
 		"1415143688597667901": {
-			"main_types": ["Fighting", "Steel", "Normal"],
-			"weight": 0.9
+			main_types: ["Fighting", "Steel", "Normal"],
+			weight: 0.9
 		},
 		"1418029393972039800": {
 			main_types: ["Dark", "Ghost"],
 			weight: 0.9
-		}
+		},
 	},
 
 	cokemon_settings: {
+		// Economy
 		sell_percentage: 0.75,
+
+		// Timers (in milliseconds)
 		spawn_interval_ms: 15 * 1000,
 		lure_duration_ms: 30 * 60 * 1000,
 		lure_user_cooldown_ms: 30 * 60 * 1000,
@@ -154,14 +157,20 @@ module.exports = {
 		xp_cooldown_ms: 60 * 1000,
 		friendship_cooldown_ms: 30 * 60 * 1000,
 		cuddle_cooldown_ms: 60 * 60 * 1000,
-		shiny_rate: 4096,
+
+		// Item stats
 		catch_net_uses: 20,
 		max_stacked_nets: 5,
+
+		// Stats
 		max_iv: 31,
 		max_level: 100,
 		base_friendship: 70,
 		max_friendship: 255,
 		max_nickname_len: 20,
+
+		// Others
+		shiny_rate: 4096, // represent 1/4096
 		tier_weights: {
 			'Common': 100,
 			'Rare': 25,
@@ -322,5 +331,17 @@ module.exports = {
 		verification_timeout_ms: 30 * 1000,
 		verification_code_length: 6,
 		verification_max_attempts: 5
+	},
+	ai: {
+		embedding_model: 'gemini-embedding-001',
+		embedding_dimensions: 3072,
+		generative_model: 'gemini-2.5-flash',
+		ask_cooldown_ms: 30000,
+		ask_history_limit: 6,
+		thread_name_prefix: "🤖 Tổng đài hỗ trợ CokeBot:",
+		thread_archive_minutes: 60,
+		// Timeout after which thread messages are treated as normal chat/commands
+		thread_expiry_ms: 60 * 60 * 1000,
+		knowledge_base_version: '1.0.0'
 	}
 }

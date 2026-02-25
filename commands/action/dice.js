@@ -1,3 +1,4 @@
+const config = require('../../data/config')
 const messages = [
     'Một ngày thật may mắn!',
     'Một ngày thật xui xẻo...',
@@ -18,6 +19,11 @@ const messages = [
 module.exports = {
     name: 'roll',
     description: 'Lắc xúc xắc N mặt!',
+    usage: `${config.prefix}roll [số mặt]`,
+    examples: [
+        { intent: 'Lắc xúc xắc 6 mặt (mặc định)', command: `${config.prefix}roll` },
+        { intent: 'Lắc xúc xắc 20 mặt', command: `${config.prefix}roll 20` }
+    ],
     async execute(message, args) {
         let sides = 6; 
 

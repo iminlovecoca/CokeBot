@@ -5,13 +5,15 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "seed": "node seeders/run_all_seeds.js"
+    "seed": "node seeders/run_all_seeds.js",
+    "seed:ai": "node seeders/knowledge.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.11.0",
     "canvas": "^3.1.2",
     "discord.js": "^14.20.0",

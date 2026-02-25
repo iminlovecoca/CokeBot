@@ -6,8 +6,10 @@ module.exports = {
 	name: 'favourite',
 	aliases: ['fav'],
 	description: 'Đánh dấu, hoặc bỏ đánh dấu một cokemon là yêu thích.',
-	usage: '`!favourite <id>`',
-	examples: '`!favourite 27`',
+	usage: `${config.prefix}favourite <id>`,
+	examples: [
+		{ intent: 'Đánh dấu hoặc bỏ đánh dấu yêu thích cho Cokemon có ID 27', command: `${config.prefix}favourite 27` }
+	],
 	async execute(message, args) {
 		const cokemonUid = parseInt(args[0])
 		if (isNaN(cokemonUid)) {

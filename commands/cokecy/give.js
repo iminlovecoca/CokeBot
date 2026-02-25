@@ -12,8 +12,10 @@ module.exports = {
   name: 'give',
   aliases: ['send'],
   description: 'Chuyển coke cho người khác (ghi lại lịch sử chuyển nhận)',
-  usage: '`!give @người-nhận <số tiền>`',
-  examples: '`!give @mythological 1000000`',
+  usage: `${config.prefix}give @user <số tiền>`,
+  examples: [
+    { intent: 'Chuyển 1,000,000 coke cho người khác', command: `${config.prefix}give @PlayerName 1000000` }
+  ],
   async execute(message, args) {
     const mention = message.mentions.users.first();
     const amount = parseInt(args[1]);

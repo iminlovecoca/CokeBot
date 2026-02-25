@@ -21,8 +21,11 @@ module.exports = {
   name: 's',
   aliases: ['slot', 'slots'],
   description: 'Chơi slot để kiếm coke!',
-  usage: '`!s [tiền cược|all]`',
-  examples: '`!s`\n`!slot all`',
+  usage: `${config.prefix}s [tiền cược|all]`,
+  examples: [
+    { intent: 'Chơi slot với mức cược tối thiểu', command: `${config.prefix}s` },
+    { intent: 'Chơi slot với tất cả tiền đang có', command: `${config.prefix}s all` }
+  ],
   async execute(message, args) {
     const userId = message.author.id
     const remainingCooldown = checkAndSetCooldown(userId, 's', settings.cooldown_second)

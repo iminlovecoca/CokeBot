@@ -17,8 +17,15 @@ module.exports = {
 	name: 'release',
 	description: 'Thả một hoặc nhiều cokemon về với tự nhiên.',
 	aliases: ['rl'],
-	usage: '`!release <ID1> [ID2]...`\n`!release <tag> [tag-value]`',
-	examples: '`!release 3 13 27`\n`!release --iv- 50 --shiny`',
+	usage: `${config.prefix}release <ID1> [ID2]...\n${config.prefix}release [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav]`,
+	examples: [
+		{ intent: 'Thả theo danh sách ID cụ thể', command: `${config.prefix}release 1 5 10 22` },
+		{ intent: 'Lọc theo đặc điểm (type, tier, name, nature, ability, gender)', command: `${config.prefix}release --type water grass --tier common --gender male` },
+		{ intent: 'Lọc theo chỉ số game (lvl, iv)', command: `${config.prefix}release --lvl- 10 --iv- 40` },
+		{ intent: 'Lọc theo chỉ số IV cụ thể (hpiv, atkiv, defiv, spatkiv, spdefiv, spdiv)', command: `${config.prefix}release --atkiv- 5 --spdiv- 5` },
+		{ intent: 'Lọc theo chỉ số cơ bản - Base Stats (hp, atk, def, spatk, spdef, spd)', command: `${config.prefix}release --hp- 50 --spd- 40` },
+		{ intent: 'Lọc theo trạng thái đặc biệt (shiny, noshiny, fav, nofav)', command: `${config.prefix}release --noshiny --nofav` }
+	],
 	async execute(message, args) {
 		if (args.length === 0) {
 			throw new UserFriendlyError(`${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc. Ví dụ: \`!release 3 12\` hoặc \`!release --tier common\``)

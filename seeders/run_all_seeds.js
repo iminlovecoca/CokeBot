@@ -1,8 +1,9 @@
 const mongoose = require('mongoose')
 require('dotenv').config()
-const seedAbilities = require('./abilities.js')
-const seedItems = require('./items.js')
-const seedSpecies = require('./species.js')
+const seedAbilities = require('./abilities')
+const seedItems = require('./items')
+const seedSpecies = require('./species')
+const seedKnowledge = require('./knowledge')
 
 const runAllSeeders = async () => {
     try {
@@ -11,6 +12,7 @@ const runAllSeeders = async () => {
         await seedAbilities()
         await seedItems()
         await seedSpecies()
+        await seedKnowledge()
     } catch (error) {
         console.error("❌ An error occurred during the seeding process:", error)
     } finally {

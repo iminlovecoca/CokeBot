@@ -1,3 +1,4 @@
+const config = require('../../data/config')
 const { getUser } = require('../../utils/userUtil')
 const { getUserXpNeeded, getRankEmoji } = require('../../utils/userUtil')
 
@@ -5,6 +6,10 @@ module.exports = {
   name: 'rank',
   aliases: ['level', 'lvl'],
   description: '🔰 Xem cấp bậc rank và level',
+  usage: `${config.prefix}rank`,
+  examples: [
+    { intent: 'Xem thông tin level và rank của bạn', command: `${config.prefix}rank` }
+  ],
 
   async execute(message) {
     const displayName = message.member?.displayName || message.author.username;
