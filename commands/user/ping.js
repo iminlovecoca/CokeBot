@@ -1,3 +1,4 @@
+const config = require('../../data/config');
 const { EmbedBuilder } = require('discord.js');
 const os = require('os');
 const mongoose = require('mongoose');
@@ -6,6 +7,10 @@ const User = require('../../models/User');
 module.exports = {
   name: 'ping',
   description: 'Kiểm tra độ trễ và tình trạng kết nối của bot',
+  usage: `${config.prefix}ping`,
+  examples: [
+    { intent: 'Kiểm tra độ trễ của bot', command: `${config.prefix}ping` }
+  ],
   async execute(message) {
     const sent = await message.channel.send('🏓 Đang đo ping...');
 

@@ -5,8 +5,11 @@ const config = require('../../data/config')
 module.exports = {
 	name: 'buy',
 	description: 'Mua một vật phẩm từ cửa hàng.',
-	usage: '`!buy <item-id> [số lượng]`',
-	examples: '`!buy sun-stone 3`',
+	usage: `${config.prefix}buy <id> [số lượng]`,
+	examples: [
+		{ intent: 'Mua 1 vật phẩm (ví dụ: sun-stone)', command: `${config.prefix}buy sun-stone` },
+		{ intent: 'Mua 3 vật phẩm cùng lúc', command: `${config.prefix}buy sun-stone 3` }
+	],
 	async execute(message, args) {
 		const itemId = args[0]
 		let quantity = 1 // Default quantity is 1

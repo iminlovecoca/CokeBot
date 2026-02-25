@@ -2,10 +2,16 @@ const User = require('../../models/User');
 const StockHolding = require('../../models/StockHolding');
 const StockSymbol = require('../../models/StockSymbol');
 const { getUser, getRankEmoji } = require('../../utils/userUtil')
+const config = require('../../data/config')
 
 module.exports = {
   name: 'top',
   description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea, stock hoặc gw',
+  usage: `${config.prefix}top [cash|level|rank|luck|tea|stock] [số lượng]`,
+  examples: [
+    { intent: 'Xem top đại gia coke', command: `${config.prefix}top cash` },
+    { intent: 'Xem top level (10 người)', command: `${config.prefix}top level 10` }
+  ],
 
   async execute(message, args) {
     const type = args[0]?.toLowerCase() || 'cash';

@@ -1,3 +1,4 @@
+const config = require('../../data/config');
 const User = require('../../models/User');
 const { checkAndSetCooldown } = require('../../utils/cooldown')
 const COOLDOWN = 5 * 60;
@@ -15,6 +16,11 @@ module.exports = {
   name: 'pray',
   aliases: ['luck'],
   description: 'Cầu may cho bản thân hoặc người khác',
+  usage: `${config.prefix}pray [@user]`,
+  examples: [
+    { intent: 'Cầu may cho chính mình', command: `${config.prefix}pray` },
+    { intent: 'Cầu may cho người khác', command: `${config.prefix}pray @PlayerName` }
+  ],
   async execute(message, args) {
     const authorId = message.author.id;
 

@@ -7,6 +7,10 @@ module.exports = {
   name: 'pickup',
   aliases: ['claim'],
   description: 'Nhặt coke ngẫu nhiên từ sàn (1 lần/đợt)',
+  usage: `${config.prefix}pickup`,
+  examples: [
+    { intent: 'Nhặt coke trên sàn', command: `${config.prefix}pickup` }
+  ],
   async execute(message) {
     const userId = message.author.id;
     const channelId = message.channel.id;

@@ -28,8 +28,11 @@ module.exports = {
   name: 'bj',
   aliases: ['blackjack'],
   description: 'Chơi bài xì dách (blackjack).',
-  usage: '`!bj [tiền cược|all]`',
-  examples: '`!bj all`\n`!blackjack 10000`',
+  usage: `${config.prefix}bj [tiền cược|all]`,
+  examples: [
+    { intent: 'Cược toàn bộ số tiền hiện có', command: `${config.prefix}bj all` },
+    { intent: 'Cược 10,000 coke', command: `${config.prefix}bj 10000` }
+  ],
   execute: async (message, args) => {
     const userId = message.author.id
     const game = await getGame(userId)
@@ -89,7 +92,7 @@ const blackjack = async (message, playerHand, dealerHand, deck, bet, resume) => 
 
   collector.on('end', (_, reason) => {
     if (reason == 'time')
-      sentMessage.edit('**⏱ |** Đã hết thời gian tương tác. Nhập `!bj` để tiếp tục!')
+      sentMessage.edit(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${config.prefix}bj\` để tiếp tục!`)
   })
 }
 

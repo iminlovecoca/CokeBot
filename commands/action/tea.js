@@ -8,6 +8,11 @@ const config = require('../../data/config')
 module.exports = {
   name: 'tea',
   description: 'Tặng hoặc tự thưởng trà',
+  usage: `${config.prefix}tea [@user]`,
+  examples: [
+    { intent: 'Tự thưởng trà cho mình', command: `${config.prefix}tea` },
+    { intent: 'Thưởng trà cho người khác', command: `${config.prefix}tea @PlayerName` }
+  ],
   async execute(message, args) {
     const authorId = message.author.id;
 

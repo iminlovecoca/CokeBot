@@ -49,7 +49,7 @@ const formatConditions = (client, conditions) => {
                 parts.push(`ở nơi có ${getTypeText(c.value)}`)
                 break
             case 'move_known':
-                parts.push(`sau khi học ${getTypeText(c.value)}`)
+                parts.push(`sau khi học ${c.value}`)
                 break
             case 'other':
                 parts.push(`${c.value}`)
@@ -63,8 +63,11 @@ module.exports = {
     name: 'dex',
     aliases: ['d'],
     description: 'Hiển thị Cokedex của bạn.',
-    usage: '`!dex [cokemon]`',
-    examples: '`!dex`\n`!dex bulbasaur`',
+    usage: `${config.prefix}dex [tên cokemon]`,
+    examples: [
+        { intent: 'Xem danh sách Cokedex tổng quát', command: `${config.prefix}dex` },
+        { intent: 'Xem thông tin chi tiết của một loài (ví dụ: Bulbasaur)', command: `${config.prefix}dex bulbasaur` }
+    ],
     async execute(message, args) {
         const allSpecies = message.client.allSpecies
         if (!allSpecies || allSpecies.length === 0) {
@@ -177,7 +180,7 @@ module.exports = {
                     isShinyView = !isShinyView
                 }
             }
-            await initPage(message, generateDisplay, allSpecies.length, '!dex <tên cokemon>', currentIndex, {
+            await initPage(message, generateDisplay, allSpecies.length, `${config.prefix}dex <tên cokemon>`, currentIndex, {
                 customButtonEmoji: shinyButtonEmoji,
                 customHandler: customHandler
             })
@@ -229,7 +232,7 @@ module.exports = {
                 embed.addFields({ name: '\u200B', value: '\u200B', inline: true })
                 return { embeds: [embed] }
             }
-            await initPage(message, generateDisplay, totalPages, '!dex')
+            await initPage(message, generateDisplay, totalPages, `${config.prefix}dex`)
         }
     }
 }

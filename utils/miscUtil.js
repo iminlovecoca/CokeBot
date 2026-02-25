@@ -106,6 +106,13 @@ const splitMessage = (text, maxLength = 2000) => {
     return chunks
 }
 
+const cleanString = str => {
+    return str.toLowerCase()
+        .replace(/[.,\/#!$%\^&*;:{}=\-_`~()?!]/g, " ") // remove punctuation
+        .replace(/\s{2,}/g, " ") // remove extra spaces
+        .trim()
+}
+
 module.exports = {
     runTransactionWithRetry,
     getDebuffPercentage,
@@ -113,5 +120,6 @@ module.exports = {
     formatDuration,
     formatDateTimeToVietnamese,
     calculateStd,
-    splitMessage
+    splitMessage,
+    cleanString
 }

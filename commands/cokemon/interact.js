@@ -7,8 +7,14 @@ module.exports = {
 	name: 'interact',
 	aliases: ['int'],
 	description: 'Tương tác với Cokemon của bạn.',
-	usage: '`!interact <hành động> [cokemon_id] [item_id/biệt danh]`',
-	examples: '`!interact give 12 metal-coat` (Đưa vật phẩm cho Cokemon ID 12)',
+	usage: `${config.prefix}interact <nickname|rm_nickname|give|take|cuddle> [cokemon_id] [item_id/biệt danh]`,
+	examples: [
+		{ intent: 'Đổi biệt danh (nickname) cho Cokemon', command: `${config.prefix}interact nickname 12 "Tên Mới"` },
+		{ intent: 'Xóa biệt danh hiện tại', command: `${config.prefix}interact rm_nickname 12` },
+		{ intent: 'Đưa vật phẩm giữ cho Cokemon (Held Item)', command: `${config.prefix}interact give 12 metal-coat` },
+		{ intent: 'Lấy lại vật phẩm Cokemon đang giữ', command: `${config.prefix}interact take 12` },
+		{ intent: 'Âu yếm (cuddle) để tăng tình bạn', command: `${config.prefix}interact cuddle` }
+	],
 	async execute(message, args) {
 		const action = args[0]?.toLowerCase()
 		if (!action) {

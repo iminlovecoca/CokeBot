@@ -8,8 +8,11 @@ const config = require('../../data/config')
 module.exports = {
 	name: 'evolve',
 	description: 'Tiến hóa một Cokemon nếu nó đủ điều kiện.',
-	usage: '`!evolve <cokemon_id> [item_id]`',
-	examples: '`!evolve 27`\n`!evolve 12 moon-stone`',
+	usage: `${config.prefix}evolve <cokemon_id> [item_id]`,
+	examples: [
+		{ intent: 'Tiến hóa bằng cấp độ hoặc điều kiện sẵn có', command: `${config.prefix}evolve 27` },
+		{ intent: 'Tiến hóa bằng cách sử dụng vật phẩm cụ thể (ví dụ: moon-stone)', command: `${config.prefix}evolve 12 moon-stone` }
+	],
 	async execute(message, args) {
 		const cokemonId = parseInt(args[0])
 		const providedItemId = args[1]?.toLowerCase()

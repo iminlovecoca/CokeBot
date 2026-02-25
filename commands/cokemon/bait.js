@@ -5,6 +5,10 @@ module.exports = {
 	name: 'bait',
 	aliases: ['b'],
 	description: 'Ném mồi dụ cokemon. Giảm tỉ lệ bỏ chạy nhưng cũng giảm tỉ lệ bắt.',
+	usage: `${config.prefix}bait`,
+	examples: [
+		{ intent: 'Ném mồi dụ Cokemon', command: `${config.prefix}bait` }
+	],
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {

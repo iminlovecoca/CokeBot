@@ -6,6 +6,10 @@ const ITEMS_PER_PAGE = 5
 module.exports = {
 	name: 'shop',
 	description: 'Hiển thị giao diện cửa hàng.',
+	usage: `${config.prefix}shop`,
+	examples: [
+		{ intent: 'Mở cửa hàng', command: `${config.prefix}shop` }
+	],
 	async execute(message) {
 		const allItems = message.client.allItems.filter(item => item.price !== null)
 		const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE)
@@ -18,7 +22,7 @@ module.exports = {
 			const embed = new EmbedBuilder()
 				.setColor('#0099ff')
 				.setTitle('Cửa Hàng Cokemon')
-				.setDescription("Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng `!buy <id> [số lượng]` để mua hoặc `!sell <id> [số lượng]` để bán.")
+				.setDescription(`Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng \`${config.prefix}buy <id> [số lượng]\` để mua hoặc \`${config.prefix}sell <id> [số lượng]\` để bán.`)
 				.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
 
 			pageItems.forEach(item => {
@@ -30,6 +34,6 @@ module.exports = {
 			})
 			return { embeds: [embed] }
 		}
-		await initPage(message, generateDisplay, totalPages, '!shop')
+		await initPage(message, generateDisplay, totalPages, `${config.prefix}shop`)
 	}
 }

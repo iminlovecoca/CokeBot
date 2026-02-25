@@ -17,8 +17,11 @@ module.exports = {
   name: 'tx',
   aliases: ['taixiu', 'doden'],
   description: '🎲 Chơi tài xỉu bằng coke!',
-  usage: '`!tx <t/x> [tiền cược|all]`',
-  examples: '`!tx t all`\n`!taixiu x 100000`',
+  usage: `${config.prefix}tx <t/x> [tiền cược|all]`,
+  examples: [
+    { intent: 'Cược tài (t) với tất cả tiền', command: `${config.prefix}tx t all` },
+    { intent: 'Cược xỉu (x) với 100,000 coke', command: `${config.prefix}tx x 100000` }
+  ],
   async execute(message, args) {
     const userId = message.author.id;
     const remainingCooldown = checkAndSetCooldown(userId, 'tx', settings.cooldown_second)

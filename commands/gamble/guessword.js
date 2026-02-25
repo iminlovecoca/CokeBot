@@ -8,6 +8,10 @@ module.exports = {
   name: 'gw',
   aliases: ['guessword', 'gheptu'],
   description: 'Trò chơi ghép chữ từ chữ bị đảo',
+  usage: `${config.prefix}gw`,
+  examples: [
+    { intent: 'Chơi ghép chữ', command: `${config.prefix}gw` }
+  ],
 
   async execute(message) {
     const channelId = message.channel.id;

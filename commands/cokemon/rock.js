@@ -6,6 +6,10 @@ module.exports = {
 	name: 'rock',
 	aliases: ['r'],
 	description: 'Ném đá vào cokemon. Tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ nó bỏ chạy.',
+	usage: `${config.prefix}rock`,
+	examples: [
+		{ intent: 'Ném đá vào Cokemon', command: `${config.prefix}rock` }
+	],
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {

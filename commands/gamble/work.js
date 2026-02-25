@@ -1,11 +1,16 @@
 const { getUser } = require('../../utils/userUtil');
 const { UserFriendlyError } = require('../../utils/errors')
 const jobs = require('../../data/jobs.json');
+const config = require('../../data/config')
 
 module.exports = {
   name: 'work',
   aliases: ['job', 'working', 'wk'],
   description: 'Làm việc mỗi 3 giờ để nhận coke',
+  usage: `${config.prefix}work`,
+  examples: [
+    { intent: 'Làm việc kiếm coke', command: `${config.prefix}work` }
+  ],
 
   async execute(message) {
     const userId = message.author.id;

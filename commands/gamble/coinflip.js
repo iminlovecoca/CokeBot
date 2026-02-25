@@ -12,8 +12,11 @@ module.exports = {
 	name: 'cf',
 	aliases: ['coinflip', 'flip'],
 	description: 'Chơi tung đồng xu!',
-	usage: '`!cf <h/t> [tiền cược|all]`',
-	examples: '`!cf t`\n`!coinflip h all`',
+	usage: `${config.prefix}cf <h/t> [tiền cược|all]`,
+	examples: [
+		{ intent: 'Chọn mặt sấp (tails) và cược mức tối thiểu', command: `${config.prefix}cf t` },
+		{ intent: 'Chọn mặt ngửa (heads) và cược tất cả tiền', command: `${config.prefix}cf h all` }
+	],
 	async execute(message, args) {
 		const userId = message.author.id;
 		let choice

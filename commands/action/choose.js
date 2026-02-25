@@ -3,7 +3,11 @@ const config = require('../../data/config')
 
 module.exports = {
     name: 'choose',
-    description: 'Chọn ngẫu nhiên 1 lựa chọn từ danh sách',
+    description: 'Chọn ngẫu nhiên 1 lựa chọn từ danh sách (cách nhau bởi dấu phẩy)',
+    usage: `${config.prefix}choose <lựa chọn 1>, <lựa chọn 2>, ...`,
+    examples: [
+        { intent: 'Chọn giữa táo, cam và chuối', command: `${config.prefix}choose táo, cam, chuối` }
+    ],
     execute(message, args) {
         const msgs = [
             'Tôi chọn ?!',

@@ -240,8 +240,8 @@ const initializeSpawner = (client) => {
                     if (finalImagePath) {
                         try {
                             fs.unlinkSync(finalImagePath)
-                        } catch (e) {
-                            console.error('Failed to delete temporary spawn image:', e)
+                        } catch (error) {
+                            console.error('Failed to delete temporary spawn image:', error)
                         }
                     }
                 }

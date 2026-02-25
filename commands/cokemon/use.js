@@ -5,8 +5,11 @@ const config = require('../../data/config')
 module.exports = {
 	name: 'use',
 	description: 'Sử dụng một vật phẩm từ túi đồ của bạn.',
-	usage: '`!use <item-id> [số-lượng]`',
-	examples: '`!use catch-net`',
+	usage: `${config.prefix}use <item-id> [số lượng] [target_id]`,
+	examples: [
+		{ intent: 'Sử dụng 1 vật phẩm (ví dụ: catch-net)', command: `${config.prefix}use catch-net` },
+		{ intent: 'Sử dụng kẹo hiếm (rare-candy) cho Cokemon ID 12', command: `${config.prefix}use rare-candy 1 12` }
+	],
 	async execute(message, args) {
 		const itemId = args[0]?.toLowerCase()
 		if (!itemId) {

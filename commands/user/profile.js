@@ -1,6 +1,7 @@
 const { AttachmentBuilder } = require('discord.js');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const { getUser } = require('../../utils/userUtil')
+const config = require('../../data/config')
 const path = require('path');
 
 function getXpNeeded(level) {
@@ -12,7 +13,7 @@ function getRankEmoji(level) {
   if (level <= 20) return 'Uncommon';
   if (level <= 30) return 'Rare';
   if (level <= 40) return 'Epic';
-  if (level <= 50) return 'Mysthic';
+  if (level <= 50) return 'Mythic';
   if (level <= 60) return 'Legendary';
   return 'Ancient';
 }
@@ -20,6 +21,10 @@ function getRankEmoji(level) {
 module.exports = {
   name: 'profile',
   description: 'Hiển thị hồ sơ người chơi bằng hình ảnh',
+  usage: `${config.prefix}profile`,
+  examples: [
+    { intent: 'Xem hồ sơ của bạn', command: `${config.prefix}profile` }
+  ],
 
   async execute(message) {
     const user = message.author;

@@ -9,8 +9,10 @@ const config = require('../../data/config')
 module.exports = {
 	name: 'info',
 	description: 'Xem thông tin chi tiết của một cokemon bạn sở hữu.',
-	usage: '`!info <id>`',
-	examples: '`!info 12`',
+	usage: `${config.prefix}info <id>`,
+	examples: [
+		{ intent: 'Xem thông tin chi tiết Cokemon có ID 12', command: `${config.prefix}info 12` }
+	],
 	async execute(message, args) {
 		const cokemonUid = parseInt(args[0])
 		if (isNaN(cokemonUid)) {

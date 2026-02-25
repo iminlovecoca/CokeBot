@@ -9,8 +9,15 @@ const MONS_PER_PAGE = 20
 module.exports = {
 	name: 'cokemon',
 	description: 'Hiển thị danh sách những cokemon bạn đã bắt.',
-	usage: '`!cokemon [tag] [tag-value]`',
-	examples: '`!cokemon`\n`!cokemon --lvl+ 5 --tier legendary --sort iv`',
+	usage: `${config.prefix}cokemon [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav] [--sort <recent|iv|level|dex>]`,
+	examples: [
+		{ intent: 'Sắp xếp danh sách (recent, iv, level, dex)', command: `${config.prefix}cokemon --sort iv` },
+		{ intent: 'Lọc theo đặc điểm (type, tier, name, nickname, nature, ability, gender)', command: `${config.prefix}cokemon --type fire,flying --tier legendary --gender female` },
+		{ intent: 'Lọc theo chỉ số game (lvl, iv)', command: `${config.prefix}cokemon --lvl+ 50 --iv- 40` },
+		{ intent: 'Lọc theo chỉ số IV cụ thể (hpiv, atkiv, defiv, spatkiv, spdefiv, spdiv)', command: `${config.prefix}cokemon --atkiv= 31 --spdiv+ 20` },
+		{ intent: 'Lọc theo chỉ số cơ bản - Base Stats (hp, atk, def, spatk, spdef, spd)', command: `${config.prefix}cokemon --hp+ 100 --spd- 50` },
+		{ intent: 'Lọc theo trạng thái đặc biệt (shiny, noshiny, fav, nofav)', command: `${config.prefix}cokemon --shiny --nofav` }
+	],
 	async execute(message, args) {
 		const validSorts = ['recent', 'iv', 'level', 'dex']
 		let sortBy = validSorts[0] // sort by most recent by default
@@ -85,6 +92,6 @@ module.exports = {
 				.setFooter({ text: `Trang ${page + 1}/${totalPages}${paddingChar}|${paddingChar}Sắp xếp theo: ${sortByVi}` })
 			return { embeds: [embed] }
 		}
-		await initPage(message, generateDisplay, totalPages, '!cokemon')
+		await initPage(message, generateDisplay, totalPages, `${config.prefix}cokemon`)
 	}
 }

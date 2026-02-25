@@ -8,6 +8,11 @@ module.exports = {
   name: 'cash',
   aliases: ['money', 'balance'],
   description: 'Xem số coke hiện có của bạn hoặc người khác',
+  usage: `${config.prefix}cash [@user]`,
+  examples: [
+    { intent: 'Xem số dư của bạn', command: `${config.prefix}cash` },
+    { intent: 'Xem số dư của người khác (Dành cho Admin)', command: `${config.prefix}cash @PlayerName` }
+  ],
   async execute(message, args) {
     const userId = message.author.id
     const cooldownSeconds = 3
