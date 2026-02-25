@@ -29,18 +29,25 @@ module.exports = {
         }
         client.askCooldowns.set(userId, now)
 
-        const existingThreads = message.channel.threads ? message.channel.threads.cache.filter(t =>
-            t.ownerId === client.user.id &&
-            t.name.includes(message.author.username) &&
-            !t.archived
-        ) : []
-        for (const [id, oldThread] of existingThreads) {
-            try {
-                await oldThread.send(`${config.emoji.warning} Bạn đã mở một luồng hỗ trợ mới. Luồng này sẽ được tự động đóng lại.`)
-                await oldThread.setArchived(true)
-            } catch (error) {
-                console.error(`Failed to close old thread ${id}:`, error.message)
+        try {
+            if (message.channel.threads) {
+                const fetchedThreads = await message.channel.threads.fetchActive()
+                const oldAIThreads = fetchedThreads.threads.filter(t =>
+                    t.ownerId === client.user.id &&
+                    t.name.includes(message.author.username)
+                )
+
+                for (const [id, oldThread] of oldAIThreads) {
+                    try {
+                        await oldThread.send(`${config.emoji.warning} Bạn đã mở một luồng hỗ trợ mới. Luồng này sẽ được tự động đóng lại.`)
+                        await oldThread.setArchived(true)
+                    } catch (error) {
+                        console.error(`Failed to close old thread ${id}:`, error)
+                    }
+                }
             }
+        } catch (error) {
+            console.error('Channel thread cleanup failed:', error)
         }
     
         const cleanArgs = args.filter(a => a !== '--debug')
