@@ -13,6 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@discordjs/voice": "^0.18.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.11.0",
     "canvas": "^3.1.2",
@@ -21,8 +22,11 @@
     "luxon": "^3.6.1",
     "mongoose": "^8.17.0",
     "node-cron": "^4.2.1",
+    "opusscript": "^0.0.8",
+    "play-dl": "^1.9.7",
     "random-number-csprng": "^1.0.2",
-    "yahoo-finance2": "^2.13.3"
+    "yahoo-finance2": "^2.13.3",
+    "ytdl-core": "^4.11.5"
   },
   "overrides": {
     "js-yaml": "^4.1.1"
