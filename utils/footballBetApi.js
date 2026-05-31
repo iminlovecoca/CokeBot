@@ -13,6 +13,14 @@ const AUTH_HEADER_NAME = process.env.FOOTBALL_BET_AUTH_HEADER || "";
 const AUTH_TOKEN = process.env.FOOTBALL_BET_AUTH_TOKEN || "";
 const CUSTOM_HEADERS_JSON = process.env.FOOTBALL_BET_HTTP_HEADERS_JSON || "";
 const SCORE_MULTIPLIER = Number(process.env.FOOTBALL_BET_SCORE_MULTIPLIER || 6);
+const FIXTURE_CACHE_TTL_MINUTES = Math.max(
+  1,
+  Number(process.env.FOOTBALL_BET_FIXTURES_CACHE_TTL_MINUTES || 30),
+);
+const FIXTURE_CACHE_TTL_MS = FIXTURE_CACHE_TTL_MINUTES * 60 * 1000;
+
+const fixtureCache = new Map();
+const fixtureRequestInFlight = new Map();
 
 function normalizeText(value) {
   return String(value || "")
@@ -56,7 +64,11 @@ function extractArray(payload) {
     return payload.response;
   }
 
-  if (payload && typeof payload === "object" && (payload.id || payload.idEvent)) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    (payload.id || payload.idEvent)
+  ) {
     return [payload];
   }
 
@@ -108,10 +120,16 @@ function normalizeCompetitionSource(source, index = 0) {
   }
 
   const id = String(source.id || source.competitionId || "").trim();
-  const fixturesUrl = String(source.fixturesUrl || source.fixturesURL || "").trim();
+  const fixturesUrl = String(
+    source.fixturesUrl || source.fixturesURL || "",
+  ).trim();
   const resultUrl = String(source.resultUrl || source.resultURL || "").trim();
-  const name = String(source.name || source.label || source.competitionName || id).trim();
-  const key = slugify(source.key || source.slug || name || id || `league-${index + 1}`);
+  const name = String(
+    source.name || source.label || source.competitionName || id,
+  ).trim();
+  const key = slugify(
+    source.key || source.slug || name || id || `league-${index + 1}`,
+  );
   const provider = normalizeText(source.provider || PROVIDER);
   const season =
     source.season === undefined ? "" : String(source.season || "").trim();
@@ -217,6 +235,52 @@ function buildFixtureTag(fixture) {
   const awayPart = slugify(fixture.awayTeam) || "away";
   const idPart = slugify(fixture.matchId || fixture.rawMatchId || "match");
   return `${datePart}-${homePart}-vs-${awayPart}-${idPart}`;
+}
+
+function getVietnamDateKey(input = new Date()) {
+  return input.toLocaleDateString("sv-SE", {
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+}
+
+function getCompetitionCacheKey(competitionSource) {
+  return [
+    competitionSource.key,
+    competitionSource.id,
+    competitionSource.fixturesUrl,
+    competitionSource.provider,
+    competitionSource.season,
+  ]
+    .map((value) => String(value || "").trim())
+    .join("|");
+}
+
+function readCachedFixtures(competitionSource, now) {
+  const cacheKey = getCompetitionCacheKey(competitionSource);
+  const cached = fixtureCache.get(cacheKey);
+  if (!cached) {
+    return null;
+  }
+
+  const isExpired = now - cached.fetchedAt > FIXTURE_CACHE_TTL_MS;
+  const isDifferentDay = cached.dayKey !== getVietnamDateKey(new Date(now));
+  if (isExpired || isDifferentDay) {
+    fixtureCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.fixtures
+    .filter((fixture) => fixture.kickoffAt.getTime() > now)
+    .sort((left, right) => left.kickoffAt - right.kickoffAt);
+}
+
+function writeCachedFixtures(competitionSource, fixtures, now) {
+  const cacheKey = getCompetitionCacheKey(competitionSource);
+  fixtureCache.set(cacheKey, {
+    fetchedAt: now,
+    dayKey: getVietnamDateKey(new Date(now)),
+    fixtures,
+  });
 }
 
 function normalizeFixture(raw, competitionSource = null) {
@@ -376,13 +440,49 @@ function buildResultUrl(fixture, competitionSource) {
 
 async function fetchCompetitionFixtures(competitionSource, limit) {
   const now = Date.now();
-  const data = await requestJson(buildFixturesUrl(competitionSource));
-  return extractArray(data)
-    .map((item) => normalizeFixture(item, competitionSource))
-    .filter(Boolean)
-    .filter((fixture) => fixture.kickoffAt.getTime() > now)
-    .sort((left, right) => left.kickoffAt - right.kickoffAt)
-    .slice(0, limit);
+  const cachedFixtures = readCachedFixtures(competitionSource, now);
+  if (cachedFixtures) {
+    return cachedFixtures.slice(0, limit);
+  }
+
+  const cacheKey = getCompetitionCacheKey(competitionSource);
+  const pendingRequest = fixtureRequestInFlight.get(cacheKey);
+  if (pendingRequest) {
+    const inFlightFixtures = await pendingRequest;
+    return inFlightFixtures.slice(0, limit);
+  }
+
+  const requestPromise = (async () => {
+    const requestTime = Date.now();
+    const data = await requestJson(buildFixturesUrl(competitionSource));
+    const fixtures = extractArray(data)
+      .map((item) => normalizeFixture(item, competitionSource))
+      .filter(Boolean)
+      .filter((fixture) => fixture.kickoffAt.getTime() > requestTime)
+      .sort((left, right) => left.kickoffAt - right.kickoffAt);
+
+    writeCachedFixtures(competitionSource, fixtures, requestTime);
+    return fixtures;
+  })();
+
+  fixtureRequestInFlight.set(cacheKey, requestPromise);
+
+  try {
+    const fixtures = await requestPromise;
+    return fixtures.slice(0, limit);
+  } catch (error) {
+    const fallbackFixtures = fixtureCache.get(cacheKey)?.fixtures || [];
+    if (fallbackFixtures.length > 0) {
+      return fallbackFixtures
+        .filter((fixture) => fixture.kickoffAt.getTime() > now)
+        .sort((left, right) => left.kickoffAt - right.kickoffAt)
+        .slice(0, limit);
+    }
+
+    throw error;
+  } finally {
+    fixtureRequestInFlight.delete(cacheKey);
+  }
 }
 
 async function fetchUpcomingFixtures(limit = 10, competitionKey = "") {
@@ -396,14 +496,18 @@ async function fetchUpcomingFixtures(limit = 10, competitionKey = "") {
   if (competitionKey) {
     const competitionSource = resolveCompetitionSource(competitionKey);
     if (!competitionSource) {
-      throw new Error(`Không tìm thấy giải "${competitionKey}". Dùng /bet leagues để xem danh sách giải.`);
+      throw new Error(
+        `Không tìm thấy giải "${competitionKey}". Dùng /bet leagues để xem danh sách giải.`,
+      );
     }
 
     return fetchCompetitionFixtures(competitionSource, limit);
   }
 
   const fixtureGroups = await Promise.allSettled(
-    competitions.map((competition) => fetchCompetitionFixtures(competition, limit)),
+    competitions.map((competition) =>
+      fetchCompetitionFixtures(competition, limit),
+    ),
   );
 
   return fixtureGroups
