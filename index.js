@@ -24,6 +24,8 @@ const Item = require("./models/cokemon/Item");
 const Knowledge = require("./models/Knowledge");
 const { syncNoituData } = require("./utils/noituBootstrap");
 const footballBetSettler = require("./features/footballBetSettler");
+const lavalinkClient = require("./utils/lavalinkClient");
+const discordPlayerClient = require("./utils/discordPlayerClient");
 
 const spawner = require("./features/spawner");
 const { loadBotLock } = require("./utils/botLock");
@@ -186,6 +188,26 @@ client.once(Events.ClientReady, async () => {
 
     await loadBotLock(client);
     spawner.initializeSpawner(client);
+    // Initialize Lavalink manager if configured
+    try {
+      const manager = lavalinkClient.init(client);
+      if (manager) console.log("✅ Lavalink manager initialized.");
+    } catch (err) {
+      console.warn(
+        "⚠️ Failed to initialize Lavalink manager:",
+        err.message || err,
+      );
+    }
+    // Initialize discord-player (optional, will use Lavalink if configured)
+    try {
+      const dp = discordPlayerClient.init(client);
+      if (dp) console.log("✅ discord-player initialized.");
+    } catch (err) {
+      console.warn(
+        "⚠️ Failed to initialize discord-player:",
+        err.message || err,
+      );
+    }
     footballBetSettler.initialize(client);
 
     await performStartupCleanup(client);

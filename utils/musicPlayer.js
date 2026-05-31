@@ -9,6 +9,7 @@ const {
   joinVoiceChannel,
 } = require("@discordjs/voice");
 const playdl = require("play-dl");
+const discordPlayerClient = require("./discordPlayerClient");
 const { EmbedBuilder } = require("discord.js");
 const { UserFriendlyError } = require("./errors");
 
@@ -501,6 +502,45 @@ const playNext = async (client, guildId) => {
 
   queue.currentSong = nextSong;
 
+  // If discord-player (with optional Lavalink) is available, prefer it
+  try {
+    if (client.discordPlayer && queue.requestMessage) {
+      const dpPlayed = await discordPlayerClient.play(
+        client,
+        queue.requestMessage,
+        nextSong.url || nextSong.title,
+      );
+      if (dpPlayed) {
+        queue.currentSong = nextSong;
+        const embed = new EmbedBuilder()
+          .setColor("#1DB954")
+          .setTitle("🎶 Đang phát nhạc (Lavalink)")
+          .setDescription(`**[${nextSong.title}](${nextSong.url})**`)
+          .addFields(
+            {
+              name: "Kênh",
+              value: nextSong.channelName || "YouTube",
+              inline: true,
+            },
+            {
+              name: "Thời lượng",
+              value: nextSong.duration || "LIVE",
+              inline: true,
+            },
+            { name: "Yêu cầu bởi", value: nextSong.requestedBy, inline: true },
+          );
+        if (nextSong.thumbnail) embed.setThumbnail(nextSong.thumbnail);
+        await queue.textChannel.send({ embeds: [embed] }).catch(() => {});
+        return nextSong;
+      }
+    }
+  } catch (err) {
+    console.warn(
+      "discord-player playback failed, falling back to local player:",
+      err?.message || err,
+    );
+  }
+
   let stream;
   try {
     stream = await createPlayableStream(nextSong);
@@ -550,6 +590,8 @@ const addSongToQueue = async (client, message, query) => {
   const song = await resolveSong(query, message.author.tag);
   const queue = await ensureQueue(client, message);
   clearIdleDisconnectTimer(queue);
+  // Attach the original request message so external players can use it
+  queue.requestMessage = message;
   const wasIdle =
     queue.player.state.status === AudioPlayerStatus.Idle ||
     queue.player.state.status === AudioPlayerStatus.Paused;
