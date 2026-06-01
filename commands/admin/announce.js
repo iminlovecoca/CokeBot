@@ -9,8 +9,8 @@ module.exports = {
     name: 'announce',
     aliases: ['notice'],
     description: 'Gửi một thông báo đến một kênh cụ thể.',
-    usage: '`!announce <#channel|channelId> [nội dung]` (đính kèm file .md hoặc .txt để gửi nội dung từ file)',
-    examples: '`!announce #general Hello World!`',
+    usage: `${config.prefix}announce <#channel|channelId> [nội dung]` (đính kèm file .md hoặc .txt để gửi nội dung từ file),
+    examples: `${config.prefix}announce #general Hello World!`,
     async execute(message, args) {
         if (!isDev(message.author.id)) {
             throw new UserFriendlyError(`${config.emoji.no} Bạn không có quyền dùng lệnh này!`)

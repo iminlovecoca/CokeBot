@@ -185,8 +185,19 @@ function resolveCompetitionSource(competitionKey) {
     return competitions.length === 1 ? competitions[0] : null;
   }
 
-  const normalizedKey = slugify(competitionKey);
-  const normalizedText = normalizeText(competitionKey);
+  // Accept inputs like "league: wc", "league=wc", or plain keys.
+  const sanitizeCompetitionKeyInput = (input) => {
+    if (!input) return "";
+    let v = String(input).trim();
+    // remove common prefixes like "league:", "league=", "league "
+    v = v.replace(/^league\s*[:=]\s*/i, "");
+    v = v.replace(/^league\s+/i, "");
+    return v.trim();
+  };
+
+  const cleanedKeyInput = sanitizeCompetitionKeyInput(competitionKey);
+  const normalizedKey = slugify(cleanedKeyInput);
+  const normalizedText = normalizeText(cleanedKeyInput);
 
   return (
     competitions.find(

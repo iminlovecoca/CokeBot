@@ -1,9 +1,10 @@
-const User = require('../../models/User');
-const OWNER_ID = '745950731638407210';
+const User = require("../../models/User");
+const config = require("../../data/config");
+const OWNER_ID = "745950731638407210";
 
 async function resetUserData(user) {
   const keepLevel = user.level;
-  const keepXp = user.xp;       
+  const keepXp = user.xp;
 
   user.coke = 0;
   user.cokeGC = 0;
@@ -17,10 +18,10 @@ async function resetUserData(user) {
   user.vipUntil = null;
 
   user.bannedUntil = null;
-  user.bannedReason = '';
+  user.bannedReason = "";
 
   user.cookieDailyCount = 0;
-  user.cookieDailyDate = '';
+  user.cookieDailyDate = "";
   user.cookie = 0;
   user.tea = 0;
   user.luck = 0;
@@ -50,58 +51,80 @@ async function resetUserData(user) {
 }
 
 module.exports = {
-  name: 'delete',
-  description: 'Reset dữ liệu người chơi (chỉ dành cho Owner)',
+  name: "delete",
+  description: "Reset dữ liệu người chơi (chỉ dành cho Owner)",
 
   async execute(message, args) {
     if (message.author.id !== OWNER_ID)
-      return message.reply('❌ | Lệnh này chỉ dành cho **Owner**.');
+      return message.reply("❌ | Lệnh này chỉ dành cho **Owner**.");
 
     const target = message.mentions.users.first();
-    const isDeleteAll = args[0] === 'all';
+    const isDeleteAll = args[0] === "all";
 
     if (isDeleteAll) {
-      const confirm = await message.reply('⚠️ Bạn có chắc muốn reset toàn bộ dữ liệu người chơi? Gõ `yes` để xác nhận.');
+      const confirm = await message.reply(
+        "⚠️ Bạn có chắc muốn reset toàn bộ dữ liệu người chơi? Gõ `yes` để xác nhận.",
+      );
 
-      const filter = m => m.author.id === message.author.id;
-      const collected = await message.channel.awaitMessages({ filter, max: 1, time: 15000 });
+      const filter = (m) => m.author.id === message.author.id;
+      const collected = await message.channel.awaitMessages({
+        filter,
+        max: 1,
+        time: 15000,
+      });
 
-      if (!collected.size || collected.first().content.toLowerCase() !== 'yes') {
-        return message.channel.send('❌ Huỷ thao tác reset toàn bộ.');
+      if (
+        !collected.size ||
+        collected.first().content.toLowerCase() !== "yes"
+      ) {
+        return message.channel.send("❌ Huỷ thao tác reset toàn bộ.");
       }
 
       const users = await User.find({});
       for (const user of users) {
         await resetUserData(user);
       }
-      return message.channel.send('✅ Đã reset toàn bộ dữ liệu người chơi.');
+      return message.channel.send("✅ Đã reset toàn bộ dữ liệu người chơi.");
     }
 
-    if (!target) return message.reply('❌ | Cú pháp đúng: `!delete @user` hoặc `!delete all`');
+    if (!target)
+      return message.reply(
+        `❌ | Cú pháp đúng: \`${config.prefix}delete @user\` hoặc \`${config.prefix}delete all\``,
+      );
 
-    const confirmMsg = await message.reply(`⚠️ Bạn có chắc muốn reset dữ liệu của **${target.username}** (giữ lại level)? Gõ \`yes\` để xác nhận.`);
+    const confirmMsg = await message.reply(
+      `⚠️ Bạn có chắc muốn reset dữ liệu của **${target.username}** (giữ lại level)? Gõ \`yes\` để xác nhận.`,
+    );
 
-    const filter = m => m.author.id === message.author.id;
-    const collector = message.channel.createMessageCollector({ filter, time: 15000, max: 1 });
+    const filter = (m) => m.author.id === message.author.id;
+    const collector = message.channel.createMessageCollector({
+      filter,
+      time: 15000,
+      max: 1,
+    });
 
-    collector.on('collect', async m => {
-      if (m.content.toLowerCase() === 'yes') {
+    collector.on("collect", async (m) => {
+      if (m.content.toLowerCase() === "yes") {
         const user = await User.findOne({ userId: target.id });
         if (user) {
           await resetUserData(user);
-          message.channel.send(`✅ Đã reset dữ liệu của **${target.username}** (giữ lại level).`);
+          message.channel.send(
+            `✅ Đã reset dữ liệu của **${target.username}** (giữ lại level).`,
+          );
         } else {
-          message.channel.send(`⚠️ Không tìm thấy dữ liệu của **${target.username}**.`);
+          message.channel.send(
+            `⚠️ Không tìm thấy dữ liệu của **${target.username}**.`,
+          );
         }
       } else {
-        message.channel.send('❌ Đã huỷ thao tác reset.');
+        message.channel.send("❌ Đã huỷ thao tác reset.");
       }
     });
 
-    collector.on('end', collected => {
+    collector.on("end", (collected) => {
       if (collected.size === 0) {
-        message.channel.send('⌛ Hết thời gian, thao tác reset đã bị huỷ.');
+        message.channel.send("⌛ Hết thời gian, thao tác reset đã bị huỷ.");
       }
     });
-  }
+  },
 };
