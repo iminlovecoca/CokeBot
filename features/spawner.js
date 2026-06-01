@@ -255,10 +255,10 @@ const initializeSpawner = (client) => {
                 .setColor(config.type_colors[primaryType] || "#FFFFFF")
                 .setTitle("Một Cokemon hoang dã đã xuất hiện!")
                 .setDescription(
-                  "Hãy cân nhắc với từng lựa chọn!\n" +
-                    "`!catch`: thử bắt với tỉ lệ bắt cơ bản\n" +
-                    "`!rock`: tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ chạy\n" +
-                    "`!bait`: giảm tỉ lệ chạy nhưng cũng giảm tỉ lệ bắt\n",
+                  `Hãy cân nhắc với từng lựa chọn!\n` +
+                    `\`${config.prefix}catch\`: thử bắt với tỉ lệ bắt cơ bản\n` +
+                    `\`${config.prefix}rock\`: tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ chạy\n` +
+                    `\`${config.prefix}bait\`: giảm tỉ lệ chạy nhưng cũng giảm tỉ lệ bắt\n`,
                 )
                 .setImage(`attachment://${finalImageFile}`);
               const spawnState = {

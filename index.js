@@ -24,6 +24,7 @@ const Item = require("./models/cokemon/Item");
 const Knowledge = require("./models/Knowledge");
 const { syncNoituData } = require("./utils/noituBootstrap");
 const footballBetSettler = require("./features/footballBetSettler");
+// Music/lavalink removed
 
 const spawner = require("./features/spawner");
 const { loadBotLock } = require("./utils/botLock");
@@ -117,6 +118,8 @@ const buildSlashCommandsForRegistration = () => {
   return commands.map((command) => command.data);
 };
 
+// Cokemusic building/integration removed
+
 loadFiles(path.join(__dirname, "commands"), (filePath) => {
   const cmd = require(filePath);
   if (cmd.name) {
@@ -186,6 +189,7 @@ client.once(Events.ClientReady, async () => {
 
     await loadBotLock(client);
     spawner.initializeSpawner(client);
+    // Music & Lavalink initialization removed
     footballBetSettler.initialize(client);
 
     await performStartupCleanup(client);
@@ -222,53 +226,9 @@ mongoose.connection.on("error", (err) =>
 mongoose.connection.on("disconnected", () =>
   console.warn("⚠️ MongoDB disconnected"),
 );
-// Startup health checks for music dependencies
-const { spawnSync } = require("child_process");
-const checkDep = (cmd, args = ["--version"]) => {
-  try {
-    const res = spawnSync(cmd, args, { encoding: "utf8" });
-    if (res.status === 0) return true;
-    return false;
-  } catch {
-    return false;
-  }
-};
 
-const hasFfmpeg = checkDep("ffmpeg", ["-version"]);
-const hasYtDlp = checkDep("yt-dlp", ["--version"]); // yt-dlp CLI
-let hasOpus = false;
-try {
-  require("@discordjs/opus");
-  hasOpus = true;
-} catch (e1) {
-  try {
-    require("node-opus");
-    hasOpus = true;
-  } catch (e2) {
-    try {
-      require("opusscript");
-      hasOpus = true;
-    } catch (e3) {
-      hasOpus = false;
-    }
-  }
-}
-
-if (!hasFfmpeg || !hasOpus || !hasYtDlp) {
-  console.warn("--- Music dependency check ---");
-  if (!hasFfmpeg)
-    console.warn(
-      "⚠️ ffmpeg not found in PATH. Install ffmpeg and ensure it's in PATH.",
-    );
-  if (!hasYtDlp)
-    console.warn(
-      "⚠️ yt-dlp not found. Install yt-dlp (pip or download exe) for more reliable extraction.",
-    );
-  if (!hasOpus)
-    console.warn(
-      "⚠️ No Opus encoder found. Install @discordjs/opus or opusscript for audio encoding.",
-    );
-  console.warn("-------------------------------");
-}
-
-connectWithRetry();
+// Start Lavalink before connecting to DB and logging in.
+// Connect to DB and login.
+(async () => {
+  await connectWithRetry();
+})();

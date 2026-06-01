@@ -30,7 +30,9 @@ module.exports = {
     if (message.author.bot || mongoose.connection.readyState !== 1) return;
 
     const userId = message.author.id;
-    const isCommand = message.content.startsWith(config.prefix);
+    const normalizedPrefix = (config.prefix || "").toLowerCase();
+    const contentLower = message.content.toLowerCase();
+    const isCommand = contentLower.startsWith(normalizedPrefix);
     try {
       const user = await getOrCreateUser(userId);
 
@@ -92,7 +94,7 @@ module.exports = {
         message.channel.isThread() &&
         message.channel.ownerId === client.user.id
       ) {
-        if (!message.content.startsWith(config.prefix)) {
+        if (!contentLower.startsWith(normalizedPrefix)) {
           const lastMsgTimestamp =
             message.channel.lastMessage?.createdTimestamp || 0;
           const idleTime = Date.now() - lastMsgTimestamp;
@@ -126,10 +128,10 @@ module.exports = {
         }
       }
 
-      const noituPrefix = `${config.prefix} noitu`;
+      const noituPrefix = `${normalizedPrefix} noitu`;
       if (
-        message.content.toLowerCase().startsWith(noituPrefix) ||
-        message.content.toLowerCase().startsWith(`${config.prefix}noitu`)
+        contentLower.startsWith(noituPrefix) ||
+        contentLower.startsWith(`${normalizedPrefix}noitu`)
       ) {
         const handled = await executeNoituCommand(message, client);
         if (handled) return;

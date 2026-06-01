@@ -13,22 +13,34 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@discordjs/voice": "^0.18.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.11.0",
     "canvas": "^3.1.2",
     "discord.js": "^14.20.0",
     "dotenv": "^16.6.1",
+    "i18n": "^0.15.3",
     "luxon": "^3.6.1",
     "mongoose": "^8.17.0",
     "node-cron": "^4.2.1",
-    "opusscript": "^0.0.8",
-    "play-dl": "^1.9.7",
     "random-number-csprng": "^1.0.2",
-    "yahoo-finance2": "^2.13.3",
-    "ytdl-core": "^4.11.5"
+    "signale": "^1.4.0",
+    "ws": "^8.21.0",
+    "yahoo-finance2": "^2.13.3"
+  },
+  "optionalDependencies": {
+    "@prisma/client": "^6.11.1",
+    "@top-gg/sdk": "^3.1.6",
+    "node-system-stats": "^2.0.5",
+    "reflect-metadata": "^0.2.2",
+    "topgg-autoposter": "^2.0.2",
+    "tsyringe": "^4.10.0",
+    "zod": "^3.25.75"
   },
   "overrides": {
     "js-yaml": "^4.1.1"
+  },
+  "devDependencies": {
+    "@swc/cli": "^0.8.1",
+    "@swc/core": "^1.15.40"
   }
 }
