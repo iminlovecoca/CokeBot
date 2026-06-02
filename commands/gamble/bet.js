@@ -22,7 +22,7 @@ function formatKickoff(date) {
   }).format(date);
 }
 
-function makeFixtureEmbed(fixtures) {
+function makeFixtureEmbed(fixtures, leagueKey = "") {
   const embed = new EmbedBuilder()
     .setColor(13250094)
     .setTitle("Kèo bóng đá sắp tới")
@@ -34,8 +34,9 @@ function makeFixtureEmbed(fixtures) {
   if (fixtures.length === 0) {
     embed.addFields({
       name: "Chưa có trận nào",
-      value:
-        "Nguồn API hiện chưa trả về lịch đấu. Hãy cấu hình `FOOTBALL_BET_COMPETITION_ID` hoặc `FOOTBALL_BET_FIXTURES_URL`.",
+      value: leagueKey
+        ? `Giải **${leagueKey}** hiện không có trận sắp tới từ nguồn API.`
+        : "Nguồn API hiện chưa trả về trận sắp tới cho các giải đã cấu hình.",
     });
     return embed;
   }
@@ -57,7 +58,9 @@ function makeLeaguesEmbed(competitions) {
   const embed = new EmbedBuilder()
     .setColor(13250094)
     .setTitle("Các giải có thể đặt kèo")
-    .setDescription("Dùng key giải với option `league` trong `/bet fixtures` hoặc `/bet place`.")
+    .setDescription(
+      "Dùng key giải với option `league` trong `/bet fixtures` hoặc `/bet place`.",
+    )
     .setTimestamp();
 
   if (competitions.length === 0) {
@@ -201,7 +204,9 @@ module.exports = {
         .addStringOption((option) =>
           option
             .setName("league")
-            .setDescription("Key giải từ /bet leagues. Bỏ trống để xem tất cả giải đã cấu hình")
+            .setDescription(
+              "Key giải từ /bet leagues. Bỏ trống để xem tất cả giải đã cấu hình",
+            )
             .setRequired(false),
         ),
     )
@@ -233,7 +238,9 @@ module.exports = {
         .addStringOption((option) =>
           option
             .setName("prediction")
-            .setDescription("Đội thắng hoặc đội thắng kèm tỉ số, ví dụ Arsenal / Arsenal 2-1")
+            .setDescription(
+              "Đội thắng hoặc đội thắng kèm tỉ số, ví dụ Arsenal / Arsenal 2-1",
+            )
             .setRequired(true),
         )
         .addIntegerOption((option) =>
@@ -246,7 +253,9 @@ module.exports = {
         .addStringOption((option) =>
           option
             .setName("league")
-            .setDescription("Key giải từ /bet leagues nếu muốn tìm trận trong một giải cụ thể")
+            .setDescription(
+              "Key giải từ /bet leagues nếu muốn tìm trận trong một giải cụ thể",
+            )
             .setRequired(false),
         ),
     ),
@@ -265,7 +274,7 @@ module.exports = {
         const league = interaction.options.getString("league")?.trim() || "";
         const fixtures = await fetchUpcomingFixtures(10, league);
         return interaction.reply({
-          embeds: [makeFixtureEmbed(fixtures)],
+          embeds: [makeFixtureEmbed(fixtures, league)],
           ephemeral: true,
         });
       } catch (error) {
@@ -291,7 +300,8 @@ module.exports = {
 
     if (!["winner", "score"].includes(betType)) {
       return interaction.reply({
-        content: "❌ Loại kèo không hợp lệ. Hãy chọn `Kèo đội thắng` hoặc `Kèo tỉ số`.",
+        content:
+          "❌ Loại kèo không hợp lệ. Hãy chọn `Kèo đội thắng` hoặc `Kèo tỉ số`.",
         ephemeral: true,
       });
     }
