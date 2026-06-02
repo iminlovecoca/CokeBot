@@ -108,40 +108,40 @@ async function syncNoituData() {
   ensureFile(wordPlayedPath, "0");
   ensureFile(roundPlayedPath, "0");
 
-  if (!fs.existsSync(wordDatabasePath)) {
-    console.log("[Noitu Sync] Downloading base words from GitHub...");
-    try {
-      const response = await axios.get(wordDataUrl);
-      const baseLines = response.data.toLowerCase().trim().split("\n");
-      fs.writeFileSync(wordDatabasePath, baseLines.join("\n"));
-      console.log("[Noitu Sync] Saved words database to words.txt");
-    } catch (error) {
-      console.warn(
-        "[Noitu Sync] Base word download failed, using local fallback:",
-        error.message,
+  console.log("[Noitu Sync] Downloading base words from GitHub...");
+  try {
+    const response = await axios.get(wordDataUrl);
+    const baseLines = response.data.toLowerCase().trim().split("\n");
+    fs.writeFileSync(wordDatabasePath, baseLines.join("\n"));
+    console.log(
+      `[Noitu Sync] Saved ${baseLines.length} base words to words.txt`,
+    );
+  } catch (error) {
+    console.warn(
+      "[Noitu Sync] Base word download failed, using local fallback:",
+      error.message,
+    );
+    if (fs.existsSync(gwDataPath)) {
+      const localWords = JSON.parse(fs.readFileSync(gwDataPath, "utf8"));
+      fs.writeFileSync(wordDatabasePath, localWords.join("\n"));
+    } else if (fs.existsSync(officialWordsPath)) {
+      fs.writeFileSync(
+        wordDatabasePath,
+        fs.readFileSync(officialWordsPath, "utf8"),
       );
-      if (fs.existsSync(gwDataPath)) {
-        const localWords = JSON.parse(fs.readFileSync(gwDataPath, "utf8"));
-        fs.writeFileSync(wordDatabasePath, localWords.join("\n"));
-      } else if (fs.existsSync(officialWordsPath)) {
-        fs.writeFileSync(
-          wordDatabasePath,
-          fs.readFileSync(officialWordsPath, "utf8"),
-        );
-      } else {
-        fs.writeFileSync(
-          gwDataPath,
-          JSON.stringify(
-            fs
-              .readFileSync(officialWordsPath, "utf8")
-              .split("\n")
-              .map(normalizeWord)
-              .filter(Boolean),
-            null,
-            2,
-          ),
-        );
-      }
+    } else {
+      fs.writeFileSync(
+        gwDataPath,
+        JSON.stringify(
+          fs
+            .readFileSync(officialWordsPath, "utf8")
+            .split("\n")
+            .map(normalizeWord)
+            .filter(Boolean),
+          null,
+          2,
+        ),
+      );
     }
   }
 
