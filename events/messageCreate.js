@@ -19,7 +19,6 @@ const { UserFriendlyError, handleCommandError } = require("../utils/errors");
 const { parseCommandArgs } = require("../utils/commandParser");
 const { answerQuestion, getThreadHistory } = require("../utils/qaSystem");
 const {
-  executeNoituCommand,
   handleNoituMessage,
 } = require("../utils/noituGame");
 const config = require("../data/config");
@@ -128,14 +127,6 @@ module.exports = {
         }
       }
 
-      const noituPrefix = `${normalizedPrefix} noitu`;
-      if (
-        contentLower.startsWith(noituPrefix) ||
-        contentLower.startsWith(`${normalizedPrefix}noitu`)
-      ) {
-        const handled = await executeNoituCommand(message, client);
-        if (handled) return;
-      }
 
       const handledNoituGame = await handleNoituMessage(message, client);
       if (handledNoituGame) return;

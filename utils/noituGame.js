@@ -135,10 +135,33 @@ function hasContinuation(word, usedWords = []) {
 function getRandomWord(usedWords = []) {
   const wordBank = getWordBank();
   const usedSet = new Set(usedWords.map(normalizeWord));
-  const candidates = wordBank.filter((word) => {
+
+  const firstTokenMap = new Map();
+  for (const word of wordBank) {
     const normalized = normalizeWord(word);
-    return !usedSet.has(normalized) && hasContinuation(normalized, usedWords);
-  });
+    if (!usedSet.has(normalized)) {
+      const first = getFirstToken(normalized);
+      if (!firstTokenMap.has(first)) {
+        firstTokenMap.set(first, []);
+      }
+      firstTokenMap.get(first).push(normalized);
+    }
+  }
+
+  const candidates = [];
+  for (const word of wordBank) {
+    const normalized = normalizeWord(word);
+    if (!usedSet.has(normalized)) {
+      const last = getLastToken(normalized);
+      const matches = firstTokenMap.get(last);
+      if (matches) {
+        const hasValidContinuation = matches.some((candidate) => candidate !== normalized);
+        if (hasValidContinuation) {
+          candidates.push(normalized);
+        }
+      }
+    }
+  }
 
   if (candidates.length === 0) {
     return null;
@@ -325,37 +348,6 @@ async function stopNoituGame(client, guildId) {
   return true;
 }
 
-async function executeNoituCommand(message, client) {
-  const content = normalizeWord(message.content);
-  if (
-    !content.startsWith(`${config.prefix} noitu`) &&
-    !content.startsWith(`${config.prefix}noitu`)
-  ) {
-    return false;
-  }
-
-  const pieces = content.replace(`${config.prefix}`, "").trim().split(/\s+/);
-  if (pieces[0] !== "noitu") {
-    return false;
-  }
-
-  const subcommandName = (pieces[1] || "help").toLowerCase();
-  const args = pieces.slice(2);
-  const command =
-    client.noituCommands?.get(subcommandName) ||
-    client.noituCommands?.find(
-      (cmd) => cmd.aliases && cmd.aliases.includes(subcommandName),
-    );
-
-  if (!command) {
-    await message.reply("Đó không phải là một lệnh nối từ hợp lệ!");
-    return true;
-  }
-
-  await command.execute(message, args, client);
-  return true;
-}
-
 async function handleNoituMessage(message, client) {
   if (!message.guild || message.author.bot) {
     return false;
@@ -512,7 +504,6 @@ module.exports = {
   clearGameState,
   startNoituGame,
   stopNoituGame,
-  executeNoituCommand,
   handleNoituMessage,
   createGameStartMessage,
   getNoituStatsSnapshot,

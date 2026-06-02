@@ -28,6 +28,7 @@ const {
   getQuery,
   getWordPlayedCount,
   getRoundPlayedCount,
+  addRoundPlayedCount,
 } = require("../../utils/noituGame");
 const { pushAcceptedWordToGithub, syncNoituData } = require("../../utils/noituBootstrap");
 
@@ -76,7 +77,7 @@ function makeNoituHelpEmbed() {
       {
         name: "Cài đặt kênh chơi nối từ",
         value:
-          "Dùng lệnh slash `/noitu set-channel <channel>` hoặc dùng `u noitu set-channel <channel>` trong kênh nối từ.",
+          "Dùng lệnh slash `/noitu set-channel <channel>` trong kênh nối từ.",
         inline: true,
       },
       {
@@ -117,7 +118,7 @@ function makeNoituHelpEmbed() {
       },
       {
         name: "Đồng bộ từ điển từ GitHub (Admin)",
-        value: "Dùng lệnh slash `/noitu sync` hoặc dùng `u noitu sync` trong kênh.",
+        value: "Dùng lệnh slash `/noitu sync`.",
         inline: true,
       },
       {
@@ -270,7 +271,7 @@ async function handleReport(interaction) {
         .catch(() => {});
     }
 
-    await msg.edit({
+    await i.update({
       embeds: [
         new EmbedBuilder()
           .setColor(13250094)
@@ -684,6 +685,7 @@ module.exports = {
         });
       }
       await stopNoituGame(client, interaction.guild.id);
+      addRoundPlayedCount();
       await interaction.reply({
         content: "Ván mới đã bắt đầu.",
         ephemeral: true,

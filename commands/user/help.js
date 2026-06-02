@@ -79,13 +79,27 @@ module.exports = {
         });
       }
       if (command.examples) {
-        detailEmbed.addFields({ name: "Ví dụ", value: command.examples });
+        let examplesValue;
+        if (Array.isArray(command.examples)) {
+          examplesValue = command.examples
+            .map((ex) =>
+              typeof ex === "object" && ex.command
+                ? `**${ex.intent || "Ví dụ"}:** \`${ex.command}\``
+                : String(ex),
+            )
+            .join("\n");
+        } else {
+          examplesValue = String(command.examples);
+        }
+        if (examplesValue.length > 0) {
+          detailEmbed.addFields({ name: "Ví dụ", value: examplesValue });
+        }
       }
       return message.reply({ embeds: [detailEmbed] });
     } else {
       const commandFolders = fs.readdirSync(
         path.join(__dirname, "../../commands"),
-      );
+      ).filter((folder) => folder !== "noitu");
       let currentCategory = "main";
 
       const generateEmbed = (category) => {
