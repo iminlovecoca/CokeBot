@@ -29,7 +29,7 @@ const {
   getWordPlayedCount,
   getRoundPlayedCount,
 } = require("../../utils/noituGame");
-const { pushAcceptedWordToGithub } = require("../../utils/noituBootstrap");
+const { pushAcceptedWordToGithub, syncNoituData } = require("../../utils/noituBootstrap");
 
 const envPath = path.join(__dirname, "../../.env");
 
@@ -113,6 +113,11 @@ function makeNoituHelpEmbed() {
       {
         name: "Xem thông tin server",
         value: "Dùng lệnh slash `/noitu server`",
+        inline: true,
+      },
+      {
+        name: "Đồng bộ từ điển từ GitHub (Admin)",
+        value: "Dùng lệnh slash `/noitu sync` hoặc dùng `u noitu sync` trong kênh.",
         inline: true,
       },
       {
@@ -539,6 +544,9 @@ module.exports = {
         .addStringOption((option) =>
           option.setName("reason").setDescription("Lý do (tuỳ chọn)"),
         ),
+    )
+    .addSubcommand((sub) =>
+      sub.setName("sync").setDescription("Đồng bộ thủ công từ điển từ GitHub (Admin)"),
     ),
   hidden: true,
   async execute(interaction, client) {
@@ -897,6 +905,32 @@ module.exports = {
 
     if (subcommand === "approve") {
       return handleApprove(interaction);
+    }
+
+    if (subcommand === "sync") {
+      if (
+        !interaction.member.permissions.has(
+          PermissionsBitField.Flags.ManageGuild,
+        )
+      ) {
+        return interaction.reply({
+          content: "Bạn cần có quyền Admin để thực hiện thao tác này!",
+          ephemeral: true,
+        });
+      }
+
+      await interaction.deferReply({ ephemeral: true });
+      try {
+        await syncNoituData();
+        return interaction.editReply({
+          content: `✅ Đồng bộ từ điển thành công! Hiện tại có **${countWordInDictionary()}** từ trong từ điển.`,
+        });
+      } catch (error) {
+        console.error("[Noitu Sync Command] Error:", error);
+        return interaction.editReply({
+          content: `❌ Đồng bộ thất bại: ${error.message}`,
+        });
+      }
     }
   },
 };

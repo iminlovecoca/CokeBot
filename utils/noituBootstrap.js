@@ -98,6 +98,26 @@ async function pushAcceptedWordToGithub(word) {
   return true;
 }
 
+async function fetchWithRetry(url, retries = 3, delay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await axios.get(url, {
+        timeout: 10000,
+        headers: {
+          "User-Agent": "CokeBot/1.0.0 (Discord Bot; github.com/iminlovecoca/CokeBot)",
+        },
+      });
+      return response;
+    } catch (error) {
+      if (i === retries - 1) {
+        throw error;
+      }
+      console.warn(`[Noitu Sync] Fetch failed for ${url}, retrying in ${delay}ms... (Error: ${error.message})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+}
+
 async function syncNoituData() {
   ensureFile(dataPath, "{}");
   ensureFile(wordDataPath, "{}");
@@ -110,8 +130,8 @@ async function syncNoituData() {
 
   console.log("[Noitu Sync] Downloading base words from GitHub...");
   try {
-    const response = await axios.get(wordDataUrl);
-    const baseLines = response.data.toLowerCase().trim().split("\n");
+    const response = await fetchWithRetry(wordDataUrl);
+    const baseLines = response.data.toLowerCase().trim().split(/\r?\n/);
     fs.writeFileSync(wordDatabasePath, baseLines.join("\n"));
     console.log(
       `[Noitu Sync] Saved ${baseLines.length} base words to words.txt`,
@@ -130,26 +150,15 @@ async function syncNoituData() {
         fs.readFileSync(officialWordsPath, "utf8"),
       );
     } else {
-      fs.writeFileSync(
-        gwDataPath,
-        JSON.stringify(
-          fs
-            .readFileSync(officialWordsPath, "utf8")
-            .split("\n")
-            .map(normalizeWord)
-            .filter(Boolean),
-          null,
-          2,
-        ),
-      );
+      console.error("[Noitu Sync] Critical: No local words database fallback exists!");
     }
   }
 
   console.log("[Noitu Sync] Downloading contribute words from GitHub...");
   let contributeLines = [];
   try {
-    const contributeResponse = await axios.get(contributeWordsUrl);
-    contributeLines = contributeResponse.data.toLowerCase().trim().split("\n");
+    const contributeResponse = await fetchWithRetry(contributeWordsUrl);
+    contributeLines = contributeResponse.data.toLowerCase().trim().split(/\r?\n/);
     fs.writeFileSync(contributeWordsPath, contributeLines.join("\n"));
   } catch (error) {
     console.warn(
@@ -161,14 +170,14 @@ async function syncNoituData() {
         .readFileSync(contributeWordsPath, "utf8")
         .toLowerCase()
         .trim()
-        .split("\n");
+        .split(/\r?\n/);
     }
   }
 
   const baseWordsRaw = fs
     .readFileSync(wordDatabasePath, "utf8")
     .toLowerCase()
-    .split("\n");
+    .split(/\r?\n/);
   const baseWords = parseOfficialLines(baseWordsRaw);
   const merged = Array.from(
     new Set([...baseWords, ...contributeLines.map(normalizeWord)]),
