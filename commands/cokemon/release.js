@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const Cokemon = require("../../models/cokemon/Cokemon");
 const {
   getAllCokemonWithUids,
   removeCokemon,
@@ -28,7 +29,7 @@ module.exports = {
   name: "release",
   description: "Thả một hoặc nhiều cokemon về với tự nhiên.",
   aliases: ["rl"],
-  usage: `${config.prefix}release <ID1> [ID2]...\n${config.prefix}release [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav]`,
+  usage: `${config.prefix}release <ID1> [ID2]...\n${config.prefix}release [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav]\n${config.prefix}release all  (thả tất cả trừ cokemon yêu thích)`,
   examples: [
     {
       intent: "Thả theo danh sách ID cụ thể",
@@ -56,19 +57,30 @@ module.exports = {
       intent: "Lọc theo trạng thái đặc biệt (shiny, noshiny, fav, nofav)",
       command: `${config.prefix}release --noshiny --nofav`,
     },
+    {
+      intent: "Thả toàn bộ cokemon (trừ yêu thích)",
+      command: `${config.prefix}release all`,
+    },
   ],
   async execute(message, args) {
     if (args.length === 0) {
       throw new UserFriendlyError(
-        `${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc. Ví dụ: \`${config.prefix}release 3 12\` hoặc \`${config.prefix}release --tier common\``,
+        `${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc. Ví dụ: \`${config.prefix}release 3 12\` hoặc \`${config.prefix}release --tier common\` hoặc \`${config.prefix}release all\``,
       );
     }
 
+    const isAll = args[0].toLowerCase() === "all";
     const isIdBased = /^[0-9]+$/.test(args[0]);
     const isFilterBased = args[0].startsWith("--");
     let cokemonToRelease = [];
     let msgContent = "";
-    if (isIdBased) {
+    if (isAll) {
+      // Releasing ALL non-favorite cokemon
+      cokemonToRelease = await Cokemon.find({
+        owner_id: message.author.id,
+        is_favorite: { $ne: true },
+      }).populate("species_id");
+    } else if (isIdBased) {
       // Releasing by IDs
       const uidsToRelease = [
         ...new Set(args.map((id) => parseInt(id)).filter((id) => !isNaN(id))),
@@ -98,7 +110,7 @@ module.exports = {
       );
     } else {
       throw new UserFriendlyError(
-        `${config.emoji.no} Bạn cần cung cấp ID hoặc bộ lọc (bắt đầu bằng \`--\`).`,
+        `${config.emoji.no} Bạn cần cung cấp ID, bộ lọc (bắt đầu bằng \`--\`) hoặc từ khóa \`all\`.`,
       );
     }
 
@@ -110,11 +122,15 @@ module.exports = {
 
     // Check if the list contains favorited cokemon
     const favCokemon = cokemonToRelease.filter((c) => c.is_favorite);
-    if (favCokemon.length > 0) {
+    if (!isAll && favCokemon.length > 0) {
       const favIds = favCokemon.map((c) => `${c.uid}`).join(", ");
       throw new UserFriendlyError(
         `${config.emoji.no} Bạn không thể thả cokemon yêu thích! Hãy bỏ yêu thích cho các cokemon có ID: ${favIds} trước, hoặc sử dụng tag \`--nofav\``,
       );
+    }
+    // For 'all': silently exclude favorites, they are already filtered out by the DB query
+    if (isAll && favCokemon.length > 0) {
+      msgContent = `${config.emoji.warning} **${favCokemon.length}** cokemon yêu thích đã được giữ lại và không bị thả.\n`;
     }
 
     let totalReward = 0;
