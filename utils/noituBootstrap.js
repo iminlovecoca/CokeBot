@@ -103,7 +103,14 @@ async function pushAcceptedWordToGithub(word) {
     payload.sha = sha;
   }
 
-  await axios.put(contentsUrl, payload, { headers: authHeaders });
+  try {
+    await axios.put(contentsUrl, payload, { headers: authHeaders });
+  } catch (error) {
+    if (error.response && [401, 403, 404].includes(error.response.status)) {
+      throw new Error(`Lỗi xác thực GitHub (${error.response.status}). Hãy đảm bảo GITHUB_TOKEN trong .env đã chính xác và có quyền ghi (Contents: Read & Write) vào repository ${githubRepoOwner}/${githubRepoName}.`);
+    }
+    throw error;
+  }
 
   return true;
 }
