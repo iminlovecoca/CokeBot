@@ -556,6 +556,7 @@ module.exports = {
     ),
   hidden: true,
   async execute(interaction, client) {
+    const subcommand = interaction.options.getSubcommand();
     const guildOnlySubcommands = ["set-channel", "start", "stop", "stats", "rank", "me", "server", "report"];
     if (guildOnlySubcommands.includes(subcommand) && !interaction.guild) {
       return interaction.reply({
