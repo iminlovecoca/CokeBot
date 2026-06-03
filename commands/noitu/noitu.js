@@ -311,20 +311,18 @@ async function handleReport(interaction) {
 }
 
 async function handleApprove(interaction) {
-  const guildConfig = await getGuildConfig(interaction.guild.id);
-  const approveChannel = guildConfig?.channelId || getApproveChannel();
-  if (!approveChannel) {
+  const ownerId = process.env.OWNER_ID;
+  if (!ownerId) {
     return interaction.reply({
-      content: "❌ Kênh duyệt từ chưa được cấu hình.",
+      content: "❌ Không tìm thấy OWNER_ID trong tệp cấu hình .env",
       ephemeral: true,
     });
   }
 
-  if (
-    !interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)
-  ) {
+  const owner = await interaction.client.users.fetch(ownerId).catch(() => null);
+  if (!owner) {
     return interaction.reply({
-      content: "Bạn cần quyền **Manage Server** để sử dụng lệnh này.",
+      content: "❌ Không thể kết nối tới Owner qua DM. Vui lòng kiểm tra lại OWNER_ID.",
       ephemeral: true,
     });
   }
@@ -344,13 +342,13 @@ async function handleApprove(interaction) {
     word,
     reason,
     user: interaction.user.tag,
-    guildName: interaction.guild.name,
-    guildId: interaction.guildId,
-    guildIcon: interaction.guild.iconURL({ dynamic: true }),
+    guildName: interaction.guild ? interaction.guild.name : "Direct Message",
+    guildId: interaction.guildId || "DM",
+    guildIcon: interaction.guild ? interaction.guild.iconURL({ dynamic: true }) : null,
   };
 
   await interaction.reply({
-    content: `📥 Đã gửi yêu cầu duyệt từ **${word}**`,
+    content: `📥 Đã gửi yêu cầu duyệt từ **${word}** tới Owner của Bot.`,
     ephemeral: true,
   });
 
@@ -364,8 +362,8 @@ async function handleApprove(interaction) {
     .setStyle(ButtonStyle.Danger);
   const row = new ActionRowBuilder().addComponents(acceptButton, declineButton);
 
-  const msg = await interaction.client.channels.cache.get(approveChannel).send({
-    content: `📝 Yêu cầu duyệt từ mới từ ${interaction.user}`,
+  const msg = await owner.send({
+    content: `📝 Yêu cầu duyệt từ mới từ ${interaction.user} (Server: **${wordData.guildName}**)`,
     embeds: [
       new EmbedBuilder()
         .setColor(13250094)
@@ -379,21 +377,28 @@ async function handleApprove(interaction) {
           { name: "💡 Lý do", value: wordData.reason, inline: true },
           { name: "👤 Người gửi", value: wordData.user, inline: true },
           { name: "🛡️ Server", value: wordData.guildName, inline: true },
-          { name: "🆔 ID", value: wordData.guildId, inline: true },
+          { name: "🆔 ID Server", value: wordData.guildId, inline: true },
           { name: "📋 Trạng thái", value: "⏳ Chờ duyệt", inline: true },
         )
         .setTimestamp(),
     ],
     components: [row],
+  }).catch((err) => {
+    console.error("Failed to send DM to owner:", err);
+    return null;
   });
+
+  if (!msg) {
+    return;
+  }
 
   const filter = (i) =>
     ["approve_accept", "approve_decline"].includes(i.customId);
   const collector = msg.createMessageComponentCollector({ filter });
 
   collector.on("collect", async (i) => {
-    if (!i.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
-      return i.reply({ content: "Bạn không có quyền này", ephemeral: true });
+    if (i.user.id !== ownerId) {
+      return i.reply({ content: "Bạn không có quyền thực hiện thao tác này!", ephemeral: true });
     }
 
     if (i.customId === "approve_accept") {
@@ -420,7 +425,7 @@ async function handleApprove(interaction) {
               { name: "💡 Lý do", value: wordData.reason, inline: true },
               { name: "👤 Người gửi", value: wordData.user, inline: true },
               { name: "🛡️ Server", value: wordData.guildName, inline: true },
-              { name: "🆔 ID", value: wordData.guildId, inline: true },
+              { name: "🆔 ID Server", value: wordData.guildId, inline: true },
               { name: "📋 Trạng thái", value: "✅ Đã duyệt", inline: true },
             )
             .setTimestamp(),
@@ -456,7 +461,7 @@ async function handleApprove(interaction) {
               { name: "💡 Lý do", value: wordData.reason, inline: true },
               { name: "👤 Người gửi", value: wordData.user, inline: true },
               { name: "🛡️ Server", value: wordData.guildName, inline: true },
-              { name: "🆔 ID", value: wordData.guildId, inline: true },
+              { name: "🆔 ID Server", value: wordData.guildId, inline: true },
               { name: "📋 Trạng thái", value: "❌ Đã từ chối", inline: true },
             )
             .setTimestamp(),
