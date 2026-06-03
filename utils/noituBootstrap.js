@@ -130,7 +130,7 @@ async function syncNoituData() {
 
   console.log("[Noitu Sync] Downloading base words from GitHub...");
   try {
-    const response = await fetchWithRetry(wordDataUrl);
+    const response = await fetchWithRetry(`${wordDataUrl}?t=${Date.now()}`);
     const baseLines = response.data.toLowerCase().trim().split(/\r?\n/);
     fs.writeFileSync(wordDatabasePath, baseLines.join("\n"));
     console.log(
@@ -157,7 +157,7 @@ async function syncNoituData() {
   console.log("[Noitu Sync] Downloading contribute words from GitHub...");
   let contributeLines = [];
   try {
-    const contributeResponse = await fetchWithRetry(contributeWordsUrl);
+    const contributeResponse = await fetchWithRetry(`${contributeWordsUrl}?t=${Date.now()}`);
     contributeLines = contributeResponse.data.toLowerCase().trim().split(/\r?\n/);
     fs.writeFileSync(contributeWordsPath, contributeLines.join("\n"));
   } catch (error) {
