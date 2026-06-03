@@ -556,7 +556,13 @@ module.exports = {
     ),
   hidden: true,
   async execute(interaction, client) {
-    const subcommand = interaction.options.getSubcommand();
+    const guildOnlySubcommands = ["set-channel", "start", "stop", "stats", "rank", "me", "server", "report"];
+    if (guildOnlySubcommands.includes(subcommand) && !interaction.guild) {
+      return interaction.reply({
+        content: "❌ Lệnh này chỉ có thể sử dụng trong máy chủ.",
+        ephemeral: true,
+      });
+    }
 
     if (subcommand === "help") {
       return interaction.reply({ embeds: [makeNoituHelpEmbed()] });
@@ -915,13 +921,12 @@ module.exports = {
     }
 
     if (subcommand === "sync") {
-      if (
-        !interaction.member.permissions.has(
-          PermissionsBitField.Flags.ManageGuild,
-        )
-      ) {
+      const isOwner = interaction.user.id === process.env.OWNER_ID;
+      const isGuildAdmin = interaction.member && interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild);
+
+      if (!isOwner && !isGuildAdmin) {
         return interaction.reply({
-          content: "Bạn cần có quyền Admin để thực hiện thao tác này!",
+          content: "Bạn cần có quyền Admin của máy chủ hoặc là Owner của bot để thực hiện thao tác này!",
           ephemeral: true,
         });
       }

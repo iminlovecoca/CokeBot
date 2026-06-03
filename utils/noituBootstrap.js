@@ -69,11 +69,21 @@ async function pushAcceptedWordToGithub(word) {
     "X-GitHub-Api-Version": "2022-11-28",
   };
 
-  const current = await axios.get(contentsUrl, { headers: authHeaders });
-  const sha = current.data.sha;
-  const currentText = Buffer.from(current.data.content, "base64").toString(
-    "utf8",
-  );
+  let currentText = "";
+  let sha = null;
+
+  try {
+    const current = await axios.get(contentsUrl, { headers: authHeaders });
+    sha = current.data.sha;
+    currentText = Buffer.from(current.data.content, "base64").toString("utf8");
+  } catch (error) {
+    if (error.response && error.response.status === 404) {
+      console.log(`[Noitu GitHub] ${filePath} not found on repository, attempting to create it.`);
+    } else {
+      throw error;
+    }
+  }
+
   const currentWords = currentText
     .split(/\r?\n/)
     .map(normalizeWord)
@@ -84,16 +94,16 @@ async function pushAcceptedWordToGithub(word) {
   }
 
   const nextText = [...currentWords, normalized].join("\n") + "\n";
-  await axios.put(
-    contentsUrl,
-    {
-      message: `Add accepted word: ${normalized}`,
-      content: Buffer.from(nextText, "utf8").toString("base64"),
-      sha,
-      branch: githubBranch,
-    },
-    { headers: authHeaders },
-  );
+  const payload = {
+    message: `Add accepted word: ${normalized}`,
+    content: Buffer.from(nextText, "utf8").toString("base64"),
+    branch: githubBranch,
+  };
+  if (sha) {
+    payload.sha = sha;
+  }
+
+  await axios.put(contentsUrl, payload, { headers: authHeaders });
 
   return true;
 }
