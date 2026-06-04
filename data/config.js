@@ -253,33 +253,41 @@ module.exports = {
   },
 
   channel_themes: {
-    "1415143151307329536": null,
-    "1422108084519698502": {
+    // Safari - no theme filter
+    "1511282084260352091": null,
+    // Đại Dương
+    "1511274018655698975": {
       main_types: ["Water", "Ice"],
       weight: 0.9,
     },
-    "1415143289136353372": {
-      main_types: ["Fire"],
-      weight: 0.9,
-    },
-    "1415143406241583186": {
+    // Nham Thạch
+    "1511281435607044126": {
       main_types: ["Rock", "Ground", "Dragon"],
       weight: 0.9,
     },
-    "1415143555655143534": {
+    // Hang Động
+    "1511281627941306430": {
+      main_types: ["Dark", "Ghost"],
+      weight: 0.9,
+    },
+    // Nhà Máy Điện
+    "1511281757339779192": {
       main_types: ["Electric", "Psychic", "Fairy"],
       weight: 0.9,
     },
-    "1415143658382037132": {
+    // Rừng Nhiệt Đới
+    "1511281892526395532": {
       main_types: ["Grass", "Bug", "Flying", "Poison"],
       weight: 0.9,
     },
-    "1415143688597667901": {
+    // Võ Đường
+    "1511282007726882926": {
       main_types: ["Fighting", "Steel", "Normal"],
       weight: 0.9,
     },
-    "1418029393972039800": {
-      main_types: ["Dark", "Ghost"],
+    // Nghĩa Địa
+    "1511294474469511309": {
+      main_types: ["Dark", "Ghost", "Psychic"],
       weight: 0.9,
     },
   },
