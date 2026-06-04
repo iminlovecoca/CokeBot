@@ -40,13 +40,13 @@ module.exports = {
     const lastHuntAt = user.rpg.lastHuntAt
       ? new Date(user.rpg.lastHuntAt).getTime()
       : 0;
-    // const nextHuntAt = lastHuntAt + config.rpg.hunt_cooldown_ms;
+    const nextHuntAt = lastHuntAt + config.rpg.hunt_cooldown_ms;
 
-    // if (now < nextHuntAt) {
-    //   return message.reply(
-    //     `${config.emoji.warning} Bạn cần nghỉ thêm **${formatRemaining(nextHuntAt - now)}** trước khi hunt tiếp.`,
-    //   );
-    // }
+    if (now < nextHuntAt) {
+      return message.reply(
+        `${config.emoji.warning} Bạn cần nghỉ thêm **${formatRemaining(nextHuntAt - now)}** trước khi hunt tiếp.`,
+      );
+    }
 
     const rpgClass = getRpgClass(user.rpg.classKey);
     const huntGround = pickRpgHuntGround();
