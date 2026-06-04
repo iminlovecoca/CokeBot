@@ -10,6 +10,7 @@ const {
   classEntries,
   calculateRpgPower,
   getClassAssetPath,
+  getEquippedItems,
   getRpgClass,
   getRpgXpNeeded,
   hasRpgCharacter,
@@ -53,6 +54,31 @@ const buildClassEmbed = (classKey, rpgClass, userData = null) => {
         `Power: **${Math.floor(currentPower).toLocaleString()}**\n` +
         `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**`,
       inline: true,
+    });
+
+    const equippedItems = getEquippedItems(userData);
+    const slots = Object.keys(config.rpg.gear_slot_names || {
+      weapon: "Weapon",
+      armor: "Armor",
+      helmet: "Helmet",
+      boots: "Boots",
+      ring: "Ring",
+      necklace: "Necklace",
+    });
+    const equipLines = slots.map((slot) => {
+      const slotName = config.rpg.gear_slot_names[slot] || slot;
+      const item = equippedItems[slot];
+      if (item) {
+        return `• ${slotName}: **${item.name}** (+${item.power.toLocaleString()} Power)`;
+      } else {
+        return `• ${slotName}: ❎`;
+      }
+    }).join("\n");
+
+    embed.addFields({
+      name: "Trang bị hiện tại",
+      value: equipLines,
+      inline: false,
     });
   }
 
