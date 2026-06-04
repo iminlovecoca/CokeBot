@@ -27,6 +27,7 @@ const footballBetSettler = require("./features/footballBetSettler");
 // Music/lavalink removed
 
 const spawner = require("./features/spawner");
+const rpgBossSpawner = require("./features/rpgBossSpawner");
 const { loadBotLock } = require("./utils/botLock");
 const { performStartupCleanup } = require("./utils/botCleanup");
 const config = require("./data/config");
@@ -69,6 +70,7 @@ client.cuddleCooldowns = new Map();
 client.musicQueues = new Map();
 client.noituGames = new Map();
 client.noituModerationRequests = new Map();
+client.rpgBosses = new Map();
 
 const loadFiles = (dir, callback) => {
   const files = fs.readdirSync(dir, { withFileTypes: true });
@@ -189,6 +191,7 @@ client.once(Events.ClientReady, async () => {
 
     await loadBotLock(client);
     spawner.initializeSpawner(client);
+    rpgBossSpawner.initialize(client);
     // Music & Lavalink initialization removed
     footballBetSettler.initialize(client);
 

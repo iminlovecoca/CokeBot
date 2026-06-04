@@ -1,5 +1,5 @@
 module.exports = {
-  prefix: "u",
+  prefix: "x",
   emoji: {
     blank: "<:blank:1403928807395819671>",
     money: "<:cokecy:1509951335016173662>",
@@ -99,9 +99,150 @@ module.exports = {
     cokemon: "🐶",
     gamble: "🎲",
     noitu: "🧩",
+    rpg: "⚔️",
     shop: "🛒",
     user: "👤",
     default: "➡️",
+  },
+
+  rpg: {
+    starting_level: 1,
+    hunt_cooldown_ms: 45 * 1000,
+    hunt_base_exp: 90,
+    hunt_grounds: [
+      { key: "slime_field", name: "Bãi Slime", emoji: "🟢" },
+      { key: "wolf_den", name: "Hang Sói", emoji: "🐺" },
+      { key: "goblin_camp", name: "Trại Goblin", emoji: "🧌" },
+      { key: "skeleton_ruins", name: "Tàn Tích Xương", emoji: "💀" },
+      { key: "shadow_forest", name: "Rừng Bóng Tối", emoji: "🌲" },
+      { key: "dragon_pass", name: "Đèo Rồng", emoji: "🐉" },
+    ],
+    gear_drop: {
+      // Chance for a hunt to drop any gear. 0.036 = 3.6%.
+      drop_rate: 0.036,
+      luck_rate_per_point: 0.002,
+      max_drop_rate: 0.2,
+    },
+    gear_slots: {
+      weapon: { rate: 20, stat_pool: ["str", "int", "agi"] },
+      armor: { rate: 18, stat_pool: ["vit", "def"] },
+      helmet: { rate: 16, stat_pool: ["def", "vit", "luck"] },
+      boots: { rate: 16, stat_pool: ["agi", "def", "luck"] },
+      ring: { rate: 15, stat_pool: ["str", "int", "luck"] },
+      necklace: { rate: 15, stat_pool: ["vit", "int", "luck"] },
+    },
+    gear_slot_names: {
+      weapon: "Weapon",
+      armor: "Armor",
+      helmet: "Helmet",
+      boots: "Boots",
+      ring: "Ring",
+      necklace: "Necklace",
+    },
+    gear_rarities: {
+      // Rate is the chance after a gear has already dropped. Total should be 100.
+      Common: { rate: 70, power: 45, sell: 120, stat: 1 },
+      Rare: { rate: 22, power: 90, sell: 350, stat: 2 },
+      Epic: { rate: 6.4, power: 180, sell: 1100, stat: 4 },
+      Legendary: { rate: 1.3, power: 380, sell: 4200, stat: 7 },
+      Mythic: { rate: 0.25, power: 780, sell: 15000, stat: 11 },
+      Ancient: { rate: 0.045, power: 1450, sell: 65000, stat: 16 },
+      Divine: { rate: 0.005, power: 2800, sell: 250000, stat: 24 },
+    },
+    boss: {
+      spawn_channel_ids: (process.env.RPG_BOSS_CHANNEL_IDS || "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+      spawn_timezone: "Asia/Ho_Chi_Minh",
+      spawn_hours: [9, 12, 15, 18, 22],
+      lifetime_ms: 10 * 60 * 1000,
+      attack_cooldown_ms: 15 * 1000,
+      free_attacks_per_user: 3,
+      paid_attack_cost: 10000,
+      reward_rarities: ["Common", "Rare", "Epic"],
+      last_hit_bonus_gear: 2,
+      tiers: [
+        {
+          key: "iron-golem",
+          name: "Iron Golem",
+          emoji: "🛡️",
+          asset: "boss_01.webp",
+          hp: 250,
+          recommended_power: 80,
+          exp: 180,
+        },
+        {
+          key: "void-witch",
+          name: "Void Witch",
+          emoji: "🔮",
+          asset: "boss_02.webp",
+          hp: 650,
+          recommended_power: 250,
+          exp: 420,
+        },
+        {
+          key: "ember-drake",
+          name: "Ember Drake",
+          emoji: "🐉",
+          asset: "boss_03.png",
+          hp: 1600,
+          recommended_power: 700,
+          exp: 950,
+        },
+        {
+          key: "ancient-tyrant",
+          name: "Ancient Tyrant",
+          emoji: "👑",
+          asset: "boss_04.png",
+          hp: 4200,
+          recommended_power: 1800,
+          exp: 2200,
+        },
+      ],
+    },
+    classes: {
+      warrior: {
+        name: "Warrior",
+        title: "Kiếm sĩ tiền tuyến",
+        asset: "character_01.png",
+        color: "#C75B39",
+        description:
+          "DPS bền, sát thương ổn định và sống sót tốt khi đánh boss.",
+        stats: { str: 12, int: 4, agi: 7, vit: 10, def: 8, luck: 5 },
+        bonuses: { bossDamage: 0.08, pvpDefense: 0.03 },
+      },
+      mage: {
+        name: "Mage",
+        title: "Pháp sư hư không",
+        asset: "character_08.png",
+        color: "#7C5CFF",
+        description:
+          "Burst damage mạnh, farm EXP nhanh và có lợi thế trong boss nhiều máu.",
+        stats: { str: 3, int: 14, agi: 6, vit: 6, def: 4, luck: 7 },
+        bonuses: { expGain: 0.08, bossDamage: 0.12 },
+      },
+      assassin: {
+        name: "Assassin",
+        title: "Sát thủ bóng đêm",
+        asset: "character_12.png",
+        color: "#8E44AD",
+        description:
+          "Crit và tốc độ cao, rất mạnh trong Arena và săn vật phẩm hiếm.",
+        stats: { str: 8, int: 4, agi: 14, vit: 6, def: 4, luck: 8 },
+        bonuses: { critRate: 0.08, dropRate: 0.04 },
+      },
+      paladin: {
+        name: "Paladin",
+        title: "Hộ vệ ánh sáng",
+        asset: "character_03.png",
+        color: "#E3B341",
+        description:
+          "Tank/support, thủ cao, ổn định trong PvP và content dài hơi.",
+        stats: { str: 8, int: 6, agi: 5, vit: 13, def: 12, luck: 4 },
+        bonuses: { pvpDefense: 0.08 },
+      },
+    },
   },
 
   gamble_settings: {

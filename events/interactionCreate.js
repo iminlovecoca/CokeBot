@@ -4,6 +4,16 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
+      if (interaction.isButton()) {
+        if (interaction.customId.startsWith("rpg_boss_fight:")) {
+          const bossCommand = client.commands.get("boss");
+          if (bossCommand?.handleFightInteraction) {
+            await bossCommand.handleFightInteraction(interaction);
+          }
+        }
+        return;
+      }
+
       if (interaction.isChatInputCommand()) {
         const originalReply = interaction.reply.bind(interaction);
         const originalFollowUp = interaction.followUp.bind(interaction);

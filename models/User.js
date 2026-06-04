@@ -84,6 +84,22 @@ const userSchema = new mongoose.Schema({
   noituCorrect: { type: Number, default: 0 },
   noituAttempts: { type: Number, default: 0 },
   noituLastPlayedAt: { type: Date, default: null },
+
+  rpg: {
+    classKey: { type: String, default: null },
+    characterAsset: { type: String, default: null },
+    level: { type: Number, default: 1 },
+    exp: { type: Number, default: 0 },
+    power: { type: Number, default: 0 },
+    stats: { type: Object, default: {} },
+    rank: { type: String, default: "Novice" },
+    equipped: { type: Object, default: {} },
+    items: { type: [Object], default: [] },
+    lastItemId: { type: Number, default: 0 },
+    lastHuntAt: { type: Date, default: null },
+    lastBossAt: { type: Date, default: null },
+    createdAt: { type: Date, default: null },
+  },
 });
 
 module.exports = mongoose.model("User", userSchema);
