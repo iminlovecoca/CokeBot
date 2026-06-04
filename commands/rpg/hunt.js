@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { getUser } = require("../../utils/userUtil");
+const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const {
   addRpgGearToUser,
   addRpgExp,
@@ -13,10 +14,6 @@ const {
   pickRpgHuntGround,
 } = require("../../utils/rpgUtil");
 
-const formatRemaining = (ms) => {
-  const seconds = Math.ceil(ms / 1000);
-  return `${seconds}s`;
-};
 
 module.exports = {
   name: "hunt",
@@ -36,16 +33,10 @@ module.exports = {
       return classCommand.execute(message, []);
     }
 
-    const now = Date.now();
-    const lastHuntAt = user.rpg.lastHuntAt
-      ? new Date(user.rpg.lastHuntAt).getTime()
-      : 0;
-    const nextHuntAt = lastHuntAt + config.rpg.hunt_cooldown_ms;
-
-    if (now < nextHuntAt) {
-      return message.reply(
-        `${config.emoji.warning} Bạn cần nghỉ thêm **${formatRemaining(nextHuntAt - now)}** trước khi hunt tiếp.`,
-      );
+    const cooldownSeconds = Math.floor((config.rpg.hunt_cooldown_ms || 10000) / 1000);
+    const remaining = checkAndSetCooldown(message.author.id, "hunt", cooldownSeconds);
+    if (remaining > 0) {
+      return notifyCooldown(message, remaining);
     }
 
     const rpgClass = getRpgClass(user.rpg.classKey);
