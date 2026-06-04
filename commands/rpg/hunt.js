@@ -11,6 +11,7 @@ const {
   getRpgXpNeeded,
   hasRpgCharacter,
   pickRpgHuntGround,
+  getEffectiveRpgStats,
 } = require("../../utils/rpgUtil");
 
 
@@ -40,7 +41,8 @@ module.exports = {
 
     const rpgClass = getRpgClass(user.rpg.classKey);
     const huntGround = pickRpgHuntGround();
-    const luck = user.rpg.stats?.luck || 0;
+    const effectiveStats = getEffectiveRpgStats(user);
+    const luck = effectiveStats.luck || 0;
     const expBonus = rpgClass.bonuses?.expGain || 0;
     const variance = 0.85 + Math.random() * 0.3;
 

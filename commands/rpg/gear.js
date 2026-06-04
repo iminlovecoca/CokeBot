@@ -58,6 +58,12 @@ const buildGearLine = (item) => {
   return `**${id}** • ${itemLabel} • **PWR ${Number(item.power || 0).toLocaleString()}**`;
 };
 
+const formatGearStats = (stats = {}) =>
+  Object.entries(stats)
+    .filter(([, value]) => value)
+    .map(([key, value]) => `**${key.toUpperCase()}:** **+${value}**`)
+    .join("   |   ");
+
 const buildGuide = () =>
   [
     "RPG gear increases your Power.",
@@ -164,6 +170,7 @@ module.exports = {
                 `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
                 `Rarity: **${item.rarity}**\n` +
                 `Power: **+${item.power.toLocaleString()}**\n` +
+                `Stats: **${formatGearStats(item.stats) || "No stats"}**\n` +
                 `Equipped: **${equippedEntry ? "Yes" : "No"}**\n` +
                 `Sell: **${item.sellPrice.toLocaleString()} Coke**\n` +
                 `Image key: \`${item.imageKey}\``,

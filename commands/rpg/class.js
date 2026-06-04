@@ -15,12 +15,31 @@ const {
   getRpgXpNeeded,
   hasRpgCharacter,
   selectRpgClass,
+  getEffectiveRpgStats,
 } = require("../../utils/rpgUtil");
 
 const statLine = (stats) =>
-  `STR ${stats.str} | INT ${stats.int} | AGI ${stats.agi} | VIT ${stats.vit} | DEF ${stats.def} | LUCK ${stats.luck}`;
+  `**STR:** **${stats.str}**   |   **INT:** **${stats.int}**   |   **AGI:** **${stats.agi}**   |   **VIT:** **${stats.vit}**   |   **DEF:** **${stats.def}**   |   **LUCK:** **${stats.luck}**`;
+
+const statLineWithBonus = (baseStats, effectiveStats) => {
+  const format = (key) => {
+    const base = baseStats[key] || 0;
+    const eff = effectiveStats[key] || 0;
+    const bonus = eff - base;
+    const label = key.toUpperCase();
+    if (bonus > 0) {
+      return `**${label}:** **${eff}** *(+${bonus})*`;
+    }
+    return `**${label}:** **${eff}**`;
+  };
+  return `${format("str")}   |   ${format("int")}   |   ${format("agi")}   |   ${format("vit")}   |   ${format("def")}   |   ${format("luck")}`;
+};
 
 const buildClassEmbed = (classKey, rpgClass, userData = null) => {
+  const statsValue = userData
+    ? statLineWithBonus(rpgClass.stats, getEffectiveRpgStats(userData))
+    : statLine(rpgClass.stats);
+
   const embed = new EmbedBuilder()
     .setColor(rpgClass.color)
     .setTitle(`${rpgClass.name} - ${rpgClass.title}`)
@@ -29,7 +48,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null) => {
     .addFields(
       {
         name: "Chỉ số",
-        value: statLine(rpgClass.stats),
+        value: statsValue,
       },
       {
         name: "Thiên hướng",

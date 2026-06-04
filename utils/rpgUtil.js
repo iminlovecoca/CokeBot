@@ -53,7 +53,13 @@ const formatStats = (stats = {}) =>
     .join(", ");
 
 const getEffectiveRpgStats = (user) => {
-  return { ...emptyStats(), ...(user.rpg?.stats || {}) };
+  const stats = { ...emptyStats(), ...(user.rpg?.stats || {}) };
+  for (const item of Object.values(getEquippedItems(user))) {
+    for (const [stat, value] of Object.entries(item.stats || {})) {
+      stats[stat] = (stats[stat] || 0) + value;
+    }
+  }
+  return stats;
 };
 
 const calculateRpgPower = (user) => {
@@ -161,9 +167,24 @@ const pickRpgHuntGround = () => {
   };
 };
 
+const generateGearStats = (slot, rarityConfig, level) => {
+  const slotConfig = config.rpg.gear_slots?.[slot] || {};
+  const statPool = slotConfig.stat_pool || ["str", "int", "agi", "vit", "def", "luck"];
+  const statBase = rarityConfig.stat || 1;
+  const levelBonus = Math.floor((level || 1) / 12);
+  const stats = {};
+
+  for (const stat of pickUnique(statPool, 2)) {
+    stats[stat] = statBase + levelBonus + Math.floor(Math.random() * (statBase + 1));
+  }
+
+  return stats;
+};
+
 const generateRpgGearDrop = (user, options = {}) => {
   const rpgClass = getRpgClass(user.rpg.classKey);
-  const luck = user.rpg.stats?.luck || 0;
+  const effectiveStats = getEffectiveRpgStats(user);
+  const luck = effectiveStats.luck || 0;
   const dropBonus = rpgClass.bonuses?.dropRate || 0;
   const gearDropConfig = config.rpg.gear_drop || {};
   const baseDropRate = gearDropConfig.drop_rate ?? config.rpg.gear_drop_rate ?? 0;
@@ -193,6 +214,7 @@ const generateRpgGearDrop = (user, options = {}) => {
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((rarityConfig.power + levelBonus) * variance);
+  const stats = generateGearStats(slot, rarityConfig, level);
 
   user.rpg.lastItemId = itemId;
 
@@ -203,6 +225,7 @@ const generateRpgGearDrop = (user, options = {}) => {
     rarity,
     level,
     power,
+    stats,
     sellPrice: Math.floor((rarityConfig.sell + level * 18) * variance),
     imageKey: `todo_${slot}_${rarity.toLowerCase()}`,
     droppedAt: new Date(),
