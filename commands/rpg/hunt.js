@@ -6,7 +6,6 @@ const {
   addRpgGearToUser,
   addRpgExp,
   calculateRpgPower,
-  formatStats,
   generateRpgGearDrop,
   getRpgClass,
   getRpgXpNeeded,
@@ -90,7 +89,6 @@ module.exports = {
           `Slot: **${config.rpg.gear_slot_names[droppedItem.slot]}**\n` +
           `Rarity: **${droppedItem.rarity}**\n` +
           `Power khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
-          `Stats: **${formatStats(droppedItem.stats)}**\n` +
           `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**\n` +
           `Image key tạm: \`${droppedItem.imageKey}\``,
         inline: true,

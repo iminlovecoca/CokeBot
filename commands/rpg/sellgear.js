@@ -1,7 +1,6 @@
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const {
-  formatStats,
   requireRpgCharacter,
   sellRpgItem,
 } = require("../../utils/rpgUtil");
@@ -38,7 +37,7 @@ module.exports = {
             `ID: \`${item.id}\`\n` +
             `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
             `Rarity: **${item.rarity}**\n` +
-            `Stats: **${formatStats(item.stats)}**`,
+            `Power: **+${item.power.toLocaleString()}**`,
           inline: true,
         },
         {

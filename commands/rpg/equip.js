@@ -2,8 +2,6 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const {
   equipRpgItem,
-  formatStats,
-  getEffectiveRpgStats,
   requireRpgCharacter,
 } = require("../../utils/rpgUtil");
 
@@ -39,7 +37,6 @@ module.exports = {
             `ID: \`${item.id}\`\n` +
             `Rarity: **${item.rarity}**\n` +
             `Power: **+${item.power.toLocaleString()}**\n` +
-            `Stats: **${formatStats(item.stats)}**\n` +
             `Image key tạm: \`${item.imageKey}\``,
           inline: true,
         },
@@ -47,10 +44,6 @@ module.exports = {
           name: "Power hiện tại",
           value: `**${user.rpg.power.toLocaleString()}**`,
           inline: true,
-        },
-        {
-          name: "Stats hiện tại",
-          value: `**${formatStats(getEffectiveRpgStats(user))}**`,
         },
       );
 

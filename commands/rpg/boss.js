@@ -9,7 +9,6 @@ const {
   addRpgExp,
   addRpgGearToUser,
   calculateRpgPower,
-  formatStats,
   generateRpgGearDrop,
   getRpgXpNeeded,
   requireRpgCharacter,
@@ -38,7 +37,7 @@ const sendRewardDm = async ({
   const gearLines = gears
     .map(
       (gear) =>
-        `#${gear.id} **${gear.name}** | +${gear.power.toLocaleString()} Power | ${formatStats(gear.stats)} | sell ${gear.sellPrice.toLocaleString()} Coke`,
+        `#${gear.id} **${gear.name}** | +${gear.power.toLocaleString()} Power | sell ${gear.sellPrice.toLocaleString()} Coke`,
     )
     .join("\n");
 

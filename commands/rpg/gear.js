@@ -60,7 +60,7 @@ const buildGearLine = (item) => {
 
 const buildGuide = () =>
   [
-    "RPG gear increases your Power and character stats.",
+    "RPG gear increases your Power.",
     `Equip: \`${config.prefix}equip {id}\` | Unequip: \`${config.prefix}unequip <slot>\``,
     `Check: \`${config.prefix}gear {id}\` | Sell: \`${config.prefix}sellgear {id}\``,
   ].join("\n");
@@ -164,7 +164,6 @@ module.exports = {
                 `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
                 `Rarity: **${item.rarity}**\n` +
                 `Power: **+${item.power.toLocaleString()}**\n` +
-                `Stats: **${formatStats(item.stats) || "No stats"}**\n` +
                 `Equipped: **${equippedEntry ? "Yes" : "No"}**\n` +
                 `Sell: **${item.sellPrice.toLocaleString()} Coke**\n` +
                 `Image key: \`${item.imageKey}\``,
