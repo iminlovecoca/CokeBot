@@ -107,6 +107,8 @@ const userSchema = new mongoose.Schema({
       startTime: { type: Date, default: null },
       durationHours: { type: Number, default: 0 },
       essence: { type: Number, default: 0 },
+      captchaCode: { type: String, default: null },
+      pendingDuration: { type: Number, default: 0 },
       levels: {
         efficiency: { type: Number, default: 1 },
         duration: { type: Number, default: 1 },
