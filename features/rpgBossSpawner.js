@@ -71,10 +71,16 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
       },
       {
         name: "Thông tin",
-        value:
-          `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
-          `Tồn tại: **10 phút**\n` +
-          `Người tham gia: **${activeBoss.participants.size}**`,
+        value: (() => {
+          const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank] || null;
+          const rankLine = bossRank ? `${bossRank.emoji} **${bossRank.label}**\n` : "";
+          return (
+            rankLine +
+            `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
+            `Tồn tại: **10 phút**\n` +
+            `Người tham gia: **${activeBoss.participants.size}**`
+          );
+        })(),
         inline: true,
       },
     );

@@ -162,12 +162,65 @@ module.exports = {
       paid_attack_cost: 10000,
       reward_rarities: ["Common", "Rare", "Epic"],
       last_hit_bonus_gear: 2,
+      // Boss rank tiers:
+      //   thuong    = Cấp Thường   (recommended_power < 1000)
+      //   than      = Cấp Thần     (1000 <= recommended_power < 5000)
+      //   rong      = Cấp Rồng     (5000 <= recommended_power < 15000)
+      //   thuongnhan= Cấp Thượng Nhân (recommended_power >= 15000)
+      bossRankRewards: {
+        thuong: {
+          label: "Cấp Thường",
+          emoji: "⚔️",
+          color: "#95A5A6",
+          // Participant: 1 gear drop (Common/Rare). Last hit: +1 gear (Rare).
+          participantRarities: ["Common", "Rare"],
+          lastHitRarities:     ["Rare"],
+          cokeMin: 500,   cokeMax: 1000,
+          lastHitCokeMin: 2000,  lastHitCokeMax: 5000,
+          expMult: 1,     lastHitExpMult: 1.5,
+        },
+        than: {
+          label: "Cấp Thần",
+          emoji: "✨",
+          color: "#3498DB",
+          // Participant: 1 gear (Rare/Epic). Last hit: +1 gear (Epic).
+          participantRarities: ["Rare", "Epic"],
+          lastHitRarities:     ["Epic"],
+          cokeMin: 2000,  cokeMax: 5000,
+          lastHitCokeMin: 8000,  lastHitCokeMax: 18000,
+          expMult: 1.2,   lastHitExpMult: 1.8,
+        },
+        rong: {
+          label: "Cấp Rồng",
+          emoji: "🐉",
+          color: "#9B59B6",
+          // Participant: 1 gear (Epic/Legendary). Last hit: +1 gear (Legendary).
+          participantRarities: ["Epic", "Legendary"],
+          lastHitRarities:     ["Legendary"],
+          cokeMin: 8000,  cokeMax: 20000,
+          lastHitCokeMin: 30000, lastHitCokeMax: 70000,
+          expMult: 1.5,   lastHitExpMult: 2.2,
+        },
+        thuongnhan: {
+          label: "Cấp Thượng Nhân",
+          emoji: "👑",
+          color: "#F1C40F",
+          // Participant: 1 gear (Legendary/Mythic). Last hit: +1 gear (Mythic/Ancient) + 1 more Legendary.
+          participantRarities: ["Legendary", "Mythic"],
+          lastHitRarities:     ["Mythic", "Ancient"],
+          lastHitBonusRarities:["Legendary"],
+          cokeMin: 25000, cokeMax: 70000,
+          lastHitCokeMin: 100000, lastHitCokeMax: 250000,
+          expMult: 2,     lastHitExpMult: 3,
+        },
+      },
       tiers: [
         {
           key: "erdtree-avatar",
           name: "Erdtree Avatar",
           emoji: "🎄",
           asset: "boss_01.webp",
+          rank: "thuong",
           hp: 500,
           recommended_power: 80,
           exp: 200,
@@ -181,6 +234,7 @@ module.exports = {
           name: "Void Witch",
           emoji: "🔮",
           asset: "boss_02.webp",
+          rank: "thuong",
           hp: 800,
           recommended_power: 250,
           exp: 420,
@@ -194,6 +248,7 @@ module.exports = {
           name: "Ember Drake",
           emoji: "🔥",
           asset: "boss_03.png",
+          rank: "thuong",
           hp: 1600,
           recommended_power: 700,
           exp: 950,
@@ -207,6 +262,7 @@ module.exports = {
           name: "Ancient Tyrant",
           emoji: "💧",
           asset: "boss_04.png",
+          rank: "than",
           hp: 4200,
           recommended_power: 1800,
           exp: 2200,
@@ -220,6 +276,7 @@ module.exports = {
           name: "Dark Knight",
           emoji: "🌙",
           asset: "boss_08.png",
+          rank: "than",
           hp: 12000,
           recommended_power: 3200,
           exp: 4500,
@@ -233,6 +290,7 @@ module.exports = {
           name: "Abyssal Reaper",
           emoji: "💀",
           asset: "boss_09.png",
+          rank: "rong",
           hp: 18000,
           recommended_power: 6000,
           exp: 9000,
@@ -246,6 +304,7 @@ module.exports = {
           name: "Devil & Angel",
           emoji: "🌗",
           asset: "boss_10.png",
+          rank: "rong",
           hp: 30000,
           recommended_power: 10000,
           exp: 16000,
@@ -259,6 +318,7 @@ module.exports = {
           name: "Plaxidusax",
           emoji: "⚡",
           asset: "boss_X.png",
+          rank: "thuongnhan",
           hp: 75000,
           recommended_power: 18000,
           exp: 40000,

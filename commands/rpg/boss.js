@@ -44,6 +44,9 @@ const sendRewardDm = async ({
   client,
   userId,
   boss,
+  rankLabel,
+  rankEmoji,
+  rankColor,
   damage,
   gears,
   expGain,
@@ -61,12 +64,12 @@ const sendRewardDm = async ({
     .join("\n");
 
   const embed = new EmbedBuilder()
-    .setColor(isLastHit ? "#FEE75C" : "#57F287")
+    .setColor(isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
     .setTitle(`${boss.emoji} Thưởng đánh boss: ${boss.name}`)
     .setDescription(
       isLastHit
-        ? "🎉 Bạn là người kết liễu boss nên nhận thêm quà cực khủng!"
-        : "Boss đã bị hạ. Đây là phần thưởng tham gia của bạn.",
+        ? `🎉 Bạn là người kết liễu boss nên nhận thêm quà cực khủng!\n${rankEmoji || ""} **${rankLabel || "Cấp Thường"}**`
+        : `Boss đã bị hạ. Đây là phần thưởng tham gia của bạn.\n${rankEmoji || ""} **${rankLabel || "Cấp Thường"}**`,
     )
     .addFields(
       {
@@ -95,45 +98,68 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     await activeBoss.updateQueue.catch(() => null);
   }
 
+  const bossRankKey = activeBoss.boss.rank || "thuong";
+  const rankReward = config.rpg.boss?.bossRankRewards?.[bossRankKey] || {
+    label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
+    participantRarities: ["Common", "Rare"],
+    lastHitRarities: ["Rare"],
+    cokeMin: 500, cokeMax: 1000,
+    lastHitCokeMin: 2000, lastHitCokeMax: 5000,
+    expMult: 1, lastHitExpMult: 1.5,
+  };
+
   for (const [userId, participant] of activeBoss.participants.entries()) {
     try {
       const { user, rpgClass } = await requireRpgCharacter(userId);
       const isLastHit = userId === activeBoss.lastHitUserId;
       const gears = [];
 
-      // Reward 1: Epic and below (Common, Rare, Epic)
+      // Reward gear 1 — participant drop (scales by rank)
       const gear1 = generateRpgGearDrop(user, {
         forceDrop: true,
-        allowedRarities: ["Common", "Rare", "Epic"],
+        allowedRarities: rankReward.participantRarities,
       });
       if (gear1) {
         addRpgGearToUser(user, gear1);
         gears.push(gear1);
       }
 
-      // Reward 2 (Last Hit Only): Rare to Epic
+      // Reward gear 2 — last hit bonus (scales by rank)
       if (isLastHit) {
         const gear2 = generateRpgGearDrop(user, {
           forceDrop: true,
-          allowedRarities: ["Rare", "Epic"],
+          allowedRarities: rankReward.lastHitRarities,
         });
         if (gear2) {
           addRpgGearToUser(user, gear2);
           gears.push(gear2);
         }
+
+        // Cấp thượng nhân gets a third bonus gear
+        if (rankReward.lastHitBonusRarities) {
+          const gear3 = generateRpgGearDrop(user, {
+            forceDrop: true,
+            allowedRarities: rankReward.lastHitBonusRarities,
+          });
+          if (gear3) {
+            addRpgGearToUser(user, gear3);
+            gears.push(gear3);
+          }
+        }
       }
 
-      // Exp: general is boss.exp, last hit is 1.5 * boss.exp
+      // EXP — scales by rank multiplier
       const baseExp = activeBoss.boss.exp || 100;
+      const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
       const expGain = Math.floor(
-        baseExp * (isLastHit ? 1.5 : 1) * (1 + (rpgClass.bonuses?.expGain || 0)),
+        baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
       );
       addRpgExp(user.rpg, expGain);
 
-      // Coke: general 500-1000, last hit 2000-5000
+      // Coke — scales by rank range
       const cokeGain = isLastHit
-        ? 2000 + Math.floor(Math.random() * 3001)
-        : 500 + Math.floor(Math.random() * 501);
+        ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
+        : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
       user.coke += cokeGain;
 
       user.rpg.power = calculateRpgPower(user);
@@ -143,6 +169,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         client,
         userId,
         boss: activeBoss.boss,
+        rankLabel: rankReward.label,
+        rankEmoji: rankReward.emoji,
+        rankColor: rankReward.color,
         damage: participant.damage,
         gears,
         expGain,

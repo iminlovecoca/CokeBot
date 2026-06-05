@@ -417,67 +417,103 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   const finalHp1 = result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
   const finalHp2 = result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
 
-  const imgData = await generatePvPImage(
-    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-  );
-
-  const attachment = new AttachmentBuilder(imgData.path, {
-    name: imgData.name,
-  });
-
   const isP1Winner = result.winner.id === player1.id;
-  const embedColor = isP1Winner ? "#2ECC71" : "#E74C3C";
 
   const renderTextBar = (hp, max, power) => {
     const ratio = Math.max(0, Math.min(1, hp / max));
     const filled = Math.round(ratio * 10);
     const bar = "▰".repeat(filled) + "▱".repeat(10 - filled);
-    return `${bar}\n${hp} / ${max}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
+    return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
-  const embed = new EmbedBuilder()
-    .setColor(embedColor)
-    .addFields(
-      {
-        name: player1.name,
-        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
-        inline: true,
-      },
-      {
-        name: player2.name,
-        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
-        inline: true,
-      },
-    )
-    .setImage(`attachment://${imgData.name}`);
+  // 3 stages: start → mid → result
+  const stages = [
+    {
+      hp1: maxHp1,
+      hp2: maxHp2,
+      content: "⚔️ **TRẬN ĐẤU BẮT ĐẦU!**",
+      color: "#5865F2",
+      showResult: false,
+    },
+    {
+      hp1: Math.floor(maxHp1 * 0.55),
+      hp2: Math.floor(maxHp2 * 0.45),
+      content: "⚡ **TRẬN ĐẤU ĐANG CĂN CẤN!**",
+      color: "#FEE75C",
+      showResult: false,
+    },
+    {
+      hp1: finalHp1,
+      hp2: finalHp2,
+      content: `🏆 **${result.winner.name} CHIẾN THẮNG!**`,
+      color: isP1Winner ? "#2ECC71" : "#E74C3C",
+      showResult: true,
+    },
+  ];
 
-  const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
-  const xpGained = isP1Winner ? 200 : 50;
-  const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
-  embed.setDescription(
-    `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | 🔥 Chuỗi thắng: ${streak}**`,
-  );
+  let currentMsg = null;
 
-  const payload = {
-    content: `🏆 **${result.winner.name} CHIẾN THẮNG!**`,
-    embeds: [embed],
-    files: [attachment],
-    components: [],
-  };
+  for (let i = 0; i < stages.length; i++) {
+    const stage = stages[i];
 
-  if (promptMessage && promptMessage.editable) {
-    await promptMessage.edit(payload);
-  } else {
-    await message.reply(payload);
-  }
+    const imgData = await generatePvPImage(
+      player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+      player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+    );
 
-  // Delete local temp file immediately to avoid bloat
-  try {
-    if (fs.existsSync(imgData.path)) {
-      fs.unlinkSync(imgData.path);
+    const attachment = new AttachmentBuilder(imgData.path, { name: imgData.name });
+
+    const embed = new EmbedBuilder()
+      .setColor(stage.color)
+      .addFields(
+        {
+          name: `${player1.name} (${player1.classLabel})`,
+          value: renderTextBar(stage.hp1, maxHp1, player1.gearPower),
+          inline: true,
+        },
+        {
+          name: `${player2.name} (${player2.classLabel})`,
+          value: renderTextBar(stage.hp2, maxHp2, player2.gearPower),
+          inline: true,
+        },
+      )
+      .setImage(`attachment://${imgData.name}`);
+
+    if (stage.showResult) {
+      const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
+      const xpGained = isP1Winner ? 200 : 50;
+      const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
+      embed.setDescription(
+        `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
+      );
     }
-  } catch (err) {
-    console.error("Failed to delete temp file:", err);
+
+    const payload = {
+      content: stage.content,
+      embeds: [embed],
+      files: [attachment],
+      components: [],
+    };
+
+    if (i === 0 && promptMessage && promptMessage.editable) {
+      await promptMessage.edit(payload);
+      currentMsg = promptMessage;
+    } else if (i === 0) {
+      currentMsg = await message.reply(payload);
+    } else {
+      await currentMsg.edit(payload).catch(() => {});
+    }
+
+    // Cleanup temp image
+    try {
+      if (fs.existsSync(imgData.path)) fs.unlinkSync(imgData.path);
+    } catch (err) {
+      console.error("Failed to delete temp file:", err);
+    }
+
+    // Delay between stages (not after last)
+    if (i < stages.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
   }
 };
