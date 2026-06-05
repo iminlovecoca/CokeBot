@@ -17,7 +17,8 @@ module.exports = {
   async execute(message, args) {
     await requireRpgCharacter(message.author.id);
 
-    const itemId = Number(args[0]);
+    const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
+    const itemId = Number(cleanArg);
     if (!Number.isInteger(itemId) || itemId <= 0) {
       return message.reply(`${config.emoji.no} Dùng đúng dạng: \`${this.usage}\``);
     }

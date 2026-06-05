@@ -114,7 +114,8 @@ module.exports = {
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
 
-    const itemId = Number(args[0]);
+    const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
+    const itemId = Number(cleanArg);
     if (Number.isInteger(itemId) && itemId > 0) {
       const item = findRpgItem(user, itemId);
       if (!item) {

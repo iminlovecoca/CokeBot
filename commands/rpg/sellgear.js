@@ -22,7 +22,8 @@ module.exports = {
     }
 
     const firstArg = args[0].trim().toLowerCase();
-    const itemId = Number(firstArg);
+    const cleanArg = firstArg.replace(/^[gG]/, "");
+    const itemId = Number(cleanArg);
 
     if (Number.isInteger(itemId) && itemId > 0) {
       const { item, cokeGain } = await sellRpgItem(message.author.id, itemId);
