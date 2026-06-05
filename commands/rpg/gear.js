@@ -41,38 +41,22 @@ const rarityColor = {
 };
 
 const bracketEmoji = {
-  Common: "┕",
-  Rare: "┚",
-  Epic: "┖",
-  Legendary: "┍",
-  Mythic: "┰",
-  Ancient: "┠",
-  Divine: "┫",
-};
-
-const getStatSquare = (item) => {
-  if (!item.stats) return "⬛";
-  const firstStat = Object.keys(item.stats)[0];
-  if (!firstStat) return "⬛";
-  switch (firstStat.toLowerCase()) {
-    case "str": return "🟥";
-    case "int": return "🟪";
-    case "agi": return "🟩";
-    case "def": return "🟫";
-    case "vit": return "🟦";
-    case "luck": return "🟨";
-    default: return "⬛";
-  }
+  Common: "<:Common:1390024590347997245>",
+  Rare: "<:Rare:1390024624380706916>",
+  Epic: "<:Epic:1390024749517770832>",
+  Legendary: "<:Legendary:1390024772200567026>",
+  Mythic: "<:Mythic:1390024789279772833>",
+  Ancient: "<:Ancient:1390024806535004333>",
+  Divine: "<:Divine:1512512382507683880>",
 };
 
 const buildGearLine = (item, isEquipped = false) => {
   const idStr = String(item.id).padStart(3, "0");
-  const bracket = bracketEmoji[item.rarity] || "┕";
+  const bracket = bracketEmoji[item.rarity] || "<:Common:1390024590347997245>";
   const slotEm = slotEmoji[item.slot] || "🎒";
-  const statSq = getStatSquare(item);
   const quality = getItemQuality(item);
   const equippedIndicator = isEquipped ? " 🟢" : "";
-  return `\`G${idStr}\` \`${bracket}\` ${slotEm} ${statSq} **${item.name}** ${quality}%${equippedIndicator}`;
+  return `\`G${idStr}\` ${bracket} ${slotEm} **${item.name}** ${quality}%${equippedIndicator}`;
 };
 
 const formatGearStats = (stats = {}) =>

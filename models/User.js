@@ -102,6 +102,20 @@ const userSchema = new mongoose.Schema({
     lastBossAt: { type: Date, default: null },
     pvpStreak: { type: Number, default: 0 },
     createdAt: { type: Date, default: null },
+    autohunt: {
+      isActive: { type: Boolean, default: false },
+      startTime: { type: Date, default: null },
+      durationHours: { type: Number, default: 0 },
+      essence: { type: Number, default: 0 },
+      levels: {
+        efficiency: { type: Number, default: 1 },
+        duration: { type: Number, default: 1 },
+        cost: { type: Number, default: 1 },
+        gain: { type: Number, default: 1 },
+        experience: { type: Number, default: 1 },
+        radar: { type: Number, default: 1 },
+      },
+    },
   },
 });
 
