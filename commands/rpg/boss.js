@@ -90,6 +90,8 @@ const sendRewardDm = async ({
 };
 
 const finishBoss = async ({ client, channel, activeBoss }) => {
+  if (activeBoss.rewarded) return;
+  activeBoss.rewarded = true;
   activeBoss.defeated = true;
   if (activeBoss.expireTimer) clearTimeout(activeBoss.expireTimer);
   client.rpgBosses.delete(activeBoss.channelId);
@@ -329,6 +331,15 @@ const performBossAttack = async ({ client, channel, userId }) => {
   }
 
   const { user, rpgClass } = await requireRpgCharacter(userId);
+
+  // Prevent race conditions where boss is defeated during the async character load
+  if (activeBoss.defeated || activeBoss.expired || activeBoss.hp <= 0) {
+    return {
+      ok: false,
+      content: "Boss đã bị hạ gục hoặc đã rời đi trước khi đòn đánh của bạn chạm tới!",
+    };
+  }
+
   const participant = activeBoss.participants.get(userId) || {
     damage: 0,
     attacks: 0,
