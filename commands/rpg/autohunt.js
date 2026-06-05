@@ -1,8 +1,21 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require("discord.js");
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  AttachmentBuilder,
+} = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
-const { requireRpgCharacter, addRpgExp, calculateRpgPower } = require("../../utils/rpgUtil");
-const { generateVerificationCode, generateCaptchaImage } = require("../../utils/anticheat");
+const {
+  requireRpgCharacter,
+  addRpgExp,
+  calculateRpgPower,
+} = require("../../utils/rpgUtil");
+const {
+  generateVerificationCode,
+  generateCaptchaImage,
+} = require("../../utils/anticheat");
 
 // Max levels for each autohunt trait
 const maxLevels = {
@@ -131,22 +144,45 @@ const renderAutohuntPanel = (user, memberName) => {
     .setDescription(
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
         `Use the command \`${config.prefix}xautohunt {duration_hours}\` to get started.\n` +
-        `You can use \`${config.prefix}xupgrade {trait} {count}\` to upgrade the traits below.\n` +
-        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n` +
-        `⏱️ **Efficiency - ${effVal}/H**\n` +
-        `${drawProgress(effLvl, maxLevels.efficiency, "efficiency")}\n\n` +
-        `⏳ **Duration - ${durVal}H**\n` +
-        `${drawProgress(durLvl, maxLevels.duration, "duration")}\n\n` +
-        `💵 **Cost - ${costVal.toLocaleString()} Coke/24H**\n` +
-        `${drawProgress(costLvl, maxLevels.cost, "cost")}\n\n` +
-        `🔧 **Gain - ${gainVal.toLocaleString()} essence/H**\n` +
-        `${drawProgress(gainLvl, maxLevels.gain, "gain")}\n\n` +
-        `⚔️ **Experience - ${expVal.toLocaleString()} XP/H**\n` +
-        `${drawProgress(expLvl, maxLevels.experience, "experience")}\n\n` +
-        `📡 **Radar - ${radVal.toFixed(5)}**\n` +
-        `${drawProgress(radLvl, maxLevels.radar, "radar")}\n\n` +
-        `🔵 **Animal Essence - ${essence.toLocaleString()}**\n` +
-        `\`Current Max Autohunt: ${(effVal * durVal).toLocaleString()} hunts, ${(gainVal * durVal).toLocaleString()} essence, and ${(expVal * durVal).toLocaleString()} XP for ${Math.round((costVal * durVal) / 24).toLocaleString()} Coke\``,
+        `You can use \`${config.prefix}xupgrade {trait} [essence]\` to upgrade the traits below.\n` +
+        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n`
+    )
+    .addFields(
+      {
+        name: `⏱️ Efficiency - ${effVal}/H`,
+        value: drawProgress(effLvl, maxLevels.efficiency, "efficiency"),
+        inline: true,
+      },
+      {
+        name: `⏳ Duration - ${durVal}H`,
+        value: drawProgress(durLvl, maxLevels.duration, "duration"),
+        inline: true,
+      },
+      {
+        name: `💵 Cost - ${costVal.toLocaleString()} Coke/24H`,
+        value: drawProgress(costLvl, maxLevels.cost, "cost"),
+        inline: true,
+      },
+      {
+        name: `🔧 Gain - ${gainVal.toLocaleString()} essence/H`,
+        value: drawProgress(gainLvl, maxLevels.gain, "gain"),
+        inline: true,
+      },
+      {
+        name: `⚔️ Experience - ${expVal.toLocaleString()} XP/H`,
+        value: drawProgress(expLvl, maxLevels.experience, "experience"),
+        inline: true,
+      },
+      {
+        name: `📡 Radar - ${radVal.toFixed(5)}`,
+        value: drawProgress(radLvl, maxLevels.radar, "radar"),
+        inline: true,
+      },
+      {
+        name: `🔵 Animal Essence - ${essence.toLocaleString()}`,
+        value: `\`Current Max Autohunt: ${(effVal * durVal).toLocaleString()} hunts, ${(gainVal * durVal).toLocaleString()} essence, and ${(expVal * durVal).toLocaleString()} XP for ${Math.round((costVal * durVal) / 24).toLocaleString()} Coke\``,
+        inline: false,
+      }
     );
 
   return embed;
@@ -170,7 +206,8 @@ const renderActiveHunt = (user, memberName) => {
 
   const pct = Math.min(100, (elapsedMs / durationMs) * 100).toFixed(2);
   const huntsCount = Math.floor(
-    Math.min(user.rpg.autohunt.durationHours, elapsedMs / (60 * 60 * 1000)) * efficiency,
+    Math.min(user.rpg.autohunt.durationHours, elapsedMs / (60 * 60 * 1000)) *
+      efficiency,
   );
 
   const filled = Math.min(20, Math.round((elapsedMs / durationMs) * 20));
@@ -196,11 +233,26 @@ module.exports = {
   description: "Hệ thống đi săn tự động bằng robot HuntBot.",
   usage: `${config.prefix}xautohunt [duration_hours | upgrade | sacrifice | claim]`,
   examples: [
-    { intent: "Xem bảng nâng cấp HuntBot", command: `${config.prefix}xautohunt` },
-    { intent: "Bắt đầu tự động săn 24h", command: `${config.prefix}xautohunt 24` },
-    { intent: "Nâng cấp chỉ số Efficiency lên 5 cấp", command: `${config.prefix}xautohunt upgrade eff 5` },
-    { intent: "Hiến tế trang bị Common", command: `${config.prefix}xautohunt sacrifice common all` },
-    { intent: "Nhận phần thưởng autohunt", command: `${config.prefix}xautohunt claim` },
+    {
+      intent: "Xem bảng nâng cấp HuntBot",
+      command: `${config.prefix}xautohunt`,
+    },
+    {
+      intent: "Bắt đầu tự động săn 24h",
+      command: `${config.prefix}xautohunt 24`,
+    },
+    {
+      intent: "Nâng cấp chỉ số Efficiency lên 5 cấp",
+      command: `${config.prefix}xautohunt upgrade eff 5`,
+    },
+    {
+      intent: "Hiến tế trang bị Common",
+      command: `${config.prefix}xautohunt sacrifice common all`,
+    },
+    {
+      intent: "Nhận phần thưởng autohunt",
+      command: `${config.prefix}xautohunt claim`,
+    },
   ],
 
   async execute(message, args = []) {
@@ -247,7 +299,9 @@ module.exports = {
       const count = parseInt(countArg);
 
       if (!isAll && (!Number.isInteger(count) || count <= 0)) {
-        return message.reply(`${config.emoji.no} Số lượng trang bị hiến tế không hợp lệ.`);
+        return message.reply(
+          `${config.emoji.no} Số lượng trang bị hiến tế không hợp lệ.`,
+        );
       }
 
       const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
@@ -262,7 +316,9 @@ module.exports = {
         );
       }
 
-      const sellCount = isAll ? eligibleItems.length : Math.min(count, eligibleItems.length);
+      const sellCount = isAll
+        ? eligibleItems.length
+        : Math.min(count, eligibleItems.length);
       const itemsToSacrifice = eligibleItems.slice(0, sellCount);
       const essencePerItem = sacrificeEssenceYield[targetRarity] || 10;
       const totalEssenceGain = itemsToSacrifice.length * essencePerItem;
@@ -270,7 +326,8 @@ module.exports = {
       // Update user inventory and essence
       const sacIds = new Set(itemsToSacrifice.map((it) => it.id));
       user.rpg.items = userItems.filter((it) => !sacIds.has(it.id));
-      user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + totalEssenceGain;
+      user.rpg.autohunt.essence =
+        (user.rpg.autohunt.essence || 0) + totalEssenceGain;
       user.rpg.power = calculateRpgPower(user);
       user.markModified("rpg");
       await user.save();
@@ -293,18 +350,26 @@ module.exports = {
 
       const count = parseInt(args[2]) || 1;
       if (count <= 0) {
-        return message.reply(`${config.emoji.no} Số cấp nâng cấp không hợp lệ.`);
+        return message.reply(
+          `${config.emoji.no} Số cấp nâng cấp không hợp lệ.`,
+        );
       }
 
       const currentLvl = user.rpg.autohunt.levels[trait] || 1;
       const maxLvl = maxLevels[trait];
       if (currentLvl >= maxLvl) {
-        return message.reply(`${config.emoji.warning} Chỉ số này đã đạt cấp độ tối đa [MAX]!`);
+        return message.reply(
+          `${config.emoji.warning} Chỉ số này đã đạt cấp độ tối đa [MAX]!`,
+        );
       }
 
       const finalLvl = Math.min(maxLvl, currentLvl + count);
       const actualUpgrades = finalLvl - currentLvl;
-      const totalCost = getUpgradeCostForLevels(trait, currentLvl, actualUpgrades);
+      const totalCost = getUpgradeCostForLevels(
+        trait,
+        currentLvl,
+        actualUpgrades,
+      );
       const currentEssence = user.rpg.autohunt.essence || 0;
 
       if (currentEssence < totalCost) {
@@ -329,7 +394,9 @@ module.exports = {
     // 3. CLAIM SUBCOMMAND
     if (subCommand === "claim" || subCommand === "c") {
       if (!user.rpg.autohunt.isActive) {
-        return message.reply(`${config.emoji.no} Hiện tại HuntBot của bạn không đi săn.`);
+        return message.reply(
+          `${config.emoji.no} Hiện tại HuntBot của bạn không đi săn.`,
+        );
       }
 
       const startTime = new Date(user.rpg.autohunt.startTime).getTime();
@@ -363,11 +430,17 @@ module.exports = {
       const xpGain = Math.floor(elapsedHours * experience);
 
       let gearsDropped = [];
-      const { generateRpgGearDrop, addRpgGearToUser } = require("../../utils/rpgUtil");
+      const {
+        generateRpgGearDrop,
+        addRpgGearToUser,
+      } = require("../../utils/rpgUtil");
 
       // Simulate drops in background
       for (let i = 0; i < huntsCount; i++) {
-        const droppedItem = generateRpgGearDrop(user, { forceDrop: false, dropRateBonus: radar });
+        const droppedItem = generateRpgGearDrop(user, {
+          forceDrop: false,
+          dropRateBonus: radar,
+        });
         if (droppedItem) {
           gearsDropped.push(droppedItem);
           addRpgGearToUser(user, droppedItem);
@@ -375,7 +448,8 @@ module.exports = {
       }
 
       // Add essence and XP
-      user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
+      user.rpg.autohunt.essence =
+        (user.rpg.autohunt.essence || 0) + essenceGain;
       const previousLevel = user.rpg.level;
       const levelsGained = addRpgExp(user.rpg, xpGain);
       user.rpg.power = calculateRpgPower(user);
@@ -466,7 +540,9 @@ module.exports = {
         await user.save();
 
         const buffer = generateCaptchaImage(captchaCode);
-        const attachment = new AttachmentBuilder(buffer, { name: "captcha.png" });
+        const attachment = new AttachmentBuilder(buffer, {
+          name: "captcha.png",
+        });
 
         return message.reply({
           content: `🤖 | **${memberName}**, Here is your password!\n| Use the command \`xautohunt ${duration}h {password}\``,
