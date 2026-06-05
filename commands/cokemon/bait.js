@@ -3,7 +3,7 @@ const config = require('../../data/config')
 
 module.exports = {
 	name: 'bait',
-	aliases: ['b'],
+	aliases: ['ba'],
 	description: 'Ném mồi dụ cokemon. Giảm tỉ lệ bỏ chạy nhưng cũng giảm tỉ lệ bắt.',
 	usage: `${config.prefix}bait`,
 	examples: [

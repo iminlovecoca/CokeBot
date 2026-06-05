@@ -3,18 +3,19 @@ const {
   AttachmentBuilder,
   EmbedBuilder,
   StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } = require("discord.js");
 const config = require("../../data/config");
 const { getUser } = require("../../utils/userUtil");
+const path = require("path");
 const {
   classEntries,
   calculateRpgPower,
-  getClassAssetPath,
   getEquippedItems,
   getRpgClass,
   getRpgXpNeeded,
   hasRpgCharacter,
-  selectRpgClass,
   getEffectiveRpgStats,
 } = require("../../utils/rpgUtil");
 
@@ -35,19 +36,21 @@ const statLineWithBonus = (baseStats, effectiveStats) => {
   return `${format("str")}   |   ${format("int")}   |   ${format("agi")}   |   ${format("vit")}   |   ${format("def")}   |   ${format("luck")}`;
 };
 
-const buildClassEmbed = (classKey, rpgClass, userData = null) => {
+const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {
   const statsValue = userData
     ? statLineWithBonus(rpgClass.stats, getEffectiveRpgStats(userData))
     : statLine(rpgClass.stats);
+
+  const assetName = customAvatar || rpgClass.asset;
 
   const embed = new EmbedBuilder()
     .setColor(rpgClass.color)
     .setTitle(`${rpgClass.name} - ${rpgClass.title}`)
     .setDescription(rpgClass.description)
-    .setImage(`attachment://${rpgClass.asset}`)
+    .setImage(`attachment://${assetName}`)
     .addFields(
       {
-        name: "Chỉ số",
+        name: "Chỉ số khởi đầu",
         value: statsValue,
       },
       {
@@ -56,7 +59,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null) => {
           .map(([key, value]) =>
             typeof value === "number" && value < 1
               ? `${key}: +${Math.round(value * 100)}%`
-              : `${key}: +${value}`,
+              : `${key}: +${value}`
           )
           .join("\n"),
         inline: true,
@@ -104,20 +107,59 @@ const buildClassEmbed = (classKey, rpgClass, userData = null) => {
   return embed;
 };
 
-const buildSelectRow = (disabled = false) =>
-  new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId("rpg_class_select")
-      .setPlaceholder("Chọn class khởi đầu")
-      .setDisabled(disabled)
-      .addOptions(
-        classEntries().map(([key, rpgClass]) => ({
-          label: rpgClass.name,
-          value: key,
-          description: rpgClass.title,
-        })),
-      ),
-  );
+const buildClassSelectRow = (selectedClassKey, disabled = false) => {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("rpg_class_select_menu")
+    .setPlaceholder("Chọn Class nhân vật")
+    .setDisabled(disabled)
+    .addOptions(
+      classEntries().map(([key, rpgClass]) => ({
+        label: rpgClass.name,
+        value: key,
+        description: rpgClass.title,
+        default: key === selectedClassKey,
+      }))
+    );
+  return new ActionRowBuilder().addComponents(menu);
+};
+
+const buildAvatarSelectRow = (selectedAvatar, disabled = false) => {
+  const charFiles = Array.from({ length: 21 }, (_, i) => i + 1)
+    .filter((num) => num !== 6) // character_06.png is missing
+    .map((num) => {
+      const pad = String(num).padStart(2, "0");
+      return `character_${pad}.png`;
+    });
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("rpg_avatar_select_menu")
+    .setPlaceholder("Chọn Avatar nhân vật")
+    .setDisabled(disabled)
+    .addOptions(
+      charFiles.map((file) => ({
+        label: `Avatar ${file.split(".")[0].split("_")[1]}`,
+        value: file,
+        default: file === selectedAvatar,
+      }))
+    );
+  return new ActionRowBuilder().addComponents(menu);
+};
+
+const buildConfirmationRow = (disabled = false) => {
+  const acceptBtn = new ButtonBuilder()
+    .setCustomId("rpg_class_accept")
+    .setLabel("Chốt (Accept)")
+    .setStyle(ButtonStyle.Success)
+    .setDisabled(disabled);
+
+  const cancelBtn = new ButtonBuilder()
+    .setCustomId("rpg_class_cancel")
+    .setLabel("Hủy")
+    .setStyle(ButtonStyle.Secondary)
+    .setDisabled(disabled);
+
+  return new ActionRowBuilder().addComponents(acceptBtn, cancelBtn);
+};
 
 module.exports = {
   name: "class",
@@ -134,57 +176,110 @@ module.exports = {
 
     if (hasRpgCharacter(userData)) {
       const rpgClass = getRpgClass(userData.rpg.classKey);
-      const attachment = new AttachmentBuilder(getClassAssetPath(rpgClass), {
-        name: rpgClass.asset,
+      const avatarFile = userData.rpg.characterAsset || rpgClass.asset;
+      const assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+      const attachment = new AttachmentBuilder(assetPath, {
+        name: avatarFile,
       });
       return message.reply({
-        embeds: [buildClassEmbed(userData.rpg.classKey, rpgClass, userData)],
+        embeds: [buildClassEmbed(userData.rpg.classKey, rpgClass, userData, avatarFile)],
         files: [attachment],
       });
     }
 
-    const firstClass = classEntries()[0];
-    const initialClass = firstClass[1];
-    const attachment = new AttachmentBuilder(getClassAssetPath(initialClass), {
-      name: initialClass.asset,
-    });
+    // Default selections
+    let currentClassKey = classEntries()[0][0];
+    let currentAvatar = getRpgClass(currentClassKey).asset;
+
+    const renderMessagePayload = (disabled = false) => {
+      const rpgClass = getRpgClass(currentClassKey);
+      const assetPath = path.join(__dirname, "../../assets/characters", currentAvatar);
+      const attachment = new AttachmentBuilder(assetPath, {
+        name: currentAvatar,
+      });
+      const embed = buildClassEmbed(currentClassKey, rpgClass, null, currentAvatar);
+
+      return {
+        content: "Hãy chọn class và avatar của bạn. Bấm **Chốt (Accept)** để bắt đầu cuộc hành trình!",
+        embeds: [embed],
+        files: [attachment],
+        components: [
+          buildClassSelectRow(currentClassKey, disabled),
+          buildAvatarSelectRow(currentAvatar, disabled),
+          buildConfirmationRow(disabled),
+        ],
+      };
+    };
 
     const prompt = await message.reply({
-      content: "Hãy chọn class đầu tiên của bạn. Lựa chọn này hiện chưa thể đổi.",
-      embeds: [buildClassEmbed(firstClass[0], initialClass)],
-      files: [attachment],
-      components: [buildSelectRow()],
+      ...renderMessagePayload(false),
       fetchReply: true,
     });
 
     const collector = prompt.createMessageComponentCollector({
       filter: (interaction) => interaction.user.id === message.author.id,
-      time: 120000,
-      max: 1,
+      time: 180000, // 3 minutes to choose
     });
 
     collector.on("collect", async (interaction) => {
-      if (!interaction.isStringSelectMenu()) return;
-      const classKey = interaction.values[0];
-      const { user, rpgClass } = await selectRpgClass(message.author.id, classKey);
-      const selectedAttachment = new AttachmentBuilder(getClassAssetPath(rpgClass), {
-        name: rpgClass.asset,
-      });
+      if (interaction.isStringSelectMenu()) {
+        if (interaction.customId === "rpg_class_select_menu") {
+          currentClassKey = interaction.values[0];
+          currentAvatar = getRpgClass(currentClassKey).asset;
+        } else if (interaction.customId === "rpg_avatar_select_menu") {
+          currentAvatar = interaction.values[0];
+        }
+        await interaction.update(renderMessagePayload(false));
+      } else if (interaction.isButton()) {
+        if (interaction.customId === "rpg_class_accept") {
+          collector.stop("accepted");
 
-      await interaction.update({
-        content: `Đã chọn **${rpgClass.name}**. Dùng \`${config.prefix}hunt\` hoặc \`${config.prefix}h\` để bắt đầu cày Power.`,
-        embeds: [buildClassEmbed(classKey, rpgClass, user)],
-        files: [selectedAttachment],
-        components: [buildSelectRow(true)],
-      });
+          const rpgClass = getRpgClass(currentClassKey);
+          const user = await getUser(message.author.id);
+
+          user.set("rpg", {
+            classKey: currentClassKey,
+            characterAsset: currentAvatar,
+            level: config.rpg.starting_level || 1,
+            exp: 0,
+            power: 0,
+            stats: rpgClass.stats,
+            rank: "Novice",
+            equipped: {},
+            items: [],
+            lastItemId: 0,
+            lastHuntAt: null,
+            lastBossAt: null,
+            createdAt: new Date(),
+          });
+          await user.save();
+
+          await interaction.update({
+            content: `Đã khởi tạo nhân vật thành công! Bạn là **${rpgClass.name}**. Hãy gõ \`${config.prefix}hunt\` hoặc \`${config.prefix}h\` để bắt đầu chiến đấu!`,
+            ...renderMessagePayload(true),
+          });
+        } else if (interaction.customId === "rpg_class_cancel") {
+          collector.stop("cancelled");
+          await interaction.update({
+            content: "Đã hủy phiên chọn nhân vật.",
+            components: [],
+            embeds: [],
+            files: [],
+          });
+        }
+      }
     });
 
-    collector.on("end", async (collected) => {
-      if (collected.size > 0) return;
+    collector.on("end", async (collected, reason) => {
+      if (reason === "accepted" || reason === "cancelled") return;
       await prompt.edit({
-        content: "Phiên chọn class đã hết hạn. Dùng lại `uclass` khi bạn sẵn sàng.",
-        components: [buildSelectRow(true)],
-      });
+        content: "Phiên chọn class đã hết hạn. Hãy dùng lại lệnh khi sẵn sàng.",
+        components: [
+          buildClassSelectRow(currentClassKey, true),
+          buildAvatarSelectRow(currentAvatar, true),
+          buildConfirmationRow(true),
+        ],
+      }).catch(() => {});
     });
   },
 };

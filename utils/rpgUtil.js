@@ -25,7 +25,20 @@ const getRpgRank = (level) => {
   return "Novice";
 };
 
-const getRpgItems = (user) => user.rpg?.items || [];
+const getRpgItems = (user) => {
+  const items = user.rpg?.items || [];
+  let modified = false;
+  for (const item of items) {
+    if (!item.uid) {
+      item.uid = `w-legacy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      modified = true;
+    }
+  }
+  if (modified) {
+    user.markModified("rpg");
+  }
+  return items;
+};
 
 const getEquippedItems = (user) => {
   const items = getRpgItems(user);
@@ -53,7 +66,19 @@ const formatStats = (stats = {}) =>
     .join(", ");
 
 const getEffectiveRpgStats = (user) => {
-  const stats = { ...emptyStats(), ...(user.rpg?.stats || {}) };
+  const stats = emptyStats();
+  if (!user?.rpg?.classKey) return stats;
+
+  const rpgClass = getRpgClass(user.rpg.classKey);
+  const baseStats = rpgClass?.stats || user.rpg.stats || {};
+  const level = user.rpg.level || 1;
+
+  for (const stat of Object.keys(stats)) {
+    const base = baseStats[stat] || 0;
+    // Scale base stats: base + base * (level - 1) * 0.1
+    stats[stat] = base + Math.floor(base * (level - 1) * 0.1);
+  }
+
   for (const item of Object.values(getEquippedItems(user))) {
     for (const [stat, value] of Object.entries(item.stats || {})) {
       stats[stat] = (stats[stat] || 0) + value;
@@ -220,6 +245,7 @@ const generateRpgGearDrop = (user, options = {}) => {
 
   return {
     id: itemId,
+    uid: `w-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     name: `${rarity} ${config.rpg.gear_slot_names[slot]}`,
     slot,
     rarity,

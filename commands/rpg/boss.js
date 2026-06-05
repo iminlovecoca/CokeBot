@@ -1,4 +1,9 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
 const config = require("../../data/config");
 const {
   buildBossComponents,
@@ -12,7 +17,20 @@ const {
   generateRpgGearDrop,
   getRpgXpNeeded,
   requireRpgCharacter,
+  getEffectiveRpgStats,
+  getRpgClass,
 } = require("../../utils/rpgUtil");
+
+const CLASS_ATTACK_TYPES = {
+  warrior: "physical",
+  assassin: "physical",
+  paladin: "physical",
+  berserker: "physical",
+  archer: "physical",
+  mage: "magical",
+  necromancer: "magical",
+  cleric: "magical",
+};
 
 const formatRemaining = (ms) => {
   const seconds = Math.ceil(ms / 1000);
@@ -29,6 +47,7 @@ const sendRewardDm = async ({
   damage,
   gears,
   expGain,
+  cokeGain,
   isLastHit,
 }) => {
   const discordUser = await client.users.fetch(userId).catch(() => null);
@@ -37,29 +56,30 @@ const sendRewardDm = async ({
   const gearLines = gears
     .map(
       (gear) =>
-        `#${gear.id} **${gear.name}** | +${gear.power.toLocaleString()} Power | sell ${gear.sellPrice.toLocaleString()} Coke`,
+        `#${gear.id} **${gear.name}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Power | bán ${gear.sellPrice.toLocaleString()} Coke`,
     )
     .join("\n");
 
   const embed = new EmbedBuilder()
     .setColor(isLastHit ? "#FEE75C" : "#57F287")
-    .setTitle(`${boss.emoji} Thuong danh boss: ${boss.name}`)
+    .setTitle(`${boss.emoji} Thưởng đánh boss: ${boss.name}`)
     .setDescription(
       isLastHit
-        ? "Ban la nguoi ket lieu boss nen nhan them qua."
-        : "Boss da bi ha. Day la phan thuong tham gia cua ban.",
+        ? "🎉 Bạn là người kết liễu boss nên nhận thêm quà cực khủng!"
+        : "Boss đã bị hạ. Đây là phần thưởng tham gia của bạn.",
     )
     .addFields(
       {
-        name: "Dong gop",
+        name: "Đóng góp & Phần thưởng",
         value:
-          `Damage: **${damage.toLocaleString()}**\n` +
+          `Sát thương: **${damage.toLocaleString()}**\n` +
+          `Coke nhận được: **+${cokeGain.toLocaleString()} Coke**\n` +
           `EXP RPG: **+${expGain.toLocaleString()}**`,
         inline: true,
       },
       {
-        name: "Gear nhan duoc",
-        value: gearLines,
+        name: "Trang bị nhận được",
+        value: gearLines || "Không có",
       },
     );
 
@@ -75,32 +95,47 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     await activeBoss.updateQueue.catch(() => null);
   }
 
-  const rewardRarities = config.rpg.boss?.reward_rarities || [
-    "Common",
-    "Rare",
-    "Epic",
-  ];
-  const lastHitBonusGear = config.rpg.boss?.last_hit_bonus_gear || 0;
-
   for (const [userId, participant] of activeBoss.participants.entries()) {
     try {
-      const { user } = await requireRpgCharacter(userId);
+      const { user, rpgClass } = await requireRpgCharacter(userId);
       const isLastHit = userId === activeBoss.lastHitUserId;
-      const gearCount = 1 + (isLastHit ? lastHitBonusGear : 0);
       const gears = [];
 
-      for (let i = 0; i < gearCount; i += 1) {
-        const gear = generateRpgGearDrop(user, {
-          forceDrop: true,
-          allowedRarities: rewardRarities,
-        });
-        addRpgGearToUser(user, gear);
-        gears.push(gear);
+      // Reward 1: Epic and below (Common, Rare, Epic)
+      const gear1 = generateRpgGearDrop(user, {
+        forceDrop: true,
+        allowedRarities: ["Common", "Rare", "Epic"],
+      });
+      if (gear1) {
+        addRpgGearToUser(user, gear1);
+        gears.push(gear1);
       }
 
+      // Reward 2 (Last Hit Only): Rare to Epic
+      if (isLastHit) {
+        const gear2 = generateRpgGearDrop(user, {
+          forceDrop: true,
+          allowedRarities: ["Rare", "Epic"],
+        });
+        if (gear2) {
+          addRpgGearToUser(user, gear2);
+          gears.push(gear2);
+        }
+      }
+
+      // Exp: general is boss.exp, last hit is 1.5 * boss.exp
       const baseExp = activeBoss.boss.exp || 100;
-      const expGain = Math.floor(baseExp * (isLastHit ? 1.5 : 1));
+      const expGain = Math.floor(
+        baseExp * (isLastHit ? 1.5 : 1) * (1 + (rpgClass.bonuses?.expGain || 0)),
+      );
       addRpgExp(user.rpg, expGain);
+
+      // Coke: general 500-1000, last hit 2000-5000
+      const cokeGain = isLastHit
+        ? 2000 + Math.floor(Math.random() * 3001)
+        : 500 + Math.floor(Math.random() * 501);
+      user.coke += cokeGain;
+
       user.rpg.power = calculateRpgPower(user);
       await user.save();
 
@@ -111,6 +146,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         damage: participant.damage,
         gears,
         expGain,
+        cokeGain,
         isLastHit,
       });
     } catch (error) {
@@ -136,39 +172,60 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 const buildAttackResultEmbed = ({
   activeBoss,
   damage,
+  isCrit,
+  bossDamage,
+  bossMissed,
   participant,
   user,
-  freeAttacks,
-  paidAttackCost,
+  rpgClass,
+  maxHp,
   isPaidAttack,
-}) =>
-  new EmbedBuilder()
-    .setColor(activeBoss.hp <= 0 ? "#57F287" : "#ED4245")
-    .setTitle(`${activeBoss.boss.emoji} ${activeBoss.boss.name}`)
-    .setDescription(
-      activeBoss.hp <= 0
-        ? `Ban gay **${damage.toLocaleString()}** damage va ket lieu boss.`
-        : `Ban gay **${damage.toLocaleString()}** damage len boss.`,
-    )
+  paidAttackCost,
+}) => {
+  let battleLog = "";
+  if (isCrit) {
+    battleLog += `💥 **[CHÍ MẠNG]** Bạn gây **${damage.toLocaleString()}** sát thương lên boss!\n`;
+  } else {
+    battleLog += `⚔️ Bạn gây **${damage.toLocaleString()}** sát thương lên boss.\n`;
+  }
+
+  if (activeBoss.hp <= 0) {
+    battleLog += `☠️ **Đòn quyết định!** Bạn đã kết liễu boss!`;
+  } else {
+    if (bossMissed) {
+      battleLog += `💨 **NÉ TRÁNH!** Bạn né được đòn đánh trả từ boss!\n`;
+    } else {
+      battleLog += `💥 Boss phản công gây **${bossDamage}** sát thương lên bạn!\n`;
+    }
+
+    if (participant.hp <= 0) {
+      battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay bằng 1,000 Coke.`;
+    }
+  }
+
+  return new EmbedBuilder()
+    .setColor(activeBoss.hp <= 0 ? "#57F287" : participant.hp <= 0 ? "#ED4245" : rpgClass.color)
+    .setTitle(`${activeBoss.boss.emoji} ${activeBoss.boss.name} - Nhật Ký Trận Đấu`)
+    .setDescription(battleLog)
     .addFields(
       {
-        name: "Luot danh",
+        name: "Nhân vật",
         value:
-          `Da dung: **${participant.attacks}**\n` +
-          `Mien phi: **${Math.min(participant.attacks, freeAttacks)}/${freeAttacks}**\n` +
-          `Phi luot nay: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} Coke` : "0 Coke"}**`,
-        inline: true,
-      },
-      {
-        name: "Nhan vat",
-        value:
-          `Power: **${user.rpg.power.toLocaleString()}**\n` +
-          `Level: **${user.rpg.level}**\n` +
-          `Coke: **${user.coke.toLocaleString()}**\n` +
+          `Lớp nhân vật: **${rpgClass.name}**\n` +
+          `HP của bạn: **${Math.max(0, participant.hp).toLocaleString()} / ${maxHp.toLocaleString()}**\n` +
           `EXP: **${user.rpg.exp}/${getRpgXpNeeded(user.rpg.level)}**`,
         inline: true,
       },
+      {
+        name: "Lượt đánh boss",
+        value:
+          `Tổng lượt: **${participant.attacks}**\n` +
+          `Phí lượt này: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} Coke` : "Miễn phí"}**\n` +
+          `Coke hiện có: **${user.coke.toLocaleString()}**`,
+        inline: true,
+      },
     );
+};
 
 const updateBossMessage = async (channel, activeBoss) => {
   if (!activeBoss.updateQueue) {
@@ -221,7 +278,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
     return {
       ok: false,
-      content: "Hien khong co boss nao dang xuat hien trong channel nay.",
+      content: "Hiện không có boss nào đang xuất hiện trong channel này.",
     };
   }
 
@@ -230,51 +287,165 @@ const performBossAttack = async ({ client, channel, userId }) => {
     damage: 0,
     attacks: 0,
     lastAttackAt: 0,
+    hp: null,
+    koUntil: 0,
   };
-  const freeAttacks = config.rpg.boss?.free_attacks_per_user ?? 3;
-  const paidAttackCost = config.rpg.boss?.paid_attack_cost ?? 10000;
+
+  const effectiveStats = getEffectiveRpgStats(user);
+  const maxHp = 150 + effectiveStats.vit * 15 + user.rpg.level * 20;
+
+  // Initialize player HP if needed
+  if (participant.hp === null) {
+    participant.hp = maxHp;
+  }
+
   const now = Date.now();
 
+  // Check if player is KO'd
+  if (participant.hp <= 0) {
+    if (now >= participant.koUntil) {
+      participant.hp = maxHp;
+    } else {
+      const remainingSeconds = Math.ceil((participant.koUntil - now) / 1000);
+      const reviveRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`rpg_boss_revive:${channel.id}`)
+          .setLabel("Hồi sinh ngay (1,000 Coke)")
+          .setStyle(ButtonStyle.Success),
+      );
+
+      return {
+        ok: false,
+        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức bằng **1,000 Coke**.`,
+        components: [reviveRow],
+        ephemeral: true,
+      };
+    }
+  }
+
+  const freeAttacks = config.rpg.boss?.free_attacks_per_user ?? 3;
+  const paidAttackCost = config.rpg.boss?.paid_attack_cost ?? 10000;
   const isPaidAttack = participant.attacks >= freeAttacks;
+
   if (isPaidAttack && user.coke < paidAttackCost) {
     return {
       ok: false,
       content:
-        `${config.emoji.no} Ban da dung het **${freeAttacks}** luot danh boss mien phi. ` +
-        `Luot tiep theo can **${paidAttackCost.toLocaleString()} Coke**, nhung ban chi co **${user.coke.toLocaleString()} Coke**.`,
+        `${config.emoji.no} Bạn đã dùng hết **${freeAttacks}** lượt đánh boss miễn phí. ` +
+        `Lượt tiếp theo cần **${paidAttackCost.toLocaleString()} Coke**, nhưng bạn chỉ có **${user.coke.toLocaleString()} Coke**.`,
     };
   }
 
   user.rpg.power = calculateRpgPower(user);
+
+  // Player Damage Calculation
+  const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
+  const baseAttack = isMagical
+    ? effectiveStats.int * 3.5
+    : effectiveStats.str * 2.5 + effectiveStats.agi * 1.2;
+
+  const gearPower = calculateRpgPower(user);
+  let rawDamage = baseAttack + gearPower;
+
+  // Apply variance
+  const attackVariance = 0.85 + Math.random() * 0.3;
+  rawDamage *= attackVariance;
+
+  // Crit roll
+  const classCritBonus = rpgClass.bonuses?.critRate || 0;
+  const critRate = Math.min(
+    0.75,
+    (effectiveStats.luck * 0.2 + effectiveStats.agi * 0.1) / 100 + classCritBonus,
+  );
+  const isCrit = Math.random() < critRate;
+  const critMult = 1.5 + effectiveStats.agi * 0.002;
+  if (isCrit) {
+    rawDamage *= critMult;
+  }
+
+  // Boss defense mitigation
+  let mitigation = 0;
+  if (isMagical) {
+    const mr = activeBoss.boss.magicResist || 0;
+    mitigation = mr / (mr + 250);
+  } else {
+    const armor = activeBoss.boss.armor || 0;
+    mitigation = armor / (armor + 250);
+  }
+
   const classBossBonus = rpgClass.bonuses?.bossDamage || 0;
-  const variance = 0.85 + Math.random() * 0.3;
-  const damage = Math.floor(
-    Math.max(10, user.rpg.power) * variance * (1 + classBossBonus),
+  const damage = Math.max(
+    10,
+    Math.floor(rawDamage * (1 - mitigation) * (1 + classBossBonus)),
   );
 
+  // Charge coke fee if paid
   if (isPaidAttack) {
     user.coke -= paidAttackCost;
   }
 
+  // Boss Counterattack Calculation
+  let bossDamage = 0;
+  let bossMissed = false;
+
+  if (activeBoss.hp - damage > 0) {
+    // Player Evasion
+    const playerEvasion = Math.min(
+      0.35,
+      (effectiveStats.agi * 0.1 + effectiveStats.luck * 0.05) / 100,
+    );
+    bossMissed = Math.random() < playerEvasion;
+
+    if (!bossMissed) {
+      const bossRaw =
+        (activeBoss.boss.attackPower || 50) * (0.85 + Math.random() * 0.3);
+      let playerMitigation = 0;
+
+      if (activeBoss.boss.damageType === "magical") {
+        const playerMR =
+          effectiveStats.int * 0.8 + effectiveStats.vit * 0.7;
+        playerMitigation = playerMR / (playerMR + 150);
+      } else {
+        const playerArmor = effectiveStats.def * 1.5;
+        playerMitigation = playerArmor / (playerArmor + 150);
+      }
+
+      bossDamage = Math.max(
+        5,
+        Math.floor(bossRaw * (1 - playerMitigation)),
+      );
+      participant.hp = Math.max(0, participant.hp - bossDamage);
+
+      if (participant.hp <= 0) {
+        participant.koUntil = now + 30 * 1000;
+      }
+    }
+  }
+
+  // Update participant data
   participant.damage += damage;
   participant.attacks += 1;
   participant.lastAttackAt = now;
   activeBoss.participants.set(userId, participant);
+
   activeBoss.hp = Math.max(0, activeBoss.hp - damage);
   activeBoss.lastHitUserId = userId;
 
   await user.save();
-
   await updateBossMessage(channel, activeBoss);
 
   const embed = buildAttackResultEmbed({
     activeBoss,
     damage,
+    isCrit,
+    bossDamage,
+    bossMissed,
     participant,
     user,
-    freeAttacks,
-    paidAttackCost,
+    rpgClass,
+    maxHp,
     isPaidAttack,
+    paidAttackCost,
   });
 
   if (activeBoss.hp <= 0) {
@@ -287,7 +458,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 const showBossPanel = async (message) => {
   const activeBoss = message.client.rpgBosses?.get(message.channel.id);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
-    return message.reply("**No bosses are currently active in this channel!**");
+    return message.reply("**Không có boss nào đang kích hoạt trong kênh này!**");
   }
 
   await updateBossMessage(message.channel, activeBoss);
@@ -301,11 +472,20 @@ const handleFightInteraction = async (interaction) => {
 
   if (!channel || !channel.isTextBased()) {
     return interaction.reply({
-      content: "Khong tim thay channel boss.",
+      content: "Không tìm thấy channel boss.",
       flags: 64,
     });
   }
 
+  const activeBoss = interaction.client.rpgBosses?.get(channel.id);
+  if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
+    return interaction.reply({
+      content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
+      flags: 64,
+    });
+  }
+
+  // Defer reply
   await interaction.deferReply({ flags: 64 }).catch(() => {});
   const result = await performBossAttack({
     client: interaction.client,
@@ -313,25 +493,79 @@ const handleFightInteraction = async (interaction) => {
     userId: interaction.user.id,
   });
 
-  if (interaction.deferred || interaction.replied) {
-    return interaction.editReply(
-      result.ok ? { embeds: result.embeds } : { content: result.content },
-    );
+  const replyPayload = result.ok
+    ? { embeds: result.embeds, components: [] }
+    : {
+        content: result.content,
+        components: result.components || [],
+        flags: result.ephemeral ? 64 : undefined,
+      };
+
+  return interaction.editReply(replyPayload).catch(() => {});
+};
+
+const handleReviveInteraction = async (interaction) => {
+  const [, channelId] = interaction.customId.split(":");
+  const channel = await interaction.client.channels
+    .fetch(channelId || interaction.channelId)
+    .catch(() => null);
+
+  if (!channel || !channel.isTextBased()) {
+    return interaction.reply({
+      content: "Không tìm thấy channel boss.",
+      flags: 64,
+    });
   }
 
-  return interaction.reply({
-    ...(result.ok ? { embeds: result.embeds } : { content: result.content }),
-    flags: 64,
+  const activeBoss = interaction.client.rpgBosses?.get(channel.id);
+  if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
+    return interaction.reply({
+      content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
+      flags: 64,
+    });
+  }
+
+  await interaction.deferReply({ flags: 64 }).catch(() => {});
+
+  const { user } = await requireRpgCharacter(interaction.user.id);
+  const participant = activeBoss.participants.get(interaction.user.id);
+
+  if (!participant || participant.hp > 0) {
+    return interaction.editReply({
+      content: "Bạn không ở trạng thái hạ gục.",
+    });
+  }
+
+  const reviveCost = 1000;
+  if (user.coke < reviveCost) {
+    return interaction.editReply({
+      content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()} Coke**, bạn có: **${user.coke.toLocaleString()} Coke**)`,
+    });
+  }
+
+  user.coke -= reviveCost;
+  const effectiveStats = getEffectiveRpgStats(user);
+  const maxHp = 150 + effectiveStats.vit * 15 + user.rpg.level * 20;
+
+  participant.hp = maxHp;
+  participant.koUntil = 0;
+  activeBoss.participants.set(interaction.user.id, participant);
+
+  await user.save();
+
+  return interaction.editReply({
+    content: `✅ Bạn đã hồi sinh thành công bằng **1,000 Coke**! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Fight!** để tiếp tục tấn công boss.`,
   });
 };
 
 module.exports = {
   name: "boss",
   aliases: ["worldboss", "wb", "xboss"],
-  description: "Xem World Boss dang xuat hien trong channel.",
+  description: "Xem World Boss đang xuất hiện trong channel.",
   usage: `${config.prefix}boss`,
   examples: [{ intent: "Xem boss", command: `${config.prefix}boss` }],
   execute: showBossPanel,
   handleFightInteraction,
+  handleReviveInteraction,
   performBossAttack,
 };

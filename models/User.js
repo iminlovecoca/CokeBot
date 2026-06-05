@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const cokedexEntrySchema = new mongoose.Schema(
   {
@@ -98,6 +98,7 @@ const userSchema = new mongoose.Schema({
     lastItemId: { type: Number, default: 0 },
     lastHuntAt: { type: Date, default: null },
     lastBossAt: { type: Date, default: null },
+    pvpStreak: { type: Number, default: 0 },
     createdAt: { type: Date, default: null },
   },
 });

@@ -10,6 +10,11 @@ module.exports = {
           if (bossCommand?.handleFightInteraction) {
             await bossCommand.handleFightInteraction(interaction);
           }
+        } else if (interaction.customId.startsWith("rpg_boss_revive:")) {
+          const bossCommand = client.commands.get("boss");
+          if (bossCommand?.handleReviveInteraction) {
+            await bossCommand.handleReviveInteraction(interaction);
+          }
         }
         return;
       }
