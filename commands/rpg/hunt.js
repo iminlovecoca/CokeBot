@@ -61,7 +61,11 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(rpgClass.color)
-      .setTitle(`${rpgClass.name} đã hoàn thành một chuyến hunt`)
+      .setTitle(
+        user.rpg.name
+          ? `👤 ${user.rpg.name} (${rpgClass.name}) đã hoàn thành một chuyến hunt`
+          : `${rpgClass.name} đã hoàn thành một chuyến hunt`
+      )
       .setDescription(
         droppedItem
           ? `${huntGround.emoji} **${huntGround.name}** rơi ra **${droppedItem.name}** ID \`${droppedItem.id}\`. Dùng \`${config.prefix}equip ${droppedItem.id}\` để mặc hoặc \`${config.prefix}sellgear ${droppedItem.id}\` để bán.`
@@ -78,7 +82,7 @@ module.exports = {
           value:
             `Level: **${user.rpg.level}**\n` +
             `Rank: **${user.rpg.rank}**\n` +
-            `Power: **${Math.floor(user.rpg.power).toLocaleString()}**\n` +
+            `Lực chiến: **${Math.floor(user.rpg.power).toLocaleString()}**\n` +
             `EXP: **${user.rpg.exp}/${getRpgXpNeeded(user.rpg.level)}**`,
           inline: true,
         },
@@ -90,7 +94,7 @@ module.exports = {
         value:
           `Slot: **${config.rpg.gear_slot_names[droppedItem.slot]}**\n` +
           `Rarity: **${droppedItem.rarity}**\n` +
-          `Power khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
+          `Lực chiến khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
           `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**\n` +
           `Image key tạm: \`${droppedItem.imageKey}\``,
         inline: true,

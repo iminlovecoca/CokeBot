@@ -72,7 +72,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
       {
         name: "Thông tin",
         value:
-          `Power gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
+          `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
           `Tồn tại: **10 phút**\n` +
           `Người tham gia: **${activeBoss.participants.size}**`,
         inline: true,

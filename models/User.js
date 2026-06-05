@@ -86,6 +86,8 @@ const userSchema = new mongoose.Schema({
   noituLastPlayedAt: { type: Date, default: null },
 
   rpg: {
+    name: { type: String, default: null },
+    nameChanged: { type: Boolean, default: false },
     classKey: { type: String, default: null },
     characterAsset: { type: String, default: null },
     level: { type: Number, default: 1 },

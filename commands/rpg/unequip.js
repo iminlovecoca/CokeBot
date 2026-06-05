@@ -35,7 +35,7 @@ module.exports = {
         `Bạn đã tháo **${item?.name || config.rpg.gear_slot_names[unequippedSlot]}** khỏi slot **${config.rpg.gear_slot_names[unequippedSlot]}**.`,
       )
       .addFields({
-        name: "Power hiện tại",
+        name: "Lực chiến hiện tại",
         value: `**${user.rpg.power.toLocaleString()}**`,
         inline: true,
       });

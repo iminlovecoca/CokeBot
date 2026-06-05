@@ -340,11 +340,7 @@ module.exports = {
       }).skip(randomIndex);
 
       const receiverId = randomOpponent.userId;
-      const prompt = await message.reply(
-        "🎲 Đang tìm kiếm đối thủ ngẫu nhiên trong đấu trường...",
-      );
-
-      await runPvPBattle(message, prompt, senderId, receiverId);
+      await runPvPBattle(message, null, senderId, receiverId);
     }
   },
 };
@@ -365,8 +361,8 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   // Retrieve actual user names from the client
   const u1Obj = await message.client.users.fetch(p1Id).catch(() => null);
   const u2Obj = await message.client.users.fetch(p2Id).catch(() => null);
-  const p1Name = u1Obj ? u1Obj.username : `Người chơi #${p1Id.slice(-4)}`;
-  const p2Name = u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`;
+  const p1Name = user1.rpg.name || (u1Obj ? u1Obj.username : `Người chơi #${p1Id.slice(-4)}`);
+  const p2Name = user2.rpg.name || (u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`);
 
   const player1 = {
     id: p1Id,
@@ -418,15 +414,20 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   loseUser.markModified("rpg");
   await loseUser.save();
 
-  // Define HP values for each of the 3 stages
-  const stages = [
-    { hp1: maxHp1, hp2: maxHp2 },
-    { hp1: Math.floor(maxHp1 * 0.5), hp2: Math.floor(maxHp2 * 0.5) },
-    {
-      hp1: result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0,
-      hp2: result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0,
-    },
-  ];
+  const finalHp1 = result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
+  const finalHp2 = result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
+
+  const imgData = await generatePvPImage(
+    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+  );
+
+  const attachment = new AttachmentBuilder(imgData.path, {
+    name: imgData.name,
+  });
+
+  const isP1Winner = result.winner.id === player1.id;
+  const embedColor = isP1Winner ? "#2ECC71" : "#E74C3C";
 
   const renderTextBar = (hp, max, power) => {
     const ratio = Math.max(0, Math.min(1, hp / max));
@@ -435,86 +436,48 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${hp} / ${max}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
-  let currentMsg = promptMessage;
+  const embed = new EmbedBuilder()
+    .setColor(embedColor)
+    .addFields(
+      {
+        name: player1.name,
+        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
+        inline: true,
+      },
+      {
+        name: player2.name,
+        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
+        inline: true,
+      },
+    )
+    .setImage(`attachment://${imgData.name}`);
 
-  for (let i = 0; i < 3; i++) {
-    const stage = stages[i];
+  const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
+  const xpGained = isP1Winner ? 200 : 50;
+  const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
+  embed.setDescription(
+    `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | 🔥 Chuỗi thắng: ${streak}**`,
+  );
 
-    const imgData = await generatePvPImage(
-      player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-      player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-    );
+  const payload = {
+    content: `🏆 **${result.winner.name} CHIẾN THẮNG!**`,
+    embeds: [embed],
+    files: [attachment],
+    components: [],
+  };
 
-    const attachment = new AttachmentBuilder(imgData.path, {
-      name: imgData.name,
-    });
+  if (promptMessage && promptMessage.editable) {
+    await promptMessage.edit(payload);
+  } else {
+    await message.reply(payload);
+  }
 
-    // Green if sender (P1) won, Red if sender lost
-    const isP1Winner = result.winner.id === player1.id;
-    let embedColor = "#5865F2";
-    if (i === 2) {
-      embedColor = isP1Winner ? "#2ECC71" : "#E74C3C";
+  // Delete local temp file immediately to avoid bloat
+  try {
+    if (fs.existsSync(imgData.path)) {
+      fs.unlinkSync(imgData.path);
     }
-
-    const embed = new EmbedBuilder()
-      .setColor(embedColor)
-      .addFields(
-        {
-          name: player1.name,
-          value: renderTextBar(stage.hp1, maxHp1, player1.gearPower),
-          inline: true,
-        },
-        {
-          name: player2.name,
-          value: renderTextBar(stage.hp2, maxHp2, player2.gearPower),
-          inline: true,
-        },
-      )
-      .setImage(`attachment://${imgData.name}`);
-
-    if (i === 2) {
-      const isP1Win = result.winner.id === player1.id;
-      const winText = isP1Win ? "You won" : "You lost";
-      const xpGained = isP1Win ? 200 : 50;
-      const streak = isP1Win ? winUser.rpg.pvpStreak : 0;
-      embed.setDescription(
-        `**${winText} in ${result.turns} turns! | +${xpGained} XP | 🔥 Streak: ${streak}**`,
-      );
-    }
-
-    const payload = {
-      embeds: [embed],
-      files: [attachment],
-      components: [],
-    };
-
-    if (i === 0) {
-      payload.content = "⚔️ **BẮT ĐẦU TRẬN ĐẤU PVP**";
-    } else if (i === 1) {
-      payload.content = "⚡ **TRẬN ĐẤU ĐANG DIỄN RA GAY CẤN**";
-    } else {
-      payload.content = `🏆 **${result.winner.name} CHIẾN THẮNG!**`;
-    }
-
-    if (i === 0 && promptMessage.editable) {
-      await promptMessage.edit(payload);
-    } else if (i === 0) {
-      currentMsg = await message.reply(payload);
-    } else {
-      await currentMsg.edit(payload);
-    }
-
-    // Delete local temp file immediately to avoid bloat
-    try {
-      if (fs.existsSync(imgData.path)) {
-        fs.unlinkSync(imgData.path);
-      }
-    } catch (err) {
-      console.error("Failed to delete temp file:", err);
-    }
-
-    if (i < 2) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
+  } catch (err) {
+    console.error("Failed to delete temp file:", err);
   }
 };

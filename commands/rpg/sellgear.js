@@ -37,7 +37,7 @@ module.exports = {
             `ID: \`${item.id}\`\n` +
             `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
             `Rarity: **${item.rarity}**\n` +
-            `Power: **+${item.power.toLocaleString()}**`,
+            `Lực chiến: **+${item.power.toLocaleString()}**`,
           inline: true,
         },
         {

@@ -152,7 +152,7 @@ module.exports = {
             `Tên: **${rarityEmoji[senderItem.rarity] || "⚪"} ${senderItem.name}**\n` +
             `Slot: **${slotEmoji[senderItem.slot] || "🎒"} ${config.rpg.gear_slot_names[senderItem.slot] || senderItem.slot}**\n` +
             `Độ hiếm: **${senderItem.rarity}**\n` +
-            `Power: **+${senderItem.power.toLocaleString()}**\n` +
+            `Lực chiến: **+${senderItem.power.toLocaleString()}**\n` +
             `Chỉ số: **${formatStats(senderItem.stats) || "Không có"}**\n` +
             `Mã UID: \`${senderItem.uid}\``,
         },

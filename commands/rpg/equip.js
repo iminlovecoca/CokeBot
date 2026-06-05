@@ -36,12 +36,12 @@ module.exports = {
           value:
             `ID: \`${item.id}\`\n` +
             `Rarity: **${item.rarity}**\n` +
-            `Power: **+${item.power.toLocaleString()}**\n` +
+            `Lực chiến: **+${item.power.toLocaleString()}**\n` +
             `Image key tạm: \`${item.imageKey}\``,
           inline: true,
         },
         {
-          name: "Power hiện tại",
+          name: "Lực chiến hiện tại",
           value: `**${user.rpg.power.toLocaleString()}**`,
           inline: true,
         },

@@ -56,7 +56,7 @@ const sendRewardDm = async ({
   const gearLines = gears
     .map(
       (gear) =>
-        `#${gear.id} **${gear.name}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Power | bán ${gear.sellPrice.toLocaleString()} Coke`,
+        `#${gear.id} **${gear.name}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} Coke`,
     )
     .join("\n");
 
@@ -235,13 +235,11 @@ const updateBossMessage = async (channel, activeBoss) => {
   activeBoss.updateQueue = activeBoss.updateQueue
     .then(async () => {
       try {
+        let oldMsg = null;
         if (activeBoss.messageId) {
-          const oldMsg = await channel.messages
+          oldMsg = await channel.messages
             .fetch(activeBoss.messageId)
             .catch(() => null);
-          if (oldMsg) {
-            await oldMsg.delete().catch(() => null);
-          }
         }
 
         const payload = {
@@ -249,17 +247,36 @@ const updateBossMessage = async (channel, activeBoss) => {
           components: buildBossComponents(activeBoss),
         };
 
-        if (!activeBoss.imageUrl) {
-          payload.files = [getAttachment(activeBoss.boss)];
+        let editSuccess = false;
+        if (oldMsg) {
+          if (!activeBoss.imageUrl) {
+            payload.files = [getAttachment(activeBoss.boss)];
+          }
+          const edited = await oldMsg.edit(payload).catch(() => null);
+          if (edited) {
+            editSuccess = true;
+            if (!activeBoss.imageUrl) {
+              const attachment = edited.attachments.first();
+              if (attachment) {
+                activeBoss.imageUrl = attachment.url;
+              }
+            }
+          }
         }
 
-        const newMsg = await channel.send(payload);
-        activeBoss.messageId = newMsg.id;
+        if (!editSuccess) {
+          if (!activeBoss.imageUrl) {
+            payload.files = [getAttachment(activeBoss.boss)];
+          }
 
-        if (!activeBoss.imageUrl) {
-          const attachment = newMsg.attachments.first();
-          if (attachment) {
-            activeBoss.imageUrl = attachment.url;
+          const newMsg = await channel.send(payload);
+          activeBoss.messageId = newMsg.id;
+
+          if (!activeBoss.imageUrl) {
+            const attachment = newMsg.attachments.first();
+            if (attachment) {
+              activeBoss.imageUrl = attachment.url;
+            }
           }
         }
       } catch (err) {
@@ -485,23 +502,22 @@ const handleFightInteraction = async (interaction) => {
     });
   }
 
-  // Defer reply
-  await interaction.deferReply({ flags: 64 }).catch(() => {});
+  // Defer update to acknowledge interaction immediately and prevent spinner
+  await interaction.deferUpdate().catch(() => {});
+
   const result = await performBossAttack({
     client: interaction.client,
     channel,
     userId: interaction.user.id,
   });
 
-  const replyPayload = result.ok
-    ? { embeds: result.embeds, components: [] }
-    : {
-        content: result.content,
-        components: result.components || [],
-        flags: result.ephemeral ? 64 : undefined,
-      };
-
-  return interaction.editReply(replyPayload).catch(() => {});
+  if (!result.ok) {
+    await interaction.followUp({
+      content: result.content,
+      components: result.components || [],
+      flags: 64,
+    }).catch(() => {});
+  }
 };
 
 const handleReviveInteraction = async (interaction) => {

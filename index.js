@@ -148,7 +148,7 @@ loadFiles(path.join(__dirname, "events"), (filePath) => {
 client.once(Events.ClientReady, async () => {
   console.log(`🚀 Bot logged in as ${client.user.tag}`);
   client.user.setPresence({
-    activities: [{ name: "Coke 🎲", type: 0 }],
+    activities: [{ name: "Coke 🎲", type: 1 }],
     status: "online",
   });
 
