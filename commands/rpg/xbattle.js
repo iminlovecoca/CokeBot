@@ -361,8 +361,12 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   // Retrieve actual user names from the client
   const u1Obj = await message.client.users.fetch(p1Id).catch(() => null);
   const u2Obj = await message.client.users.fetch(p2Id).catch(() => null);
-  const p1Name = user1.rpg.name || (u1Obj ? u1Obj.username : `Người chơi #${p1Id.slice(-4)}`);
-  const p2Name = user2.rpg.name || (u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`);
+  const p1Name =
+    user1.rpg.name ||
+    (u1Obj ? u1Obj.username : `Người chơi #${p1Id.slice(-4)}`);
+  const p2Name =
+    user2.rpg.name ||
+    (u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`);
 
   const player1 = {
     id: p1Id,
@@ -402,7 +406,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   winUser.rpg.pvpStreak = (winUser.rpg.pvpStreak || 0) + 1;
   loseUser.rpg.pvpStreak = 0;
 
-  const cokeWinner = 50 + Math.floor(Math.random() * 451);
+  const cokeWinner = 50 + Math.floor(Math.random() * 125);
   winUser.coke += cokeWinner;
   addRpgExp(winUser.rpg, 200);
   winUser.rpg.power = calculateRpgPower(winUser);
@@ -414,8 +418,10 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   loseUser.markModified("rpg");
   await loseUser.save();
 
-  const finalHp1 = result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
-  const finalHp2 = result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
+  const finalHp1 =
+    result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
+  const finalHp2 =
+    result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
 
   const isP1Winner = result.winner.id === player1.id;
 
@@ -461,7 +467,9 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
       player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
     );
 
-    const attachment = new AttachmentBuilder(imgData.path, { name: imgData.name });
+    const attachment = new AttachmentBuilder(imgData.path, {
+      name: imgData.name,
+    });
 
     const embed = new EmbedBuilder()
       .setColor(stage.color)

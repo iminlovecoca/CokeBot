@@ -14,7 +14,6 @@ const {
   getEffectiveRpgStats,
 } = require("../../utils/rpgUtil");
 
-
 module.exports = {
   name: "hunt",
   aliases: ["h"],
@@ -33,8 +32,14 @@ module.exports = {
       return classCommand.execute(message, []);
     }
 
-    const cooldownSeconds = Math.floor((config.rpg.hunt_cooldown_ms || 10000) / 1000);
-    const remaining = checkAndSetCooldown(message.author.id, "hunt", cooldownSeconds);
+    const cooldownSeconds = Math.floor(
+      (config.rpg.hunt_cooldown_ms || 10000) / 1000,
+    );
+    const remaining = checkAndSetCooldown(
+      message.author.id,
+      "hunt",
+      cooldownSeconds,
+    );
     if (remaining > 0) {
       return notifyCooldown(message, remaining);
     }
@@ -50,7 +55,7 @@ module.exports = {
       config.rpg.hunt_base_exp * variance * (1 + expBonus + luck * 0.003),
     );
     const droppedItem = generateRpgGearDrop(user);
-    const cokeGain = 50 + Math.floor(Math.random() * 451);
+    const cokeGain = 50 + Math.floor(Math.random() * 125);
 
     const previousLevel = user.rpg.level;
     const levelsGained = addRpgExp(user.rpg, expGain);
@@ -66,7 +71,7 @@ module.exports = {
       .setTitle(
         user.rpg.name
           ? `👤 ${user.rpg.name} (${rpgClass.name}) đã hoàn thành một chuyến hunt`
-          : `${rpgClass.name} đã hoàn thành một chuyến hunt`
+          : `${rpgClass.name} đã hoàn thành một chuyến hunt`,
       )
       .setDescription(
         droppedItem
