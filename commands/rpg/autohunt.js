@@ -145,7 +145,7 @@ const renderAutohuntPanel = (user, memberName) => {
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
         `Use the command \`${config.prefix}xautohunt {duration_hours}\` to get started.\n` +
         `You can use \`${config.prefix}xupgrade {trait} [essence]\` to upgrade the traits below.\n` +
-        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n`
+        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n`,
     )
     .addFields(
       {
@@ -179,10 +179,10 @@ const renderAutohuntPanel = (user, memberName) => {
         inline: true,
       },
       {
-        name: `🔵 Animal Essence - ${essence.toLocaleString()}`,
+        name: `🔵 Coke Essence - ${essence.toLocaleString()}`,
         value: `\`Current Max Autohunt: ${(effVal * durVal).toLocaleString()} hunts, ${(gainVal * durVal).toLocaleString()} essence, and ${(expVal * durVal).toLocaleString()} XP for ${Math.round((costVal * durVal) / 24).toLocaleString()} Coke\``,
         inline: false,
-      }
+      },
     );
 
   return embed;
