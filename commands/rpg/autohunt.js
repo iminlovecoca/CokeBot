@@ -1,7 +1,8 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
 const { requireRpgCharacter, addRpgExp, calculateRpgPower } = require("../../utils/rpgUtil");
+const { generateVerificationCode, generateCaptchaImage } = require("../../utils/anticheat");
 
 // Max levels for each autohunt trait
 const maxLevels = {
@@ -129,9 +130,9 @@ const renderAutohuntPanel = (user, memberName) => {
     .setThumbnail("https://i.imgur.com/PZcZpZg.png")
     .setDescription(
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
-        `Use the command \`${config.prefix}autohunt {duration_hours}\` to get started.\n` +
-        `You can use \`${config.prefix}autohunt upgrade {trait} {count}\` to upgrade the traits below.\n` +
-        `To obtain more essence, use \`${config.prefix}autohunt sacrifice {rarity} {count}\`.\n\n` +
+        `Use the command \`${config.prefix}xautohunt {duration_hours}\` to get started.\n` +
+        `You can use \`${config.prefix}xupgrade {trait} {count}\` to upgrade the traits below.\n` +
+        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n` +
         `⏱️ **Efficiency - ${effVal}/H**\n` +
         `${drawProgress(effLvl, maxLevels.efficiency, "efficiency")}\n\n` +
         `⏳ **Duration - ${durVal}H**\n` +
@@ -183,23 +184,23 @@ const renderActiveHunt = (user, memberName) => {
         `\`BEEP BOOP. I AM STILL HUNTING. I WILL BE BACK IN ${formatDuration(remainingMs)}\`\n\n` +
         `**${pct}% DONE** | **${huntsCount.toLocaleString()}** HUNTS COMPLETED\n` +
         `${bar}\n\n` +
-        `*Dùng \`${config.prefix}autohunt claim\` để nhận thưởng sớm và dừng đi săn.*`,
+        `*Dùng \`${config.prefix}xautohunt claim\` để nhận thưởng sớm và dừng đi săn.*`,
     );
 
   return embed;
 };
 
 module.exports = {
-  name: "autohunt",
-  aliases: ["hb", "ah"],
+  name: "xautohunt",
+  aliases: ["autohunt", "hb", "ah", "xah", "xhb"],
   description: "Hệ thống đi săn tự động bằng robot HuntBot.",
-  usage: `${config.prefix}autohunt [duration_hours | upgrade | sacrifice | claim]`,
+  usage: `${config.prefix}xautohunt [duration_hours | upgrade | sacrifice | claim]`,
   examples: [
-    { intent: "Xem bảng nâng cấp HuntBot", command: `${config.prefix}autohunt` },
-    { intent: "Bắt đầu tự động săn 24h", command: `${config.prefix}autohunt 24` },
-    { intent: "Nâng cấp chỉ số Efficiency lên 5 cấp", command: `${config.prefix}autohunt upgrade eff 5` },
-    { intent: "Hiến tế trang bị Common", command: `${config.prefix}autohunt sacrifice common all` },
-    { intent: "Nhận phần thưởng autohunt", command: `${config.prefix}autohunt claim` },
+    { intent: "Xem bảng nâng cấp HuntBot", command: `${config.prefix}xautohunt` },
+    { intent: "Bắt đầu tự động săn 24h", command: `${config.prefix}xautohunt 24` },
+    { intent: "Nâng cấp chỉ số Efficiency lên 5 cấp", command: `${config.prefix}xautohunt upgrade eff 5` },
+    { intent: "Hiến tế trang bị Common", command: `${config.prefix}xautohunt sacrifice common all` },
+    { intent: "Nhận phần thưởng autohunt", command: `${config.prefix}xautohunt claim` },
   ],
 
   async execute(message, args = []) {
@@ -213,6 +214,8 @@ module.exports = {
         startTime: null,
         durationHours: 0,
         essence: 0,
+        captchaCode: null,
+        pendingDuration: 0,
         levels: {
           efficiency: 1,
           duration: 1,
@@ -234,7 +237,7 @@ module.exports = {
       const targetRarity = rarityMapping[targetRarityAbbr];
       if (!targetRarity) {
         return message.reply(
-          `${config.emoji.no} Cú pháp hiến tế không hợp lệ! Hãy dùng: \`${config.prefix}autohunt sacrifice {rarity} {count|all}\`\n` +
+          `${config.emoji.no} Cú pháp hiến tế không hợp lệ! Hãy dùng: \`${config.prefix}xautohunt sacrifice {rarity} {count|all}\`\n` +
             `Các độ hiếm hợp lệ: \`c\`, \`r\`, \`e\`, \`l\`, \`m\`, \`a\`, \`d\``,
         );
       }
@@ -278,7 +281,7 @@ module.exports = {
       );
     }
 
-    // 2. UPGRADE SUBCOMMAND
+    // 2. UPGRADE SUBCOMMAND (fallback support)
     if (subCommand === "upgrade" || subCommand === "up") {
       const inputTrait = args[1]?.toLowerCase();
       const trait = traitMapping[inputTrait];
@@ -381,6 +384,8 @@ module.exports = {
       user.rpg.autohunt.isActive = false;
       user.rpg.autohunt.startTime = null;
       user.rpg.autohunt.durationHours = 0;
+      user.rpg.autohunt.captchaCode = null;
+      user.rpg.autohunt.pendingDuration = 0;
       user.markModified("rpg");
       await user.save();
 
@@ -414,15 +419,16 @@ module.exports = {
       return message.reply({ embeds: [embed] });
     }
 
-    // 4. START AUTOHUNT WITH DURATION
-    if (args[0] && !isNaN(args[0])) {
+    // 4. CAPTCHA AND START AUTOHUNT
+    const durationMatch = args[0]?.match(/^(\d+)[hH]?$/);
+    if (durationMatch) {
       if (user.rpg.autohunt.isActive) {
         return message.reply(
-          `${config.emoji.warning} HuntBot của bạn đang đi săn! Gõ \`${config.prefix}autohunt\` để xem trạng thái hoặc \`${config.prefix}autohunt claim\` để nhận thưởng sớm.`,
+          `${config.emoji.warning} HuntBot của bạn đang đi săn! Gõ \`${config.prefix}xautohunt\` để xem trạng thái hoặc \`${config.prefix}xautohunt claim\` để nhận thưởng sớm.`,
         );
       }
 
-      const duration = parseInt(args[0]);
+      const duration = parseInt(durationMatch[1]);
       const levels = user.rpg.autohunt.levels || {
         efficiency: 1,
         duration: 1,
@@ -449,32 +455,66 @@ module.exports = {
         );
       }
 
-      // Deduct cost and set state
+      const captchaInput = args[1]?.trim();
+
+      // Case 4a: CAPTCHA REQUEST (User did not supply captcha input)
+      if (!captchaInput) {
+        const captchaCode = generateVerificationCode();
+        user.rpg.autohunt.captchaCode = captchaCode;
+        user.rpg.autohunt.pendingDuration = duration;
+        user.markModified("rpg");
+        await user.save();
+
+        const buffer = generateCaptchaImage(captchaCode);
+        const attachment = new AttachmentBuilder(buffer, { name: "captcha.png" });
+
+        return message.reply({
+          content: `🤖 | **${memberName}**, Here is your password!\n| Use the command \`xautohunt ${duration}h {password}\``,
+          files: [attachment],
+        });
+      }
+
+      // Case 4b: VERIFY CAPTCHA AND START
+      const expectedCaptcha = user.rpg.autohunt.captchaCode;
+      const expectedDuration = user.rpg.autohunt.pendingDuration;
+
+      if (!expectedCaptcha || expectedDuration !== duration) {
+        return message.reply(
+          `${config.emoji.no} Mã bảo mật hoặc số giờ không khớp với phiên hiện tại. Vui lòng gõ \`xautohunt ${duration}h\` để lấy captcha mới.`,
+        );
+      }
+
+      if (captchaInput.toUpperCase() !== expectedCaptcha.toUpperCase()) {
+        return message.reply(
+          `${config.emoji.no} Mã captcha không chính xác. Vui lòng gõ lại hoặc lấy mã mới!`,
+        );
+      }
+
+      // Correct captcha: Start Autohunt!
       user.coke -= totalCost;
       user.rpg.autohunt.isActive = true;
       user.rpg.autohunt.startTime = new Date();
       user.rpg.autohunt.durationHours = duration;
+      user.rpg.autohunt.captchaCode = null; // Clear captcha
+      user.rpg.autohunt.pendingDuration = 0;
       user.markModified("rpg");
       await user.save();
 
-      const embed = new EmbedBuilder()
-        .setColor("#57F287")
-        .setTitle("🤖 HuntBot Khởi Động")
-        .setDescription(
-          `BEEP. BOOP. Đã nhận lệnh của chủ nhân!\n` +
-            `Tôi sẽ đi săn tự động trong **${duration} giờ**.\n` +
-            `Chi phí thuê: **${totalCost.toLocaleString()} Coke** (Đã trừ). Hẹn gặp lại bạn sau!`,
-        );
+      const effVal = getEfficiency(levels.efficiency);
+      const gainVal = getGain(levels.gain);
+      const expVal = getExperience(levels.experience);
 
-      return message.reply({ embeds: [embed] });
+      return message.reply(
+        `🤖 | **BEEP BOOP.** **${memberName}** , YOU SPENT **${totalCost.toLocaleString()}** Coke\n` +
+          `| **I WILL BE BACK IN ${duration}H 0M WITH ${(effVal * duration).toLocaleString()} HUNTS,**\n` +
+          `| **${(gainVal * duration).toLocaleString()} ESSENCE, AND ${(expVal * duration).toLocaleString()} EXPERIENCE**`,
+      );
     }
 
     // 5. STATUS / VIEW PANEL (No args)
     if (user.rpg.autohunt.isActive) {
-      // Return active hunting status embed
       return message.reply({ embeds: [renderActiveHunt(user, memberName)] });
     } else {
-      // Return upgrade panel embed
       return message.reply({ embeds: [renderAutohuntPanel(user, memberName)] });
     }
   },
