@@ -200,7 +200,41 @@ const spawnRandomBoss = async (client, options = {}) => {
       return;
     }
 
-    const boss = pick(bossTiers);
+    // Group bosses by rank
+    const bossesByRank = {};
+    for (const b of bossTiers) {
+      if (!bossesByRank[b.rank]) {
+        bossesByRank[b.rank] = [];
+      }
+      bossesByRank[b.rank].push(b);
+    }
+
+    // Get active ranks and their weights
+    const rankWeights = config.rpg.boss?.bossRankRewards || {};
+    const activeRanks = Object.keys(bossesByRank).filter((rank) => rankWeights[rank]);
+
+    let selectedRank = null;
+    if (activeRanks.length > 0) {
+      const totalWeight = activeRanks.reduce(
+        (sum, rank) => sum + (rankWeights[rank].spawnWeight || 1),
+        0,
+      );
+      let rand = Math.random() * totalWeight;
+      for (const rank of activeRanks) {
+        const weight = rankWeights[rank].spawnWeight || 1;
+        if (rand < weight) {
+          selectedRank = rank;
+          break;
+        }
+        rand -= weight;
+      }
+      if (!selectedRank) selectedRank = activeRanks[activeRanks.length - 1];
+    }
+
+    const boss =
+      selectedRank && bossesByRank[selectedRank]?.length
+        ? pick(bossesByRank[selectedRank])
+        : pick(bossTiers);
     const activeBoss = {
       id: `${Date.now()}-${boss.key}`,
       channelId,

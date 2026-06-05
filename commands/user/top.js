@@ -80,6 +80,13 @@ module.exports = {
         topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
         break;
 
+      case 'rpg':
+        title = `Top Lực Chiến RPG - ${guildName}`;
+        unit = 'Lực chiến';
+        getValue = u => Math.floor(u.rpg?.power || 0);
+        topUsers = await User.find({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+        break;
+
       case 'cash':
       default:
         title = `Top Coke - ${guildName}`;

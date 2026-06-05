@@ -50,10 +50,12 @@ module.exports = {
       config.rpg.hunt_base_exp * variance * (1 + expBonus + luck * 0.003),
     );
     const droppedItem = generateRpgGearDrop(user);
+    const cokeGain = 50 + Math.floor(Math.random() * 451);
 
     const previousLevel = user.rpg.level;
     const levelsGained = addRpgExp(user.rpg, expGain);
     addRpgGearToUser(user, droppedItem);
+    user.coke += cokeGain;
     user.rpg.power = calculateRpgPower(user);
     user.rpg.lastHuntAt = new Date();
 
@@ -74,7 +76,9 @@ module.exports = {
       .addFields(
         {
           name: "Nhận được",
-          value: `EXP RPG: **+${expGain.toLocaleString()}**`,
+          value:
+            `EXP RPG: **+${expGain.toLocaleString()}**\n` +
+            `Coke: **+${cokeGain.toLocaleString()}**`,
           inline: true,
         },
         {

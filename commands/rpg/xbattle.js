@@ -402,7 +402,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   winUser.rpg.pvpStreak = (winUser.rpg.pvpStreak || 0) + 1;
   loseUser.rpg.pvpStreak = 0;
 
-  const cokeWinner = 100 + Math.floor(Math.random() * 401);
+  const cokeWinner = 50 + Math.floor(Math.random() * 451);
   winUser.coke += cokeWinner;
   addRpgExp(winUser.rpg, 200);
   winUser.rpg.power = calculateRpgPower(winUser);

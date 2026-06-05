@@ -240,6 +240,7 @@ const generateRpgGearDrop = (user, options = {}) => {
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((rarityConfig.power + levelBonus) * variance);
   const stats = generateGearStats(slot, rarityConfig, level);
+  const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
 
   user.rpg.lastItemId = itemId;
 
@@ -252,6 +253,7 @@ const generateRpgGearDrop = (user, options = {}) => {
     level,
     power,
     stats,
+    quality,
     sellPrice: Math.floor((rarityConfig.sell + level * 18) * variance),
     imageKey: `todo_${slot}_${rarity.toLowerCase()}`,
     droppedAt: new Date(),
@@ -340,6 +342,15 @@ const getBossForPower = (power) => {
     }, tiers[0]);
 };
 
+const getItemQuality = (item) => {
+  if (!item) return 0;
+  if (typeof item.quality === "number") return item.quality;
+  // Fallback to deterministic quality based on item ID/UID
+  const seed = item.id || 1;
+  const pseudoRandom = (Math.sin(seed) + 1) / 2; // 0 to 1
+  return Math.floor((10 + pseudoRandom * 90) * 10) / 10;
+};
+
 module.exports = {
   classEntries,
   getRpgClass,
@@ -364,4 +375,5 @@ module.exports = {
   unequipRpgSlot,
   sellRpgItem,
   getBossForPower,
+  getItemQuality,
 };
