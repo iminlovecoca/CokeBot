@@ -131,8 +131,7 @@ const renderAutohuntPanel = (user, memberName) => {
       return `Lvl ${currentLvl} [MAX]\n[■■■■■■■■■■■■■■■■■■]`;
     }
     const cost = upgradeCostFuncs[trait](currentLvl);
-    const percent = Math.min(1, essence / cost);
-    const filled = Math.round(percent * 18);
+    const filled = essence >= cost ? 18 : 0;
     const bar = "[" + "■".repeat(filled) + "□".repeat(18 - filled) + "]";
     return `Lvl ${currentLvl}\n\`[${essence.toLocaleString()}/${cost.toLocaleString()}]\`\n${bar}`;
   };
@@ -437,7 +436,7 @@ module.exports = {
 
       // Simulate drops in background
       for (let i = 0; i < huntsCount; i++) {
-        const droppedItem = generateRpgGearDrop(user, {
+        const droppedItem = await generateRpgGearDrop(user, {
           forceDrop: false,
           dropRateBonus: radar,
         });
@@ -502,7 +501,7 @@ module.exports = {
         );
       }
 
-      const duration = parseInt(durationMatch[1]);
+      let duration = parseInt(durationMatch[1]);
       const levels = user.rpg.autohunt.levels || {
         efficiency: 1,
         duration: 1,
@@ -513,10 +512,14 @@ module.exports = {
       };
       const maxAllowedDuration = getDuration(levels.duration);
 
-      if (duration < 1 || duration > maxAllowedDuration) {
+      if (duration < 1) {
         return message.reply(
-          `${config.emoji.no} Thời gian Auto Hunt không hợp lệ! Cấp độ hiện tại của bạn cho phép tự động tối đa **${maxAllowedDuration} giờ**.`,
+          `${config.emoji.no} Thời gian Auto Hunt không hợp lệ! Vui lòng chọn từ 1 giờ trở lên.`,
         );
+      }
+
+      if (duration > maxAllowedDuration) {
+        duration = maxAllowedDuration;
       }
 
       const costPer24H = getCost(levels.cost);

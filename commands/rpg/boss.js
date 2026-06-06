@@ -117,7 +117,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       const gears = [];
 
       // Reward gear 1 — participant drop (scales by rank)
-      const gear1 = generateRpgGearDrop(user, {
+      const gear1 = await generateRpgGearDrop(user, {
         forceDrop: true,
         allowedRarities: rankReward.participantRarities,
       });
@@ -128,7 +128,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
       // Reward gear 2 — last hit bonus (scales by rank)
       if (isLastHit) {
-        const gear2 = generateRpgGearDrop(user, {
+        const gear2 = await generateRpgGearDrop(user, {
           forceDrop: true,
           allowedRarities: rankReward.lastHitRarities,
         });
@@ -139,7 +139,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
         // Cấp thượng nhân gets a third bonus gear
         if (rankReward.lastHitBonusRarities) {
-          const gear3 = generateRpgGearDrop(user, {
+          const gear3 = await generateRpgGearDrop(user, {
             forceDrop: true,
             allowedRarities: rankReward.lastHitBonusRarities,
           });
@@ -185,18 +185,19 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     }
   }
 
-  const bossMessage = await channel.messages
-    .fetch(activeBoss.messageId)
-    .catch(() => null);
-  if (bossMessage) {
-    const payload = {
-      embeds: [buildBossEmbed(activeBoss, "defeated")],
-      components: buildBossComponents(activeBoss, "defeated"),
-    };
-    if (!activeBoss.imageUrl) {
-      payload.files = [getAttachment(activeBoss.boss)];
+  const messageIds = activeBoss.messageIds || (activeBoss.messageId ? [activeBoss.messageId] : []);
+  for (const msgId of messageIds) {
+    const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
+    if (bossMessage) {
+      const payload = {
+        embeds: [buildBossEmbed(activeBoss, "defeated")],
+        components: buildBossComponents(activeBoss, "defeated"),
+      };
+      if (!activeBoss.imageUrl) {
+        payload.files = [getAttachment(activeBoss.boss)];
+      }
+      await bossMessage.edit(payload).catch(() => null);
     }
-    await bossMessage.edit(payload).catch(() => null);
   }
 };
 
@@ -258,7 +259,7 @@ const buildAttackResultEmbed = ({
     );
 };
 
-const updateBossMessage = async (channel, activeBoss) => {
+const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) => {
   if (!activeBoss.updateQueue) {
     activeBoss.updateQueue = Promise.resolve();
   }
@@ -266,11 +267,11 @@ const updateBossMessage = async (channel, activeBoss) => {
   activeBoss.updateQueue = activeBoss.updateQueue
     .then(async () => {
       try {
-        let oldMsg = null;
-        if (activeBoss.messageId) {
-          oldMsg = await channel.messages
-            .fetch(activeBoss.messageId)
-            .catch(() => null);
+        if (!activeBoss.messageIds) {
+          activeBoss.messageIds = [];
+          if (activeBoss.messageId) {
+            activeBoss.messageIds.push(activeBoss.messageId);
+          }
         }
 
         const payload = {
@@ -278,37 +279,46 @@ const updateBossMessage = async (channel, activeBoss) => {
           components: buildBossComponents(activeBoss),
         };
 
-        let editSuccess = false;
-        if (oldMsg) {
+        if (forceNewMessage || activeBoss.messageIds.length === 0) {
           if (!activeBoss.imageUrl) {
             payload.files = [getAttachment(activeBoss.boss)];
           }
-          const edited = await oldMsg.edit(payload).catch(() => null);
-          if (edited) {
-            editSuccess = true;
+          const newMsg = await channel.send(payload).catch(() => null);
+          if (newMsg) {
+            activeBoss.messageIds.push(newMsg.id);
+            activeBoss.messageId = newMsg.id;
             if (!activeBoss.imageUrl) {
-              const attachment = edited.attachments.first();
+              const attachment = newMsg.attachments.first();
               if (attachment) {
                 activeBoss.imageUrl = attachment.url;
               }
             }
           }
-        }
-
-        if (!editSuccess) {
-          if (!activeBoss.imageUrl) {
-            payload.files = [getAttachment(activeBoss.boss)];
-          }
-
-          const newMsg = await channel.send(payload);
-          activeBoss.messageId = newMsg.id;
-
-          if (!activeBoss.imageUrl) {
-            const attachment = newMsg.attachments.first();
-            if (attachment) {
-              activeBoss.imageUrl = attachment.url;
+        } else {
+          const updatedIds = [];
+          for (const msgId of activeBoss.messageIds) {
+            const msg = await channel.messages.fetch(msgId).catch(() => null);
+            if (msg) {
+              const editPayload = {
+                embeds: payload.embeds,
+                components: payload.components,
+              };
+              if (!activeBoss.imageUrl) {
+                editPayload.files = [getAttachment(activeBoss.boss)];
+              }
+              const edited = await msg.edit(editPayload).catch(() => null);
+              if (edited) {
+                updatedIds.push(msgId);
+                if (!activeBoss.imageUrl) {
+                  const attachment = edited.attachments.first();
+                  if (attachment) {
+                    activeBoss.imageUrl = attachment.url;
+                  }
+                }
+              }
             }
           }
+          activeBoss.messageIds = updatedIds;
         }
       } catch (err) {
         console.error("[RPG_BOSS] Error updating boss message:", err);
@@ -518,7 +528,7 @@ const showBossPanel = async (message) => {
     return message.reply("**Không có boss nào đang kích hoạt trong kênh này!**");
   }
 
-  await updateBossMessage(message.channel, activeBoss);
+  await updateBossMessage(message.channel, activeBoss, true);
 };
 
 const handleFightInteraction = async (interaction) => {

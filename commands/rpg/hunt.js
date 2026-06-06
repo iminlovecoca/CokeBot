@@ -54,7 +54,7 @@ module.exports = {
     const expGain = Math.floor(
       config.rpg.hunt_base_exp * variance * (1 + expBonus + luck * 0.003),
     );
-    const droppedItem = generateRpgGearDrop(user);
+    const droppedItem = await generateRpgGearDrop(user);
     const cokeGain = 50 + Math.floor(Math.random() * 125);
 
     const previousLevel = user.rpg.level;

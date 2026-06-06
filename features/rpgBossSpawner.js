@@ -162,16 +162,19 @@ const expireBoss = async (client, channelId) => {
 
   try {
     const channel = await client.channels.fetch(channelId);
-    const bossMessage = await channel.messages.fetch(activeBoss.messageId).catch(() => null);
-    if (bossMessage) {
-      const payload = {
-        embeds: [buildBossEmbed(activeBoss, "expired")],
-        components: buildBossComponents(activeBoss, "expired"),
-      };
-      if (!activeBoss.imageUrl) {
-        payload.files = [getAttachment(activeBoss.boss)];
+    const messageIds = activeBoss.messageIds || (activeBoss.messageId ? [activeBoss.messageId] : []);
+    for (const msgId of messageIds) {
+      const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
+      if (bossMessage) {
+        const payload = {
+          embeds: [buildBossEmbed(activeBoss, "expired")],
+          components: buildBossComponents(activeBoss, "expired"),
+        };
+        if (!activeBoss.imageUrl) {
+          payload.files = [getAttachment(activeBoss.boss)];
+        }
+        await bossMessage.edit(payload).catch(() => null);
       }
-      await bossMessage.edit(payload);
     }
   } catch (error) {
     console.warn("[RPG_BOSS] Failed to expire boss message:", error.message);
@@ -248,6 +251,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       spawnedAt: Date.now(),
       expiresAt: Date.now() + (config.rpg.boss?.lifetime_ms || 10 * 60 * 1000),
       messageId: null,
+      messageIds: [],
     };
 
     const message = await channel.send({
@@ -257,6 +261,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     });
 
     activeBoss.messageId = message.id;
+    activeBoss.messageIds = [message.id];
     const attachment = message.attachments.first();
     if (attachment) {
       activeBoss.imageUrl = attachment.url;

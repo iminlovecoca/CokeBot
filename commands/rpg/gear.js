@@ -9,6 +9,7 @@ const config = require("../../data/config");
 const {
   calculateRpgPower,
   findRpgItem,
+  findRpgItemGlobal,
   formatStats,
   getEffectiveRpgStats,
   getEquippedItems,
@@ -117,14 +118,15 @@ module.exports = {
     const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
     const itemId = Number(cleanArg);
     if (Number.isInteger(itemId) && itemId > 0) {
-      const item = findRpgItem(user, itemId);
-      if (!item) {
+      const result = await findRpgItemGlobal(itemId);
+      if (!result) {
         return message.reply(
           `${config.emoji.no} Không tìm thấy trang bị RPG ID \`${itemId}\`.`,
         );
       }
+      const { item, owner } = result;
 
-      const equippedEntry = Object.entries(user.rpg.equipped || {}).find(
+      const equippedEntry = Object.entries(owner.rpg.equipped || {}).find(
         ([, equippedItemId]) => equippedItemId === item.id,
       );
 
@@ -136,6 +138,7 @@ module.exports = {
             .setDescription(
               `ID: \`${item.id}\`\n` +
                 `UID: \`${item.uid || "N/A"}\`\n` +
+                `Sở hữu bởi: <@${owner.userId}>\n` +
                 `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
                 `Rarity: **${item.rarity}**\n` +
                 `Chất lượng: **${getItemQuality(item)}%**\n` +

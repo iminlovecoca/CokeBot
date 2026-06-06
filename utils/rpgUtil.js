@@ -206,7 +206,7 @@ const generateGearStats = (slot, rarityConfig, level) => {
   return stats;
 };
 
-const generateRpgGearDrop = (user, options = {}) => {
+const generateRpgGearDrop = async (user, options = {}) => {
   const rpgClass = getRpgClass(user.rpg.classKey);
   const effectiveStats = getEffectiveRpgStats(user);
   const luck = effectiveStats.luck || 0;
@@ -234,7 +234,11 @@ const generateRpgGearDrop = (user, options = {}) => {
     ([, value]) => value.rate ?? value.weight ?? 0,
   );
 
-  const itemId = (user.rpg.lastItemId || 0) + 1;
+  const User = require("../models/User");
+  const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
+  const nextId = Math.max(100, (topUser?.rpg?.lastItemId || 0) + 1);
+  const itemId = nextId;
+
   const level = user.rpg.level || 1;
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
@@ -351,6 +355,14 @@ const getItemQuality = (item) => {
   return Math.floor((10 + pseudoRandom * 90) * 10) / 10;
 };
 
+const findRpgItemGlobal = async (itemId) => {
+  const User = require("../models/User");
+  const owner = await User.findOne({ "rpg.items.id": Number(itemId) }).exec();
+  if (!owner) return null;
+  const item = owner.rpg.items.find((it) => it.id === Number(itemId));
+  return { item, owner };
+};
+
 module.exports = {
   classEntries,
   getRpgClass,
@@ -371,6 +383,7 @@ module.exports = {
   generateRpgGearDrop,
   addRpgGearToUser,
   findRpgItem,
+  findRpgItemGlobal,
   equipRpgItem,
   unequipRpgSlot,
   sellRpgItem,

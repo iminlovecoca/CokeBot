@@ -213,12 +213,8 @@ module.exports = {
         freshSender.rpg.power = calculateRpgPower(freshSender);
 
         // Add to receiver
-        const newReceiverItemId = (freshReceiver.rpg.lastItemId || 0) + 1;
-        freshReceiver.rpg.lastItemId = newReceiverItemId;
-
         const transferredItem = {
           ...freshItem,
-          id: newReceiverItemId,
         };
 
         freshReceiver.rpg.items.push(transferredItem);
@@ -236,7 +232,7 @@ module.exports = {
           .setTitle("✅ Giao Dịch Thành Công")
           .setDescription(
             `Trang bị **${transferredItem.name}** đã được chuyển thành công từ <@${senderId}> sang <@${receiverId}>!\n` +
-              `ID mới của vật phẩm: \`#${newReceiverItemId}\``,
+              `ID vật phẩm: \`#${transferredItem.id}\``,
           );
 
         await interaction.update({
