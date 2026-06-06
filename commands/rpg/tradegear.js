@@ -56,7 +56,8 @@ module.exports = {
     const senderId = message.author.id;
     const targetUserMention = message.mentions.users.first();
     const itemIdStr = args.find((arg) => !arg.startsWith("<@") && !arg.startsWith("<!@"));
-    const itemId = Number(itemIdStr);
+    const cleanItemIdStr = itemIdStr ? itemIdStr.trim().replace(/^[gG]/, "") : "";
+    const itemId = Number(cleanItemIdStr);
 
     if (!targetUserMention) {
       return message.reply(

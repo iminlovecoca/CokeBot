@@ -234,31 +234,62 @@ const generateRpgGearDrop = async (user, options = {}) => {
     ([, value]) => value.rate ?? value.weight ?? 0,
   );
 
-  const User = require("../models/User");
-  const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-  const nextId = Math.max(100, (topUser?.rpg?.lastItemId || 0) + 1);
-  const itemId = nextId;
-
   const level = user.rpg.level || 1;
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((rarityConfig.power + levelBonus) * variance);
   const stats = generateGearStats(slot, rarityConfig, level);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  const sellPrice = Math.floor((rarityConfig.sell + level * 18) * variance);
+  const name = `${rarity} ${config.rpg.gear_slot_names[slot]}`;
 
-  user.rpg.lastItemId = itemId;
+  const compareStats = (s1 = {}, s2 = {}) => {
+    const keys1 = Object.keys(s1).sort();
+    const keys2 = Object.keys(s2).sort();
+    if (keys1.length !== keys2.length) return false;
+    return keys1.every((key) => s1[key] === s2[key]);
+  };
+
+  const User = require("../models/User");
+  let itemId = null;
+  const users = await User.find({ "rpg.items": { $exists: true } }).exec();
+  for (const u of users) {
+    for (const item of u.rpg.items) {
+      if (
+        item.name === name &&
+        item.slot === slot &&
+        item.rarity === rarity &&
+        item.level === level &&
+        item.power === power &&
+        item.quality === quality &&
+        item.sellPrice === sellPrice &&
+        compareStats(item.stats, stats)
+      ) {
+        itemId = item.id;
+        break;
+      }
+    }
+    if (itemId) break;
+  }
+
+  if (!itemId) {
+    const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
+    itemId = Math.max(1, (topUser?.rpg?.lastItemId || 0) + 1);
+  }
+
+  user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, itemId);
 
   return {
     id: itemId,
     uid: `w-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name: `${rarity} ${config.rpg.gear_slot_names[slot]}`,
+    name,
     slot,
     rarity,
     level,
     power,
     stats,
     quality,
-    sellPrice: Math.floor((rarityConfig.sell + level * 18) * variance),
+    sellPrice,
     imageKey: `todo_${slot}_${rarity.toLowerCase()}`,
     droppedAt: new Date(),
   };
