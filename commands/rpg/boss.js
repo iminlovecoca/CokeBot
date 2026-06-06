@@ -340,6 +340,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 };
 
 const performBossAttack = async ({ client, channel, userId }) => {
+  const { updateQuestProgress } = require("../../utils/questUtil");
   const activeBoss = client.rpgBosses?.get(channel.id);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
     return {
