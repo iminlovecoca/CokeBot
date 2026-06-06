@@ -31,12 +31,16 @@ module.exports = {
       quantity = parseInt(args[2]) || 1;
     } else {
       targetId = null;
-      quantity = parseInt(args[1]) || 1;
+      if (args[1]?.toLowerCase() === "all") {
+        quantity = "all";
+      } else {
+        quantity = parseInt(args[1]) || 1;
+      }
     }
 
-    if (quantity <= 0) {
+    if (quantity !== "all" && quantity <= 0) {
       throw new UserFriendlyError(
-        `${config.emoji.no} Số lượng phải là một số dương.`,
+        `${config.emoji.no} Số lượng phải là một số dương hoặc \`all\`.`,
       );
     }
 

@@ -155,8 +155,8 @@ const updateQuestProgress = async (userId, type, amount, channel, extraData = {}
         rewardText = `+**${quest.rewardValue.toLocaleString()} Essence** 🔵`;
       } else if (quest.rewardType === "box") {
         if (!user.inventory) user.inventory = {};
-        const currentCount = user.inventory.get("weapon_box") || 0;
-        user.inventory.set("weapon_box", currentCount + quest.rewardValue);
+        const currentCount = user.inventory.get("wc") || 0;
+        user.inventory.set("wc", currentCount + quest.rewardValue);
         rewardText = `+**${quest.rewardValue} Hộp Vũ Khí** <:crate:1512793698025603282>`;
       }
       

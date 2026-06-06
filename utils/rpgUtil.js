@@ -254,6 +254,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
   let itemId = null;
   const users = await User.find({ "rpg.items": { $exists: true } }).exec();
   for (const u of users) {
+    if (u.userId === user.userId) continue;
     for (const item of u.rpg.items) {
       if (
         item.name === name &&
@@ -273,8 +274,29 @@ const generateRpgGearDrop = async (user, options = {}) => {
   }
 
   if (!itemId) {
+    const currentItems = user.rpg.items || [];
+    for (const item of currentItems) {
+      if (
+        item.name === name &&
+        item.slot === slot &&
+        item.rarity === rarity &&
+        item.level === level &&
+        item.power === power &&
+        item.quality === quality &&
+        item.sellPrice === sellPrice &&
+        compareStats(item.stats, stats)
+      ) {
+        itemId = item.id;
+        break;
+      }
+    }
+  }
+
+  if (!itemId) {
     const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-    itemId = Math.max(1, (topUser?.rpg?.lastItemId || 0) + 1);
+    const dbLastId = topUser?.rpg?.lastItemId || 0;
+    const memoryLastId = user.rpg.lastItemId || 0;
+    itemId = Math.max(1, Math.max(dbLastId, memoryLastId) + 1);
   }
 
   user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, itemId);

@@ -328,7 +328,7 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           );
         }
       }
-    } else if (item.item_type === "tool" && itemId === "weapon_box") {
+    } else if (item.item_type === "tool" && (itemId === "wc" || itemId === "weapon_box")) {
       const { hasRpgCharacter } = require("./rpgUtil");
       const dbUser = await User.findOne({ userId: user.id });
       if (!hasRpgCharacter(dbUser)) {
@@ -336,7 +336,16 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           `${config.emoji.no} Bạn chưa tạo nhân vật RPG. Hãy dùng lệnh \`${config.prefix}class\` để tạo nhân vật trước khi mở hòm vũ khí.`
         );
       }
-      quantityToUse = quantity;
+      if (quantity === "all") {
+        quantityToUse = dbUser.inventory.get(itemId) || 0;
+      } else {
+        quantityToUse = quantity;
+      }
+      if (quantityToUse <= 0) {
+        throw new UserFriendlyError(
+          `${config.emoji.no} Bạn không có vật phẩm này trong túi đồ.`
+        );
+      }
     } else if (item.item_type === "tool" && itemId === "catch-net") {
       const currentNet = await ActiveNet.findOne({ userId: user.id });
       const maxUses = settings.max_stacked_nets * settings.catch_net_uses;
@@ -421,7 +430,7 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         await addCokemonXp(cokemon, xpNeeded);
       }
       resultMessage += `🎉 **${getCokemonName(cokemon)}** ${getCokemonEmoji(cokemon)} đã ăn ${quantityToUse} ${item.name} ${item.emoji} và tăng từ **cấp ${originalLevel}** lên **cấp ${cokemon.level}**!`;
-    } else if (item.item_type === "tool" && itemId === "weapon_box") {
+    } else if (item.item_type === "tool" && (itemId === "wc" || itemId === "weapon_box")) {
       const channel = await client.channels.fetch(channelId).catch(() => null);
       if (!channel) {
         throw new UserFriendlyError("Không tìm thấy channel.");
@@ -443,9 +452,9 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
       const member = channel.guild ? await channel.guild.members.fetch(user.id).catch(() => null) : null;
       const displayName = member ? member.displayName : username;
 
-      const initialContent = 
-        `<a:wcstake:1512793702815240383> | **${displayName}** opens a weapon crate\n` +
-        `<a:wcstake:1512793702815240383> | and finds a ...`;
+      const initialContent = quantityToUse === 1
+        ? `<a:wcstake:1512793702815240383> | **${displayName}** opens a weapon crate\n<a:wcstake:1512793702815240383> | and finds a ...`
+        : `<a:wcstake:1512793702815240383> | **${displayName}** is opening **${quantityToUse}** weapon crates...`;
       const sentMsg = await channel.send(initialContent);
 
       setTimeout(async () => {
@@ -467,14 +476,28 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           necklace: "📿",
         };
         
-        let lines = [];
-        for (const g of gears) {
+        let finalContent = "";
+        if (quantityToUse === 1) {
+          const g = gears[0];
           const gBracket = bracketEmoji[g.rarity] || "<:Common:1390024590347997245>";
           const gSlotEm = slotEmoji[g.slot] || "🎒";
-          lines.push(`${gSlotEm} | **${displayName}** opens a weapon crate\n<a:wcopen:1512793700181475469> | and finds a \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`);
+          finalContent = 
+            `${gSlotEm} | **${displayName}** opens a weapon crate\n` +
+            `<a:wcopen:1512793700181475469> | and finds a \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`;
+        } else {
+          let lines = [];
+          const maxDisplay = 15;
+          const displayGears = gears.slice(0, maxDisplay);
+          for (const g of displayGears) {
+            const gBracket = bracketEmoji[g.rarity] || "<:Common:1390024590347997245>";
+            const gSlotEm = slotEmoji[g.slot] || "🎒";
+            lines.push(`${gSlotEm} | \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`);
+          }
+          finalContent = `<a:wcopen:1512793700181475469> | **${displayName}** opened **${quantityToUse}** weapon crates:\n` + lines.join("\n");
+          if (gears.length > maxDisplay) {
+            finalContent += `\n... và **${gears.length - maxDisplay}** trang bị khác (kiểm tra bằng lệnh \`${config.prefix}gear\`).`;
+          }
         }
-        
-        const finalContent = lines.join("\n\n");
         await sentMsg.edit(finalContent).catch(() => null);
       }, 2500);
 
