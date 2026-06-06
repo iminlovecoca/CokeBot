@@ -120,7 +120,7 @@ module.exports = {
     gear_drop: {
       // Chance for a hunt to drop any gear. 0.056 = 5.6%.
       drop_rate: 0.056,
-      luck_rate_per_point: 0.002,
+      luck_rate_per_point: 0.0002,
       max_drop_rate: 0.2,
     },
     gear_slots: {
