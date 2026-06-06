@@ -178,6 +178,22 @@ client.once(Events.ClientReady, async () => {
       .populate({ path: "available_abilities.ability", model: "Ability" })
       .lean();
     client.allItems = await Item.find({}).lean();
+    
+    // Seed weapon_box if not already present
+    const weaponBoxItem = client.allItems.find((i) => i.item_id === "weapon_box");
+    if (!weaponBoxItem) {
+      const createdItem = await Item.create({
+        item_id: "weapon_box",
+        name: "Hộp Vũ Khí",
+        description: "Mở hộp nhận ngẫu nhiên 1 trang bị RPG từ Sơ cấp đến Divine. Sử dụng bằng lệnh xuse weapon_box.",
+        item_type: "tool",
+        price: null,
+        emoji: "📦"
+      });
+      client.allItems.push(createdItem.toObject ? createdItem.toObject() : createdItem);
+      console.log("🎁 Seeded weapon_box item in DB.");
+    }
+
     console.log(
       `✅ Cached ${client.allSpecies.length} species & ${client.allItems.length} items.`,
     );

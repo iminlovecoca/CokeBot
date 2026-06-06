@@ -118,6 +118,14 @@ const userSchema = new mongoose.Schema({
         radar: { type: Number, default: 1 },
       },
     },
+    quests: {
+      type: Object,
+      default: {
+        active: [],
+        lastDailyAt: null,
+        rerollsLeft: 1,
+      },
+    },
   },
 });
 

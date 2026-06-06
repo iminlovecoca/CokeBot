@@ -66,6 +66,13 @@ module.exports = {
 
     await user.save();
 
+    // Quest triggers
+    const { updateQuestProgress } = require("../../utils/questUtil");
+    await updateQuestProgress(message.author.id, "exp_gain", expGain, message.channel);
+    if (droppedItem) {
+      await updateQuestProgress(message.author.id, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
+    }
+
     const embed = new EmbedBuilder()
       .setColor(rpgClass.color)
       .setTitle(

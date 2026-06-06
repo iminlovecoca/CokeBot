@@ -58,6 +58,9 @@ module.exports = {
       await authorUser.save();
       await targetUser.save();
 
+      const { updateQuestProgress } = require("../../utils/questUtil");
+      await updateQuestProgress(target.id, "pray", 1, message.channel);
+
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
       const targetDisplayName = message.guild.members.cache.get(target.id)?.displayName || target.username;
 

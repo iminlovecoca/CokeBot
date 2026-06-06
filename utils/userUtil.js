@@ -328,6 +328,15 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           );
         }
       }
+    } else if (item.item_type === "tool" && itemId === "weapon_box") {
+      const { hasRpgCharacter } = require("./rpgUtil");
+      const dbUser = await User.findOne({ userId: user.id });
+      if (!hasRpgCharacter(dbUser)) {
+        throw new UserFriendlyError(
+          `${config.emoji.no} Bạn chưa tạo nhân vật RPG. Hãy dùng lệnh \`${config.prefix}class\` để tạo nhân vật trước khi mở hòm vũ khí.`
+        );
+      }
+      quantityToUse = quantity;
     } else if (item.item_type === "tool" && itemId === "catch-net") {
       const currentNet = await ActiveNet.findOne({ userId: user.id });
       const maxUses = settings.max_stacked_nets * settings.catch_net_uses;
@@ -412,6 +421,64 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         await addCokemonXp(cokemon, xpNeeded);
       }
       resultMessage += `🎉 **${getCokemonName(cokemon)}** ${getCokemonEmoji(cokemon)} đã ăn ${quantityToUse} ${item.name} ${item.emoji} và tăng từ **cấp ${originalLevel}** lên **cấp ${cokemon.level}**!`;
+    } else if (item.item_type === "tool" && itemId === "weapon_box") {
+      const channel = await client.channels.fetch(channelId).catch(() => null);
+      if (!channel) {
+        throw new UserFriendlyError("Không tìm thấy channel.");
+      }
+
+      const { generateRpgGearDrop, addRpgGearToUser } = require("./rpgUtil");
+      const dbUser = await User.findOne({ userId: user.id });
+      const gears = [];
+      for (let i = 0; i < quantityToUse; i++) {
+        const gear = await generateRpgGearDrop(dbUser, { forceDrop: true });
+        if (gear) {
+          addRpgGearToUser(dbUser, gear);
+          gears.push(gear);
+        }
+      }
+      await dbUser.save();
+
+      const username = user.username || "Khang";
+      const member = channel.guild ? await channel.guild.members.fetch(user.id).catch(() => null) : null;
+      const displayName = member ? member.displayName : username;
+
+      const initialContent = 
+        `<a:wcstake:1512793702815240383> | **${displayName}** opens a weapon crate\n` +
+        `<a:wcstake:1512793702815240383> | and finds a ...`;
+      const sentMsg = await channel.send(initialContent);
+
+      setTimeout(async () => {
+        const bracketEmoji = {
+          Common: "<:Common:1390024590347997245>",
+          Rare: "<:Rare:1390024624380706916>",
+          Epic: "<:Epic:1390024749517770832>",
+          Legendary: "<:Legendary:1390024772200567026>",
+          Mythic: "<:Mythic:1390024789279772833>",
+          Ancient: "<:Ancient:1390024806535004333>",
+          Divine: "<:Divine:1512512382507683880>",
+        };
+        const slotEmoji = {
+          weapon: "🗡️",
+          armor: "🛡️",
+          helmet: "🪖",
+          boots: "🥾",
+          ring: "💍",
+          necklace: "📿",
+        };
+        
+        let lines = [];
+        for (const g of gears) {
+          const gBracket = bracketEmoji[g.rarity] || "<:Common:1390024590347997245>";
+          const gSlotEm = slotEmoji[g.slot] || "🎒";
+          lines.push(`${gSlotEm} | **${displayName}** opens a weapon crate\n<a:wcopen:1512793700181475469> | and finds a \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`);
+        }
+        
+        const finalContent = lines.join("\n\n");
+        await sentMsg.edit(finalContent).catch(() => null);
+      }, 2500);
+
+      return { resultMessage: null, itemType: "lure" };
     }
     return { resultMessage, itemType: item.item_type };
   }, "useItem");

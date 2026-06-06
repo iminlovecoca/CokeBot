@@ -167,6 +167,14 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       user.rpg.power = calculateRpgPower(user);
       await user.save();
 
+      // Quest progress updates
+      const { updateQuestProgress } = require("../../utils/questUtil");
+      await updateQuestProgress(userId, "boss_fight", 1, channel);
+      await updateQuestProgress(userId, "exp_gain", expGain, channel);
+      if (isLastHit) {
+        await updateQuestProgress(userId, "boss_last_hit", 1, channel);
+      }
+
       await sendRewardDm({
         client,
         userId,
@@ -499,6 +507,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   activeBoss.lastHitUserId = userId;
 
   await user.save();
+  await updateQuestProgress(userId, "boss_damage", damage, channel);
   await updateBossMessage(channel, activeBoss);
 
   const embed = buildAttackResultEmbed({

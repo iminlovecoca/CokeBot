@@ -300,6 +300,9 @@ module.exports = {
         if (interaction.customId === "pvp_accept") {
           collector.stop("accepted");
           await interaction.deferUpdate();
+          const { updateQuestProgress } = require("../../utils/questUtil");
+          await updateQuestProgress(senderId, "pvp_battle", 1, message.channel);
+          await updateQuestProgress(receiverId, "pvp_battle", 1, message.channel);
           await runPvPBattle(message, prompt, senderId, receiverId);
         } else if (interaction.customId === "pvp_decline") {
           collector.stop("declined");
@@ -417,6 +420,10 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   loseUser.rpg.power = calculateRpgPower(loseUser);
   loseUser.markModified("rpg");
   await loseUser.save();
+
+  const { updateQuestProgress } = require("../../utils/questUtil");
+  await updateQuestProgress(p1Id, "exp_gain", result.winner.id === p1Id ? 200 : 50, message.channel);
+  await updateQuestProgress(p2Id, "exp_gain", result.winner.id === p2Id ? 200 : 50, message.channel);
 
   const finalHp1 =
     result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
