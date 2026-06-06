@@ -179,10 +179,10 @@ client.once(Events.ClientReady, async () => {
       .lean();
     client.allItems = await Item.find({}).lean();
     
-    // Seed wc if not already present
-    const wcItem = client.allItems.find((i) => i.item_id === "wc");
+    // Seed or update wc to ensure correct emoji and metadata
+    let wcItem = await Item.findOne({ item_id: "wc" });
     if (!wcItem) {
-      const createdItem = await Item.create({
+      wcItem = await Item.create({
         item_id: "wc",
         name: "Hộp Vũ Khí",
         description: "Mở hộp nhận ngẫu nhiên 1 trang bị RPG từ Sơ cấp đến Divine. Sử dụng bằng lệnh xuse wc hoặc xwc.",
@@ -190,8 +190,18 @@ client.once(Events.ClientReady, async () => {
         price: null,
         emoji: "<:crate:1512793698025603282>"
       });
-      client.allItems.push(createdItem.toObject ? createdItem.toObject() : createdItem);
       console.log("🎁 Seeded wc item in DB.");
+    } else if (wcItem.emoji !== "<:crate:1512793698025603282>") {
+      wcItem.emoji = "<:crate:1512793698025603282>";
+      await wcItem.save();
+      console.log("🎁 Updated wc item emoji in DB.");
+    }
+
+    const wcIndex = client.allItems.findIndex((i) => i.item_id === "wc");
+    if (wcIndex > -1) {
+      client.allItems[wcIndex] = wcItem.toObject ? wcItem.toObject() : wcItem;
+    } else {
+      client.allItems.push(wcItem.toObject ? wcItem.toObject() : wcItem);
     }
 
     console.log(
