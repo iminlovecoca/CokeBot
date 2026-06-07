@@ -221,20 +221,28 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   if (!options.forceDrop && Math.random() > dropRate) return null;
 
-  const [slot] = weightedPick(
+  const slot = options.slot || weightedPick(
     Object.entries(config.rpg.gear_slots),
     ([, value]) => value.rate ?? value.weight ?? 0,
-  );
-  const rarityEntries = Object.entries(config.rpg.gear_rarities).filter(
-    ([rarity]) =>
-      !options.allowedRarities || options.allowedRarities.includes(rarity),
-  );
-  const [rarity, rarityConfig] = weightedPick(
-    rarityEntries.length ? rarityEntries : Object.entries(config.rpg.gear_rarities),
-    ([, value]) => value.rate ?? value.weight ?? 0,
-  );
+  )[0];
 
-  const level = user.rpg.level || 1;
+  let rarity, rarityConfig;
+  if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
+    rarity = options.rarity;
+    rarityConfig = config.rpg.gear_rarities[rarity];
+  } else {
+    const rarityEntries = Object.entries(config.rpg.gear_rarities).filter(
+      ([r]) => !options.allowedRarities || options.allowedRarities.includes(r),
+    );
+    const result = weightedPick(
+      rarityEntries.length ? rarityEntries : Object.entries(config.rpg.gear_rarities),
+      ([, value]) => value.rate ?? value.weight ?? 0,
+    );
+    rarity = result[0];
+    rarityConfig = result[1];
+  }
+
+  const level = options.level || user.rpg.level || 1;
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((rarityConfig.power + levelBonus) * variance);
