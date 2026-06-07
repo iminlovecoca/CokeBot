@@ -208,7 +208,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
         inline: true,
       },
       {
-        name: `💵 Cost - ${costInfo.stat}${costInfo.prefix}`,
+        name: `<:cokecy:1509951335016173662> Cost - ${costInfo.stat}${costInfo.prefix}`,
         value: drawProgress(costInfo),
         inline: true,
       },
