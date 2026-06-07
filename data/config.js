@@ -345,7 +345,7 @@ module.exports = {
         },
         {
           key: "boss_IX",
-          name: "Vua Rồng Cổ Đại",
+          name: "Nihilgor",
           emoji: "🐉",
           asset: "boss_IX.png",
           rank: "rong",
@@ -359,8 +359,8 @@ module.exports = {
         },
         {
           key: "boss_XI",
-          name: "Chúa Tể Vô Tận",
-          emoji: "👑",
+          name: "Malzareth",
+          emoji: "☄️",
           asset: "boss_XI.png",
           rank: "thuongnhan",
           hp: 90000,
@@ -368,7 +368,7 @@ module.exports = {
           exp: 50000,
           armor: 1600,
           magicResist: 1600,
-          damageType: "magical",
+          damageType: "physical",
           attackPower: 1300,
         },
         {
