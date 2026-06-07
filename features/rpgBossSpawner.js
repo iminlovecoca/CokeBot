@@ -212,9 +212,21 @@ const spawnRandomBoss = async (client, options = {}) => {
       bossesByRank[b.rank].push(b);
     }
 
-    // Get active ranks and their weights
     const rankWeights = config.rpg.boss?.bossRankRewards || {};
-    const activeRanks = Object.keys(bossesByRank).filter((rank) => rankWeights[rank]);
+    let activeRanks = Object.keys(bossesByRank).filter((rank) => rankWeights[rank]);
+
+    // Force dragon tier or higher between 18h and 24h (0h)
+    const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
+    const now = DateTime.now().setZone(timezone);
+    const currentHour = now.hour;
+    const isNightBoss = currentHour >= 18 || currentHour === 0;
+
+    if (isNightBoss) {
+      activeRanks = activeRanks.filter((rank) => rank === "rong" || rank === "thuongnhan");
+      if (activeRanks.length === 0) {
+        activeRanks = ["rong", "thuongnhan"].filter((rank) => bossesByRank[rank]);
+      }
+    }
 
     let selectedRank = null;
     if (activeRanks.length > 0) {

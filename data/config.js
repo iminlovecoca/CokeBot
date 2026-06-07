@@ -155,7 +155,7 @@ module.exports = {
         .map((id) => id.trim())
         .filter(Boolean),
       spawn_timezone: "Asia/Ho_Chi_Minh",
-      spawn_hours: [9, 12, 15, 18, 22],
+      spawn_hours: [9, 12, 15, 18, 21, 0],
       lifetime_ms: 10 * 60 * 1000,
       attack_cooldown_ms: 15 * 1000,
       free_attacks_per_user: 3,
