@@ -203,9 +203,10 @@ const spawnRandomBoss = async (client, options = {}) => {
       return;
     }
 
-    // Group bosses by rank
+    // Group bosses by rank (skip phase 2 bosses from direct spawning)
     const bossesByRank = {};
     for (const b of bossTiers) {
+      if (b.key === "boss_012") continue;
       if (!bossesByRank[b.rank]) {
         bossesByRank[b.rank] = [];
       }
@@ -249,7 +250,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     const boss =
       selectedRank && bossesByRank[selectedRank]?.length
         ? pick(bossesByRank[selectedRank])
-        : pick(bossTiers);
+        : pick(bossTiers.filter((t) => t.key !== "boss_012"));
     const activeBoss = {
       id: `${Date.now()}-${boss.key}`,
       channelId,

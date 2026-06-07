@@ -221,6 +221,8 @@ const buildAttackResultEmbed = ({
   maxHp,
   isPaidAttack,
   paidAttackCost,
+  bossHealed,
+  killedPhase1,
 }) => {
   let battleLog = "";
   if (isCrit) {
@@ -229,7 +231,9 @@ const buildAttackResultEmbed = ({
     battleLog += `⚔️ Bạn gây **${damage.toLocaleString()}** sát thương lên boss.\n`;
   }
 
-  if (activeBoss.hp <= 0) {
+  if (killedPhase1) {
+    battleLog += `☠️ **Đòn hạ gục Phase 1!** Bạn đã đánh bại lớp giáp ngoài của Erdtree Avatar, kích hoạt **Phase 2**!`;
+  } else if (activeBoss.hp <= 0) {
     battleLog += `☠️ **Đòn quyết định!** Bạn đã kết liễu boss!`;
   } else {
     if (bossMissed) {
@@ -240,6 +244,9 @@ const buildAttackResultEmbed = ({
 
     if (participant.hp <= 0) {
       battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay bằng 1,000 Coke.`;
+      if (bossHealed && bossHealed > 0) {
+        battleLog += `\n🚨 **[HỒI PHỤC]** Boss hấp thụ sinh mệnh của bạn và hồi phục **${bossHealed.toLocaleString()}** HP (20% lượng HP đã mất)!`;
+      }
     }
   }
 
@@ -463,6 +470,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   // Boss Counterattack Calculation
   let bossDamage = 0;
   let bossMissed = false;
+  let bossHealedAmount = 0;
 
   if (activeBoss.hp - damage > 0) {
     // Player Evasion
@@ -494,6 +502,15 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
+
+        // Special ability of boss_XI: heals 20% of its missing HP when killing a user
+        if (activeBoss.boss.key === "boss_XI") {
+          const missingHp = activeBoss.maxHp - activeBoss.hp;
+          if (missingHp > 0) {
+            bossHealedAmount = Math.floor(missingHp * 0.20);
+            activeBoss.hp = Math.min(activeBoss.maxHp, activeBoss.hp + bossHealedAmount);
+          }
+        }
       }
     }
   }
@@ -506,6 +523,24 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   activeBoss.hp = Math.max(0, activeBoss.hp - damage);
   activeBoss.lastHitUserId = userId;
+
+  let killedPhase1 = false;
+  if (activeBoss.hp <= 0) {
+    if (activeBoss.boss.key === "erdtree-avatar" && activeBoss.phase !== 2) {
+      const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "boss_012");
+      if (bossConfig) {
+        activeBoss.boss = bossConfig;
+        activeBoss.maxHp = bossConfig.hp;
+        activeBoss.hp = bossConfig.hp;
+        activeBoss.phase = 2;
+        activeBoss.imageUrl = null; // Reset image to reload phase 2 asset
+        killedPhase1 = true;
+
+        await channel.send(`🎄🔥 **[PHASE 2 - TIẾN HÓA]** **Erdtree Avatar** gầm lên giận dữ, rũ bỏ lớp vỏ gỗ khô héo và tiến hóa sang **Phase 2: ${bossConfig.name}**! Sức mạnh của nó đã gia tăng vượt trội!`);
+        await updateBossMessage(channel, activeBoss, true);
+      }
+    }
+  }
 
   await user.save();
   await updateQuestProgress(userId, "boss_damage", damage, channel);
@@ -523,6 +558,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
     maxHp,
     isPaidAttack,
     paidAttackCost,
+    bossHealed: bossHealedAmount,
+    killedPhase1,
   });
 
   if (activeBoss.hp <= 0) {
