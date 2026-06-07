@@ -439,26 +439,17 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
-  // 3 stages: start → mid → result
+  // 2 stages: start → result
   const stages = [
     {
       hp1: maxHp1,
       hp2: maxHp2,
-      content: "⚔️ **TRẬN ĐẤU BẮT ĐẦU!**",
       color: "#5865F2",
-      showResult: false,
-    },
-    {
-      hp1: Math.floor(maxHp1 * 0.55),
-      hp2: Math.floor(maxHp2 * 0.45),
-      content: "⚡ **TRẬN ĐẤU ĐANG CĂN CẤN!**",
-      color: "#FEE75C",
       showResult: false,
     },
     {
       hp1: finalHp1,
       hp2: finalHp2,
-      content: `🏆 **${result.winner.name} CHIẾN THẮNG!**`,
       color: isP1Winner ? "#2ECC71" : "#E74C3C",
       showResult: true,
     },
@@ -480,7 +471,6 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
     const embed = new EmbedBuilder()
       .setColor(stage.color)
-      .setTitle(stage.content)
       .addFields(
         {
           name: `${player1.name} (${player1.classLabel})`,
