@@ -107,6 +107,7 @@ const userSchema = new mongoose.Schema({
       startTime: { type: Date, default: null },
       durationHours: { type: Number, default: 0 },
       essence: { type: Number, default: 0 },
+      totalEssence: { type: Number, default: 0 },
       captchaCode: { type: String, default: null },
       pendingDuration: { type: Number, default: 0 },
       levels: {
@@ -116,6 +117,14 @@ const userSchema = new mongoose.Schema({
         gain: { type: Number, default: 1 },
         experience: { type: Number, default: 1 },
         radar: { type: Number, default: 1 },
+      },
+      xp: {
+        efficiency: { type: Number, default: 0 },
+        duration: { type: Number, default: 0 },
+        cost: { type: Number, default: 0 },
+        gain: { type: Number, default: 0 },
+        experience: { type: Number, default: 0 },
+        radar: { type: Number, default: 0 },
       },
     },
     quests: {

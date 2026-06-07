@@ -207,7 +207,7 @@ const simulatePvP = (p1, p2) => {
     }
   }
 
-  return { winner, loser };
+  return { winner, loser, turns: turn - 1 };
 };
 
 module.exports = {
@@ -480,6 +480,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
     const embed = new EmbedBuilder()
       .setColor(stage.color)
+      .setTitle(stage.content)
       .addFields(
         {
           name: `${player1.name} (${player1.classLabel})`,
@@ -504,7 +505,6 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     }
 
     const payload = {
-      content: stage.content,
       embeds: [embed],
       files: [attachment],
       components: [],
