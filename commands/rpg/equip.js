@@ -3,6 +3,7 @@ const config = require("../../data/config");
 const {
   equipRpgItem,
   requireRpgCharacter,
+  getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
 module.exports = {
@@ -29,7 +30,7 @@ module.exports = {
       .setColor("#57F287")
       .setTitle("Đã mặc trang bị")
       .setDescription(
-        `Bạn đã mặc **${item.name}** vào slot **${config.rpg.gear_slot_names[item.slot]}**.`,
+        `Bạn đã mặc **${getGearDisplayName(item)}** vào slot **${config.rpg.gear_slot_names[item.slot]}**.`,
       )
       .addFields(
         {

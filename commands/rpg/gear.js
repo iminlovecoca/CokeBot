@@ -18,6 +18,7 @@ const {
   getRpgXpNeeded,
   requireRpgCharacter,
   getItemQuality,
+  getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
 const ITEMS_PER_PAGE = 10;
@@ -53,11 +54,10 @@ const bracketEmoji = {
 
 const buildGearLine = (item, isEquipped = false) => {
   const idStr = String(item.id).padStart(3, "0");
-  const bracket = bracketEmoji[item.rarity] || "<:Common:1390024590347997245>";
-  const slotEm = slotEmoji[item.slot] || "🎒";
+  const displayName = getGearDisplayName(item);
   const quality = getItemQuality(item);
-  const equippedIndicator = isEquipped ? " 🟢" : "";
-  return `\`G${idStr}\` ${bracket} ${slotEm} **${item.name}** ${quality}%${equippedIndicator}`;
+  const equippedIndicator = isEquipped ? " ✨" : "";
+  return `\`G${idStr}\` **${displayName}** ${quality}%${equippedIndicator}`;
 };
 
 const formatGearStats = (stats = {}) =>
@@ -134,7 +134,7 @@ module.exports = {
         embeds: [
           new EmbedBuilder()
             .setColor(rarityColor[item.rarity] || rpgClass.color)
-            .setTitle(`${slotEmoji[item.slot] || "🎒"} ${item.name}`)
+            .setTitle(getGearDisplayName(item))
             .setDescription(
               `ID: \`${item.id}\`\n` +
                 `UID: \`${item.uid || "N/A"}\`\n` +

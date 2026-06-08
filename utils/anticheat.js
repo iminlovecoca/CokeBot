@@ -74,7 +74,18 @@ const handleVerification = async (message, user) => {
 			user.bannedUntil = new Date(Date.now() + duration)
 			user.anticheat.verification_code = null
 			user.anticheat.verification_attempts = 0
-			msg = `${config.emoji.no} Xác thực không thành công sau nhiều lần thử. Bạn đã bị cấm sử dụng bot trong ${formatDuration(duration / 1000)}.`
+
+			let levelDeductedMsg = ""
+			if (user.rpg && user.rpg.classKey) {
+				const oldLevel = user.rpg.level || 1
+				user.rpg.level = Math.max(1, oldLevel - 10)
+				const { getRpgRank } = require('./rpgUtil')
+				user.rpg.rank = getRpgRank(user.rpg.level)
+				user.markModified('rpg')
+				levelDeductedMsg = ` Đồng thời, cấp độ RPG của bạn bị giảm 10 cấp (Lvl ${oldLevel} → Lvl ${user.rpg.level}).`
+			}
+
+			msg = `${config.emoji.no} Xác thực không thành công sau nhiều lần thử. Bạn đã bị cấm sử dụng bot trong ${formatDuration(duration / 1000)}.${levelDeductedMsg}`
 		} else {
 			const attemptsLeft = config.anticheat.verification_max_attempts - user.anticheat.verification_attempts
 			msg = `${config.emoji.no} Mã không chính xác. Bạn còn **${attemptsLeft}** lần thử.`
@@ -152,9 +163,48 @@ const checkMessage = message => {
 				intervals.push(channelHistory.timestamps[i] - channelHistory.timestamps[i - 1])
 			}
 
-			if (calculateStd(intervals) < config.anticheat.rhythm_std_dev_threshold_ms) {
-				console.log(`[Anti-Cheat] User ${userId} (${username}) flagged for RHYTHM.`)
-				return { status: 'TRIGGER_VERIFICATION', reason: 'rhythm' }
+			// Calculate median of intervals to filter out outlier pauses/breaks
+			const sortedIntervals = [...intervals].sort((a, b) => a - b)
+			const mid = Math.floor(sortedIntervals.length / 2)
+			const medianInterval = sortedIntervals.length % 2 !== 0 
+				? sortedIntervals[mid] 
+				: (sortedIntervals[mid - 1] + sortedIntervals[mid]) / 2
+
+			// Filter out pauses (any interval > median * 2.5, minimum threshold of 35000ms)
+			const activeIntervals = intervals.filter(val => val <= Math.max(35000, medianInterval * 2.5))
+
+			if (activeIntervals.length >= 6) {
+				const mean = activeIntervals.reduce((sum, val) => sum + val, 0) / activeIntervals.length
+				const stdDev = calculateStd(activeIntervals)
+				const cv = mean > 0 ? stdDev / mean : 0
+
+				// Calculate differences of consecutive active intervals to detect alternating loops
+				const diffs = []
+				for (let i = 1; i < activeIntervals.length; i++) {
+					diffs.push(Math.abs(activeIntervals[i] - activeIntervals[i - 1]))
+				}
+				const stdDevDiffs = diffs.length >= 4 ? calculateStd(diffs) : 99999
+
+				const hasQuickCommands = activeIntervals.some(val => val < 3000)
+
+				let isBot = false
+				let flagReason = ''
+
+				if (diffs.length >= 4 && stdDevDiffs < 1000) {
+					isBot = true
+					flagReason = `step consistency (stdDevDiffs: ${stdDevDiffs.toFixed(0)}ms)`
+				} else if (stdDev < config.anticheat.rhythm_std_dev_threshold_ms) {
+					isBot = true
+					flagReason = `absolute rhythm (stdDev: ${stdDev.toFixed(0)}ms)`
+				} else if (cv < 0.22 && !hasQuickCommands) {
+					isBot = true
+					flagReason = `relative rhythm (cv: ${cv.toFixed(2)})`
+				}
+
+				if (isBot) {
+					console.log(`[Anti-Cheat] User ${userId} (${username}) flagged for RHYTHM (${flagReason}).`)
+					return { status: 'TRIGGER_VERIFICATION', reason: flagReason }
+				}
 			}
 		}
 

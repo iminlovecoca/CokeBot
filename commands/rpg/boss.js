@@ -19,6 +19,7 @@ const {
   requireRpgCharacter,
   getEffectiveRpgStats,
   getRpgClass,
+  getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
 const CLASS_ATTACK_TYPES = {
@@ -59,7 +60,7 @@ const sendRewardDm = async ({
   const gearLines = gears
     .map(
       (gear) =>
-        `#${gear.id} **${gear.name}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} Coke`,
+        `#${gear.id} **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} Coke`,
     )
     .join("\n");
 

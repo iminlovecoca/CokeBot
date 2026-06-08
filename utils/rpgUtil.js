@@ -206,6 +206,30 @@ const generateGearStats = (slot, rarityConfig, level) => {
   return stats;
 };
 
+const getGearDisplayName = (item) => {
+  if (!item) return "";
+  const bracketEmoji = {
+    Common: "<:Common:1390024590347997245>",
+    Rare: "<:Rare:1390024624380706916>",
+    Epic: "<:Epic:1390024749517770832>",
+    Legendary: "<:Legendary:1390024772200567026>",
+    Mythic: "<:Mythic:1390024789279772833>",
+    Ancient: "<:Ancient:1390024806535004333>",
+    Divine: "<:Divine:1512512382507683880>",
+  };
+  const slotEmoji = {
+    weapon: "🗡️",
+    armor: "🛡️",
+    helmet: "🪖",
+    boots: "🥾",
+    ring: "💍",
+    necklace: "📿",
+  };
+  const rank = bracketEmoji[item.rarity] || "";
+  const slot = slotEmoji[item.slot] || "";
+  return `${rank}${slot}`;
+};
+
 const generateRpgGearDrop = async (user, options = {}) => {
   const rpgClass = getRpgClass(user.rpg.classKey);
   const effectiveStats = getEffectiveRpgStats(user);
@@ -249,7 +273,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const stats = generateGearStats(slot, rarityConfig, level);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
   const sellPrice = Math.floor((rarityConfig.sell + level * 18) * variance);
-  const name = `${rarity} ${config.rpg.gear_slot_names[slot]}`;
+  const name = getGearDisplayName({ rarity, slot });
 
   const compareStats = (s1 = {}, s2 = {}) => {
     const keys1 = Object.keys(s1).sort();
@@ -450,4 +474,5 @@ module.exports = {
   sellRpgItem,
   getBossForPower,
   getItemQuality,
+  getGearDisplayName,
 };

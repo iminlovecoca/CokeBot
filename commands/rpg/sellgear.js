@@ -3,6 +3,7 @@ const config = require("../../data/config");
 const {
   requireRpgCharacter,
   sellRpgItem,
+  getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
 module.exports = {
@@ -32,7 +33,7 @@ module.exports = {
         .setColor("#FEE75C")
         .setTitle("Đã bán trang bị RPG")
         .setDescription(
-          `Bạn đã bán **${item.name}** và nhận **${cokeGain.toLocaleString()} Coke**.`
+          `Bạn đã bán **${getGearDisplayName(item)}** và nhận **${cokeGain.toLocaleString()} Coke**.`
         )
         .addFields(
           {

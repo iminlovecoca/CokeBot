@@ -175,7 +175,7 @@ module.exports = {
           spawnWeight: 50,
           // Participant: 1 gear drop (Common/Rare). Last hit: +1 gear (Rare).
           participantRarities: ["Common", "Rare"],
-          lastHitRarities: ["Rare"],
+          lastHitRarities: ["Common", "Rare"],
           cokeMin: 500,
           cokeMax: 1000,
           lastHitCokeMin: 2000,
@@ -190,7 +190,7 @@ module.exports = {
           spawnWeight: 30,
           // Participant: 1 gear (Rare/Epic). Last hit: +1 gear (Epic).
           participantRarities: ["Rare", "Epic"],
-          lastHitRarities: ["Epic"],
+          lastHitRarities: ["Rare", "Epic"],
           cokeMin: 2000,
           cokeMax: 5000,
           lastHitCokeMin: 8000,
@@ -205,7 +205,7 @@ module.exports = {
           spawnWeight: 15,
           // Participant: 1 gear (Epic/Legendary). Last hit: +1 gear (Legendary).
           participantRarities: ["Epic", "Legendary"],
-          lastHitRarities: ["Legendary"],
+          lastHitRarities: ["Epic", "Legendary"],
           cokeMin: 8000,
           cokeMax: 20000,
           lastHitCokeMin: 30000,
@@ -220,8 +220,8 @@ module.exports = {
           spawnWeight: 5,
           // Participant: 1 gear (Legendary/Mythic). Last hit: +1 gear (Mythic/Ancient) + 1 more Legendary.
           participantRarities: ["Legendary", "Mythic"],
-          lastHitRarities: ["Mythic", "Ancient"],
-          lastHitBonusRarities: ["Legendary"],
+          lastHitRarities: ["Legendary", "Mythic", "Ancient"],
+          lastHitBonusRarities: ["Epic", "Legendary"],
           cokeMin: 25000,
           cokeMax: 70000,
           lastHitCokeMin: 100000,

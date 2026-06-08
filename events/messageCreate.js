@@ -79,9 +79,20 @@ module.exports = {
             freshUser.bannedUntil = new Date(
               Date.now() + config.anticheat.mute_duration_ms,
             );
+
+            let levelDeductedMsg = "";
+            if (freshUser.rpg && freshUser.rpg.classKey) {
+              const oldLevel = freshUser.rpg.level || 1;
+              freshUser.rpg.level = Math.max(1, oldLevel - 10);
+              const { getRpgRank } = require("../utils/rpgUtil");
+              freshUser.rpg.rank = getRpgRank(freshUser.rpg.level);
+              freshUser.markModified("rpg");
+              levelDeductedMsg = ` Cấp độ RPG của bạn đã bị giảm 10 cấp (Lvl ${oldLevel} → Lvl ${freshUser.rpg.level}).`;
+            }
+
             await freshUser.save();
             message.channel.send(
-              `<@${message.author.id}>, bạn đã không hoàn thành xác thực và đã bị cấm sử dụng lệnh.`,
+              `<@${message.author.id}>, bạn đã không hoàn thành xác thực và đã bị cấm sử dụng lệnh.${levelDeductedMsg}`,
             );
           }
         }, config.anticheat.verification_timeout_ms);
