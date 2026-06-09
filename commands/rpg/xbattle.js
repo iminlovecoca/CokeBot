@@ -457,17 +457,17 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
   let currentMsg = null;
 
+  const imgData = await generatePvPImage(
+    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+  );
+
+  const attachment = new AttachmentBuilder(imgData.path, {
+    name: imgData.name,
+  });
+
   for (let i = 0; i < stages.length; i++) {
     const stage = stages[i];
-
-    const imgData = await generatePvPImage(
-      player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-      player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-    );
-
-    const attachment = new AttachmentBuilder(imgData.path, {
-      name: imgData.name,
-    });
 
     const embed = new EmbedBuilder()
       .setColor(stage.color)
@@ -496,9 +496,12 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
     const payload = {
       embeds: [embed],
-      files: [attachment],
       components: [],
     };
+
+    if (i === 0) {
+      payload.files = [attachment];
+    }
 
     if (i === 0 && promptMessage && promptMessage.editable) {
       await promptMessage.edit(payload);
@@ -509,16 +512,16 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
       await currentMsg.edit(payload).catch(() => {});
     }
 
-    // Cleanup temp image
-    try {
-      if (fs.existsSync(imgData.path)) fs.unlinkSync(imgData.path);
-    } catch (err) {
-      console.error("Failed to delete temp file:", err);
-    }
-
     // Delay between stages (not after last)
     if (i < stages.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
+  }
+
+  // Cleanup temp image after the battle ends
+  try {
+    if (fs.existsSync(imgData.path)) fs.unlinkSync(imgData.path);
+  } catch (err) {
+    console.error("Failed to delete temp file:", err);
   }
 };

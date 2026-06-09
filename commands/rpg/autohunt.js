@@ -16,6 +16,7 @@ const {
   generateVerificationCode,
   generateCaptchaImage,
 } = require("../../utils/anticheat");
+const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 
 // Owo Bot Autohunt traits configuration
 const traits = {
@@ -301,6 +302,11 @@ module.exports = {
   ],
 
   async execute(message, args = []) {
+    const remaining = checkAndSetCooldown(message.author.id, "autohunt", 3);
+    if (remaining > 0) {
+      return notifyCooldown(message, remaining);
+    }
+
     const { user } = await requireRpgCharacter(message.author.id);
     const memberName = message.member?.displayName || message.author.username;
 

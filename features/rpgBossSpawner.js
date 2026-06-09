@@ -206,7 +206,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     // Group bosses by rank (skip phase 2 bosses from direct spawning)
     const bossesByRank = {};
     for (const b of bossTiers) {
-      if (b.key === "boss_012") continue;
+      if (b.key === "boss_012" || b.key === "boss_XIIa") continue;
       if (!bossesByRank[b.rank]) {
         bossesByRank[b.rank] = [];
       }
@@ -247,10 +247,17 @@ const spawnRandomBoss = async (client, options = {}) => {
       if (!selectedRank) selectedRank = activeRanks[activeRanks.length - 1];
     }
 
-    const boss =
-      selectedRank && bossesByRank[selectedRank]?.length
-        ? pick(bossesByRank[selectedRank])
-        : pick(bossTiers.filter((t) => t.key !== "boss_012"));
+    let boss = null;
+    if (options.bossKey) {
+      boss = bossTiers.find((t) => t.key.toLowerCase() === options.bossKey.toLowerCase());
+    }
+
+    if (!boss) {
+      boss =
+        selectedRank && bossesByRank[selectedRank]?.length
+          ? pick(bossesByRank[selectedRank])
+          : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa"));
+    }
     const activeBoss = {
       id: `${Date.now()}-${boss.key}`,
       channelId,
@@ -292,8 +299,8 @@ const spawnRandomBoss = async (client, options = {}) => {
   }
 };
 
-const spawnBossNow = (client, channelId = null) =>
-  spawnRandomBoss(client, { channelId, scheduleNext: false });
+const spawnBossNow = (client, channelId = null, bossKey = null) =>
+  spawnRandomBoss(client, { channelId, bossKey, scheduleNext: false });
 
 const initialize = (client) => {
   client.rpgBosses = client.rpgBosses || new Map();

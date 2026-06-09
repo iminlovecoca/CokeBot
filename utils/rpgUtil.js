@@ -284,31 +284,44 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   const User = require("../models/User");
   let itemId = null;
-  const users = await User.find({ "rpg.items": { $exists: true } }).exec();
-  for (const u of users) {
-    if (u.userId === user.userId) continue;
-    for (const item of u.rpg.items) {
-      if (
-        item.name === name &&
-        item.slot === slot &&
-        item.rarity === rarity &&
-        item.level === level &&
-        item.power === power &&
-        item.quality === quality &&
-        item.sellPrice === sellPrice &&
-        compareStats(item.stats, stats)
-      ) {
-        itemId = item.id;
-        break;
-      }
+
+  // 1. Check the current user's inventory first (already loaded in memory)
+  const currentItems = user.rpg.items || [];
+  for (const item of currentItems) {
+    if (
+      item.name === name &&
+      item.slot === slot &&
+      item.rarity === rarity &&
+      item.level === level &&
+      item.power === power &&
+      item.quality === quality &&
+      item.sellPrice === sellPrice &&
+      compareStats(item.stats, stats)
+    ) {
+      itemId = item.id;
+      break;
     }
-    if (itemId) break;
   }
 
+  // 2. If not found, run a targeted query for other users who own this item
   if (!itemId) {
-    const currentItems = user.rpg.items || [];
-    for (const item of currentItems) {
-      if (
+    const matchingUser = await User.findOne({
+      userId: { $ne: user.userId },
+      "rpg.items": {
+        $elemMatch: {
+          name,
+          slot,
+          rarity,
+          level,
+          power,
+          quality,
+          sellPrice
+        }
+      }
+    }).lean().exec();
+
+    if (matchingUser) {
+      const matchedItem = matchingUser.rpg.items.find((item) =>
         item.name === name &&
         item.slot === slot &&
         item.rarity === rarity &&
@@ -317,9 +330,9 @@ const generateRpgGearDrop = async (user, options = {}) => {
         item.quality === quality &&
         item.sellPrice === sellPrice &&
         compareStats(item.stats, stats)
-      ) {
-        itemId = item.id;
-        break;
+      );
+      if (matchedItem) {
+        itemId = matchedItem.id;
       }
     }
   }

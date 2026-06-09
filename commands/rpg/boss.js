@@ -540,6 +540,19 @@ const performBossAttack = async ({ client, channel, userId }) => {
         await channel.send(`🎄🔥 **[PHASE 2 - TIẾN HÓA]** **Erdtree Avatar** gầm lên giận dữ, rũ bỏ lớp vỏ gỗ khô héo và tiến hóa sang **Phase 2: ${bossConfig.name}**! Sức mạnh của nó đã gia tăng vượt trội!`);
         await updateBossMessage(channel, activeBoss, true);
       }
+    } else if (activeBoss.boss.key === "boss_XII" && activeBoss.phase !== 2) {
+      const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "boss_XIIa");
+      if (bossConfig) {
+        activeBoss.boss = bossConfig;
+        activeBoss.maxHp = bossConfig.hp;
+        activeBoss.hp = bossConfig.hp;
+        activeBoss.phase = 2;
+        activeBoss.imageUrl = null; // Reset image to reload phase 2 asset
+        killedPhase1 = true;
+
+        await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **: ${bossConfig.name}**!`);
+        await updateBossMessage(channel, activeBoss, true);
+      }
     }
   }
 
@@ -576,7 +589,22 @@ const showBossPanel = async (message) => {
     return message.reply("**Không có boss nào đang kích hoạt trong kênh này!**");
   }
 
-  await updateBossMessage(message.channel, activeBoss, true);
+  const payload = {
+    embeds: [buildBossEmbed(activeBoss)],
+    components: buildBossComponents(activeBoss),
+  };
+
+  if (!activeBoss.imageUrl) {
+    payload.files = [getAttachment(activeBoss.boss)];
+  }
+
+  const replyMsg = await message.reply(payload).catch(() => null);
+  if (replyMsg && !activeBoss.imageUrl) {
+    const attachment = replyMsg.attachments.first();
+    if (attachment) {
+      activeBoss.imageUrl = attachment.url;
+    }
+  }
 };
 
 const handleFightInteraction = async (interaction) => {
