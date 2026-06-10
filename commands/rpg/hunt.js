@@ -105,6 +105,11 @@ module.exports = {
         },
       );
 
+    const path = require("path");
+    const fs = require("fs");
+    const { AttachmentBuilder } = require("discord.js");
+    let itemAttachment = null;
+
     if (droppedItem) {
       embed.addFields({
         name: "Trang bị rơi",
@@ -112,10 +117,18 @@ module.exports = {
           `Slot: **${config.rpg.gear_slot_names[droppedItem.slot]}**\n` +
           `Rarity: **${droppedItem.rarity}**\n` +
           `Lực chiến khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
-          `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**\n` +
-          `Image key: \`${droppedItem.imageKey || getItemImageFile(droppedItem) || "Chưa có"}\``,
+          `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**`,
         inline: true,
       });
+
+      const imgKey = droppedItem.imageKey || getItemImageFile(droppedItem);
+      if (imgKey) {
+        const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+        if (fs.existsSync(itemImagePath)) {
+          itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
+          embed.setThumbnail("attachment://item.png");
+        }
+      }
     }
 
     if (levelsGained > 0) {
@@ -125,6 +138,10 @@ module.exports = {
       });
     }
 
-    return message.reply({ embeds: [embed] });
+    const payload = { embeds: [embed] };
+    if (itemAttachment) {
+      payload.files = [itemAttachment];
+    }
+    return message.reply(payload);
   },
 };

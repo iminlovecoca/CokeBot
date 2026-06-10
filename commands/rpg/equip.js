@@ -27,6 +27,10 @@ module.exports = {
 
     const { user, item } = await equipRpgItem(message.author.id, itemId);
 
+    const path = require("path");
+    const fs = require("fs");
+    const { AttachmentBuilder } = require("discord.js");
+
     const embed = new EmbedBuilder()
       .setColor("#57F287")
       .setTitle("Đã mặc trang bị")
@@ -39,8 +43,7 @@ module.exports = {
           value:
             `ID: \`${item.id}\`\n` +
             `Rarity: **${item.rarity}**\n` +
-            `Lực chiến: **+${item.power.toLocaleString()}**\n` +
-            `Image key: \`${item.imageKey || getItemImageFile(item) || "Chưa có"}\``,
+            `Lực chiến: **+${item.power.toLocaleString()}**`,
           inline: true,
         },
         {
@@ -50,6 +53,20 @@ module.exports = {
         },
       );
 
-    return message.reply({ embeds: [embed] });
+    let itemAttachment = null;
+    const imgKey = item.imageKey || getItemImageFile(item);
+    if (imgKey) {
+      const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+      if (fs.existsSync(itemImagePath)) {
+        itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
+        embed.setThumbnail("attachment://item.png");
+      }
+    }
+
+    const payload = { embeds: [embed] };
+    if (itemAttachment) {
+      payload.files = [itemAttachment];
+    }
+    return message.reply(payload);
   },
 };
