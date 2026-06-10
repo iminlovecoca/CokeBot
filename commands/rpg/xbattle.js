@@ -134,7 +134,7 @@ const simulatePvP = (p1, p2) => {
     const defender = turnOrder[1];
 
     const defenderEvasion = Math.min(
-      0.35,
+      0.15,
       (defender.effectiveStats.dex * 0.1 +
         defender.effectiveStats.arc * 0.05) /
         100,
@@ -196,7 +196,7 @@ const simulatePvP = (p1, p2) => {
     if (!isEvaded) {
       const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
       const attackerCritRate = Math.min(
-        0.75,
+        0.50,
         (attacker.effectiveStats.arc * 0.2 +
           attacker.effectiveStats.dex * 0.1) /
           100 +
@@ -218,20 +218,20 @@ const simulatePvP = (p1, p2) => {
 
       let defenderMitigation = 0;
       if (isMagical) {
-        let mr = defender.effectiveStats.mr * 3.0;
+        let mr = defender.effectiveStats.mr * 3.0 + (defender.defensePower || 0);
         if (blueStaffPierce) {
           mr *= 0.5;
         }
-        defenderMitigation = mr / (mr + 200);
+        defenderMitigation = mr / (mr + 1000);
       } else {
-        let armor = defender.effectiveStats.pr * 3.0;
+        let armor = defender.effectiveStats.pr * 3.0 + (defender.defensePower || 0);
         if (defender.effects.armorReduced) {
           armor *= (1 - defender.effects.armorReduced);
         }
         if (crimsonDaggerPierce) {
           armor *= 0.5;
         }
-        defenderMitigation = armor / (armor + 200);
+        defenderMitigation = armor / (armor + 1000);
       }
 
       const defenderPvpDefBonus = defender.rpgClass.bonuses?.pvpDefense || 0;
@@ -419,7 +419,8 @@ module.exports = {
       }).skip(randomIndex);
 
       const receiverId = randomOpponent.userId;
-      await runPvPBattle(message, null, senderId, receiverId);
+      const loadingMsg = await message.reply("⚔️ Đang tìm đối thủ và chuẩn bị trận đấu...");
+      await runPvPBattle(message, loadingMsg, senderId, receiverId);
     }
   },
 };
@@ -450,6 +451,14 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   const equipped1 = getEquippedItems(user1);
   const equipped2 = getEquippedItems(user2);
 
+  const getDefPower = (equipped) => {
+    let def = 0;
+    if (equipped.armor) def += equipped.armor.power || 0;
+    if (equipped.helmet) def += equipped.helmet.power || 0;
+    if (equipped.boots) def += equipped.boots.power || 0;
+    return def;
+  };
+
   const player1 = {
     id: p1Id,
     name: p1Name,
@@ -461,6 +470,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     maxHp: maxHp1,
     hp: maxHp1,
     gearPower: calculateRpgPower(user1),
+    defensePower: getDefPower(equipped1),
     dbUser: user1,
     weapon: equipped1.weapon,
   };
@@ -476,6 +486,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     maxHp: maxHp2,
     hp: maxHp2,
     gearPower: calculateRpgPower(user2),
+    defensePower: getDefPower(equipped2),
     dbUser: user2,
     weapon: equipped2.weapon,
   };
@@ -486,13 +497,11 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   const isP1Winner = result.winner && result.winner.id === player1.id;
 
   if (result.isDraw) {
-    user1.rpg.pvpStreak = 0;
     addRpgExp(user1.rpg, 50);
     user1.rpg.power = calculateRpgPower(user1);
     user1.markModified("rpg");
     await user1.save();
 
-    user2.rpg.pvpStreak = 0;
     addRpgExp(user2.rpg, 50);
     user2.rpg.power = calculateRpgPower(user2);
     user2.markModified("rpg");
@@ -587,7 +596,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     if (stage.showResult) {
       if (result.isDraw) {
         embed.setDescription(
-          `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng đặt lại về 0**`,
+          `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng được giữ nguyên**`,
         );
       } else {
         const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
