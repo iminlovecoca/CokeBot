@@ -162,7 +162,7 @@ module.exports = {
 
         desc += `Lực chiến cơ bản: **${item.power.toLocaleString()}**\n` +
                 `Lực chiến thực tế: ${powerText}\n` +
-                `**Thuộc tính scale (Elden Ring):**\n\`${scalingText}\``;
+                `**Scale:** \`${scalingText}\``;
       } else {
         const statsText = formatStats(item.stats) || "Không có";
         desc += `Lực chiến: **+${item.power.toLocaleString()}**\n` +
