@@ -341,6 +341,12 @@ const getEffectiveRpgStats = (user) => {
       }
     }
   }
+
+  // Cap effective stats at 99
+  for (const stat of Object.keys(stats)) {
+    stats[stat] = Math.min(99, stats[stat]);
+  }
+
   return stats;
 };
 

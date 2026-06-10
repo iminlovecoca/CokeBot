@@ -23,6 +23,7 @@ const {
   getGearDisplayName,
   getAvailablePoints,
   getWeaponPower,
+  getStartingStats,
 } = require("../../utils/rpgUtil");
 
 const statLabels = {
@@ -55,9 +56,19 @@ const statLineWithBonus = (baseStats, effectiveStats) => {
 };
 
 const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {
-  const statsValue = userData
-    ? statLineWithBonus(userData.rpg.stats || {}, getEffectiveRpgStats(userData))
-    : statLine(rpgClass.stats);
+  let statsValue;
+  if (userData) {
+    const startingStats = getStartingStats(userData);
+    const baseStats = {};
+    for (const key of Object.keys(statLabels)) {
+      baseStats[key] = userData.rpg.stats?.[key] !== undefined
+        ? userData.rpg.stats[key]
+        : (startingStats[key] || 0);
+    }
+    statsValue = statLineWithBonus(baseStats, getEffectiveRpgStats(userData));
+  } else {
+    statsValue = statLine(rpgClass.stats);
+  }
 
   const assetName = customAvatar || rpgClass.asset;
 
