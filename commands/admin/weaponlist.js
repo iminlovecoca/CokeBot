@@ -13,6 +13,24 @@ module.exports = {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
 
+    const getDungeonWeaponLine = (dw) => {
+      let desc = "";
+      if (dw.key === "shadowdagger") desc = "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)";
+      else if (dw.key === "poisondagger") desc = "Tăng 50% sát thương cho đòn tiếp theo";
+      else if (dw.key === "firesword") desc = "Giảm 50% hồi máu của boss/đối thủ vĩnh viễn";
+      else if (dw.key === "greenstaff") desc = "Hồi phục HP bằng 25% sát thương gây ra";
+      else if (dw.key === "bluestaff") desc = "Đòn đánh xuyên 50% kháng phép";
+      else if (dw.key === "crimsondagger") desc = "Đòn đánh xuyên 50% giáp vật lý";
+      else if (dw.key === "holysword") desc = "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương";
+      else if (dw.key === "darksword") desc = "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó";
+      else if (dw.key === "darkstaff") desc = "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce";
+      
+      return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại (Tỉ lệ 45%): ${desc}*`;
+    };
+
+    const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 5).map(getDungeonWeaponLine).join("\n");
+    const dungeonWeaponsPart2 = dungeonWeapons.slice(5).map(getDungeonWeaponLine).join("\n");
+
     const embed = new EmbedBuilder()
       .setColor("#3498DB")
       .setTitle("🗡️ Danh Sách Các Loại Vũ Khí RPG")
@@ -27,21 +45,13 @@ module.exports = {
           inline: false,
         },
         {
-          name: "2. Vũ Khí Phụ Bản (Dungeon Weapons)",
-          value: dungeonWeapons.map(dw => {
-            let desc = "";
-            if (dw.key === "shadowdagger") desc = "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)";
-            else if (dw.key === "poisondagger") desc = "Tăng 50% sát thương cho đòn tiếp theo";
-            else if (dw.key === "firesword") desc = "Giảm 50% hồi máu của boss/đối thủ vĩnh viễn";
-            else if (dw.key === "greenstaff") desc = "Hồi phục HP bằng 25% sát thương gây ra";
-            else if (dw.key === "bluestaff") desc = "Đòn đánh xuyên 50% kháng phép";
-            else if (dw.key === "crimsondagger") desc = "Đòn đánh xuyên 50% giáp vật lý";
-            else if (dw.key === "holysword") desc = "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương";
-            else if (dw.key === "darksword") desc = "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó";
-            else if (dw.key === "darkstaff") desc = "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce";
-            
-            return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại (Tỉ lệ 45%): ${desc}*`;
-          }).join("\n"),
+          name: "2. Vũ Khí Phụ Bản (Dungeon Weapons) - Phần 1",
+          value: dungeonWeaponsPart1,
+          inline: false,
+        },
+        {
+          name: "3. Vũ Khí Phụ Bản (Dungeon Weapons) - Phần 2",
+          value: dungeonWeaponsPart2,
           inline: false,
         },
         {
