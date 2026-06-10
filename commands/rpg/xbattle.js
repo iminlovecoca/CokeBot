@@ -112,7 +112,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 
 const simulatePvP = (p1, p2) => {
   let turn = 1;
-  const maxTurns = 25;
+  const maxTurns = 10;
 
   p1.effects = { armorReduced: 0, healReduced: false };
   p2.effects = { armorReduced: 0, healReduced: false };
@@ -249,7 +249,7 @@ const simulatePvP = (p1, p2) => {
 
       let damage = Math.max(
         5,
-        Math.floor(rawDamage * finalMult),
+        Math.floor((rawDamage * finalMult) / 10),
       );
 
       defender.hp = Math.max(0, defender.hp - damage);
@@ -272,7 +272,7 @@ const simulatePvP = (p1, p2) => {
     turn += 1;
   }
 
-  let winner, loser;
+  let winner, loser, isDraw = false;
   if (p1.hp <= 0) {
     winner = p2;
     loser = p1;
@@ -280,18 +280,10 @@ const simulatePvP = (p1, p2) => {
     winner = p1;
     loser = p2;
   } else {
-    const p1Percent = p1.hp / p1.maxHp;
-    const p2Percent = p2.hp / p2.maxHp;
-    if (p1Percent >= p2Percent) {
-      winner = p1;
-      loser = p2;
-    } else {
-      winner = p2;
-      loser = p1;
-    }
+    isDraw = true;
   }
 
-  return { winner, loser, turns: turn - 1 };
+  return { winner, loser, isDraw, turns: turn - 1 };
 };
 
 module.exports = {
@@ -490,36 +482,54 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
   const result = simulatePvP(player1, player2);
 
-  // Distribute rewards
-  const winUser = result.winner.dbUser;
-  const loseUser = result.loser.dbUser;
+  let winUser, loseUser, cokeWinner = 0, finalHp1 = 0, finalHp2 = 0;
+  const isP1Winner = result.winner && result.winner.id === player1.id;
 
-  // Streak tracking
-  winUser.rpg.pvpStreak = (winUser.rpg.pvpStreak || 0) + 1;
-  loseUser.rpg.pvpStreak = 0;
+  if (result.isDraw) {
+    user1.rpg.pvpStreak = 0;
+    addRpgExp(user1.rpg, 50);
+    user1.rpg.power = calculateRpgPower(user1);
+    user1.markModified("rpg");
+    await user1.save();
 
-  const cokeWinner = 50 + Math.floor(Math.random() * 125);
-  winUser.coke += cokeWinner;
-  addRpgExp(winUser.rpg, 200);
-  winUser.rpg.power = calculateRpgPower(winUser);
-  winUser.markModified("rpg");
-  await winUser.save();
+    user2.rpg.pvpStreak = 0;
+    addRpgExp(user2.rpg, 50);
+    user2.rpg.power = calculateRpgPower(user2);
+    user2.markModified("rpg");
+    await user2.save();
 
-  addRpgExp(loseUser.rpg, 50);
-  loseUser.rpg.power = calculateRpgPower(loseUser);
-  loseUser.markModified("rpg");
-  await loseUser.save();
+    const { updateQuestProgress } = require("../../utils/questUtil");
+    await updateQuestProgress(p1Id, "exp_gain", 50, message.channel);
+    await updateQuestProgress(p2Id, "exp_gain", 50, message.channel);
 
-  const { updateQuestProgress } = require("../../utils/questUtil");
-  await updateQuestProgress(p1Id, "exp_gain", result.winner.id === p1Id ? 200 : 50, message.channel);
-  await updateQuestProgress(p2Id, "exp_gain", result.winner.id === p2Id ? 200 : 50, message.channel);
+    finalHp1 = Math.max(1, player1.hp);
+    finalHp2 = Math.max(1, player2.hp);
+  } else {
+    winUser = result.winner.dbUser;
+    loseUser = result.loser.dbUser;
 
-  const finalHp1 =
-    result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
-  const finalHp2 =
-    result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
+    winUser.rpg.pvpStreak = (winUser.rpg.pvpStreak || 0) + 1;
+    loseUser.rpg.pvpStreak = 0;
 
-  const isP1Winner = result.winner.id === player1.id;
+    cokeWinner = 50 + Math.floor(Math.random() * 125);
+    winUser.coke += cokeWinner;
+    addRpgExp(winUser.rpg, 200);
+    winUser.rpg.power = calculateRpgPower(winUser);
+    winUser.markModified("rpg");
+    await winUser.save();
+
+    addRpgExp(loseUser.rpg, 50);
+    loseUser.rpg.power = calculateRpgPower(loseUser);
+    loseUser.markModified("rpg");
+    await loseUser.save();
+
+    const { updateQuestProgress } = require("../../utils/questUtil");
+    await updateQuestProgress(p1Id, "exp_gain", result.winner.id === p1Id ? 200 : 50, message.channel);
+    await updateQuestProgress(p2Id, "exp_gain", result.winner.id === p2Id ? 200 : 50, message.channel);
+
+    finalHp1 = result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
+    finalHp2 = result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
+  }
 
   const renderTextBar = (hp, max, power) => {
     const ratio = Math.max(0, Math.min(1, hp / max));
@@ -539,7 +549,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     {
       hp1: finalHp1,
       hp2: finalHp2,
-      color: isP1Winner ? "#2ECC71" : "#E74C3C",
+      color: result.isDraw ? "#F1C40F" : (isP1Winner ? "#2ECC71" : "#E74C3C"),
       showResult: true,
     },
   ];
@@ -575,12 +585,18 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
       .setImage(`attachment://${imgData.name}`);
 
     if (stage.showResult) {
-      const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
-      const xpGained = isP1Winner ? 200 : 50;
-      const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
-      embed.setDescription(
-        `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
-      );
+      if (result.isDraw) {
+        embed.setDescription(
+          `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng đặt lại về 0**`,
+        );
+      } else {
+        const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
+        const xpGained = isP1Winner ? 200 : 50;
+        const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
+        embed.setDescription(
+          `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
+        );
+      }
     }
 
     const payload = {
