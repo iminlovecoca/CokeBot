@@ -144,11 +144,63 @@ const getItemImageFile = (item) => {
   return null;
 };
 
+const getLegacyMapping = (slot) => {
+  const mappings = {
+    weapon: { subType: "Longsword", emoji: "<:longsword:1514231939865903104>" },
+    armor: { subType: "Heavy Armor", emoji: "<:heavyarmor:1514232237724401716>" },
+    helmet: { subType: "Warrior Helmet", emoji: "<:warriorhelmet:1514232262793629836>" },
+    boots: { subType: "Knight Boot", emoji: "<:knightboot:1514232296000192582>" },
+    ring: { subType: "Ring", emoji: "<:ring:1514236487707791391>" },
+    necklace: { subType: "Necklace", emoji: "<:necklace:1514236494859206729>" },
+  };
+  return mappings[String(slot).toLowerCase()] || { subType: "", emoji: "" };
+};
+
+const getWeaponScaling = (item) => {
+  if (item.scaling) return item.scaling;
+  
+  const scaling = { str: "-", dex: "-", int: "-", arc: "-" };
+  const subType = String(item.subType || "Longsword").toLowerCase();
+  const rarity = item.rarity || "Common";
+  
+  let prim = "str", sec = "dex";
+  if (subType.includes("staff")) {
+    prim = "int";
+    sec = "arc";
+  } else if (subType.includes("dagger")) {
+    prim = "dex";
+    sec = "arc";
+  }
+  
+  const primaryGrades = {
+    Common: "D",
+    Rare: "C",
+    Epic: "B",
+    Legendary: "A",
+    Mythic: "S",
+    Ancient: "S",
+    Divine: "S"
+  };
+  const secondaryGrades = {
+    Common: "E",
+    Rare: "D",
+    Epic: "C",
+    Legendary: "B",
+    Mythic: "B",
+    Ancient: "A",
+    Divine: "S"
+  };
+  
+  scaling[prim] = primaryGrades[rarity] || "E";
+  scaling[sec] = secondaryGrades[rarity] || "E";
+  return scaling;
+};
+
 const getWeaponPower = (item, effectiveStats) => {
   if (item.slot !== "weapon") return item.power || 0;
   
   const base = item.power || 0;
-  const scaling = item.scaling || { str: "-", dex: "-", int: "-", arc: "-" };
+  const scaling = getWeaponScaling(item);
   const gradeMultipliers = { S: 2.0, A: 1.5, B: 1.1, C: 0.8, D: 0.5, E: 0.2, "-": 0.0 };
   
   const multStr = gradeMultipliers[scaling.str] || 0;
@@ -173,7 +225,6 @@ const emptyStats = () => ({
   dex: 0,
   int: 0,
   arc: 0,
-  luck: 0,
 });
 
 const statLabels = {
@@ -184,7 +235,6 @@ const statLabels = {
   dex: "Dexterity",
   int: "Intelligence",
   arc: "Arcane",
-  luck: "Luck",
 };
 
 const formatStats = (stats = {}) =>
@@ -381,15 +431,26 @@ const getGearDisplayName = (item) => {
     necklace: "📿",
   };
   const rank = bracketEmoji[item.rarity] || "";
-  const emoji = item.emoji || slotEmoji[item.slot] || "🛡️";
-  const subTypeName = item.subType || (item.slot ? item.slot.toUpperCase() : "");
+  
+  let emoji = item.emoji;
+  let subTypeName = item.subType;
+  if (!subTypeName || emoji === slotEmoji[item.slot]) {
+    const mapping = getLegacyMapping(item.slot);
+    if (mapping.subType) {
+      subTypeName = mapping.subType;
+      emoji = mapping.emoji;
+    }
+  }
+  
+  emoji = emoji || slotEmoji[item.slot] || "🛡️";
+  subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "");
   return `${rank}${emoji} ${subTypeName}`;
 };
 
 const generateRpgGearDrop = async (user, options = {}) => {
   const rpgClass = getRpgClass(user.rpg.classKey);
   const effectiveStats = getEffectiveRpgStats(user);
-  const luck = effectiveStats.luck || 0;
+  const luck = effectiveStats.arc || 0;
   const dropBonus = rpgClass.bonuses?.dropRate || 0;
   const gearDropConfig = config.rpg.gear_drop || {};
   const baseDropRate = gearDropConfig.drop_rate ?? config.rpg.gear_drop_rate ?? 0;
@@ -693,4 +754,6 @@ module.exports = {
   getStartingStats,
   getAllocatedPoints,
   getAvailablePoints,
+  getWeaponScaling,
+  getLegacyMapping,
 };

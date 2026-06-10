@@ -131,7 +131,7 @@ const simulatePvP = (p1, p2) => {
     const defenderEvasion = Math.min(
       0.35,
       (defender.effectiveStats.dex * 0.1 +
-        defender.effectiveStats.luck * 0.05) /
+        defender.effectiveStats.arc * 0.05) /
         100,
     );
     const isEvaded = Math.random() < defenderEvasion;
@@ -140,7 +140,7 @@ const simulatePvP = (p1, p2) => {
       const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
       const attackerCritRate = Math.min(
         0.75,
-        (attacker.effectiveStats.luck * 0.2 +
+        (attacker.effectiveStats.arc * 0.2 +
           attacker.effectiveStats.dex * 0.1) /
           100 +
           classCritBonus,

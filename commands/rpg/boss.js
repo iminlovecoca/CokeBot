@@ -439,7 +439,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   const classCritBonus = rpgClass.bonuses?.critRate || 0;
   const critRate = Math.min(
     0.75,
-    (effectiveStats.luck * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus,
+    (effectiveStats.arc * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus,
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + effectiveStats.dex * 0.002;
@@ -477,7 +477,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     // Player Evasion
     const playerEvasion = Math.min(
       0.35,
-      (effectiveStats.dex * 0.1 + effectiveStats.luck * 0.05) / 100,
+      (effectiveStats.dex * 0.1 + effectiveStats.arc * 0.05) / 100,
     );
     bossMissed = Math.random() < playerEvasion;
 

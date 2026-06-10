@@ -23,6 +23,7 @@ const {
   getGearDisplayName,
   getItemImageFile,
   getWeaponPower,
+  getWeaponScaling,
 } = require("../../utils/rpgUtil");
 
 const ITEMS_PER_PAGE = 10;
@@ -156,7 +157,7 @@ module.exports = {
         const bonusPower = finalPower - item.power;
         const powerText = `**${finalPower.toLocaleString()}** (+${bonusPower.toLocaleString()})`;
 
-        const scaling = item.scaling || { str: "-", dex: "-", int: "-", arc: "-" };
+        const scaling = getWeaponScaling(item);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
 
         desc += `Lực chiến cơ bản: **${item.power.toLocaleString()}**\n` +

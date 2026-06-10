@@ -31,12 +31,11 @@ const statLabels = {
   dex: "DEX",
   int: "INT",
   arc: "ARC",
-  luck: "LUCK",
 };
 
 const statLine = (stats) => {
   const format = (key) => `**${statLabels[key]}:** **${stats[key] || 0}**`;
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}   |   ${format("luck")}`;
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}`;
 };
 
 const statLineWithBonus = (baseStats, effectiveStats) => {
@@ -50,7 +49,7 @@ const statLineWithBonus = (baseStats, effectiveStats) => {
     }
     return `**${label}:** **${eff}**`;
   };
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}   |   ${format("luck")}`;
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}`;
 };
 
 const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {

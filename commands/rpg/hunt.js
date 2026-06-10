@@ -47,7 +47,7 @@ module.exports = {
     const rpgClass = getRpgClass(user.rpg.classKey);
     const huntGround = pickRpgHuntGround();
     const effectiveStats = getEffectiveRpgStats(user);
-    const luck = effectiveStats.luck || 0;
+    const luck = effectiveStats.arc || 0;
     const expBonus = rpgClass.bonuses?.expGain || 0;
     const variance = 0.85 + Math.random() * 0.3;
 

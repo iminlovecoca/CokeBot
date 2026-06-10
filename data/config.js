@@ -128,8 +128,8 @@ module.exports = {
       armor: { rate: 18, stat_pool: ["vigor", "pr", "mr"] },
       helmet: { rate: 16, stat_pool: ["vigor", "pr", "mr"] },
       boots: { rate: 16, stat_pool: ["dex", "vigor", "pr", "mr", "arc"] },
-      ring: { rate: 15, stat_pool: ["int", "luck", "dex", "str", "vigor"] },
-      necklace: { rate: 15, stat_pool: ["int", "luck", "dex", "str", "vigor"] },
+      ring: { rate: 15, stat_pool: ["int", "arc", "dex", "str", "vigor"] },
+      necklace: { rate: 15, stat_pool: ["int", "arc", "dex", "str", "vigor"] },
     },
     gear_slot_names: {
       weapon: "Weapon",
