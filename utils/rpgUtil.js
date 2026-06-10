@@ -558,7 +558,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     rarityConfig = result[1];
   }
 
-  const level = options.level || user.rpg.level || 1;
+  const level = options.level || (slot === "weapon" ? 1 : (user.rpg.level || 1));
 
   // Power config bump for Dungeon Weapons: quality and power is 1 tier higher
   const isDungeon = slot === "weapon" && dungeonKeys.includes(chosenSubtype.name.toLowerCase().replace(/\s+/g, ""));
