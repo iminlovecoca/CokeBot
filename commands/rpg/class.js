@@ -21,6 +21,7 @@ const {
   hasRpgCharacter,
   getEffectiveRpgStats,
   getGearDisplayName,
+  getAvailablePoints,
 } = require("../../utils/rpgUtil");
 
 const statLabels = {
@@ -89,9 +90,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
   if (userData?.rpg?.classKey === classKey) {
     const nameLine = `Tên nhân vật: **${userData.rpg.name || "Chưa đặt"}**\n`;
     const currentPower = calculateRpgPower(userData);
-    const baseStats = userData.rpg.stats || {};
-    const allocated = (baseStats.vigor || 0) + (baseStats.pr || 0) + (baseStats.mr || 0) + (baseStats.str || 0) + (baseStats.dex || 0) + (baseStats.int || 0) + (baseStats.arc || 0);
-    const availablePoints = (userData.rpg.level || 1) - allocated;
+    const availablePoints = getAvailablePoints(userData);
 
     embed.addFields({
       name: "Nhân vật của bạn",

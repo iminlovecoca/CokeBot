@@ -4,6 +4,7 @@ const {
   equipRpgItem,
   requireRpgCharacter,
   getGearDisplayName,
+  getItemImageFile,
 } = require("../../utils/rpgUtil");
 
 module.exports = {
@@ -39,7 +40,7 @@ module.exports = {
             `ID: \`${item.id}\`\n` +
             `Rarity: **${item.rarity}**\n` +
             `Lực chiến: **+${item.power.toLocaleString()}**\n` +
-            `Image key tạm: \`${item.imageKey}\``,
+            `Image key: \`${item.imageKey || getItemImageFile(item) || "Chưa có"}\``,
           inline: true,
         },
         {

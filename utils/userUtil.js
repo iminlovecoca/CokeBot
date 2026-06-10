@@ -479,23 +479,17 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         let finalContent = "";
         if (quantityToUse === 1) {
           const g = gears[0];
-          const gBracket = bracketEmoji[g.rarity] || "<:Common:1390024590347997245>";
-          const gSlotEm = slotEmoji[g.slot] || "🎒";
-          finalContent = 
-            `${gSlotEm} | **${displayName}** opens a weapon crate\n` +
-            `<a:wcopen:1512793700181475469> | and finds a \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`;
+          finalContent = `<a:wcopen:1512793700181475469> | \`G${g.id}\` ${g.name} **${g.quality.toFixed(1)}%**`;
         } else {
-          let lines = [];
-          const maxDisplay = 15;
-          const displayGears = gears.slice(0, maxDisplay);
-          for (const g of displayGears) {
+          const emojiLine = gears.map(g => {
             const gBracket = bracketEmoji[g.rarity] || "<:Common:1390024590347997245>";
-            const gSlotEm = slotEmoji[g.slot] || "🎒";
-            lines.push(`${gSlotEm} | \`G${String(g.id).padStart(3, "0")}\` ${gBracket} ${gSlotEm} **${g.name}** ${g.quality.toFixed(1)}%`);
-          }
-          finalContent = `<a:wcopen:1512793700181475469> | **${displayName}** opened **${quantityToUse}** weapon crates:\n` + lines.join("\n");
-          if (gears.length > maxDisplay) {
-            finalContent += `\n... và **${gears.length - maxDisplay}** trang bị khác (kiểm tra bằng lệnh \`${config.prefix}gear\`).`;
+            const gEmoji = g.emoji || slotEmoji[g.slot] || "🛡️";
+            return `${gBracket}${gEmoji}`;
+          }).slice(0, 20).join(" ");
+          
+          finalContent = `<a:wcopen:1512793700181475469> | **${displayName}** opened **${quantityToUse}** weapon crates: ${emojiLine}`;
+          if (gears.length > 20) {
+            finalContent += ` và **${gears.length - 20}** trang bị khác.`;
           }
         }
         await sentMsg.edit(finalContent).catch(() => null);

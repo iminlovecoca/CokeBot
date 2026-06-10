@@ -12,6 +12,7 @@ const {
   hasRpgCharacter,
   pickRpgHuntGround,
   getEffectiveRpgStats,
+  getItemImageFile,
 } = require("../../utils/rpgUtil");
 
 module.exports = {
@@ -112,7 +113,7 @@ module.exports = {
           `Rarity: **${droppedItem.rarity}**\n` +
           `Lực chiến khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
           `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**\n` +
-          `Image key tạm: \`${droppedItem.imageKey}\``,
+          `Image key: \`${droppedItem.imageKey || getItemImageFile(droppedItem) || "Chưa có"}\``,
         inline: true,
       });
     }

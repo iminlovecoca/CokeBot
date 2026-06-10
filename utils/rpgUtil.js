@@ -237,11 +237,24 @@ const statLabels = {
   arc: "Arcane",
 };
 
-const formatStats = (stats = {}) =>
-  Object.entries(stats)
+const formatStats = (stats = {}) => {
+  const mappedStats = {};
+  for (const [key, value] of Object.entries(stats)) {
+    const normalized = key.toLowerCase();
+    let targetStat = normalized;
+    if (normalized === "luck") targetStat = "arc";
+    else if (normalized === "vit") targetStat = "vigor";
+    else if (normalized === "def") targetStat = "pr";
+    else if (normalized === "agi") targetStat = "dex";
+    
+    mappedStats[targetStat] = (mappedStats[targetStat] || 0) + value;
+  }
+  
+  return Object.entries(mappedStats)
     .filter(([, value]) => value)
     .map(([key, value]) => `${statLabels[key.toLowerCase()] || key.toUpperCase()} +${value}`)
     .join(", ");
+};
 
 const getStartingStats = (user) => {
   if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
@@ -281,7 +294,16 @@ const getEffectiveRpgStats = (user) => {
 
   for (const item of Object.values(getEquippedItems(user))) {
     for (const [stat, value] of Object.entries(item.stats || {})) {
-      stats[stat] = (stats[stat] || 0) + value;
+      const normalized = stat.toLowerCase();
+      let targetStat = normalized;
+      if (normalized === "luck") targetStat = "arc";
+      else if (normalized === "vit") targetStat = "vigor";
+      else if (normalized === "def") targetStat = "pr";
+      else if (normalized === "agi") targetStat = "dex";
+      
+      if (stats[targetStat] !== undefined) {
+        stats[targetStat] = (stats[targetStat] || 0) + value;
+      }
     }
   }
   return stats;
@@ -399,7 +421,7 @@ const pickRpgHuntGround = () => {
 
 const generateGearStats = (slot, rarityConfig, level) => {
   const slotConfig = config.rpg.gear_slots?.[slot] || {};
-  const statPool = slotConfig.stat_pool || ["str", "int", "agi", "vit", "def", "luck"];
+  const statPool = slotConfig.stat_pool || ["str", "int", "dex", "vigor", "pr", "mr", "arc"];
   const statBase = rarityConfig.stat || 1;
   const levelBonus = Math.floor((level || 1) / 12);
   const stats = {};
@@ -614,7 +636,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     stats,
     quality,
     sellPrice,
-    imageKey: `todo_${slot}_${rarity.toLowerCase()}`,
+    imageKey: getItemImageFile({ slot, rarity, subType: chosenSubtype.name }),
     subType: chosenSubtype.name,
     emoji: chosenSubtype.emoji,
     scaling,
