@@ -22,6 +22,7 @@ const {
   getEffectiveRpgStats,
   getGearDisplayName,
   getAvailablePoints,
+  getWeaponPower,
 } = require("../../utils/rpgUtil");
 
 const statLabels = {
@@ -117,7 +118,9 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       const slotName = config.rpg.gear_slot_names[slot] || slot;
       const item = equippedItems[slot];
       if (item) {
-        return `• ${slotName}: **${getGearDisplayName(item)}** (+${item.power.toLocaleString()} Lực chiến)`;
+        const ownerStats = getEffectiveRpgStats(userData);
+        const finalPower = item.slot === "weapon" ? getWeaponPower(item, ownerStats) : item.power;
+        return `• ${slotName}: **${getGearDisplayName(item)}** (+${finalPower.toLocaleString()} Lực chiến)`;
       } else {
         return `• ${slotName}: ❎`;
       }

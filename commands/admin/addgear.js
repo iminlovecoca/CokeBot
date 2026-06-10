@@ -64,7 +64,7 @@ module.exports = {
   name: "addgear",
   aliases: ["givegear"],
   description: "Thêm trang bị RPG với slot, cấp bậc (rarity) và cấp độ (level) tùy chọn cho người chơi (Chỉ Dev/Owner)",
-  usage: `${config.prefix}addgear @user <slot> <rarity> <level> [số lượng]`,
+  usage: `${config.prefix}addgear @user <slot> <rarity> <level> [số lượng] [cấp cường hóa] [subtype]`,
 
   async execute(message, args) {
     if (!config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
@@ -73,7 +73,7 @@ module.exports = {
 
     const targetArg = args[0];
     if (!targetArg) {
-      return message.reply(`❌ Cú pháp: \`${config.prefix}addgear @user <slot> <rarity> <level> [số lượng]\``);
+      return message.reply(`❌ Cú pháp: \`${config.prefix}addgear @user <slot> <rarity> <level> [số lượng] [cấp cường hóa] [subtype]\``);
     }
 
     const mention = message.mentions.users.first() || await message.client.users.fetch(targetArg).catch(() => null);
@@ -120,6 +120,13 @@ module.exports = {
       return message.reply("❌ Số lượng phải từ 1 đến 20.");
     }
 
+    const upgradeLevelInput = args[5] ? parseInt(args[5]) : 0;
+    if (isNaN(upgradeLevelInput) || upgradeLevelInput < 0 || upgradeLevelInput > 10) {
+      return message.reply("❌ Cấp cường hóa (upgrade level) phải từ 0 đến 10.");
+    }
+
+    const subtypeInput = args[6] ? args.slice(6).join(" ") : null;
+
     const dbUser = await User.findOne({ userId: mention.id }) || await User.create({ userId: mention.id });
 
     // Check if target user has chosen an RPG class
@@ -134,6 +141,8 @@ module.exports = {
         slot: slotKey,
         rarity: rarityKey,
         level: levelInput,
+        upgradeLevel: upgradeLevelInput,
+        subType: subtypeInput,
       });
 
       if (gear) {

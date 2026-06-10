@@ -20,6 +20,9 @@ const {
   getEffectiveRpgStats,
   getRpgClass,
   getGearDisplayName,
+  getEquippedItems,
+  getWeaponPower,
+  dungeonKeys,
 } = require("../../utils/rpgUtil");
 
 const CLASS_ATTACK_TYPES = {
@@ -224,8 +227,13 @@ const buildAttackResultEmbed = ({
   paidAttackCost,
   bossHealed,
   killedPhase1,
+  passiveTriggers,
 }) => {
   let battleLog = "";
+  if (passiveTriggers && passiveTriggers.length > 0) {
+    battleLog += passiveTriggers.join("\n") + "\n\n";
+  }
+
   if (isCrit) {
     battleLog += `💥 **[CHÍ MẠNG]** Bạn gây **${damage.toLocaleString()}** sát thương lên boss!\n`;
   } else {
@@ -422,6 +430,78 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   user.rpg.power = calculateRpgPower(user);
 
+  const equipped = getEquippedItems(user);
+  const weapon = equipped.weapon;
+  const cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
+  
+  if (!activeBoss.effects) {
+    activeBoss.effects = {
+      armorReduced: 0,
+      healReduced: false,
+    };
+  }
+
+  const passiveTriggers = [];
+
+  const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
+  let blueStaffPierce = false;
+  let crimsonDaggerPierce = false;
+  let holySwordDouble = false;
+
+  if (hasTriggered) {
+    if (cleanSubType === "shadowdagger") {
+      activeBoss.effects.armorReduced = 0.30;
+      passiveTriggers.push(`⚔️ **[Shadow Dagger]** Đã phá giáp boss! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
+    } else if (cleanSubType === "poisondagger") {
+      participant.nextAttackMult = 1.5;
+      passiveTriggers.push(`⚔️ **[Poison Dagger]** Sát khí hội tụ! Đòn đánh tiếp theo của bạn sẽ gây thêm 50% sát thương.`);
+    } else if (cleanSubType === "firesword") {
+      activeBoss.effects.healReduced = true;
+      passiveTriggers.push(`⚔️ **[Fire Sword]** Thiêu đốt boss! Giảm 50% hồi máu của boss cho đến hết trận đấu.`);
+    } else if (cleanSubType === "bluestaff") {
+      blueStaffPierce = true;
+      passiveTriggers.push(`⚔️ **[Blue Staff]** Đòn đánh xuyên 50% kháng phép của boss.`);
+    } else if (cleanSubType === "crimsondagger") {
+      crimsonDaggerPierce = true;
+      passiveTriggers.push(`⚔️ **[Crimson Dagger]** Đòn đánh xuyên 50% phòng ngự vật lý của boss.`);
+    } else if (cleanSubType === "holysword") {
+      participant.holySwordHits = (participant.holySwordHits || 0) + 1;
+      if (participant.holySwordHits >= 3) {
+        participant.holySwordHits = 0;
+        holySwordDouble = true;
+        passiveTriggers.push(`⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`);
+      }
+    } else if (cleanSubType === "darksword") {
+      participant.bossDamageReduced = true;
+      passiveTriggers.push(`⚔️ **[Dark Sword]** Yếu khí bao phủ! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
+    } else if (cleanSubType === "darkstaff") {
+      const effects = ["burn", "weakness", "pierce"];
+      const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
+      if (chosenEffect === "burn") {
+        activeBoss.effects.healReduced = true;
+        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thiêu đốt! Giảm 50% hồi máu của boss cho đến hết trận đấu.`);
+      } else if (chosenEffect === "weakness") {
+        participant.bossDamageReduced = true;
+        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám suy yếu! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
+      } else {
+        activeBoss.effects.armorReduced = 0.30;
+        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám phá giáp! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
+      }
+    }
+  } else if (cleanSubType === "holysword") {
+    participant.holySwordHits = (participant.holySwordHits || 0) + 1;
+    if (participant.holySwordHits >= 3) {
+      participant.holySwordHits = 0;
+    }
+  }
+
+  let poisonMult = 1.0;
+  if (participant.nextAttackMult) {
+    poisonMult = participant.nextAttackMult;
+    delete participant.nextAttackMult;
+  }
+
   // Player Damage Calculation
   const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
   const baseAttack = isMagical
@@ -450,18 +530,42 @@ const performBossAttack = async ({ client, channel, userId }) => {
   // Boss defense mitigation
   let mitigation = 0;
   if (isMagical) {
-    const mr = activeBoss.boss.magicResist || 0;
+    let mr = activeBoss.boss.magicResist || 0;
+    if (blueStaffPierce) {
+      mr *= 0.5;
+    }
     mitigation = mr / (mr + 250);
   } else {
-    const armor = activeBoss.boss.armor || 0;
+    let armor = activeBoss.boss.armor || 0;
+    if (activeBoss.effects.armorReduced) {
+      armor *= (1 - activeBoss.effects.armorReduced);
+    }
+    if (crimsonDaggerPierce) {
+      armor *= 0.5;
+    }
     mitigation = armor / (armor + 250);
   }
 
   const classBossBonus = rpgClass.bonuses?.bossDamage || 0;
+  let finalMult = 1 + classBossBonus;
+  if (holySwordDouble) {
+    finalMult *= 2.0;
+  }
+  if (poisonMult > 1.0) {
+    finalMult *= poisonMult;
+  }
+
   const damage = Math.max(
     10,
-    Math.floor(rawDamage * (1 - mitigation) * (1 + classBossBonus)),
+    Math.floor(rawDamage * (1 - mitigation) * finalMult),
   );
+
+  // Green Staff healing
+  if (hasTriggered && cleanSubType === "greenstaff") {
+    const healAmt = Math.floor(damage * 0.25);
+    participant.hp = Math.min(maxHp, participant.hp + healAmt);
+    passiveTriggers.push(`💚 **[Green Staff]** Đòn đánh hồi phục cho bạn **${healAmt.toLocaleString()}** HP.`);
+  }
 
   // Charge coke fee if paid
   if (isPaidAttack) {
@@ -498,6 +602,12 @@ const performBossAttack = async ({ client, channel, userId }) => {
         5,
         Math.floor(bossRaw * (1 - playerMitigation)),
       );
+
+      if (participant.bossDamageReduced) {
+        bossDamage = Math.floor(bossDamage * 0.70);
+        delete participant.bossDamageReduced;
+      }
+
       participant.hp = Math.max(0, participant.hp - bossDamage);
 
       if (participant.hp <= 0) {
@@ -507,7 +617,11 @@ const performBossAttack = async ({ client, channel, userId }) => {
         if (activeBoss.boss.key === "boss_XI") {
           const missingHp = activeBoss.maxHp - activeBoss.hp;
           if (missingHp > 0) {
-            bossHealedAmount = Math.floor(missingHp * 0.20);
+            let healFactor = 0.20;
+            if (activeBoss.effects.healReduced) {
+              healFactor *= 0.50;
+            }
+            bossHealedAmount = Math.floor(missingHp * healFactor);
             activeBoss.hp = Math.min(activeBoss.maxHp, activeBoss.hp + bossHealedAmount);
           }
         }
@@ -573,6 +687,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     paidAttackCost,
     bossHealed: bossHealedAmount,
     killedPhase1,
+    passiveTriggers,
   });
 
   if (activeBoss.hp <= 0) {

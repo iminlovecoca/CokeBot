@@ -16,6 +16,8 @@ const {
   getRpgClass,
   requireRpgCharacter,
   getRpgXpNeeded,
+  getEquippedItems,
+  dungeonKeys,
 } = require("../../utils/rpgUtil");
 const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs");
@@ -112,6 +114,9 @@ const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 25;
 
+  p1.effects = { armorReduced: 0, healReduced: false };
+  p2.effects = { armorReduced: 0, healReduced: false };
+
   // Determine who goes first based on DEX. Higher DEX goes first. If equal, random.
   let p1Dex = p1.effectiveStats.dex || 0;
   let p2Dex = p2.effectiveStats.dex || 0;
@@ -135,6 +140,58 @@ const simulatePvP = (p1, p2) => {
         100,
     );
     const isEvaded = Math.random() < defenderEvasion;
+
+    const attackerWeapon = attacker.weapon;
+    const cleanSubType = attackerWeapon?.subType ? attackerWeapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
+
+    const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
+    let blueStaffPierce = false;
+    let crimsonDaggerPierce = false;
+    let holySwordDouble = false;
+
+    if (hasTriggered) {
+      if (cleanSubType === "shadowdagger") {
+        defender.effects.armorReduced = 0.30;
+      } else if (cleanSubType === "poisondagger") {
+        attacker.nextAttackMult = 1.5;
+      } else if (cleanSubType === "firesword") {
+        defender.effects.healReduced = true;
+      } else if (cleanSubType === "bluestaff") {
+        blueStaffPierce = true;
+      } else if (cleanSubType === "crimsondagger") {
+        crimsonDaggerPierce = true;
+      } else if (cleanSubType === "holysword") {
+        attacker.holySwordHits = (attacker.holySwordHits || 0) + 1;
+        if (attacker.holySwordHits >= 3) {
+          attacker.holySwordHits = 0;
+          holySwordDouble = true;
+        }
+      } else if (cleanSubType === "darksword") {
+        defender.effects.damageReduced = 0.30;
+      } else if (cleanSubType === "darkstaff") {
+        const effects = ["burn", "weakness", "pierce"];
+        const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
+        if (chosenEffect === "burn") {
+          defender.effects.healReduced = true;
+        } else if (chosenEffect === "weakness") {
+          defender.effects.damageReduced = 0.30;
+        } else {
+          defender.effects.armorReduced = 0.30;
+        }
+      }
+    } else if (cleanSubType === "holysword") {
+      attacker.holySwordHits = (attacker.holySwordHits || 0) + 1;
+      if (attacker.holySwordHits >= 3) {
+        attacker.holySwordHits = 0;
+      }
+    }
+
+    let poisonMult = 1.0;
+    if (attacker.nextAttackMult) {
+      poisonMult = attacker.nextAttackMult;
+      delete attacker.nextAttackMult;
+    }
 
     if (!isEvaded) {
       const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
@@ -161,22 +218,50 @@ const simulatePvP = (p1, p2) => {
 
       let defenderMitigation = 0;
       if (isMagical) {
-        const mr = defender.effectiveStats.mr * 3.0;
+        let mr = defender.effectiveStats.mr * 3.0;
+        if (blueStaffPierce) {
+          mr *= 0.5;
+        }
         defenderMitigation = mr / (mr + 200);
       } else {
-        const armor = defender.effectiveStats.pr * 3.0;
+        let armor = defender.effectiveStats.pr * 3.0;
+        if (defender.effects.armorReduced) {
+          armor *= (1 - defender.effects.armorReduced);
+        }
+        if (crimsonDaggerPierce) {
+          armor *= 0.5;
+        }
         defenderMitigation = armor / (armor + 200);
       }
 
       const defenderPvpDefBonus = defender.rpgClass.bonuses?.pvpDefense || 0;
+      let finalMult = (1 - defenderMitigation) * (1 - defenderPvpDefBonus);
+      if (holySwordDouble) {
+        finalMult *= 2.0;
+      }
+      if (poisonMult > 1.0) {
+        finalMult *= poisonMult;
+      }
+      if (attacker.effects.damageReduced) {
+        finalMult *= (1 - attacker.effects.damageReduced);
+        delete attacker.effects.damageReduced; // consume
+      }
+
       let damage = Math.max(
         5,
-        Math.floor(
-          rawDamage * (1 - defenderMitigation) * (1 - defenderPvpDefBonus),
-        ),
+        Math.floor(rawDamage * finalMult),
       );
 
       defender.hp = Math.max(0, defender.hp - damage);
+
+      // Green Staff heal passive
+      if (hasTriggered && cleanSubType === "greenstaff") {
+        let healAmt = Math.floor(damage * 0.25);
+        if (attacker.effects.healReduced) {
+          healAmt = Math.floor(healAmt * 0.5);
+        }
+        attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+      }
     }
 
     if (defender.hp <= 0) {
@@ -370,6 +455,9 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     user2.rpg.name ||
     (u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`);
 
+  const equipped1 = getEquippedItems(user1);
+  const equipped2 = getEquippedItems(user2);
+
   const player1 = {
     id: p1Id,
     name: p1Name,
@@ -382,6 +470,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     hp: maxHp1,
     gearPower: calculateRpgPower(user1),
     dbUser: user1,
+    weapon: equipped1.weapon,
   };
 
   const player2 = {
@@ -396,6 +485,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     hp: maxHp2,
     gearPower: calculateRpgPower(user2),
     dbUser: user2,
+    weapon: equipped2.weapon,
   };
 
   const result = simulatePvP(player1, player2);

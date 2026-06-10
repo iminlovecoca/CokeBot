@@ -50,6 +50,19 @@ const getEquippedItems = (user) => {
   );
 };
 
+const dungeonWeapons = [
+  { name: "Shadow Dagger", key: "shadowdagger", emoji: "<:shadowdagger:1514232151766339635>" },
+  { name: "Poison Dagger", key: "poisondagger", emoji: "<:poisondagger:1514232154173866004>" },
+  { name: "Fire Sword", key: "firesword", emoji: "<:firesword:1514232156279406682>" },
+  { name: "Green Staff", key: "greenstaff", emoji: "<:greenstaff:1514232158502518945>" },
+  { name: "Blue Staff", key: "bluestaff", emoji: "<:bluestaff:1514232160897339442>" },
+  { name: "Crimson Dagger", key: "crimsondagger", emoji: "<:crimsondagger:1514232163158065252>" },
+  { name: "Holy Sword", key: "holysword", emoji: "<:holysword:1514232165334777876>" },
+  { name: "Dark Sword", key: "darksword", emoji: "<:darksword:1514232167595769949>" },
+  { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" }
+];
+const dungeonKeys = dungeonWeapons.map(dw => dw.key);
+
 const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
@@ -83,12 +96,17 @@ const subTypes = {
   ]
 };
 
+
 const getItemImageFile = (item) => {
   const slot = String(item.slot || "").toLowerCase();
   const subType = String(item.subType || "").toLowerCase();
   const rarity = String(item.rarity || "").toLowerCase();
 
   if (slot === "weapon") {
+    const lowerSubType = subType.toLowerCase().replace(/\s+/g, "");
+    if (dungeonKeys.includes(lowerSubType)) {
+      return `Weapon/${lowerSubType}.png`;
+    }
     if (subType.includes("sword") || subType.includes("longsword")) {
       if (rarity === "divine") return "Weapon/holysword.png";
       if (rarity === "mythic" || rarity === "ancient") return "Weapon/darksword.png";
@@ -191,8 +209,24 @@ const getWeaponScaling = (item) => {
     Divine: "S"
   };
   
-  scaling[prim] = primaryGrades[rarity] || "E";
-  scaling[sec] = secondaryGrades[rarity] || "E";
+  let primGrade = primaryGrades[rarity] || "E";
+  let secGrade = secondaryGrades[rarity] || "E";
+  
+  const cleanSubType = subType.toLowerCase().replace(/\s+/g, "");
+  const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
+  if (isDungeonWeapon) {
+    const bumpGrade = (grade) => {
+      const grades = ["-", "E", "D", "C", "B", "A", "S"];
+      const idx = grades.indexOf(grade);
+      if (idx === -1) return grade;
+      return grades[Math.min(grades.length - 1, idx + 1)];
+    };
+    primGrade = bumpGrade(primGrade);
+    secGrade = bumpGrade(secGrade);
+  }
+  
+  scaling[prim] = primGrade;
+  scaling[sec] = secGrade;
   return scaling;
 };
 
@@ -214,7 +248,8 @@ const getWeaponPower = (item, effectiveStats) => {
   const valArc = effectiveStats.arc || 0;
   
   const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc) / 99;
-  return Math.floor(base * (1 + bonusPercent));
+  const upgradedBase = base * (1 + (item.upgradeLevel || 0) * 0.10);
+  return Math.floor(upgradedBase * (1 + bonusPercent));
 };
 
 const emptyStats = () => ({
@@ -466,7 +501,8 @@ const getGearDisplayName = (item) => {
   
   emoji = emoji || slotEmoji[item.slot] || "🛡️";
   subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "");
-  return `${rank}${emoji} ${subTypeName}`;
+  const upgradeStr = item.upgradeLevel && item.upgradeLevel > 0 ? ` +${item.upgradeLevel}` : "";
+  return `${rank}${emoji} ${subTypeName}${upgradeStr}`;
 };
 
 const generateRpgGearDrop = async (user, options = {}) => {
@@ -490,7 +526,21 @@ const generateRpgGearDrop = async (user, options = {}) => {
   )[0];
 
   const slotSubtypes = subTypes[slot] || [];
-  const chosenSubtype = slotSubtypes[Math.floor(Math.random() * slotSubtypes.length)] || { name: slot.toUpperCase(), emoji: "🛡️" };
+  let chosenSubtype;
+  if (options.subType) {
+    const subNameClean = options.subType.toLowerCase().replace(/\s+/g, "");
+    const foundDungeon = dungeonWeapons.find(dw => dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
+    const foundSlot = slotSubtypes.find(st => st.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
+    if (foundDungeon) {
+      chosenSubtype = { name: foundDungeon.name, emoji: foundDungeon.emoji };
+    } else if (foundSlot) {
+      chosenSubtype = { name: foundSlot.name, emoji: foundSlot.emoji };
+    } else {
+      chosenSubtype = { name: options.subType, emoji: slot === "weapon" ? "🗡️" : "🛡️" };
+    }
+  } else {
+    chosenSubtype = slotSubtypes[Math.floor(Math.random() * slotSubtypes.length)] || { name: slot.toUpperCase(), emoji: "🛡️" };
+  }
 
   let rarity, rarityConfig;
   if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
@@ -509,12 +559,26 @@ const generateRpgGearDrop = async (user, options = {}) => {
   }
 
   const level = options.level || user.rpg.level || 1;
+
+  // Power config bump for Dungeon Weapons: quality and power is 1 tier higher
+  const isDungeon = slot === "weapon" && dungeonKeys.includes(chosenSubtype.name.toLowerCase().replace(/\s+/g, ""));
+  let powerRarityConfig = rarityConfig;
+  if (isDungeon) {
+    const getNextRarity = (rar) => {
+      const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+      const idx = rarities.indexOf(rar);
+      if (idx === -1) return rar;
+      return rarities[Math.min(rarities.length - 1, idx + 1)];
+    };
+    powerRarityConfig = config.rpg.gear_rarities[getNextRarity(rarity)] || rarityConfig;
+  }
+
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
-  const power = Math.floor((rarityConfig.power + levelBonus) * variance);
-  const stats = generateGearStats(slot, rarityConfig, level);
+  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
+  const stats = generateGearStats(slot, powerRarityConfig, level);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
-  const sellPrice = Math.floor((rarityConfig.sell + level * 18) * variance);
+  const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 
   let scaling = null;
   if (slot === "weapon") {
@@ -548,11 +612,24 @@ const generateRpgGearDrop = async (user, options = {}) => {
       Divine: "S"
     };
     
-    scaling[prim] = primaryGrades[rarity] || "E";
-    scaling[sec] = secondaryGrades[rarity] || "E";
+    let primGrade = primaryGrades[rarity] || "E";
+    let secGrade = secondaryGrades[rarity] || "E";
+    if (isDungeon) {
+      const bumpGrade = (grade) => {
+        const grades = ["-", "E", "D", "C", "B", "A", "S"];
+        const idx = grades.indexOf(grade);
+        if (idx === -1) return grade;
+        return grades[Math.min(grades.length - 1, idx + 1)];
+      };
+      primGrade = bumpGrade(primGrade);
+      secGrade = bumpGrade(secGrade);
+    }
+    
+    scaling[prim] = primGrade;
+    scaling[sec] = secGrade;
   }
 
-  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji });
+  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
 
   const compareStats = (s1 = {}, s2 = {}) => {
     const keys1 = Object.keys(s1).sort();
@@ -640,6 +717,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     subType: chosenSubtype.name,
     emoji: chosenSubtype.emoji,
     scaling,
+    upgradeLevel: options.upgradeLevel || 0,
     droppedAt: new Date(),
   };
 };
@@ -778,4 +856,6 @@ module.exports = {
   getAvailablePoints,
   getWeaponScaling,
   getLegacyMapping,
+  dungeonWeapons,
+  dungeonKeys,
 };
