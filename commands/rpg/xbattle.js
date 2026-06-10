@@ -419,8 +419,7 @@ module.exports = {
       }).skip(randomIndex);
 
       const receiverId = randomOpponent.userId;
-      const loadingMsg = await message.reply("⚔️ Đang tìm đối thủ và chuẩn bị trận đấu...");
-      await runPvPBattle(message, loadingMsg, senderId, receiverId);
+      await runPvPBattle(message, null, senderId, receiverId);
     }
   },
 };
