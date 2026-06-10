@@ -52,10 +52,12 @@ module.exports = {
       targetId,
       quantity,
     );
-    if (itemType === "lure") {
-      await message.channel.send(resultMessage);
-    } else {
-      await message.reply(resultMessage);
+    if (resultMessage) {
+      if (itemType === "lure") {
+        await message.channel.send(resultMessage);
+      } else {
+        await message.reply(resultMessage);
+      }
     }
   },
 };
