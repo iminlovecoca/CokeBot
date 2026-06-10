@@ -112,13 +112,13 @@ const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 25;
 
-  // Determine who goes first based on AGI. Higher AGI goes first. If equal, random.
-  let p1Agi = p1.effectiveStats.agi || 0;
-  let p2Agi = p2.effectiveStats.agi || 0;
+  // Determine who goes first based on DEX. Higher DEX goes first. If equal, random.
+  let p1Dex = p1.effectiveStats.dex || 0;
+  let p2Dex = p2.effectiveStats.dex || 0;
   let turnOrder =
-    p1Agi > p2Agi
+    p1Dex > p2Dex
       ? [p1, p2]
-      : p1Agi < p2Agi
+      : p1Dex < p2Dex
         ? [p2, p1]
         : Math.random() < 0.5
           ? [p1, p2]
@@ -130,7 +130,7 @@ const simulatePvP = (p1, p2) => {
 
     const defenderEvasion = Math.min(
       0.35,
-      (defender.effectiveStats.agi * 0.1 +
+      (defender.effectiveStats.dex * 0.1 +
         defender.effectiveStats.luck * 0.05) /
         100,
     );
@@ -141,17 +141,17 @@ const simulatePvP = (p1, p2) => {
       const attackerCritRate = Math.min(
         0.75,
         (attacker.effectiveStats.luck * 0.2 +
-          attacker.effectiveStats.agi * 0.1) /
+          attacker.effectiveStats.dex * 0.1) /
           100 +
           classCritBonus,
       );
       const isCrit = Math.random() < attackerCritRate;
-      const critMult = 1.5 + attacker.effectiveStats.agi * 0.002;
+      const critMult = 1.5 + attacker.effectiveStats.dex * 0.002;
 
       const isMagical = CLASS_ATTACK_TYPES[attacker.classKey] === "magical";
       const baseAtk = isMagical
-        ? attacker.effectiveStats.int * 3.5
-        : attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.agi * 1.2;
+        ? (attacker.effectiveStats.int * 3.5 + attacker.effectiveStats.arc * 1.5)
+        : (attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5);
 
       let rawDamage = baseAtk + attacker.gearPower;
       rawDamage *= 0.85 + Math.random() * 0.3; // variance
@@ -161,11 +161,10 @@ const simulatePvP = (p1, p2) => {
 
       let defenderMitigation = 0;
       if (isMagical) {
-        const mr =
-          defender.effectiveStats.int * 0.8 + defender.effectiveStats.vit * 0.7;
+        const mr = defender.effectiveStats.mr * 3.0;
         defenderMitigation = mr / (mr + 200);
       } else {
-        const armor = defender.effectiveStats.def * 1.5;
+        const armor = defender.effectiveStats.pr * 3.0;
         defenderMitigation = armor / (armor + 200);
       }
 
@@ -358,8 +357,8 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   const stats1 = getEffectiveRpgStats(user1);
   const stats2 = getEffectiveRpgStats(user2);
 
-  const maxHp1 = 150 + stats1.vit * 15 + user1.rpg.level * 20;
-  const maxHp2 = 150 + stats2.vit * 15 + user2.rpg.level * 20;
+  const maxHp1 = 150 + stats1.vigor * 20 + user1.rpg.level * 20;
+  const maxHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
 
   // Retrieve actual user names from the client
   const u1Obj = await message.client.users.fetch(p1Id).catch(() => null);

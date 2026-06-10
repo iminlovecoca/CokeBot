@@ -20,6 +20,7 @@ const { parseCommandArgs } = require("../utils/commandParser");
 const { answerQuestion, getThreadHistory } = require("../utils/qaSystem");
 const {
   handleNoituMessage,
+  getGuildConfig,
 } = require("../utils/noituGame");
 const config = require("../data/config");
 
@@ -43,11 +44,23 @@ module.exports = {
 
       // Ban check
       if (user.bannedUntil && user.bannedUntil > new Date()) {
-        const banExpirationDate = new Date(user.bannedUntil);
-        const remainingMs = banExpirationDate.getTime() - Date.now();
-        return message.reply(
-          `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
-        );
+        let isNoituChannel = false;
+        if (message.guild) {
+          const guildConfig = await getGuildConfig(message.guild.id);
+          if (guildConfig?.channelId === message.channel.id) {
+            isNoituChannel = true;
+          }
+        }
+        const isAiThread = message.channel.isThread() && message.channel.ownerId === client.user.id;
+
+        if (isCommand || isAiThread || isNoituChannel) {
+          const banExpirationDate = new Date(user.bannedUntil);
+          const remainingMs = banExpirationDate.getTime() - Date.now();
+          return message.reply(
+            `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
+          ).catch(() => {});
+        }
+        return;
       }
 
       //  Pending verification check

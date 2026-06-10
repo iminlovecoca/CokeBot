@@ -1,9 +1,25 @@
 const { Events } = require("discord.js");
+const { getOrCreateUser } = require("../utils/userUtil");
+const { formatDuration } = require("../utils/miscUtil");
 
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
+      // Ban check
+      const user = await getOrCreateUser(interaction.user.id);
+      if (user.bannedUntil && user.bannedUntil > new Date()) {
+        const remainingMs = new Date(user.bannedUntil).getTime() - Date.now();
+        const replyOptions = {
+          content: `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
+          flags: 64, // Ephemeral
+        };
+        if (interaction.deferred || interaction.replied) {
+          return interaction.followUp(replyOptions).catch(() => {});
+        }
+        return interaction.reply(replyOptions).catch(() => {});
+      }
+
       if (interaction.isButton()) {
         if (interaction.customId.startsWith("rpg_boss_fight:")) {
           const bossCommand = client.commands.get("boss");

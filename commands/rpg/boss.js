@@ -376,7 +376,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   };
 
   const effectiveStats = getEffectiveRpgStats(user);
-  const maxHp = 150 + effectiveStats.vit * 15 + user.rpg.level * 20;
+  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
 
   // Initialize player HP if needed
   if (participant.hp === null) {
@@ -425,8 +425,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
   // Player Damage Calculation
   const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
   const baseAttack = isMagical
-    ? effectiveStats.int * 3.5
-    : effectiveStats.str * 2.5 + effectiveStats.agi * 1.2;
+    ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
+    : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
 
   const gearPower = calculateRpgPower(user);
   let rawDamage = baseAttack + gearPower;
@@ -439,10 +439,10 @@ const performBossAttack = async ({ client, channel, userId }) => {
   const classCritBonus = rpgClass.bonuses?.critRate || 0;
   const critRate = Math.min(
     0.75,
-    (effectiveStats.luck * 0.2 + effectiveStats.agi * 0.1) / 100 + classCritBonus,
+    (effectiveStats.luck * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus,
   );
   const isCrit = Math.random() < critRate;
-  const critMult = 1.5 + effectiveStats.agi * 0.002;
+  const critMult = 1.5 + effectiveStats.dex * 0.002;
   if (isCrit) {
     rawDamage *= critMult;
   }
@@ -477,7 +477,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     // Player Evasion
     const playerEvasion = Math.min(
       0.35,
-      (effectiveStats.agi * 0.1 + effectiveStats.luck * 0.05) / 100,
+      (effectiveStats.dex * 0.1 + effectiveStats.luck * 0.05) / 100,
     );
     bossMissed = Math.random() < playerEvasion;
 
@@ -487,11 +487,10 @@ const performBossAttack = async ({ client, channel, userId }) => {
       let playerMitigation = 0;
 
       if (activeBoss.boss.damageType === "magical") {
-        const playerMR =
-          effectiveStats.int * 0.8 + effectiveStats.vit * 0.7;
+        const playerMR = effectiveStats.mr * 3.0;
         playerMitigation = playerMR / (playerMR + 150);
       } else {
-        const playerArmor = effectiveStats.def * 1.5;
+        const playerArmor = effectiveStats.pr * 3.0;
         playerMitigation = playerArmor / (playerArmor + 150);
       }
 
@@ -687,7 +686,7 @@ const handleReviveInteraction = async (interaction) => {
 
   user.coke -= reviveCost;
   const effectiveStats = getEffectiveRpgStats(user);
-  const maxHp = 150 + effectiveStats.vit * 15 + user.rpg.level * 20;
+  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
 
   participant.hp = maxHp;
   participant.koUntil = 0;

@@ -23,26 +23,39 @@ const {
   getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
-const statLine = (stats) =>
-  `**STR:** **${stats.str}**   |   **INT:** **${stats.int}**   |   **AGI:** **${stats.agi}**   |   **VIT:** **${stats.vit}**   |   **DEF:** **${stats.def}**   |   **LUCK:** **${stats.luck}**`;
+const statLabels = {
+  vigor: "Vigor",
+  pr: "PR",
+  mr: "MR",
+  str: "STR",
+  dex: "DEX",
+  int: "INT",
+  arc: "ARC",
+  luck: "LUCK",
+};
+
+const statLine = (stats) => {
+  const format = (key) => `**${statLabels[key]}:** **${stats[key] || 0}**`;
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}   |   ${format("luck")}`;
+};
 
 const statLineWithBonus = (baseStats, effectiveStats) => {
   const format = (key) => {
     const base = baseStats[key] || 0;
     const eff = effectiveStats[key] || 0;
     const bonus = eff - base;
-    const label = key.toUpperCase();
+    const label = statLabels[key] || key.toUpperCase();
     if (bonus > 0) {
       return `**${label}:** **${eff}** *(+${bonus})*`;
     }
     return `**${label}:** **${eff}**`;
   };
-  return `${format("str")}   |   ${format("int")}   |   ${format("agi")}   |   ${format("vit")}   |   ${format("def")}   |   ${format("luck")}`;
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}   |   ${format("luck")}`;
 };
 
 const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {
   const statsValue = userData
-    ? statLineWithBonus(rpgClass.stats, getEffectiveRpgStats(userData))
+    ? statLineWithBonus(userData.rpg.stats || {}, getEffectiveRpgStats(userData))
     : statLine(rpgClass.stats);
 
   const assetName = customAvatar || rpgClass.asset;
@@ -58,7 +71,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     .setImage(`attachment://${assetName}`)
     .addFields(
       {
-        name: "Chỉ số khởi đầu",
+        name: "Chỉ số",
         value: statsValue,
       },
       {
@@ -77,6 +90,10 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
   if (userData?.rpg?.classKey === classKey) {
     const nameLine = `Tên nhân vật: **${userData.rpg.name || "Chưa đặt"}**\n`;
     const currentPower = calculateRpgPower(userData);
+    const baseStats = userData.rpg.stats || {};
+    const allocated = (baseStats.vigor || 0) + (baseStats.pr || 0) + (baseStats.mr || 0) + (baseStats.str || 0) + (baseStats.dex || 0) + (baseStats.int || 0) + (baseStats.arc || 0);
+    const availablePoints = (userData.rpg.level || 1) - allocated;
+
     embed.addFields({
       name: "Nhân vật của bạn",
       value:
@@ -84,7 +101,8 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
         `Level: **${userData.rpg.level}**\n` +
         `Rank: **${userData.rpg.rank}**\n` +
         `Lực chiến: **${Math.floor(currentPower).toLocaleString()}**\n` +
-        `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**`,
+        `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**\n` +
+        `Điểm chưa cộng: **${availablePoints}**`,
       inline: true,
     });
 

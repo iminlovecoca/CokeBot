@@ -4,7 +4,9 @@ const {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  AttachmentBuilder,
 } = require("discord.js");
+const path = require("path");
 const config = require("../../data/config");
 const {
   calculateRpgPower,
@@ -19,6 +21,8 @@ const {
   requireRpgCharacter,
   getItemQuality,
   getGearDisplayName,
+  getItemImageFile,
+  getWeaponPower,
 } = require("../../utils/rpgUtil");
 
 const ITEMS_PER_PAGE = 10;
@@ -130,33 +134,62 @@ module.exports = {
         ([, equippedItemId]) => equippedItemId === item.id,
       );
 
-      return message.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor(rarityColor[item.rarity] || rpgClass.color)
-            .setTitle(getGearDisplayName(item))
-            .setDescription(
-              `ID: \`${item.id}\`\n` +
-                `UID: \`${item.uid || "N/A"}\`\n` +
-                `Sở hữu bởi: <@${owner.userId}>\n` +
-                `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
-                `Rarity: **${item.rarity}**\n` +
-                `Chất lượng: **${getItemQuality(item)}%**\n` +
-                `Lực chiến: **+${item.power.toLocaleString()}**\n` +
-                `Stats: **${formatGearStats(item.stats) || "Không có"}**\n` +
-                `Đang mặc: **${equippedEntry ? "Có ✨" : "Không"}**\n` +
-                `Giá bán: **${item.sellPrice.toLocaleString()} Coke**\n` +
-                `Image key: \`${item.imageKey}\``,
-            )
-            .addFields({
-              name: "Lệnh tương tác",
-              value:
-                `Trang bị: \`${config.prefix}equip ${item.id}\`\n` +
-                `Tháo: \`${config.prefix}unequip ${item.slot}\`\n` +
-                `Bán: \`${config.prefix}sellgear ${item.id}\``,
-            }),
-        ],
-      });
+      const imageFile = getItemImageFile(item);
+      let attachment = null;
+      if (imageFile) {
+        const assetPath = path.join(__dirname, "../../assets/items", imageFile);
+        attachment = new AttachmentBuilder(assetPath, { name: path.basename(imageFile) });
+      }
+
+      let desc = `ID: \`${item.id}\`\n` +
+                 `UID: \`${item.uid || "N/A"}\`\n` +
+                 `Sở hữu bởi: <@${owner.userId}>\n` +
+                 `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
+                 `Rarity: **${item.rarity}**\n` +
+                 `Chất lượng: **${getItemQuality(item)}%**\n` +
+                 `Đang mặc: **${equippedEntry ? "Có ✨" : "Không"}**\n` +
+                 `Giá bán: **${item.sellPrice.toLocaleString()} Coke**\n\n`;
+
+      if (item.slot === "weapon") {
+        const ownerStats = getEffectiveRpgStats(owner);
+        const finalPower = getWeaponPower(item, ownerStats);
+        const bonusPower = finalPower - item.power;
+        const powerText = `**${finalPower.toLocaleString()}** (+${bonusPower.toLocaleString()})`;
+
+        const scaling = item.scaling || { str: "-", dex: "-", int: "-", arc: "-" };
+        const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
+
+        desc += `Lực chiến cơ bản: **${item.power.toLocaleString()}**\n` +
+                `Lực chiến thực tế: ${powerText}\n` +
+                `**Thuộc tính scale (Elden Ring):**\n\`${scalingText}\``;
+      } else {
+        const statsText = formatStats(item.stats) || "Không có";
+        desc += `Lực chiến: **+${item.power.toLocaleString()}**\n` +
+                `Chỉ số cộng thêm: **${statsText}**`;
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(rarityColor[item.rarity] || rpgClass.color)
+        .setTitle(getGearDisplayName(item))
+        .setDescription(desc)
+        .addFields({
+          name: "Lệnh tương tác",
+          value:
+            `Trang bị: \`${config.prefix}equip ${item.id}\`\n` +
+            `Tháo: \`${config.prefix}unequip ${item.slot}\`\n` +
+            `Bán: \`${config.prefix}sellgear ${item.id}\``,
+        });
+
+      if (imageFile) {
+        embed.setThumbnail(`attachment://${path.basename(imageFile)}`);
+      }
+
+      const replyOptions = { embeds: [embed] };
+      if (attachment) {
+        replyOptions.files = [attachment];
+      }
+
+      return message.reply(replyOptions);
     }
 
     user.rpg.power = calculateRpgPower(user);

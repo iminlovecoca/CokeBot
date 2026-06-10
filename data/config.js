@@ -124,12 +124,12 @@ module.exports = {
       max_drop_rate: 0.2,
     },
     gear_slots: {
-      weapon: { rate: 20, stat_pool: ["str", "int", "agi"] },
-      armor: { rate: 18, stat_pool: ["vit", "def"] },
-      helmet: { rate: 16, stat_pool: ["def", "vit", "luck"] },
-      boots: { rate: 16, stat_pool: ["agi", "def", "luck"] },
-      ring: { rate: 15, stat_pool: ["str", "int", "luck"] },
-      necklace: { rate: 15, stat_pool: ["vit", "int", "luck"] },
+      weapon: { rate: 20, stat_pool: [] },
+      armor: { rate: 18, stat_pool: ["vigor", "pr", "mr"] },
+      helmet: { rate: 16, stat_pool: ["vigor", "pr", "mr"] },
+      boots: { rate: 16, stat_pool: ["dex", "vigor", "pr", "mr", "arc"] },
+      ring: { rate: 15, stat_pool: ["int", "luck", "dex", "str", "vigor"] },
+      necklace: { rate: 15, stat_pool: ["int", "luck", "dex", "str", "vigor"] },
     },
     gear_slot_names: {
       weapon: "Weapon",
@@ -423,7 +423,7 @@ module.exports = {
         color: "#C75B39",
         description:
           "DPS bền, sát thương ổn định và sống sót tốt khi đánh boss.",
-        stats: { str: 12, int: 4, agi: 7, vit: 10, def: 8, luck: 5 },
+        stats: { vigor: 15, pr: 12, mr: 8, str: 16, dex: 15, int: 8, arc: 7 },
         bonuses: { bossDamage: 0.08, pvpDefense: 0.03 },
       },
       mage: {
@@ -433,7 +433,7 @@ module.exports = {
         color: "#7C5CFF",
         description:
           "Burst damage mạnh, farm EXP nhanh và có lợi thế trong boss nhiều máu.",
-        stats: { str: 3, int: 14, agi: 6, vit: 6, def: 4, luck: 7 },
+        stats: { vigor: 12, pr: 8, mr: 15, str: 8, dex: 12, int: 16, arc: 10 },
         bonuses: { expGain: 0.08, bossDamage: 0.12 },
       },
       assassin: {
@@ -443,7 +443,7 @@ module.exports = {
         color: "#8E44AD",
         description:
           "Crit và tốc độ cao, rất mạnh trong Arena và săn vật phẩm hiếm.",
-        stats: { str: 8, int: 4, agi: 14, vit: 6, def: 4, luck: 8 },
+        stats: { vigor: 12, pr: 10, mr: 8, str: 10, dex: 17, int: 9, arc: 15 },
         bonuses: { critRate: 0.08, dropRate: 0.04 },
       },
       paladin: {
@@ -453,7 +453,7 @@ module.exports = {
         color: "#E3B341",
         description:
           "Tank/support, thủ cao, ổn định trong PvP và content dài hơi.",
-        stats: { str: 8, int: 6, agi: 5, vit: 13, def: 12, luck: 4 },
+        stats: { vigor: 16, pr: 17, mr: 10, str: 14, dex: 9, int: 8, arc: 7 },
         bonuses: { pvpDefense: 0.08 },
       },
       berserker: {
@@ -463,7 +463,7 @@ module.exports = {
         color: "#E74C3C",
         description:
           "Tấn công vật lý cực mạnh, lượng máu dồi dào nhưng thủ thấp.",
-        stats: { str: 15, int: 2, agi: 8, vit: 12, def: 4, luck: 5 },
+        stats: { vigor: 17, pr: 12, mr: 6, str: 18, dex: 12, int: 8, arc: 8 },
         bonuses: { bossDamage: 0.15 },
       },
       archer: {
@@ -473,7 +473,7 @@ module.exports = {
         color: "#2ECC71",
         description:
           "Tốc độ và may mắn vượt trội, tỉ lệ chí mạng và săn đồ rất cao.",
-        stats: { str: 6, int: 5, agi: 12, vit: 8, def: 5, luck: 10 },
+        stats: { vigor: 14, pr: 11, mr: 8, str: 11, dex: 18, int: 10, arc: 9 },
         bonuses: { critRate: 0.05, dropRate: 0.03 },
       },
       necromancer: {
@@ -483,7 +483,7 @@ module.exports = {
         color: "#9B59B6",
         description:
           "Sử dụng ma thuật bóng tối, nhận thêm nhiều kinh nghiệm khi chiến đấu.",
-        stats: { str: 4, int: 15, agi: 5, vit: 8, def: 5, luck: 9 },
+        stats: { vigor: 11, pr: 8, mr: 14, str: 7, dex: 11, int: 16, arc: 14 },
         bonuses: { expGain: 0.1 },
       },
       cleric: {
@@ -493,7 +493,7 @@ module.exports = {
         color: "#F1C40F",
         description:
           "Hỗ trợ và chống chịu tốt, tăng phòng ngự PvP và sát thương boss.",
-        stats: { str: 6, int: 10, agi: 5, vit: 11, def: 10, luck: 6 },
+        stats: { vigor: 15, pr: 11, mr: 15, str: 10, dex: 10, int: 12, arc: 8 },
         bonuses: { pvpDefense: 0.05, bossDamage: 0.05 },
       },
     },

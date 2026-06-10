@@ -50,33 +50,183 @@ const getEquippedItems = (user) => {
   );
 };
 
+const subTypes = {
+  weapon: [
+    { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
+    { name: "Staff", emoji: "<:staff:1514231936581898240>" },
+    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" }
+  ],
+  armor: [
+    { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
+    { name: "Heavy Armor", emoji: "<:heavyarmor:1514232237724401716>" },
+    { name: "Mage Robe", emoji: "<:magerobe:1514232240052375712>" }
+  ],
+  helmet: [
+    { name: "Warrior Helmet", emoji: "<:warriorhelmet:1514232262793629836>" },
+    { name: "Assassin Hood", emoji: "<:assassinhood:1514232265247559802>" },
+    { name: "Wizard Hat", emoji: "<:wizardhat:1514232268246482985>" }
+  ],
+  boots: [
+    { name: "Assassin Boot", emoji: "<:assassinboot:1514232291617149070>" },
+    { name: "Mage Boot", emoji: "<:mageboot:1514232293634609182>" },
+    { name: "Knight Boot", emoji: "<:knightboot:1514232296000192582>" }
+  ],
+  ring: [
+    { name: "Ring", emoji: "<:ring:1514236487707791391>" },
+    { name: "Mage Ring", emoji: "<:magering:1514236485556113559>" },
+    { name: "Dragon Ring", emoji: "<:dragonring:1514236496868151426>" }
+  ],
+  necklace: [
+    { name: "Necklace", emoji: "<:necklace:1514236494859206729>" },
+    { name: "Ember Necklace", emoji: "<:emberneck:1514236492891820062>" },
+    { name: "Crystal Necklace", emoji: "<:cristalneck:1514236490102607933>" }
+  ]
+};
+
+const getItemImageFile = (item) => {
+  const slot = String(item.slot || "").toLowerCase();
+  const subType = String(item.subType || "").toLowerCase();
+  const rarity = String(item.rarity || "").toLowerCase();
+
+  if (slot === "weapon") {
+    if (subType.includes("sword") || subType.includes("longsword")) {
+      if (rarity === "divine") return "Weapon/holysword.png";
+      if (rarity === "mythic" || rarity === "ancient") return "Weapon/darksword.png";
+      if (rarity === "legendary") return "Weapon/firesword.png";
+      return "Weapon/normalsword.png";
+    } else if (subType.includes("staff")) {
+      if (rarity === "divine") return "Weapon/darkstaff.png";
+      if (rarity === "mythic" || rarity === "ancient") return "Weapon/greenstaff.png";
+      if (rarity === "legendary") return "Weapon/bluestaff.png";
+      return "Weapon/normalstaff.png";
+    } else if (subType.includes("dagger")) {
+      if (rarity === "divine") return "Weapon/shadowdagger.png";
+      if (rarity === "mythic" || rarity === "ancient") return "Weapon/crimsondagger.png";
+      if (rarity === "legendary") return "Weapon/poisondagger.png";
+      return "Weapon/normaldagger.png";
+    }
+    return "Weapon/normalsword.png";
+  }
+
+  if (slot === "armor") {
+    if (subType.includes("assassin")) return "Armor/assassinarmor.png";
+    if (subType.includes("heavy")) return "Armor/heavyarmor.png";
+    if (subType.includes("mage") || subType.includes("robe")) return "Armor/magerobe.png";
+    return "Armor/heavyarmor.png";
+  }
+
+  if (slot === "helmet") {
+    if (subType.includes("warrior") || subType.includes("helm")) return "Helmet/warriorhelm.png";
+    if (subType.includes("assassin") || subType.includes("hood")) return "Helmet/assassinhood.png";
+    if (subType.includes("wizard") || subType.includes("hat")) return "Helmet/wizardhat.png";
+    return "Helmet/warriorhelm.png";
+  }
+
+  if (slot === "boots") {
+    if (subType.includes("assassin")) return "Boot/assassinboot.png";
+    if (subType.includes("knight") || subType.includes("boot")) return "Boot/knightboot.png";
+    if (subType.includes("mage")) return "Boot/mageboot.png";
+    return "Boot/knightboot.png";
+  }
+
+  if (slot === "ring") {
+    if (subType.includes("mage")) return "Ring/magering.png";
+    if (subType.includes("dragon")) return "Ring/dragonring.png";
+    return "Ring/ring.png";
+  }
+
+  if (slot === "necklace") {
+    if (subType.includes("ember")) return "Necklace/emberneck.png";
+    if (subType.includes("crystal") || subType.includes("cristal")) return "Necklace/cristalneck.png";
+    return "Necklace/necklace.png";
+  }
+
+  return null;
+};
+
+const getWeaponPower = (item, effectiveStats) => {
+  if (item.slot !== "weapon") return item.power || 0;
+  
+  const base = item.power || 0;
+  const scaling = item.scaling || { str: "-", dex: "-", int: "-", arc: "-" };
+  const gradeMultipliers = { S: 2.0, A: 1.5, B: 1.1, C: 0.8, D: 0.5, E: 0.2, "-": 0.0 };
+  
+  const multStr = gradeMultipliers[scaling.str] || 0;
+  const multDex = gradeMultipliers[scaling.dex] || 0;
+  const multInt = gradeMultipliers[scaling.int] || 0;
+  const multArc = gradeMultipliers[scaling.arc] || 0;
+  
+  const valStr = effectiveStats.str || 0;
+  const valDex = effectiveStats.dex || 0;
+  const valInt = effectiveStats.int || 0;
+  const valArc = effectiveStats.arc || 0;
+  
+  const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc) / 99;
+  return Math.floor(base * (1 + bonusPercent));
+};
+
 const emptyStats = () => ({
+  vigor: 0,
+  pr: 0,
+  mr: 0,
   str: 0,
+  dex: 0,
   int: 0,
-  agi: 0,
-  vit: 0,
-  def: 0,
+  arc: 0,
   luck: 0,
 });
+
+const statLabels = {
+  vigor: "Vigor",
+  pr: "PR",
+  mr: "MR",
+  str: "Strengh",
+  dex: "Dexterity",
+  int: "Intelligence",
+  arc: "Arcane",
+  luck: "Luck",
+};
 
 const formatStats = (stats = {}) =>
   Object.entries(stats)
     .filter(([, value]) => value)
-    .map(([key, value]) => `${key.toUpperCase()} +${value}`)
+    .map(([key, value]) => `${statLabels[key.toLowerCase()] || key.toUpperCase()} +${value}`)
     .join(", ");
+
+const getStartingStats = (user) => {
+  if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
+  const rpgClass = getRpgClass(user.rpg.classKey);
+  return rpgClass?.stats || { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
+};
+
+const getAllocatedPoints = (user) => {
+  const current = user.rpg.stats || {};
+  const starting = getStartingStats(user);
+  
+  let allocated = 0;
+  for (const key of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
+    const curVal = current[key] !== undefined ? current[key] : (starting[key] || 0);
+    const startVal = starting[key] || 0;
+    allocated += Math.max(0, curVal - startVal);
+  }
+  return allocated;
+};
+
+const getAvailablePoints = (user) => {
+  const level = user.rpg.level || 1;
+  const allocated = getAllocatedPoints(user);
+  return Math.max(0, (level - 1) - allocated);
+};
 
 const getEffectiveRpgStats = (user) => {
   const stats = emptyStats();
   if (!user?.rpg?.classKey) return stats;
 
-  const rpgClass = getRpgClass(user.rpg.classKey);
-  const baseStats = rpgClass?.stats || user.rpg.stats || {};
-  const level = user.rpg.level || 1;
+  const startingStats = getStartingStats(user);
+  const baseStats = user.rpg.stats || {};
 
   for (const stat of Object.keys(stats)) {
-    const base = baseStats[stat] || 0;
-    // Scale base stats: base + base * (level - 1) * 0.1
-    stats[stat] = base + Math.floor(base * (level - 1) * 0.1);
+    stats[stat] = baseStats[stat] !== undefined ? baseStats[stat] : (startingStats[stat] || 0);
   }
 
   for (const item of Object.values(getEquippedItems(user))) {
@@ -88,10 +238,15 @@ const getEffectiveRpgStats = (user) => {
 };
 
 const calculateRpgPower = (user) => {
-  return Object.values(getEquippedItems(user)).reduce(
-    (total, item) => total + (item.power || 0),
-    0,
-  );
+  const equipped = getEquippedItems(user);
+  const effectiveStats = getEffectiveRpgStats(user);
+  
+  return Object.values(equipped).reduce((total, item) => {
+    if (item.slot === "weapon") {
+      return total + getWeaponPower(item, effectiveStats);
+    }
+    return total + (item.power || 0);
+  }, 0);
 };
 
 const calculateStarterPower = () => 0;
@@ -226,8 +381,9 @@ const getGearDisplayName = (item) => {
     necklace: "📿",
   };
   const rank = bracketEmoji[item.rarity] || "";
-  const slot = slotEmoji[item.slot] || "";
-  return `${rank}${slot}`;
+  const emoji = item.emoji || slotEmoji[item.slot] || "🛡️";
+  const subTypeName = item.subType || (item.slot ? item.slot.toUpperCase() : "");
+  return `${rank}${emoji} ${subTypeName}`;
 };
 
 const generateRpgGearDrop = async (user, options = {}) => {
@@ -249,6 +405,9 @@ const generateRpgGearDrop = async (user, options = {}) => {
     Object.entries(config.rpg.gear_slots),
     ([, value]) => value.rate ?? value.weight ?? 0,
   )[0];
+
+  const slotSubtypes = subTypes[slot] || [];
+  const chosenSubtype = slotSubtypes[Math.floor(Math.random() * slotSubtypes.length)] || { name: slot.toUpperCase(), emoji: "🛡️" };
 
   let rarity, rarityConfig;
   if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
@@ -273,7 +432,44 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const stats = generateGearStats(slot, rarityConfig, level);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
   const sellPrice = Math.floor((rarityConfig.sell + level * 18) * variance);
-  const name = getGearDisplayName({ rarity, slot });
+
+  let scaling = null;
+  if (slot === "weapon") {
+    scaling = { str: "-", dex: "-", int: "-", arc: "-" };
+    const subName = chosenSubtype.name.toLowerCase();
+    let prim = "str", sec = "dex";
+    if (subName.includes("staff")) {
+      prim = "int";
+      sec = "arc";
+    } else if (subName.includes("dagger")) {
+      prim = "dex";
+      sec = "arc";
+    }
+    
+    const primaryGrades = {
+      Common: "D",
+      Rare: "C",
+      Epic: "B",
+      Legendary: "A",
+      Mythic: "S",
+      Ancient: "S",
+      Divine: "S"
+    };
+    const secondaryGrades = {
+      Common: "E",
+      Rare: "D",
+      Epic: "C",
+      Legendary: "B",
+      Mythic: "B",
+      Ancient: "A",
+      Divine: "S"
+    };
+    
+    scaling[prim] = primaryGrades[rarity] || "E";
+    scaling[sec] = secondaryGrades[rarity] || "E";
+  }
+
+  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji });
 
   const compareStats = (s1 = {}, s2 = {}) => {
     const keys1 = Object.keys(s1).sort();
@@ -358,6 +554,9 @@ const generateRpgGearDrop = async (user, options = {}) => {
     quality,
     sellPrice,
     imageKey: `todo_${slot}_${rarity.toLowerCase()}`,
+    subType: chosenSubtype.name,
+    emoji: chosenSubtype.emoji,
+    scaling,
     droppedAt: new Date(),
   };
 };
@@ -488,4 +687,10 @@ module.exports = {
   getBossForPower,
   getItemQuality,
   getGearDisplayName,
+  getItemImageFile,
+  getWeaponPower,
+  emptyStats,
+  getStartingStats,
+  getAllocatedPoints,
+  getAvailablePoints,
 };
