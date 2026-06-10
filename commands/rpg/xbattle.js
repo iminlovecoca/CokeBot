@@ -34,6 +34,20 @@ const CLASS_ATTACK_TYPES = {
   cleric: "magical",
 };
 
+const imageCache = new Map();
+
+const getCachedImage = async (imagePath) => {
+  if (imageCache.has(imagePath)) {
+    return imageCache.get(imagePath);
+  }
+  if (fs.existsSync(imagePath)) {
+    const img = await loadImage(imagePath);
+    imageCache.set(imagePath, img);
+    return img;
+  }
+  return null;
+};
+
 const generatePvPImage = async (p1Asset, p2Asset) => {
   const width = 800;
   const height = 400;
@@ -42,8 +56,8 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 
   // Load background
   const bgPath = path.join(__dirname, "../../assets/backgrounds/dark-bg.png");
-  if (fs.existsSync(bgPath)) {
-    const bg = await loadImage(bgPath);
+  const bg = await getCachedImage(bgPath);
+  if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
   } else {
     ctx.fillStyle = "#1e1f22";
@@ -51,7 +65,6 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   }
 
   async function drawTarget(ctx, img, x, y, width, height, flip = false) {
-    const { createCanvas } = require("canvas");
     const tempCanvas = createCanvas(width, height);
     const tempCtx = tempCanvas.getContext("2d");
 
@@ -88,26 +101,20 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   }
 
   const p1ImgPath = path.join(__dirname, "../../assets/characters", p1Asset);
-  if (fs.existsSync(p1ImgPath)) {
-    const img1 = await loadImage(p1ImgPath);
+  const img1 = await getCachedImage(p1ImgPath);
+  if (img1) {
     await drawTarget(ctx, img1, -30, 100, 200, 200, true);
   }
 
   const p2ImgPath = path.join(__dirname, "../../assets/characters", p2Asset);
-  if (fs.existsSync(p2ImgPath)) {
-    const img2 = await loadImage(p2ImgPath);
+  const img2 = await getCachedImage(p2ImgPath);
+  if (img2) {
     await drawTarget(ctx, img2, 540, 100, 200, 200, false);
   }
 
-  const tempDir = path.join(__dirname, "../../temp");
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
-  const outputPath = path.join(tempDir, filename);
   const buffer = canvas.toBuffer("image/png");
-  fs.writeFileSync(outputPath, buffer);
-  return { path: outputPath, name: filename };
+  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+  return { buffer, name: filename };
 };
 
 const simulatePvP = (p1, p2) => {
@@ -546,95 +553,85 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
-  // 2 stages: start → result
-  const stages = [
-    {
-      hp1: maxHp1,
-      hp2: maxHp2,
-      color: "#5865F2",
-      showResult: false,
-    },
-    {
-      hp1: finalHp1,
-      hp2: finalHp2,
-      color: result.isDraw ? "#F1C40F" : (isP1Winner ? "#2ECC71" : "#E74C3C"),
-      showResult: true,
-    },
-  ];
+  // Reply instantly with Stage 1 text-only embed
+  const initialEmbed = new EmbedBuilder()
+    .setColor("#5865F2")
+    .setDescription("⚔️ **Trận chiến đang diễn ra...**")
+    .addFields(
+      {
+        name: `${player1.name} (${player1.classLabel})`,
+        value: renderTextBar(maxHp1, maxHp1, player1.gearPower),
+        inline: true,
+      },
+      {
+        name: `${player2.name} (${player2.classLabel})`,
+        value: renderTextBar(maxHp2, maxHp2, player2.gearPower),
+        inline: true,
+      },
+    );
 
-  let currentMsg = null;
+  let currentMsg;
+  if (promptMessage && promptMessage.editable) {
+    currentMsg = await promptMessage.edit({ embeds: [initialEmbed], components: [] });
+  } else {
+    currentMsg = await message.reply({ embeds: [initialEmbed] });
+  }
 
+  // Generate image in the background (asynchronously)
   const imgData = await generatePvPImage(
     player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
     player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-  );
-
-  const attachment = new AttachmentBuilder(imgData.path, {
-    name: imgData.name,
+  ).catch(err => {
+    console.error("Failed to generate PvP image:", err);
+    return null;
   });
 
-  for (let i = 0; i < stages.length; i++) {
-    const stage = stages[i];
-
-    const embed = new EmbedBuilder()
-      .setColor(stage.color)
-      .addFields(
-        {
-          name: `${player1.name} (${player1.classLabel})`,
-          value: renderTextBar(stage.hp1, maxHp1, player1.gearPower),
-          inline: true,
-        },
-        {
-          name: `${player2.name} (${player2.classLabel})`,
-          value: renderTextBar(stage.hp2, maxHp2, player2.gearPower),
-          inline: true,
-        },
-      )
-      .setImage(`attachment://${imgData.name}`);
-
-    if (stage.showResult) {
-      if (result.isDraw) {
-        embed.setDescription(
-          `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng được giữ nguyên**`,
-        );
-      } else {
-        const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
-        const xpGained = isP1Winner ? 200 : 50;
-        const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
-        embed.setDescription(
-          `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
-        );
-      }
-    }
-
-    const payload = {
-      embeds: [embed],
-      components: [],
-    };
-
-    if (i === 0) {
-      payload.files = [attachment];
-    }
-
-    if (i === 0 && promptMessage && promptMessage.editable) {
-      await promptMessage.edit(payload);
-      currentMsg = promptMessage;
-    } else if (i === 0) {
-      currentMsg = await message.reply(payload);
-    } else {
-      await currentMsg.edit(payload).catch(() => {});
-    }
-
-    // Delay between stages (not after last)
-    if (i < stages.length - 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
+  let attachment = null;
+  if (imgData) {
+    attachment = new AttachmentBuilder(imgData.buffer, {
+      name: imgData.name,
+    });
+    
+    // Update Stage 1 to show the image once generated
+    initialEmbed.setImage(`attachment://${imgData.name}`);
+    await currentMsg.edit({ embeds: [initialEmbed], files: [attachment] }).catch(() => {});
   }
 
-  // Cleanup temp image after the battle ends
-  try {
-    if (fs.existsSync(imgData.path)) fs.unlinkSync(imgData.path);
-  } catch (err) {
-    console.error("Failed to delete temp file:", err);
+  // Delay before showing results
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Stage 2: final result
+  const finalEmbed = new EmbedBuilder()
+    .setColor(result.isDraw ? "#F1C40F" : (isP1Winner ? "#2ECC71" : "#E74C3C"))
+    .addFields(
+      {
+        name: `${player1.name} (${player1.classLabel})`,
+        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
+        inline: true,
+      },
+      {
+        name: `${player2.name} (${player2.classLabel})`,
+        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
+        inline: true,
+      },
+    );
+
+  if (imgData) {
+    finalEmbed.setImage(`attachment://${imgData.name}`);
   }
+
+  if (result.isDraw) {
+    finalEmbed.setDescription(
+      `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng được giữ nguyên**`,
+    );
+  } else {
+    const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
+    const xpGained = isP1Winner ? 200 : 50;
+    const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
+    finalEmbed.setDescription(
+      `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
+    );
+  }
+
+  await currentMsg.edit({ embeds: [finalEmbed] }).catch(() => {});
 };

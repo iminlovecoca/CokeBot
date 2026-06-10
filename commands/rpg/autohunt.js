@@ -195,7 +195,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
         `Use the command \`${config.prefix}xautohunt {Coke | duration}\` to get started.\n` +
         `You can use \`${config.prefix}xupgrade {trait} [essence]\` to upgrade the traits below.\n` +
-        `To obtain more essence, use \`${config.prefix}xautohunt sacrifice {rarity} {count}\`.\n\n`,
+        `To obtain more essence, use \`${config.prefix}xsacrifice {rarity} {count}\`.\n\n`,
     )
     .addFields(
       {
@@ -238,36 +238,69 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
       text: `Rank #${rank.toLocaleString()} • ${botInfo.label}`,
     });
 
+  if (user.rpg.autohunt.isActive) {
+    const startTime = new Date(user.rpg.autohunt.startTime).getTime();
+    const durationMs = user.rpg.autohunt.durationHours * 60 * 60 * 1000;
+    const elapsedMs = Date.now() - startTime;
+    const remainingMs = Math.max(0, durationMs - elapsedMs);
+
+    const pct = Math.min(100, (elapsedMs / durationMs) * 100).toFixed(2);
+    const huntsCount = Math.floor(
+      Math.min(user.rpg.autohunt.durationHours, elapsedMs / (60 * 60 * 1000)) *
+        effInfo.stat,
+    );
+
+    const filled = Math.min(20, Math.round((elapsedMs / durationMs) * 20));
+    const activeBar = "[" + "■".repeat(filled) + "□".repeat(20 - filled) + "]";
+
+    embed.addFields({
+      name: `${botInfo.emoji} HUNTBOT is currently hunting!`,
+      value: `\`BEEP BOOP. I AM STILL HUNTING. I WILL BE BACK IN ${formatDuration(remainingMs)}\`\n` +
+        `**${pct}% DONE** | **${huntsCount.toLocaleString()}** HUNTS COMPLETED\n` +
+        `${activeBar}\n\n` +
+        `*Dùng \`${config.prefix}xautohunt claim\` để nhận thưởng sớm và dừng đi săn.*`,
+      inline: false,
+    });
+  }
+
   return embed;
 };
 
-const renderActiveHunt = (user, memberName, botInfo) => {
-  const startTime = new Date(user.rpg.autohunt.startTime).getTime();
-  const durationMs = user.rpg.autohunt.durationHours * 60 * 60 * 1000;
-  const elapsedMs = Date.now() - startTime;
-  const remainingMs = Math.max(0, durationMs - elapsedMs);
+const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel) => {
+  const countsByRarity = {};
+  for (const item of gearsDropped) {
+    countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
+  }
 
-  const xp = user.rpg.autohunt.xp;
-  const effInfo = getLvl(xp.efficiency, 0, 'efficiency');
+  const bracketEmoji = {
+    Common: "<:Common:1390024590347997245>",
+    Rare: "<:Rare:1390024624380706916>",
+    Epic: "<:Epic:1390024749517770832>",
+    Legendary: "<:Legendary:1390024772200567026>",
+    Mythic: "<:Mythic:1390024789279772833>",
+    Ancient: "<:Ancient:1390024806535004333>",
+    Divine: "<:Divine:1512512382507683880>",
+  };
 
-  const pct = Math.min(100, (elapsedMs / durationMs) * 100).toFixed(2);
-  const huntsCount = Math.floor(
-    Math.min(user.rpg.autohunt.durationHours, elapsedMs / (60 * 60 * 1000)) *
-      effInfo.stat,
-  );
+  const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+  const detailParts = rarityOrder
+    .filter(r => countsByRarity[r] > 0)
+    .map(r => `${bracketEmoji[r] || ""} **x${countsByRarity[r]}**`);
 
-  const filled = Math.min(20, Math.round((elapsedMs / durationMs) * 20));
-  const bar = "[" + "■".repeat(filled) + "□".repeat(20 - filled) + "]";
+  const gearDetailLine = detailParts.length > 0 ? detailParts.join("   ") : "*Không tìm thấy trang bị nào*";
 
   const embed = new EmbedBuilder()
-    .setColor("#5865F2")
-    .setTitle(`${memberName}'s HuntBot`)
+    .setColor("#57F287")
+    .setTitle("🤖 HuntBot Báo Cáo Kết Quả Đi Săn")
     .setDescription(
-      `${botInfo.emoji} **HUNTBOT is currently hunting!**\n` +
-        `\`BEEP BOOP. I AM STILL HUNTING. I WILL BE BACK IN ${formatDuration(remainingMs)}\`\n\n` +
-        `**${pct}% DONE** | **${huntsCount.toLocaleString()}** HUNTS COMPLETED\n` +
-        `${bar}\n\n` +
-        `*Dùng \`${config.prefix}xautohunt claim\` để nhận thưởng sớm và dừng đi săn.*`,
+      `Chào chủ nhân, tôi đã hoàn thành đi săn tự động!\n` +
+        `⏱️ **Thời gian**: \`${elapsedHours.toFixed(1)} giờ\`  |  🎯 **Lượt săn**: \`${huntsCount.toLocaleString()}\`\n\n` +
+        `💎 **Phần thưởng:**\n` +
+        `• ⚔️ EXP Nhân vật: **+${xpGain.toLocaleString()}** ${levelsGained > 0 ? `(🎉 **Lên cấp ${newLevel}!**)` : ""}\n` +
+        `• 🔵 Coke Essence: **+${essenceGain.toLocaleString()}**\n` +
+        `• 🎒 Trang bị nhặt: **${gearsDropped.length}** món\n\n` +
+        `📦 **Chi tiết trang bị:**\n` +
+        `${gearDetailLine}`
     );
 
   return embed;
@@ -277,7 +310,7 @@ module.exports = {
   name: "xautohunt",
   aliases: ["autohunt", "hb", "ah", "xah", "xhb"],
   description: "Hệ thống đi săn tự động bằng robot HuntBot.",
-  usage: `${config.prefix}xautohunt [duration_hours | upgrade | sacrifice | claim]`,
+  usage: `${config.prefix}xautohunt [duration_hours | upgrade | claim]`,
   examples: [
     {
       intent: "Xem bảng nâng cấp HuntBot",
@@ -293,7 +326,7 @@ module.exports = {
     },
     {
       intent: "Hiến tế trang bị Common",
-      command: `${config.prefix}xautohunt sacrifice common all`,
+      command: `${config.prefix}xsacrifice common all`,
     },
     {
       intent: "Nhận phần thưởng autohunt",
@@ -420,32 +453,16 @@ module.exports = {
         user.markModified("rpg");
         await user.save();
 
-        const countsByRarity = {};
-        for (const item of gearsDropped) {
-          countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
-        }
-        const rarityLines = Object.entries(countsByRarity)
-          .map(([rarity, count]) => `• ${rarity}: **${count}** món`)
-          .join("\n");
-
-        const embed = new EmbedBuilder()
-          .setColor("#57F287")
-          .setTitle("🤖 HuntBot báo cáo kết quả đi săn")
-          .setDescription(
-            `Chào chủ nhân, tôi đã hoàn thành đi săn tự động trong **${elapsedHours.toFixed(2)} giờ** và mang về:\n\n` +
-              `• EXP Nhân vật: **+${xpGain.toLocaleString()}**\n` +
-              `• Essence: **+${essenceGain.toLocaleString()}**\n` +
-              `• Số lượt săn: **${huntsCount.toLocaleString()}** lượt\n` +
-              `• Trang bị nhặt được: **${gearsDropped.length}** món\n` +
-              (rarityLines ? `\n**Chi tiết trang bị:**\n${rarityLines}` : ""),
-          );
-
-        if (levelsGained > 0) {
-          embed.addFields({
-            name: "Lên cấp!",
-            value: `Bạn đã tăng cấp từ **${previousLevel}** lên **${user.rpg.level}**!`,
-          });
-        }
+        const embed = renderHarvestReport(
+          elapsedHours,
+          huntsCount,
+          xpGain,
+          essenceGain,
+          gearsDropped,
+          levelsGained,
+          previousLevel,
+          user.rpg.level
+        );
 
         return message.reply({ content: `🎉 **Auto Hunt Hoàn Thành!**`, embeds: [embed] });
       }
@@ -635,32 +652,16 @@ module.exports = {
       user.markModified("rpg");
       await user.save();
 
-      const countsByRarity = {};
-      for (const item of gearsDropped) {
-        countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
-      }
-      const rarityLines = Object.entries(countsByRarity)
-        .map(([rarity, count]) => `• ${rarity}: **${count}** món`)
-        .join("\n");
-
-      const embed = new EmbedBuilder()
-        .setColor("#57F287")
-        .setTitle("🤖 HuntBot báo cáo kết quả đi săn")
-        .setDescription(
-          `Chào chủ nhân, tôi đã đi săn tự động trong **${elapsedHours.toFixed(2)} giờ** và mang về:\n\n` +
-            `• EXP Nhân vật: **+${xpGain.toLocaleString()}**\n` +
-            `• Essence: **+${essenceGain.toLocaleString()}**\n` +
-            `• Số lượt săn: **${huntsCount.toLocaleString()}** lượt\n` +
-            `• Trang bị nhặt được: **${gearsDropped.length}** món\n` +
-            (rarityLines ? `\n**Chi tiết trang bị:**\n${rarityLines}` : ""),
-        );
-
-      if (levelsGained > 0) {
-        embed.addFields({
-          name: "Lên cấp!",
-          value: `Bạn đã tăng cấp từ **${previousLevel}** lên **${user.rpg.level}**!`,
-        });
-      }
+      const embed = renderHarvestReport(
+        elapsedHours,
+        huntsCount,
+        xpGain,
+        essenceGain,
+        gearsDropped,
+        levelsGained,
+        previousLevel,
+        user.rpg.level
+      );
 
       return message.reply({ embeds: [embed] });
     }
@@ -809,10 +810,6 @@ module.exports = {
     }
 
     // 5. STATUS / VIEW PANEL (No args)
-    if (user.rpg.autohunt.isActive) {
-      return message.reply({ embeds: [renderActiveHunt(user, memberName, botInfo)] });
-    } else {
-      return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)] });
-    }
+    return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)] });
   },
 };

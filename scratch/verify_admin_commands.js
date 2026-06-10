@@ -34,12 +34,16 @@ User.create = async (data) => {
   return mockUser;
 };
 
+const cooldown = require("../utils/cooldown");
+cooldown.checkAndSetCooldown = () => 0;
+
 const weaponlist = require("../commands/admin/weaponlist");
 const removegear = require("../commands/admin/removegear");
 const addgodset = require("../commands/admin/addgodset");
+const sacrifice = require("../commands/rpg/sacrifice");
 
 async function runTests() {
-  console.log("=== STARTING ADMIN COMMANDS VERIFICATION ===\n");
+  console.log("=== STARTING ADMIN & USER COMMANDS VERIFICATION ===\n");
 
   // 1. Verify weaponlist metadata
   console.log("Testing weaponlist command definition...");
@@ -129,7 +133,51 @@ async function runTests() {
   }
   console.log("SUCCESS: custom weapon 'Ultimate Blade' matched and fell back properly.\n");
 
-  console.log("=== ALL ADMIN COMMANDS TESTS PASSED SUCCESSFULLY! ===");
+  // 4. Verify sacrifice command logic
+  console.log("Testing sacrifice command...");
+  if (sacrifice.name !== "sacrifice" || !sacrifice.aliases.includes("sac")) {
+    throw new Error("FAIL: sacrifice name or aliases incorrect!");
+  }
+
+  // Set mockUser items with some unequipped common items
+  mockUser.rpg.items = [
+    { id: 900, rarity: "Common", slot: "weapon", power: 10 },
+    { id: 901, rarity: "Common", slot: "armor", power: 10 },
+    { id: 902, rarity: "Rare", slot: "weapon", power: 30 }
+  ];
+  mockUser.rpg.equipped = { weapon: 902 }; // weapon 902 is equipped, 900/901 are not
+  mockUser.rpg.autohunt = { essence: 0 };
+
+  const mockSacrificeMessage = {
+    author: { id: "12345" },
+    reply: async (response) => {
+      mockSacrificeMessage.repliedWith = response;
+      return {
+        delete: async () => {}
+      };
+    }
+  };
+
+  // Sacrifice 1 common item
+  await sacrifice.execute(mockSacrificeMessage, ["common", "1"]);
+  if (mockUser.rpg.autohunt.essence !== 10) {
+    throw new Error(`FAIL: expected 10 essence after sacrificing 1 common item, got ${mockUser.rpg.autohunt.essence}`);
+  }
+  if (mockUser.rpg.items.length !== 2) {
+    throw new Error(`FAIL: expected 2 items remaining in inventory, got ${mockUser.rpg.items.length}`);
+  }
+
+  // Sacrifice all remaining common items (1 left)
+  await sacrifice.execute(mockSacrificeMessage, ["common", "all"]);
+  if (mockUser.rpg.autohunt.essence !== 20) {
+    throw new Error(`FAIL: expected 20 essence after sacrificing all common items, got ${mockUser.rpg.autohunt.essence}`);
+  }
+  if (mockUser.rpg.items.length !== 1 || mockUser.rpg.items[0].id !== 902) {
+    throw new Error(`FAIL: expected only equipped item 902 remaining, got inventory length ${mockUser.rpg.items.length}`);
+  }
+  console.log("SUCCESS: sacrifice command logic verified.\n");
+
+  console.log("=== ALL ADMIN & USER COMMANDS TESTS PASSED SUCCESSFULLY! ===");
 }
 
 runTests().catch(err => {

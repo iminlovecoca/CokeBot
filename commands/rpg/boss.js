@@ -288,37 +288,22 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
     activeBoss.updateQueue = Promise.resolve();
   }
 
-  activeBoss.updateQueue = activeBoss.updateQueue
-    .then(async () => {
-      try {
-        if (!activeBoss.messageIds) {
-          activeBoss.messageIds = [];
-          if (activeBoss.messageId) {
-            activeBoss.messageIds.push(activeBoss.messageId);
-          }
-        }
-
-        const payload = {
-          embeds: [buildBossEmbed(activeBoss)],
-          components: buildBossComponents(activeBoss),
-        };
-
-        if (forceNewMessage || activeBoss.messageIds.length === 0) {
-          if (!activeBoss.imageUrl) {
-            payload.files = [getAttachment(activeBoss.boss)];
-          }
-          const newMsg = await channel.send(payload).catch(() => null);
-          if (newMsg) {
-            activeBoss.messageIds.push(newMsg.id);
-            activeBoss.messageId = newMsg.id;
-            if (!activeBoss.imageUrl) {
-              const attachment = newMsg.attachments.first();
-              if (attachment) {
-                activeBoss.imageUrl = attachment.url;
-              }
+  const runUpdate = async () => {
+    activeBoss.updateQueue = activeBoss.updateQueue
+      .then(async () => {
+        try {
+          if (!activeBoss.messageIds) {
+            activeBoss.messageIds = [];
+            if (activeBoss.messageId) {
+              activeBoss.messageIds.push(activeBoss.messageId);
             }
           }
-        } else {
+
+          const payload = {
+            embeds: [buildBossEmbed(activeBoss)],
+            components: buildBossComponents(activeBoss),
+          };
+
           const updatedIds = [];
           for (const msgId of activeBoss.messageIds) {
             const msg = await channel.messages.fetch(msgId).catch(() => null);
@@ -343,16 +328,86 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
             }
           }
           activeBoss.messageIds = updatedIds;
+          activeBoss.lastEditAt = Date.now();
+          activeBoss.pendingEdit = false;
+        } catch (err) {
+          console.error("[RPG_BOSS] Error updating boss message:", err);
         }
-      } catch (err) {
-        console.error("[RPG_BOSS] Error updating boss message:", err);
-      }
-    })
-    .catch((err) => {
-      console.error("[RPG_BOSS] Error in updateBossMessage queue:", err);
-    });
+      })
+      .catch((err) => {
+        console.error("[RPG_BOSS] Error in updateBossMessage queue:", err);
+      });
 
-  await activeBoss.updateQueue;
+    await activeBoss.updateQueue;
+  };
+
+  const isDefeated = activeBoss.hp <= 0 || activeBoss.defeated;
+  const now = Date.now();
+  const throttleDuration = 3500; // 3.5 seconds
+
+  if (forceNewMessage) {
+    if (activeBoss.editTimeout) {
+      clearTimeout(activeBoss.editTimeout);
+      activeBoss.editTimeout = null;
+      activeBoss.pendingEdit = false;
+    }
+
+    activeBoss.updateQueue = activeBoss.updateQueue.then(async () => {
+      try {
+        if (!activeBoss.messageIds) activeBoss.messageIds = [];
+        const payload = {
+          embeds: [buildBossEmbed(activeBoss)],
+          components: buildBossComponents(activeBoss),
+        };
+        if (!activeBoss.imageUrl) {
+          payload.files = [getAttachment(activeBoss.boss)];
+        }
+        const newMsg = await channel.send(payload).catch(() => null);
+        if (newMsg) {
+          activeBoss.messageIds.push(newMsg.id);
+          activeBoss.messageId = newMsg.id;
+          if (!activeBoss.imageUrl) {
+            const attachment = newMsg.attachments.first();
+            if (attachment) {
+              activeBoss.imageUrl = attachment.url;
+            }
+          }
+        }
+        activeBoss.lastEditAt = Date.now();
+      } catch (err) {
+        console.error("[RPG_BOSS] Error sending new boss message:", err);
+      }
+    });
+    await activeBoss.updateQueue;
+    return;
+  }
+
+  if (isDefeated) {
+    if (activeBoss.editTimeout) {
+      clearTimeout(activeBoss.editTimeout);
+      activeBoss.editTimeout = null;
+      activeBoss.pendingEdit = false;
+    }
+    await runUpdate();
+    return;
+  }
+
+  if (activeBoss.pendingEdit) {
+    return;
+  }
+
+  const lastEdit = activeBoss.lastEditAt || 0;
+  const timeSinceLastEdit = now - lastEdit;
+
+  if (timeSinceLastEdit >= throttleDuration) {
+    await runUpdate();
+  } else {
+    activeBoss.pendingEdit = true;
+    activeBoss.editTimeout = setTimeout(async () => {
+      activeBoss.editTimeout = null;
+      await runUpdate();
+    }, throttleDuration - timeSinceLastEdit);
+  }
 };
 
 const performBossAttack = async ({ client, channel, userId }) => {
@@ -713,10 +768,20 @@ const showBossPanel = async (message) => {
   }
 
   const replyMsg = await message.reply(payload).catch(() => null);
-  if (replyMsg && !activeBoss.imageUrl) {
-    const attachment = replyMsg.attachments.first();
-    if (attachment) {
-      activeBoss.imageUrl = attachment.url;
+  if (replyMsg) {
+    if (!activeBoss.messageIds) {
+      activeBoss.messageIds = [];
+      if (activeBoss.messageId) {
+        activeBoss.messageIds.push(activeBoss.messageId);
+      }
+    }
+    activeBoss.messageIds.push(replyMsg.id);
+
+    if (!activeBoss.imageUrl) {
+      const attachment = replyMsg.attachments.first();
+      if (attachment) {
+        activeBoss.imageUrl = attachment.url;
+      }
     }
   }
 };
