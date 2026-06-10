@@ -67,7 +67,10 @@ const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
     { name: "Staff", emoji: "<:staff:1514231936581898240>" },
-    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" }
+    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" },
+    { name: "Claymore", emoji: "<:longsword:1514231939865903104>" },
+    { name: "Rapier", emoji: "<:dagger:1514231934191009853>" },
+    { name: "Halberd", emoji: "<:staff:1514231936581898240>" }
   ],
   armor: [
     { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
@@ -107,12 +110,12 @@ const getItemImageFile = (item) => {
     if (dungeonKeys.includes(lowerSubType)) {
       return `Weapon/${lowerSubType}.png`;
     }
-    if (subType.includes("sword") || subType.includes("longsword")) {
+    if (subType.includes("sword") || subType.includes("longsword") || subType.includes("claymore") || subType.includes("rapier")) {
       if (rarity === "divine") return "Weapon/holysword.png";
       if (rarity === "mythic" || rarity === "ancient") return "Weapon/darksword.png";
       if (rarity === "legendary") return "Weapon/firesword.png";
       return "Weapon/normalsword.png";
-    } else if (subType.includes("staff")) {
+    } else if (subType.includes("staff") || subType.includes("halberd")) {
       if (rarity === "divine") return "Weapon/darkstaff.png";
       if (rarity === "mythic" || rarity === "ancient") return "Weapon/greenstaff.png";
       if (rarity === "legendary") return "Weapon/bluestaff.png";
@@ -174,6 +177,26 @@ const getLegacyMapping = (slot) => {
   return mappings[String(slot).toLowerCase()] || { subType: "", emoji: "" };
 };
 
+const getWeaponScalingStats = (subType) => {
+  const name = String(subType || "").toLowerCase();
+  if (name.includes("claymore")) {
+    return { prim: "str", sec: "int" };
+  }
+  if (name.includes("rapier")) {
+    return { prim: "dex", sec: "int" };
+  }
+  if (name.includes("halberd")) {
+    return { prim: "str", sec: "arc" };
+  }
+  if (name.includes("staff")) {
+    return { prim: "int", sec: "arc" };
+  }
+  if (name.includes("dagger")) {
+    return { prim: "dex", sec: "arc" };
+  }
+  return { prim: "str", sec: "dex" };
+};
+
 const getWeaponScaling = (item) => {
   if (item.scaling) return item.scaling;
   
@@ -181,14 +204,7 @@ const getWeaponScaling = (item) => {
   const subType = String(item.subType || "Longsword").toLowerCase();
   const rarity = item.rarity || "Common";
   
-  let prim = "str", sec = "dex";
-  if (subType.includes("staff")) {
-    prim = "int";
-    sec = "arc";
-  } else if (subType.includes("dagger")) {
-    prim = "dex";
-    sec = "arc";
-  }
+  const { prim, sec } = getWeaponScalingStats(subType);
   
   const primaryGrades = {
     Common: "D",
@@ -590,14 +606,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
   if (slot === "weapon") {
     scaling = { str: "-", dex: "-", int: "-", arc: "-" };
     const subName = chosenSubtype.name.toLowerCase();
-    let prim = "str", sec = "dex";
-    if (subName.includes("staff")) {
-      prim = "int";
-      sec = "arc";
-    } else if (subName.includes("dagger")) {
-      prim = "dex";
-      sec = "arc";
-    }
+    const { prim, sec } = getWeaponScalingStats(subName);
     
     const primaryGrades = {
       Common: "D",

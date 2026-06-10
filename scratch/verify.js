@@ -74,7 +74,16 @@ const mockDropGenerator = async () => {
 
   const subName = weaponItem.subType.toLowerCase();
   let correctScaling = false;
-  if (subName.includes("sword") && weaponItem.scaling.str === "A" && weaponItem.scaling.dex === "B") {
+  if (subName.includes("claymore") && weaponItem.scaling.str === "A" && weaponItem.scaling.int === "B") {
+    correctScaling = true;
+  } else if (subName.includes("rapier") && weaponItem.scaling.dex === "A" && weaponItem.scaling.int === "B") {
+    correctScaling = true;
+  } else if (subName.includes("halberd") && weaponItem.scaling.str === "A" && weaponItem.scaling.arc === "B") {
+    correctScaling = true;
+  } else if ((subName.includes("sword") || subName.includes("longsword")) && weaponItem.scaling.str === "A" && weaponItem.scaling.regular !== "S" && weaponItem.scaling.dex === "B") {
+    // Note: 'regular' check not needed, just normal sword check
+    correctScaling = true;
+  } else if ((subName.includes("sword") || subName.includes("longsword")) && weaponItem.scaling.str === "A" && weaponItem.scaling.dex === "B") {
     correctScaling = true;
   } else if (subName.includes("staff") && weaponItem.scaling.int === "A" && weaponItem.scaling.arc === "B") {
     correctScaling = true;
@@ -83,7 +92,7 @@ const mockDropGenerator = async () => {
   }
 
   if (!correctScaling) {
-    console.error("FAIL: Legendary weapon scaling incorrect for subtype " + weaponItem.subType);
+    console.error("FAIL: Legendary weapon scaling incorrect for subtype " + weaponItem.subType, weaponItem.scaling);
     process.exit(1);
   }
   console.log("SUCCESS: scaling grades assigned correctly.");
@@ -105,6 +114,25 @@ const mockDropGenerator = async () => {
     process.exit(1);
   }
   console.log("SUCCESS: weapon power scaled correctly.");
+
+  // 5. Test new weapon subtypes scaling
+  console.log("Testing special weapon subtypes scaling...");
+  const claymore = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Claymore" });
+  if (claymore.scaling.str !== "B" || claymore.scaling.int !== "C") {
+    console.error("FAIL: Claymore (STR + INT) scaling incorrect:", claymore.scaling);
+    process.exit(1);
+  }
+  const rapier = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Rapier" });
+  if (rapier.scaling.dex !== "B" || rapier.scaling.int !== "C") {
+    console.error("FAIL: Rapier (DEX + INT) scaling incorrect:", rapier.scaling);
+    process.exit(1);
+  }
+  const halberd = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Halberd" });
+  if (halberd.scaling.str !== "B" || halberd.scaling.arc !== "C") {
+    console.error("FAIL: Halberd (STR + ARC) scaling incorrect:", halberd.scaling);
+    process.exit(1);
+  }
+  console.log("SUCCESS: Special weapon scaling (Claymore, Rapier, Halberd) verified.");
 };
 
 mockDropGenerator().then(() => {
