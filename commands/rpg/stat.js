@@ -141,7 +141,7 @@ module.exports = {
             `*Chọn một chỉ số từ menu bên dưới, sau đó click nút cộng điểm!*`
         )
         .addFields(fields)
-        .setFooter({ text: "Cấp độ tối đa 693. Giới hạn 99 điểm/chỉ số." });
+        .setFooter({ text: "Giới hạn 99 điểm/chỉ số." });
     };
 
     const buildInteractiveComponents = (availablePoints, currentStats) => {

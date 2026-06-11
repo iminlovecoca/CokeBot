@@ -48,6 +48,46 @@ const getCachedImage = async (imagePath) => {
   return null;
 };
 
+const transparentCharCache = new Map();
+
+const getTransparentCharacter = async (pAsset) => {
+  if (transparentCharCache.has(pAsset)) {
+    return transparentCharCache.get(pAsset);
+  }
+
+  const pImgPath = path.join(__dirname, "../../assets/characters", pAsset);
+  if (!fs.existsSync(pImgPath)) return null;
+
+  const img = await loadImage(pImgPath);
+  const width = 200;
+  const height = 200;
+  const tempCanvas = createCanvas(width, height);
+  const tempCtx = tempCanvas.getContext("2d");
+  tempCtx.drawImage(img, 0, 0, width, height);
+
+  const imgData = tempCtx.getImageData(0, 0, width, height);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    if (
+      r >= 120 &&
+      r <= 135 &&
+      g >= 120 &&
+      g <= 135 &&
+      b >= 120 &&
+      b <= 135
+    ) {
+      data[i + 3] = 0;
+    }
+  }
+  tempCtx.putImageData(imgData, 0, 0);
+
+  transparentCharCache.set(pAsset, tempCanvas);
+  return tempCanvas;
+};
+
 const generatePvPImage = async (p1Asset, p2Asset) => {
   const width = 800;
   const height = 400;
@@ -64,52 +104,20 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
     ctx.fillRect(0, 0, width, height);
   }
 
-  async function drawTarget(ctx, img, x, y, width, height, flip = false) {
-    const tempCanvas = createCanvas(width, height);
-    const tempCtx = tempCanvas.getContext("2d");
-
-    tempCtx.drawImage(img, 0, 0, width, height);
-
-    const imgData = tempCtx.getImageData(0, 0, width, height);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      if (
-        r >= 120 &&
-        r <= 135 &&
-        g >= 120 &&
-        g <= 135 &&
-        b >= 120 &&
-        b <= 135
-      ) {
-        data[i + 3] = 0;
-      }
-    }
-    tempCtx.putImageData(imgData, 0, 0);
-
+  const img1 = await getTransparentCharacter(p1Asset);
+  if (img1) {
     ctx.save();
-    if (flip) {
-      ctx.translate(x + width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(tempCanvas, -width, y);
-    } else {
-      ctx.drawImage(tempCanvas, x, y);
-    }
+    ctx.translate(-30 + 200, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img1, -200, 100);
     ctx.restore();
   }
 
-  const p1ImgPath = path.join(__dirname, "../../assets/characters", p1Asset);
-  const img1 = await getCachedImage(p1ImgPath);
-  if (img1) {
-    await drawTarget(ctx, img1, -30, 100, 200, 200, true);
-  }
-
-  const p2ImgPath = path.join(__dirname, "../../assets/characters", p2Asset);
-  const img2 = await getCachedImage(p2ImgPath);
+  const img2 = await getTransparentCharacter(p2Asset);
   if (img2) {
-    await drawTarget(ctx, img2, 540, 100, 200, 200, false);
+    ctx.save();
+    ctx.drawImage(img2, 540, 100);
+    ctx.restore();
   }
 
   const buffer = canvas.toBuffer("image/png");
@@ -553,14 +561,18 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
+  const showImage = !["text", "compact"].includes(user1.rpg?.settings?.battleDisplay);
+
   // Start generating image in the background (asynchronously)
-  const imgPromise = generatePvPImage(
-    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-  ).catch(err => {
-    console.error("Failed to generate PvP image:", err);
-    return null;
-  });
+  const imgPromise = showImage
+    ? generatePvPImage(
+        player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+        player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+      ).catch(err => {
+        console.error("Failed to generate PvP image:", err);
+        return null;
+      })
+    : Promise.resolve(null);
 
   // Reply instantly with Stage 1 text-only embed
   const initialEmbed = new EmbedBuilder()
@@ -587,7 +599,9 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   }
 
   // Sleep for 1500ms (let the background image generation run)
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  if (showImage) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
 
   // Await the image generation result
   const imgData = await imgPromise;

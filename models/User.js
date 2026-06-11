@@ -136,6 +136,11 @@ const userSchema = new mongoose.Schema({
         rerollsLeft: 1,
       },
     },
+    settings: {
+      battleDisplay: { type: String, default: "image" },
+      battleSpeed: { type: String, default: "instant" },
+      battleLogs: { type: String, default: "false" },
+    },
   },
 });
 
