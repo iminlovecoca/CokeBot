@@ -109,7 +109,7 @@ const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterT
 
 module.exports = {
   name: "gear",
-  aliases: ["equipment", "power", "tui", "ruong", "ruongdo"],
+  aliases: ["equipment", "power", "tui", "ruong", "ruongdo", "g"],
   description: "Xem trang bị nhân vật RPG đang mặc và Lực chiến hiện tại.",
   usage: `${config.prefix}gear [itemId]`,
   examples: [

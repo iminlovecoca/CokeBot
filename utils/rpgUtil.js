@@ -111,19 +111,10 @@ const getItemImageFile = (item) => {
       return `Weapon/${lowerSubType}.png`;
     }
     if (subType.includes("sword") || subType.includes("longsword") || subType.includes("claymore") || subType.includes("rapier")) {
-      if (rarity === "divine") return "Weapon/holysword.png";
-      if (rarity === "mythic" || rarity === "ancient") return "Weapon/darksword.png";
-      if (rarity === "legendary") return "Weapon/firesword.png";
       return "Weapon/normalsword.png";
     } else if (subType.includes("staff") || subType.includes("halberd")) {
-      if (rarity === "divine") return "Weapon/darkstaff.png";
-      if (rarity === "mythic" || rarity === "ancient") return "Weapon/greenstaff.png";
-      if (rarity === "legendary") return "Weapon/bluestaff.png";
       return "Weapon/normalstaff.png";
     } else if (subType.includes("dagger")) {
-      if (rarity === "divine") return "Weapon/shadowdagger.png";
-      if (rarity === "mythic" || rarity === "ancient") return "Weapon/crimsondagger.png";
-      if (rarity === "legendary") return "Weapon/poisondagger.png";
       return "Weapon/normaldagger.png";
     }
     return "Weapon/normalsword.png";
@@ -646,76 +637,13 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
 
-  const compareStats = (s1 = {}, s2 = {}) => {
-    const keys1 = Object.keys(s1).sort();
-    const keys2 = Object.keys(s2).sort();
-    if (keys1.length !== keys2.length) return false;
-    return keys1.every((key) => s1[key] === s2[key]);
-  };
-
   const User = require("../models/User");
-  let itemId = null;
+  const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
+  const dbLastId = topUser?.rpg?.lastItemId || 0;
+  const memoryLastId = user.rpg.lastItemId || 0;
+  const itemId = Math.max(1, Math.max(dbLastId, memoryLastId) + 1);
 
-  // 1. Check the current user's inventory first (already loaded in memory)
-  const currentItems = user.rpg.items || [];
-  for (const item of currentItems) {
-    if (
-      item.name === name &&
-      item.slot === slot &&
-      item.rarity === rarity &&
-      item.level === level &&
-      item.power === power &&
-      item.quality === quality &&
-      item.sellPrice === sellPrice &&
-      compareStats(item.stats, stats)
-    ) {
-      itemId = item.id;
-      break;
-    }
-  }
-
-  // 2. If not found, run a targeted query for other users who own this item
-  if (!itemId) {
-    const matchingUser = await User.findOne({
-      userId: { $ne: user.userId },
-      "rpg.items": {
-        $elemMatch: {
-          name,
-          slot,
-          rarity,
-          level,
-          power,
-          quality,
-          sellPrice
-        }
-      }
-    }).lean().exec();
-
-    if (matchingUser) {
-      const matchedItem = matchingUser.rpg.items.find((item) =>
-        item.name === name &&
-        item.slot === slot &&
-        item.rarity === rarity &&
-        item.level === level &&
-        item.power === power &&
-        item.quality === quality &&
-        item.sellPrice === sellPrice &&
-        compareStats(item.stats, stats)
-      );
-      if (matchedItem) {
-        itemId = matchedItem.id;
-      }
-    }
-  }
-
-  if (!itemId) {
-    const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-    const dbLastId = topUser?.rpg?.lastItemId || 0;
-    const memoryLastId = user.rpg.lastItemId || 0;
-    itemId = Math.max(1, Math.max(dbLastId, memoryLastId) + 1);
-  }
-
-  user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, itemId);
+  user.rpg.lastItemId = itemId;
 
   return {
     id: itemId,

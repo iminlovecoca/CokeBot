@@ -119,7 +119,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 
 const simulatePvP = (p1, p2) => {
   let turn = 1;
-  const maxTurns = 10;
+  const maxTurns = 50;
 
   p1.effects = { armorReduced: 0, healReduced: false };
   p2.effects = { armorReduced: 0, healReduced: false };
@@ -553,6 +553,15 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
+  // Start generating image in the background (asynchronously)
+  const imgPromise = generatePvPImage(
+    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+  ).catch(err => {
+    console.error("Failed to generate PvP image:", err);
+    return null;
+  });
+
   // Reply instantly with Stage 1 text-only embed
   const initialEmbed = new EmbedBuilder()
     .setColor("#5865F2")
@@ -577,28 +586,18 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     currentMsg = await message.reply({ embeds: [initialEmbed] });
   }
 
-  // Generate image in the background (asynchronously)
-  const imgData = await generatePvPImage(
-    player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-    player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-  ).catch(err => {
-    console.error("Failed to generate PvP image:", err);
-    return null;
-  });
+  // Sleep for 1500ms (let the background image generation run)
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Await the image generation result
+  const imgData = await imgPromise;
 
   let attachment = null;
   if (imgData) {
     attachment = new AttachmentBuilder(imgData.buffer, {
       name: imgData.name,
     });
-    
-    // Update Stage 1 to show the image once generated
-    initialEmbed.setImage(`attachment://${imgData.name}`);
-    await currentMsg.edit({ embeds: [initialEmbed], files: [attachment] }).catch(() => {});
   }
-
-  // Delay before showing results
-  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   // Stage 2: final result
   const finalEmbed = new EmbedBuilder()
@@ -633,5 +632,9 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     );
   }
 
-  await currentMsg.edit({ embeds: [finalEmbed] }).catch(() => {});
+  const editPayload = { embeds: [finalEmbed] };
+  if (attachment) {
+    editPayload.files = [attachment];
+  }
+  await currentMsg.edit(editPayload).catch(() => {});
 };

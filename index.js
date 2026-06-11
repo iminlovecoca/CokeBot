@@ -30,6 +30,7 @@ const spawner = require("./features/spawner");
 const rpgBossSpawner = require("./features/rpgBossSpawner");
 const { loadBotLock } = require("./utils/botLock");
 const { performStartupCleanup } = require("./utils/botCleanup");
+const { initializeAutohuntReminders } = require("./features/autohuntReminder");
 const config = require("./data/config");
 
 process.on("unhandledRejection", (error) => {
@@ -220,6 +221,7 @@ client.once(Events.ClientReady, async () => {
     rpgBossSpawner.initialize(client);
     // Music & Lavalink initialization removed
     footballBetSettler.initialize(client);
+    await initializeAutohuntReminders(client);
 
     await performStartupCleanup(client);
   } catch (error) {

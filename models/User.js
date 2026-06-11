@@ -110,6 +110,7 @@ const userSchema = new mongoose.Schema({
       totalEssence: { type: Number, default: 0 },
       captchaCode: { type: String, default: null },
       pendingDuration: { type: Number, default: 0 },
+      dmReminder: { type: Boolean, default: false },
       levels: {
         efficiency: { type: Number, default: 1 },
         duration: { type: Number, default: 1 },

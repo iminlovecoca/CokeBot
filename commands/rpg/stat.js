@@ -38,14 +38,14 @@ const statLabels = {
 };
 
 module.exports = {
-  name: "addstat",
-  aliases: ["stat", "upstat", "cộng", "cong"],
+  name: "stat",
+  aliases: ["addstat", "upstat", "cộng", "cong"],
   description: "Cộng điểm chỉ số nhân vật RPG của bạn.",
-  usage: `${config.prefix}addstat [chỉ số] [số lượng/all]`,
+  usage: `${config.prefix}stat [chỉ số] [số lượng/all]`,
   examples: [
-    { intent: "Xem giao diện cộng điểm", command: `${config.prefix}addstat` },
-    { intent: "Cộng 5 điểm vào Vigor", command: `${config.prefix}addstat vigor 5` },
-    { intent: "Cộng toàn bộ điểm vào Strength", command: `${config.prefix}addstat str all` }
+    { intent: "Xem giao diện cộng điểm", command: `${config.prefix}stat` },
+    { intent: "Cộng 5 điểm vào Vigor", command: `${config.prefix}stat vigor 5` },
+    { intent: "Cộng toàn bộ điểm vào Strength", command: `${config.prefix}stat str all` }
   ],
 
   async execute(message, args = []) {
@@ -186,8 +186,9 @@ module.exports = {
 
       const btnReset = new ButtonBuilder()
         .setCustomId("rpg_stat_reset")
-        .setLabel("Tẩy điểm (Coke)")
-        .setStyle(ButtonStyle.Danger);
+        .setLabel("Tẩy điểm (Đang khóa)")
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(true);
 
       const row1 = new ActionRowBuilder().addComponents(selectMenu);
       const row2 = new ActionRowBuilder().addComponents(btn1, btn5, btn10, btnAll, btnReset);
@@ -227,69 +228,10 @@ module.exports = {
         });
       } else if (interaction.isButton()) {
         if (interaction.customId === "rpg_stat_reset") {
-          // Ask for confirmation to reset stats (cost 10,000 coke)
-          const resetCost = 10000;
-          if (refreshedUser.coke < resetCost) {
-            return interaction.reply({
-              content: `❌ Bạn không đủ Coke để tẩy điểm. (Yêu cầu: **${resetCost.toLocaleString()} Coke**, hiện có: **${refreshedUser.coke.toLocaleString()} Coke**)`,
-              flags: 64,
-            });
-          }
-
-          const resetConfirmRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-              .setCustomId("rpg_stat_reset_confirm")
-              .setLabel("Xác nhận tẩy điểm (10k Coke)")
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId("rpg_stat_reset_cancel")
-              .setLabel("Hủy")
-              .setStyle(ButtonStyle.Secondary)
-          );
-
-          await interaction.reply({
-            content: `⚠️ Bạn có chắc chắn muốn tẩy toàn bộ điểm chỉ số không? Bạn sẽ được hoàn lại tất cả điểm và tiêu tốn **10,000 Coke**.`,
-            components: [resetConfirmRow],
-            flags: 64
+          return interaction.reply({
+            content: `❌ Tính năng tẩy điểm tạm thời khóa để nâng cấp.`,
+            flags: 64,
           });
-          return;
-        }
-
-        if (interaction.customId === "rpg_stat_reset_confirm") {
-          // Complete stat reset
-          const resetCost = 10000;
-          const uReset = await getUser(message.author.id);
-          if (uReset.coke < resetCost) {
-            return interaction.reply({ content: "❌ Bạn không đủ Coke để tẩy điểm.", flags: 64 });
-          }
-
-          uReset.coke -= resetCost;
-          uReset.rpg.stats = { ...getStartingStats(uReset) };
-          uReset.rpg.power = calculateRpgPower(uReset);
-          uReset.markModified("rpg");
-          await uReset.save();
-
-          await interaction.update({
-            content: "🎉 Tẩy điểm chỉ số thành công! Toàn bộ điểm đã được hoàn trả về chỉ số khởi đầu của Class.",
-            components: []
-          });
-
-          // Refresh main view
-          const updatedStats = uReset.rpg.stats;
-          const updatedAvail = getAvailablePoints(uReset);
-          await sentMessage.edit({
-            embeds: [buildEmbed(updatedAvail, updatedStats)],
-            components: buildInteractiveComponents(updatedAvail, updatedStats)
-          }).catch(() => {});
-          return;
-        }
-
-        if (interaction.customId === "rpg_stat_reset_cancel") {
-          await interaction.update({
-            content: "Đã hủy yêu cầu tẩy điểm.",
-            components: []
-          });
-          return;
         }
 
         let addAmt = 0;

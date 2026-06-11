@@ -450,6 +450,7 @@ module.exports = {
         user.rpg.autohunt.durationHours = 0;
         user.rpg.autohunt.captchaCode = null;
         user.rpg.autohunt.pendingDuration = 0;
+        user.rpg.autohunt.dmReminder = false;
         user.markModified("rpg");
         await user.save();
 
@@ -649,6 +650,7 @@ module.exports = {
       user.rpg.autohunt.durationHours = 0;
       user.rpg.autohunt.captchaCode = null;
       user.rpg.autohunt.pendingDuration = 0;
+      user.rpg.autohunt.dmReminder = false;
       user.markModified("rpg");
       await user.save();
 
@@ -793,6 +795,7 @@ module.exports = {
       user.rpg.autohunt.durationHours = duration;
       user.rpg.autohunt.captchaCode = null; // Clear captcha
       user.rpg.autohunt.pendingDuration = 0;
+      user.rpg.autohunt.dmReminder = false; // Reset reminder
       user.markModified("rpg");
       await user.save();
 
@@ -802,11 +805,60 @@ module.exports = {
 
       const huntsCount = Math.floor(duration * efficiency);
 
-      return message.reply(
+      const replyMsg = await message.reply(
         `🤖 | **BEEP BOOP.** **${memberName}** , YOU SPENT **${totalCost.toLocaleString()}** Coke\n` +
           `| **I WILL BE BACK IN ${timeStr} WITH ${huntsCount.toLocaleString()} HUNTS,**\n` +
           `| **${Math.floor(duration * gainInfo.stat).toLocaleString()} ESSENCE, AND ${Math.floor(duration * expInfo.stat).toLocaleString()} EXPERIENCE**`,
       );
+
+      // React to the message with ⏰
+      await replyMsg.react("⏰").catch(() => {});
+
+      // Setup a collector to listen for reactions (valid for 5 minutes)
+      const collector = replyMsg.createReactionCollector({
+        filter: (reaction, u) => reaction.emoji.name === "⏰" && u.id === message.author.id,
+        time: 5 * 60 * 1000,
+        max: 1,
+      });
+
+      collector.on("collect", async (reaction, u) => {
+        try {
+          const refreshedUser = await User.findOne({ userId: message.author.id });
+          if (refreshedUser && refreshedUser.rpg?.autohunt?.isActive) {
+            refreshedUser.rpg.autohunt.dmReminder = true;
+            refreshedUser.markModified("rpg");
+            await refreshedUser.save();
+
+            await message.reply(`${config.emoji.yes || "✅"} Đã cài đặt nhắc nhở gửi qua DM khi autohunt kết thúc!`).catch(() => {});
+
+            const elapsedMs = Date.now() - new Date(refreshedUser.rpg.autohunt.startTime).getTime();
+            const totalDurationMs = refreshedUser.rpg.autohunt.durationHours * 60 * 60 * 1000;
+            const remainingMs = Math.max(0, totalDurationMs - elapsedMs);
+
+            setTimeout(async () => {
+              try {
+                const checkUser = await User.findOne({ userId: message.author.id });
+                if (checkUser && checkUser.rpg?.autohunt?.isActive && checkUser.rpg?.autohunt?.dmReminder) {
+                  const discordUser = await message.client.users.fetch(message.author.id).catch(() => null);
+                  if (discordUser) {
+                    const dmChannel = await discordUser.createDM();
+                    await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
+                  }
+                  checkUser.rpg.autohunt.dmReminder = false;
+                  checkUser.markModified("rpg");
+                  await checkUser.save();
+                }
+              } catch (err) {
+                console.error(`Failed to send autohunt DM reminder to user ${message.author.id}:`, err);
+              }
+            }, remainingMs);
+          }
+        } catch (err) {
+          console.error("Error setting up autohunt reminder:", err);
+        }
+      });
+
+      return replyMsg;
     }
 
     // 5. STATUS / VIEW PANEL (No args)
