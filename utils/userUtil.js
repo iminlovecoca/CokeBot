@@ -730,8 +730,8 @@ const toggleFavorite = async (userId, cokemonUid) => {
   }, "toggleFavorite");
 };
 
-const getActiveCokemon = async (userId) => {
-  const user = await getUser(userId);
+const getActiveCokemon = async (userIdOrUser) => {
+  const user = typeof userIdOrUser === "string" ? await getUser(userIdOrUser) : userIdOrUser;
   if (!user.active_cokemon_id) {
     throw new UserFriendlyError(
       `${config.emoji.no} Bạn chưa chọn bạn đồng hành nào. Dùng \`${config.prefix}select <ID>\` để chọn một cokemon.`,

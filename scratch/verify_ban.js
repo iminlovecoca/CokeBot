@@ -171,6 +171,9 @@ async function testMessageCreate() {
 
   // Case 5: Unbanned user typing normal message
   isBanned = false;
+  if (mockClient.bannedUsersCache) {
+    mockClient.bannedUsersCache.delete("test-user-456");
+  }
   replyMessage = null;
   const msg5 = createMockMessage("xprofile", "general-channel");
   // Override execute command behavior or let it throw command error handled gracefully

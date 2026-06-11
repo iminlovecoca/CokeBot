@@ -229,8 +229,15 @@ function isValidNextWord(currentWord, nextWord, usedWords = []) {
   return getFirstToken(normalizedNext) === getLastToken(currentWord);
 }
 
+const guildConfigsCache = new Map();
+
 async function getGuildConfig(guildId) {
-  return NoituGuild.findOne({ guildId }).lean();
+  if (guildConfigsCache.has(guildId)) {
+    return guildConfigsCache.get(guildId);
+  }
+  const config = await NoituGuild.findOne({ guildId }).lean();
+  guildConfigsCache.set(guildId, config);
+  return config;
 }
 
 function checkWordIfInDictionary(word) {
@@ -275,6 +282,7 @@ function countWordInDictionary() {
 }
 
 async function setGuildChannel(guildId, channelId) {
+  guildConfigsCache.delete(guildId);
   await NoituGuild.updateOne(
     { guildId },
     { $set: { channelId, updatedAt: new Date() } },
@@ -283,6 +291,7 @@ async function setGuildChannel(guildId, channelId) {
 }
 
 async function clearGuildChannel(guildId) {
+  guildConfigsCache.delete(guildId);
   await NoituGuild.updateOne(
     { guildId },
     { $set: { channelId: null, updatedAt: new Date() } },

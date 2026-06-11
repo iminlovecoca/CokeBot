@@ -42,6 +42,8 @@ module.exports = {
     user.anticheat.last_flag_reason = `Banned by admin: ${reason}`;
     user.anticheat.verification_attempts = 0;
     await user.save();
+    message.client.bannedUsersCache?.set(target.id, bannedUntil.getTime());
+    message.client.verificationCache?.delete(target.id);
 
     const banExpirationDate = formatDateTimeToVietnamese(
       DateTime.fromJSDate(new Date(user.bannedUntil)),

@@ -33,8 +33,65 @@ module.exports = {
     const normalizedPrefix = (config.prefix || "").toLowerCase();
     const contentLower = message.content.toLowerCase();
     const isCommand = contentLower.startsWith(normalizedPrefix);
+
+    if (!client.bannedUsersCache) client.bannedUsersCache = new Map();
+    if (!client.verificationCache) client.verificationCache = new Map();
+
+    const now = Date.now();
+
+    // 1. Check ban cache first to avoid DB query for banned users
+    const cachedBanUntil = client.bannedUsersCache.get(userId);
+    if (cachedBanUntil && cachedBanUntil > now) {
+      let isNoituChannel = false;
+      if (message.guild) {
+        const guildConfig = await getGuildConfig(message.guild.id);
+        if (guildConfig?.channelId === message.channel.id) {
+          isNoituChannel = true;
+        }
+      }
+      const isAiThread = message.channel.isThread() && message.channel.ownerId === client.user.id;
+
+      if (isCommand || isAiThread || isNoituChannel) {
+        const remainingMs = cachedBanUntil - now;
+        return message.reply(
+          `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
+        ).catch(() => {});
+      }
+      return;
+    }
+
+    // 2. Check if we need to load user from DB
+    const cachedVerifying = client.verificationCache.get(userId);
+    const xpCooldown = client.xpCooldowns.get(userId) || 0;
+    const friendshipCooldown = client.friendshipCooldowns.get(userId) || 0;
+    const needsXpCheck = now > xpCooldown;
+    const needsFriendshipCheck = now > friendshipCooldown;
+
+    const shouldLoadUser = isCommand || cachedVerifying || needsXpCheck || needsFriendshipCheck;
+
+    if (!shouldLoadUser) {
+      // Normal chat message and cooldowns are active - skip all DB lookups!
+      const handledNoituGame = await handleNoituMessage(message, client);
+      if (handledNoituGame) return;
+      return;
+    }
+
     try {
       const user = await getOrCreateUser(userId);
+
+      // Update ban cache
+      if (user.bannedUntil) {
+        client.bannedUsersCache.set(userId, new Date(user.bannedUntil).getTime());
+      } else {
+        client.bannedUsersCache.delete(userId);
+      }
+
+      // Update verification cache
+      if (user.anticheat?.verification_code) {
+        client.verificationCache.set(userId, user.anticheat.verification_code);
+      } else {
+        client.verificationCache.delete(userId);
+      }
 
       // Bot lock check
       if (client.botLocked) {
@@ -42,7 +99,7 @@ module.exports = {
         if (!allowedIds.includes(userId)) return;
       }
 
-      // Ban check
+      // Ban check (for case where user was just banned and we didn't hit cachedBanUntil)
       if (user.bannedUntil && user.bannedUntil > new Date()) {
         let isNoituChannel = false;
         if (message.guild) {
@@ -63,9 +120,12 @@ module.exports = {
         return;
       }
 
-      //  Pending verification check
+      // Pending verification check
       if (user.anticheat?.verification_code) {
         await handleVerification(message, user);
+        if (!user.anticheat?.verification_code) {
+          client.verificationCache.delete(userId);
+        }
         return;
       }
 
@@ -76,6 +136,8 @@ module.exports = {
         user.anticheat.verification_code = code;
         user.anticheat.last_flag_reason = check.reason;
         await user.save();
+
+        client.verificationCache.set(userId, code); // Update cache
 
         const imageBuffer = generateCaptchaImage(code);
         await message.reply({
@@ -92,6 +154,9 @@ module.exports = {
             freshUser.bannedUntil = new Date(
               Date.now() + config.anticheat.mute_duration_ms,
             );
+
+            client.verificationCache.delete(userId); // Clear verification cache
+            client.bannedUsersCache.set(userId, freshUser.bannedUntil.getTime()); // Update ban cache
 
             let levelDeductedMsg = "";
             if (freshUser.rpg && freshUser.rpg.classKey) {
@@ -151,7 +216,6 @@ module.exports = {
         }
       }
 
-
       const handledNoituGame = await handleNoituMessage(message, client);
       if (handledNoituGame) return;
 
@@ -172,12 +236,10 @@ module.exports = {
       }
 
       // Passive Cokemon XP and friendship
-      const now = Date.now();
-      const xpCooldown = client.xpCooldowns.get(userId) || 0;
-      if (now > xpCooldown) {
+      if (needsXpCheck) {
         if (user.active_cokemon_id) {
           try {
-            const selectedCokemon = await getActiveCokemon(userId);
+            const selectedCokemon = await getActiveCokemon(user); // Optimized: pass user instead of userId
             const xpGained = 5 + Math.floor(selectedCokemon.level * 0.2);
             const { levelsGained } = await addCokemonXp(
               selectedCokemon,
@@ -200,8 +262,7 @@ module.exports = {
         );
       }
 
-      const friendshipCooldown = client.friendshipCooldowns.get(userId) || 0;
-      if (now > friendshipCooldown) {
+      if (needsFriendshipCheck) {
         if (user.active_cokemon_id && Math.random() < 0.2) {
           await Cokemon.updateOne(
             { _id: user.active_cokemon_id },

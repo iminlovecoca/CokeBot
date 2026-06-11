@@ -36,6 +36,8 @@ module.exports = {
       user.anticheat.verification_attempts = 0;
     }
     await user.save();
+    message.client.bannedUsersCache?.delete(target.id);
+    message.client.verificationCache?.delete(target.id);
     await message.reply(`${config.emoji.yes} Đã gỡ cấm cho <@${target.id}>.`);
   },
 };
