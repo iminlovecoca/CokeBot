@@ -23,14 +23,15 @@ module.exports = {
     }
 
     let targetId = userId
-    let displayName = message.author.username
+    let displayName = message.member?.displayName || message.author.displayName || message.author.username
     if (args.length && message.mentions.users.size > 0) {
       const targetUser = message.mentions.users.first()
       if (!isDev(userId) && !isAdmin(userId)) {
         throw new UserFriendlyError(`${config.emoji.no} Bạn không có quyền xem số coke của người khác.`)
       }
       targetId = targetUser.id
-      displayName = targetUser.username
+      const targetMember = message.mentions.members?.first()
+      displayName = targetMember?.displayName || targetUser.displayName || targetUser.username
     }
     const total = await getTotalCoke(targetId)
     await message.reply(`${config.emoji.money} **|** **${displayName}**, hiện có **${formatVNCurrency(total)} coke**.`)

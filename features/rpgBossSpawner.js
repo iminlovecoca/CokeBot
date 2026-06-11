@@ -24,17 +24,22 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
   const boss = activeBoss.boss;
   const defeated = status === "defeated";
   const expired = status === "expired";
+  const transitioned = status === "transitioned";
   const title = defeated
     ? `${boss.emoji} ${boss.name} đã bị hạ`
     : expired
       ? `${boss.emoji} ${boss.name} đã rời đi`
-      : `${boss.emoji} ${boss.name} xuất hiện`;
+      : transitioned
+        ? `${boss.emoji} ${boss.name} đã chuyển sang Phase 2`
+        : `${boss.emoji} ${boss.name} xuất hiện`;
 
   const description = defeated
     ? `Boss đã bị kết liễu bởi <@${activeBoss.lastHitUserId}>.`
     : expired
       ? "Không ai hạ được boss trong thời gian tồn tại."
-      : `Gõ \`${config.prefix}boss\` để tấn công boss trong channel này.`;
+      : transitioned
+        ? "Boss đã tiến hóa/hồi sinh sang Phase 2. Xem tin nhắn mới nhất để tiếp tục chiến đấu."
+        : `Gõ \`${config.prefix}boss\` để tấn công boss trong channel này.`;
 
   // Get top 10 participants sorted by damage descending
   const top10 = Array.from(activeBoss.participants.entries())
@@ -53,7 +58,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
   }
 
   const embed = new EmbedBuilder()
-    .setColor(defeated ? "#57F287" : expired ? "#747F8D" : "#ED4245")
+    .setColor(defeated ? "#57F287" : (expired || transitioned) ? "#747F8D" : "#ED4245")
     .setTitle(title)
     .setDescription(description)
     .addFields(

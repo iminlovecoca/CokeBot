@@ -354,7 +354,24 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 
     activeBoss.updateQueue = activeBoss.updateQueue.then(async () => {
       try {
-        if (!activeBoss.messageIds) activeBoss.messageIds = [];
+        const oldMessageIds = [...(activeBoss.messageIds || [])];
+        activeBoss.messageIds = [];
+
+        // Edit old messages to show transitioned status and disable buttons
+        for (const msgId of oldMessageIds) {
+          const msg = await channel.messages.fetch(msgId).catch(() => null);
+          if (msg) {
+            const editPayload = {
+              embeds: [buildBossEmbed(activeBoss, "transitioned")],
+              components: buildBossComponents(activeBoss, "transitioned"),
+            };
+            if (!activeBoss.imageUrl) {
+              editPayload.files = [getAttachment(activeBoss.boss)];
+            }
+            await msg.edit(editPayload).catch(() => null);
+          }
+        }
+
         const payload = {
           embeds: [buildBossEmbed(activeBoss)],
           components: buildBossComponents(activeBoss),
@@ -718,7 +735,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         activeBoss.imageUrl = null; // Reset image to reload phase 2 asset
         killedPhase1 = true;
 
-        await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **: ${bossConfig.name}**!`);
+        await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **${bossConfig.name}**!`);
         await updateBossMessage(channel, activeBoss, true);
       }
     }
