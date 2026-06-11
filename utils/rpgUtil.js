@@ -518,6 +518,8 @@ const getGearDisplayName = (item) => {
   return `${rank}${emoji} ${subTypeName}${upgradeStr}`;
 };
 
+let globalLastItemId = null;
+
 const generateRpgGearDrop = async (user, options = {}) => {
   const rpgClass = getRpgClass(user.rpg.classKey);
   const effectiveStats = getEffectiveRpgStats(user);
@@ -637,11 +639,15 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
 
-  const User = require("../models/User");
-  const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-  const dbLastId = topUser?.rpg?.lastItemId || 0;
-  const memoryLastId = user.rpg.lastItemId || 0;
-  const itemId = Math.max(1, Math.max(dbLastId, memoryLastId) + 1);
+  if (globalLastItemId === null) {
+    const User = require("../models/User");
+    const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
+    const dbLastId = topUser?.rpg?.lastItemId || 0;
+    const memoryLastId = user.rpg.lastItemId || 0;
+    globalLastItemId = Math.max(dbLastId, memoryLastId);
+  }
+  globalLastItemId += 1;
+  const itemId = globalLastItemId;
 
   user.rpg.lastItemId = itemId;
 

@@ -440,10 +440,21 @@ const performBossAttack = async ({ client, channel, userId }) => {
   const { user, rpgClass } = await requireRpgCharacter(userId);
 
   // Prevent race conditions where boss is defeated during the async character load
-  if (activeBoss.defeated || activeBoss.expired || activeBoss.hp <= 0) {
+  if (activeBoss.defeated || activeBoss.expired) {
     return {
       ok: false,
-      content: "Boss đã bị hạ gục hoặc đã rời đi trước khi đòn đánh của bạn chạm tới!",
+      content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
+    };
+  }
+
+  if (activeBoss.hp <= 0) {
+    // Tự động hồi phục: nếu boss hết HP nhưng chưa kết toán, gọi finishBoss để xử lý phần thưởng
+    await finishBoss({ client, channel, activeBoss }).catch((err) => {
+      console.error("[RPG_BOSS] Tự động kết toán thất bại:", err);
+    });
+    return {
+      ok: false,
+      content: "Boss đã bị hạ gục! Đang tiến hành kết toán phần thưởng và trả quà...",
     };
   }
 
@@ -906,4 +917,5 @@ module.exports = {
   handleFightInteraction,
   handleReviveInteraction,
   performBossAttack,
+  finishBoss,
 };

@@ -97,7 +97,7 @@ const userSchema = new mongoose.Schema({
     rank: { type: String, default: "Novice" },
     equipped: { type: Object, default: {} },
     items: { type: [Object], default: [] },
-    lastItemId: { type: Number, default: 0 },
+    lastItemId: { type: Number, default: 0, index: true },
     lastHuntAt: { type: Date, default: null },
     lastBossAt: { type: Date, default: null },
     pvpStreak: { type: Number, default: 0 },
