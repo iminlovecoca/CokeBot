@@ -104,7 +104,7 @@ const runTests = async () => {
 
   let repliedPayload = null;
   const mockMessage = {
-    author: { id: "999999" },
+    author: { id: "745950731638407210" },
     reply: (payload) => {
       repliedPayload = payload;
       return Promise.resolve(payload);

@@ -86,8 +86,13 @@ module.exports = {
   examples: [
     { intent: "Tự động mặc trang bị tốt nhất", command: `${config.prefix}autoequip` },
   ],
+  hidden: true,
 
   async execute(message, args = []) {
+    const authorId = message.author.id;
+    const isOwner = config.permissions?.dev_ids?.includes(authorId) || authorId === process.env.OWNER_ID || authorId === "745950731638407210";
+    if (!isOwner) return;
+
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
     const classKey = user.rpg.classKey;
 
