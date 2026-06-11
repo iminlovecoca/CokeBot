@@ -302,18 +302,18 @@ const simulatePvP = (p1, p2) => {
 };
 
 module.exports = {
-  name: "xbattle",
-  aliases: ["b", "pvp", "arena", "battle"],
+  name: "battle",
+  aliases: ["b", "pvp", "arena"],
   description: "Khiêu chiến PvP với người chơi khác hoặc ngẫu nhiên.",
-  usage: `${config.prefix}xbattle [@mention]`,
+  usage: `${config.prefix}battle [@mention]`,
   examples: [
     {
       intent: "PVP ngẫu nhiên với người đã tạo class",
-      command: `${config.prefix}xbattle`,
+      command: `${config.prefix}battle`,
     },
     {
       intent: "Khiêu chiến một người chơi cụ thể",
-      command: `${config.prefix}xbattle @Khang`,
+      command: `${config.prefix}battle @Khang`,
     },
   ],
 

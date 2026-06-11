@@ -3,14 +3,14 @@ const config = require("../../data/config");
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
 
 module.exports = {
-  name: "xbattlesetting",
-  aliases: ["xbs"],
-  description: "Cài đặt hiển thị ảnh trận đấu và cấu hình PvP (xbattle).",
-  usage: `${config.prefix}xbattlesetting display=image/text/compact`,
+  name: "battlesetting",
+  aliases: ["bs"],
+  description: "Cài đặt hiển thị ảnh trận đấu và cấu hình PvP (battle).",
+  usage: `${config.prefix}battlesetting display=image/text/compact`,
   examples: [
-    { intent: "Bật hiển thị hình ảnh trận đấu", command: `${config.prefix}xbs display=image` },
-    { intent: "Tắt hiển thị hình ảnh trận đấu (chỉ hiện chữ)", command: `${config.prefix}xbs display=text` },
-    { intent: "Cài đặt tốc độ trận đấu tức thì", command: `${config.prefix}xbs speed=instant` },
+    { intent: "Bật hiển thị hình ảnh trận đấu", command: `${config.prefix}bs display=image` },
+    { intent: "Tắt hiển thị hình ảnh trận đấu (chỉ hiện chữ)", command: `${config.prefix}bs display=text` },
+    { intent: "Cài đặt tốc độ trận đấu tức thì", command: `${config.prefix}bs speed=instant` },
   ],
 
   async execute(message, args = []) {
@@ -49,7 +49,7 @@ module.exports = {
           `**Logs =** \`${currentLogs}\`\n\n` +
           `***\n\n` +
           `💡 **Cách thay đổi cài đặt / How to change settings:**\n` +
-          `• Sử dụng lệnh: \`${config.prefix}xbs {setting}={value}\` hoặc \`${config.prefix}xbs {value}\`\n\n` +
+          `• Sử dụng lệnh: \`${config.prefix}bs {setting}={value}\` hoặc \`${config.prefix}bs {value}\`\n\n` +
           `**Logs (Nhật ký):**\n` +
           `• \`true\`: Hiển thị nhật ký trận đấu dưới dạng văn bản\n` +
           `• \`false\`: Không hiển thị nhật ký trận đấu\n` +
@@ -102,9 +102,9 @@ module.exports = {
     if (!updatedField) {
       return message.reply(
         `${config.emoji.no} Cấu hình không hợp lệ. Vui lòng sử dụng:\n` +
-        `• \`${config.prefix}xbs display=image/text/compact\`\n` +
-        `• \`${config.prefix}xbs speed=instant/short/lengthy\`\n` +
-        `• \`${config.prefix}xbs logs=true/false/link\``
+        `• \`${config.prefix}bs display=image/text/compact\`\n` +
+        `• \`${config.prefix}bs speed=instant/short/lengthy\`\n` +
+        `• \`${config.prefix}bs logs=true/false/link\``
       );
     }
 

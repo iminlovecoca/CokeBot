@@ -25,7 +25,7 @@ rpgUtil.requireRpgCharacter = async (userId) => {
 };
 
 // 2. Now require the command
-const xbattlesetting = require("../commands/rpg/xbattlesetting");
+const xbattlesetting = require("../commands/rpg/battlesetting");
 
 const runTests = async () => {
   console.log("=== VERIFYING BATTLE DISPLAY SETTING COMMAND ===");

@@ -90,13 +90,13 @@ const traitMapping = {
 };
 
 module.exports = {
-  name: "xupgrade",
-  aliases: ["upgrade", "up", "xup"],
+  name: "upgrade",
+  aliases: ["up", "xup"],
   description: "Nâng cấp chỉ số HuntBot bằng Essence.",
-  usage: `${config.prefix}xupgrade <chỉ số> [lượng essence]`,
+  usage: `${config.prefix}upgrade <chỉ số> [lượng essence]`,
   examples: [
-    { intent: "Nạp toàn bộ Essence vào efficiency", command: `${config.prefix}xupgrade eff` },
-    { intent: "Nạp tối đa 5000 Essence vào efficiency", command: `${config.prefix}xupgrade eff 5000` },
+    { intent: "Nạp toàn bộ Essence vào efficiency", command: `${config.prefix}upgrade eff` },
+    { intent: "Nạp tối đa 5000 Essence vào efficiency", command: `${config.prefix}upgrade eff 5000` },
   ],
 
   async execute(message, args = []) {

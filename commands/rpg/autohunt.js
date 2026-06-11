@@ -194,7 +194,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
     .setDescription(
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
         `Use the command \`${config.prefix}xautohunt {Coke | duration}\` to get started.\n` +
-        `You can use \`${config.prefix}xupgrade {trait} [essence]\` to upgrade the traits below.\n` +
+        `You can use \`${config.prefix}upgrade {trait} [essence]\` to upgrade the traits below.\n` +
         `To obtain more essence, use \`${config.prefix}xsacrifice {rarity} {count}\`.\n\n`,
     )
     .addFields(
