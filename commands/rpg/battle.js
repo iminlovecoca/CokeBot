@@ -99,8 +99,8 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
     ctx.restore();
   }
 
-  const buffer = canvas.toBuffer("image/png");
-  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+  const buffer = canvas.toBuffer("image/jpeg", { quality: 0.85 });
+  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
   return { buffer, name: filename };
 };
 
