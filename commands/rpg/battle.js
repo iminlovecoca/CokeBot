@@ -106,7 +106,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 
 const simulatePvP = (p1, p2) => {
   let turn = 1;
-  const maxTurns = 17;
+  const maxTurns = 20;
 
   p1.effects = { armorReduced: 0, healReduced: false };
   p2.effects = { armorReduced: 0, healReduced: false };
