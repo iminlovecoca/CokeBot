@@ -12,6 +12,7 @@ const {
 const config = require("../../data/config");
 const { getUser } = require("../../utils/userUtil");
 const path = require("path");
+const fs = require("fs");
 const {
   classEntries,
   calculateRpgPower,
