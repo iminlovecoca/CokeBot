@@ -313,12 +313,47 @@ function setGameState(client, guildId, state) {
   }
 
   client.noituGames.set(guildId, state);
+
+  // Persist state to MongoDB asynchronously in the background
+  NoituGuild.updateOne(
+    { guildId },
+    {
+      $set: {
+        gameState: {
+          running: state.running,
+          channelId: state.channelId,
+          currentWord: state.currentWord,
+          currentPlayerId: state.currentPlayerId,
+          words: state.words,
+          lastUpdatedAt: state.lastUpdatedAt,
+        },
+      },
+    },
+    { upsert: true }
+  ).catch((err) => {
+    console.error(`❌ [Noitu DB] Failed to save state for guild ${guildId}:`, err);
+  });
 }
 
 function clearGameState(client, guildId) {
   if (client.noituGames) {
     client.noituGames.delete(guildId);
   }
+
+  // Clear state in MongoDB asynchronously in the background
+  NoituGuild.updateOne(
+    { guildId },
+    {
+      $set: {
+        "gameState.running": false,
+        "gameState.words": [],
+        "gameState.currentWord": null,
+        "gameState.currentPlayerId": null,
+      },
+    }
+  ).catch((err) => {
+    console.error(`❌ [Noitu DB] Failed to clear state for guild ${guildId}:`, err);
+  });
 }
 
 async function createGameStartMessage(channel, word) {

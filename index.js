@@ -251,6 +251,28 @@ client.once(Events.ClientReady, async () => {
     } catch (migError) {
       console.error("❌ RPG Class migration error:", migError);
     }
+
+    // Load active noitu games from MongoDB
+    try {
+      const NoituGuild = require("./models/NoituGuild");
+      const activeGuilds = await NoituGuild.find({ "gameState.running": true }).lean();
+      if (activeGuilds.length > 0) {
+        console.log(`🔄 Loading ${activeGuilds.length} active noitu game states from database...`);
+        for (const guildDoc of activeGuilds) {
+          client.noituGames.set(guildDoc.guildId, {
+            running: guildDoc.gameState.running,
+            channelId: guildDoc.gameState.channelId,
+            currentWord: guildDoc.gameState.currentWord,
+            currentPlayerId: guildDoc.gameState.currentPlayerId,
+            words: guildDoc.gameState.words || [],
+            lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
+          });
+        }
+        console.log("✅ Noitu game states loaded successfully.");
+      }
+    } catch (noituLoadError) {
+      console.error("❌ Failed to load noitu games from database:", noituLoadError);
+    }
   } catch (error) {
     console.error("❌ Error during startup sequence:", error);
     process.exit(1);

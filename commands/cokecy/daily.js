@@ -90,7 +90,7 @@ module.exports = {
     if (brokeStreak) {
       responseText += `${config.emoji.fireBreak} **|** Bạn đã mất chuỗi, bắt đầu lại từ đầu!\n`;
     } else {
-      responseText += `   **|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
+      responseText += `<:blank:1403928807395819671>**|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
     }
     responseText += `<:crate:1512793698025603282> **|** You received a **lootbox**!\n`;
     responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;
