@@ -27,13 +27,11 @@ const {
 
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
-  assassin: "physical",
-  paladin: "physical",
-  berserker: "physical",
   archer: "physical",
   mage: "magical",
-  necromancer: "magical",
-  cleric: "magical",
+  assassin: "physical",
+  paladin: "physical",
+  wretch: "physical",
 };
 
 const formatRemaining = (ms) => {
@@ -703,6 +701,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
             let healFactor = 0.20;
             if (activeBoss.effects.healReduced) {
               healFactor *= 0.50;
+            }
+            if (rpgClass?.bonuses?.healReduction) {
+              healFactor *= (1 - rpgClass.bonuses.healReduction);
             }
             bossHealedAmount = Math.floor(missingHp * healFactor);
             activeBoss.hp = Math.min(activeBoss.maxHp, activeBoss.hp + bossHealedAmount);

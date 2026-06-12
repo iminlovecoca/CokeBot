@@ -163,23 +163,30 @@ const buildClassSelectRow = (selectedClassKey, disabled = false) => {
   return new ActionRowBuilder().addComponents(menu);
 };
 
-const buildAvatarSelectRow = (selectedAvatar, disabled = false) => {
-  const charFiles = Array.from({ length: 21 }, (_, i) => i + 1)
-    .filter((num) => num !== 6) // character_06.png is missing
-    .map((num) => {
-      const pad = String(num).padStart(2, "0");
-      return `character_${pad}.png`;
-    });
+const buildAvatarSelectRow = (classKey, selectedAvatar, disabled = false) => {
+  const classNamesMap = {
+    warrior: "Warrior",
+    archer: "Archer",
+    mage: "Mage",
+    assassin: "Assassin",
+    paladin: "Paladin",
+    wretch: "Wretch",
+  };
+  const className = classNamesMap[classKey] || "Warrior";
+  const options = [
+    { label: "Nam (Male)", value: `${className}_male.png` },
+    { label: "Nữ (Female)", value: `${className}_female.png` },
+  ];
 
   const menu = new StringSelectMenuBuilder()
     .setCustomId("rpg_avatar_select_menu")
-    .setPlaceholder("Chọn Avatar nhân vật")
+    .setPlaceholder("Chọn giới tính nhân vật")
     .setDisabled(disabled)
     .addOptions(
-      charFiles.map((file) => ({
-        label: `Avatar ${file.split(".")[0].split("_")[1]}`,
-        value: file,
-        default: file === selectedAvatar,
+      options.map((opt) => ({
+        label: opt.label,
+        value: opt.value,
+        default: opt.value === selectedAvatar,
       }))
     );
   return new ActionRowBuilder().addComponents(menu);
@@ -248,11 +255,15 @@ module.exports = {
 
       collector.on("collect", async (interaction) => {
         if (interaction.customId === "rpg_class_action_classes") {
-          // Confirmation to change class (cost 100k coke)
+          const user = await getUser(message.author.id);
+          const isFree = !user.rpg.freeClassChangeUsed;
+          const changeCost = isFree ? 0 : 100000;
+
+          // Confirmation to change class
           const confirmRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId("rpg_class_change_confirm")
-              .setLabel("Confirm (100k Coke)")
+              .setLabel(isFree ? "Confirm (Miễn phí)" : "Confirm (100k Coke)")
               .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
               .setCustomId("rpg_class_change_cancel")
@@ -261,7 +272,9 @@ module.exports = {
           );
 
           await interaction.update({
-            content: `⚠️ Bạn có muốn dùng **100,000 Coke** để chọn lại Class nhân vật của mình không?\nCoke hiện tại của bạn: **${userData.coke.toLocaleString()} Coke**`,
+            content: isFree
+              ? `⚠️ Bạn có muốn chọn lại Class nhân vật của mình không? (Lần đầu **Miễn phí**)\nCoke hiện tại của bạn: **${user.coke.toLocaleString()} Coke**`
+              : `⚠️ Bạn có muốn dùng **100,000 Coke** để chọn lại Class nhân vật của mình không?\nCoke hiện tại của bạn: **${user.coke.toLocaleString()} Coke**`,
             components: [confirmRow],
           });
         } else if (interaction.customId === "rpg_class_change_cancel") {
@@ -273,7 +286,8 @@ module.exports = {
           });
         } else if (interaction.customId === "rpg_class_change_confirm") {
           const user = await getUser(message.author.id);
-          const changeCost = 100000;
+          const isFree = !user.rpg.freeClassChangeUsed;
+          const changeCost = isFree ? 0 : 100000;
           if (user.coke < changeCost) {
             return interaction.reply({
               content: `❌ Bạn không đủ Coke để đổi class. (Yêu cầu: **${changeCost.toLocaleString()} Coke**, hiện có: **${user.coke.toLocaleString()} Coke**)`,
@@ -297,12 +311,14 @@ module.exports = {
             });
 
             return {
-              content: `⚔️ **Đổi Class (Đã trừ 100k Coke)**\nHãy chọn Class và Avatar mới của bạn. Bấm **Chốt (Accept)** để xác nhận!`,
+              content: isFree
+                ? `⚔️ **Đổi Class (Miễn phí)**\nHãy chọn Class và Avatar mới của bạn. Bấm **Chốt (Accept)** để xác nhận!`
+                : `⚔️ **Đổi Class (Đã trừ 100k Coke)**\nHãy chọn Class và Avatar mới của bạn. Bấm **Chốt (Accept)** để xác nhận!`,
               embeds: [embed],
               files: [attachment],
               components: [
                 buildClassSelectRow(currentClassKey, disabled),
-                buildAvatarSelectRow(currentAvatar, disabled),
+                buildAvatarSelectRow(currentClassKey, currentAvatar, disabled),
                 new ActionRowBuilder().addComponents(
                   new ButtonBuilder()
                     .setCustomId("rpg_class_change_accept")
@@ -331,7 +347,8 @@ module.exports = {
             if (i.isStringSelectMenu()) {
               if (i.customId === "rpg_class_select_menu") {
                 currentClassKey = i.values[0];
-                currentAvatar = getRpgClass(currentClassKey).asset;
+                const classNameCapital = currentClassKey.charAt(0).toUpperCase() + currentClassKey.slice(1);
+                currentAvatar = `${classNameCapital}_male.png`;
               } else if (i.customId === "rpg_avatar_select_menu") {
                 currentAvatar = i.values[0];
               }
@@ -345,6 +362,7 @@ module.exports = {
                 updatedUser.rpg.classKey = currentClassKey;
                 updatedUser.rpg.characterAsset = currentAvatar;
                 updatedUser.rpg.stats = rpgClass.stats;
+                updatedUser.rpg.freeClassChangeUsed = true;
                 updatedUser.rpg.power = calculateRpgPower(updatedUser);
                 updatedUser.markModified("rpg");
                 await updatedUser.save();
@@ -368,7 +386,9 @@ module.exports = {
                 });
 
                 await i.update({
-                  content: "Đã hủy đổi Class. Bạn đã được hoàn lại 100k Coke.",
+                  content: isFree
+                    ? "Đã hủy đổi Class."
+                    : "Đã hủy đổi Class. Bạn đã được hoàn lại 100k Coke.",
                   embeds: [buildClassEmbed(refundedUser.rpg.classKey, originalClass, refundedUser, originalAvatar)],
                   files: [originalAttachment],
                   components: [actionRow],
@@ -384,7 +404,9 @@ module.exports = {
             await refundedUser.save();
 
             await prompt.edit({
-              content: "Phiên chọn class đã hết hạn. Bạn đã được hoàn lại 100k Coke.",
+              content: isFree
+                ? "Phiên chọn class đã hết hạn."
+                : "Phiên chọn class đã hết hạn. Bạn đã được hoàn lại 100k Coke.",
               components: [],
             }).catch(() => {});
           });
@@ -522,7 +544,7 @@ module.exports = {
         files: [attachment],
         components: [
           buildClassSelectRow(currentClassKey, disabled),
-          buildAvatarSelectRow(currentAvatar, disabled),
+          buildAvatarSelectRow(currentClassKey, currentAvatar, disabled),
           buildConfirmationRow(disabled),
         ],
       };
@@ -542,7 +564,8 @@ module.exports = {
       if (interaction.isStringSelectMenu()) {
         if (interaction.customId === "rpg_class_select_menu") {
           currentClassKey = interaction.values[0];
-          currentAvatar = getRpgClass(currentClassKey).asset;
+          const classNameCapital = currentClassKey.charAt(0).toUpperCase() + currentClassKey.slice(1);
+          currentAvatar = `${classNameCapital}_male.png`;
         } else if (interaction.customId === "rpg_avatar_select_menu") {
           currentAvatar = interaction.values[0];
         }
@@ -590,6 +613,8 @@ module.exports = {
           user.set("rpg", {
             name: characterName,
             nameChanged: false,
+            freeClassChangeUsed: false,
+            migratedToWarrior: true,
             classKey: currentClassKey,
             characterAsset: currentAvatar,
             level: config.rpg.starting_level || 1,
@@ -628,7 +653,7 @@ module.exports = {
         content: "Phiên chọn class đã hết hạn. Hãy dùng lại lệnh khi sẵn sàng.",
         components: [
           buildClassSelectRow(currentClassKey, true),
-          buildAvatarSelectRow(currentAvatar, true),
+          buildAvatarSelectRow(currentClassKey, currentAvatar, true),
           buildConfirmationRow(true),
         ],
       }).catch(() => {});

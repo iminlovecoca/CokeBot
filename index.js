@@ -224,6 +224,33 @@ client.once(Events.ClientReady, async () => {
     await initializeAutohuntReminders(client);
 
     await performStartupCleanup(client);
+
+    // RPG Class Migration
+    try {
+      const User = require("./models/User");
+      const { calculateRpgPower } = require("./utils/rpgUtil");
+      const usersToMigrate = await User.find({
+        "rpg.classKey": { $ne: null },
+        "rpg.migratedToWarrior": { $ne: true }
+      });
+      if (usersToMigrate.length > 0) {
+        console.log(`🔄 Migrating ${usersToMigrate.length} users to Warrior class...`);
+        const warriorClass = config.rpg.classes.warrior;
+        for (const user of usersToMigrate) {
+          user.rpg.classKey = "warrior";
+          user.rpg.characterAsset = "Warrior_male.png";
+          user.rpg.stats = { ...warriorClass.stats };
+          user.rpg.freeClassChangeUsed = false;
+          user.rpg.migratedToWarrior = true;
+          user.rpg.power = calculateRpgPower(user);
+          user.markModified("rpg");
+          await user.save();
+        }
+        console.log("✅ RPG Class migration completed.");
+      }
+    } catch (migError) {
+      console.error("❌ RPG Class migration error:", migError);
+    }
   } catch (error) {
     console.error("❌ Error during startup sequence:", error);
     process.exit(1);

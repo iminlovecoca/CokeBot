@@ -419,7 +419,7 @@ module.exports = {
       warrior: {
         name: "Warrior",
         title: "Kiếm sĩ tiền tuyến",
-        asset: "character_01.png",
+        asset: "Warrior_male.png",
         color: "#C75B39",
         description:
           "DPS bền, sát thương ổn định và sống sót tốt khi đánh boss.",
@@ -429,7 +429,7 @@ module.exports = {
       mage: {
         name: "Mage",
         title: "Pháp sư hư không",
-        asset: "character_08.png",
+        asset: "Mage_male.png",
         color: "#7C5CFF",
         description:
           "Burst damage mạnh, farm EXP nhanh và có lợi thế trong boss nhiều máu.",
@@ -439,62 +439,42 @@ module.exports = {
       assassin: {
         name: "Assassin",
         title: "Sát thủ bóng đêm",
-        asset: "character_12.png",
+        asset: "Assassin_male.png",
         color: "#8E44AD",
         description:
           "Crit và tốc độ cao, rất mạnh trong Arena và săn vật phẩm hiếm.",
         stats: { vigor: 12, pr: 10, mr: 8, str: 10, dex: 17, int: 9, arc: 15 },
-        bonuses: { critRate: 0.08, dropRate: 0.04 },
+        bonuses: { critRate: 0.08, dropRate: 0.04, healReduction: 0.25 },
       },
       paladin: {
         name: "Paladin",
         title: "Hộ vệ ánh sáng",
-        asset: "character_03.png",
+        asset: "Paladin_male.png",
         color: "#E3B341",
         description:
           "Tank/support, thủ cao, ổn định trong PvP và content dài hơi.",
         stats: { vigor: 16, pr: 17, mr: 10, str: 14, dex: 9, int: 8, arc: 7 },
         bonuses: { pvpDefense: 0.08 },
       },
-      berserker: {
-        name: "Berserker",
-        title: "Chiến binh cuồng nộ",
-        asset: "character_02.png",
-        color: "#E74C3C",
-        description:
-          "Tấn công vật lý cực mạnh, lượng máu dồi dào nhưng thủ thấp.",
-        stats: { vigor: 17, pr: 12, mr: 6, str: 18, dex: 12, int: 8, arc: 8 },
-        bonuses: { bossDamage: 0.15 },
-      },
       archer: {
         name: "Archer",
         title: "Xạ thủ bách phát",
-        asset: "character_05.png",
+        asset: "Archer_male.png",
         color: "#2ECC71",
         description:
           "Tốc độ và may mắn vượt trội, tỉ lệ chí mạng và săn đồ rất cao.",
         stats: { vigor: 14, pr: 11, mr: 8, str: 11, dex: 18, int: 10, arc: 9 },
         bonuses: { critRate: 0.05, dropRate: 0.03 },
       },
-      necromancer: {
-        name: "Necromancer",
-        title: "Pháp sư triệu hồn",
-        asset: "character_15.png",
-        color: "#9B59B6",
+      wretch: {
+        name: "Wretch",
+        title: "Kẻ khổ đau",
+        asset: "Wretch_male.png",
+        color: "#95A5A6",
         description:
-          "Sử dụng ma thuật bóng tối, nhận thêm nhiều kinh nghiệm khi chiến đấu.",
-        stats: { vigor: 11, pr: 8, mr: 14, str: 7, dex: 11, int: 16, arc: 14 },
-        bonuses: { expGain: 0.1 },
-      },
-      cleric: {
-        name: "Cleric",
-        title: "Tu sĩ ánh sáng",
-        asset: "character_07.png",
-        color: "#F1C40F",
-        description:
-          "Hỗ trợ và chống chịu tốt, tăng phòng ngự PvP và sát thương boss.",
-        stats: { vigor: 15, pr: 11, mr: 15, str: 10, dex: 10, int: 12, arc: 8 },
-        bonuses: { pvpDefense: 0.05, bossDamage: 0.05 },
+          "Khởi đầu khiêm tốn, chỉ số cân bằng, tiềm năng phát triển đa dạng.",
+        stats: { vigor: 11, pr: 11, mr: 11, str: 11, dex: 11, int: 11, arc: 11 },
+        bonuses: { expGain: 0.05, dropRate: 0.05 },
       },
     },
   },

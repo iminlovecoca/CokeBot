@@ -25,13 +25,11 @@ const path = require("path");
 
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
-  assassin: "physical",
-  paladin: "physical",
-  berserker: "physical",
   archer: "physical",
   mage: "magical",
-  necromancer: "magical",
-  cleric: "magical",
+  assassin: "physical",
+  paladin: "physical",
+  wretch: "physical",
 };
 
 const imageCache = new Map();
@@ -64,25 +62,6 @@ const getTransparentCharacter = async (pAsset) => {
   const tempCanvas = createCanvas(width, height);
   const tempCtx = tempCanvas.getContext("2d");
   tempCtx.drawImage(img, 0, 0, width, height);
-
-  const imgData = tempCtx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    if (
-      r >= 120 &&
-      r <= 135 &&
-      g >= 120 &&
-      g <= 135 &&
-      b >= 120 &&
-      b <= 135
-    ) {
-      data[i + 3] = 0;
-    }
-  }
-  tempCtx.putImageData(imgData, 0, 0);
 
   transparentCharCache.set(pAsset, tempCanvas);
   return tempCanvas;
@@ -272,9 +251,14 @@ const simulatePvP = (p1, p2) => {
       // Green Staff heal passive
       if (hasTriggered && cleanSubType === "greenstaff") {
         let healAmt = Math.floor(damage * 0.25);
+        let healReduceFactor = 1.0;
         if (attacker.effects.healReduced) {
-          healAmt = Math.floor(healAmt * 0.5);
+          healReduceFactor *= 0.5;
         }
+        if (defender.rpgClass?.bonuses?.healReduction) {
+          healReduceFactor *= (1 - defender.rpgClass.bonuses.healReduction);
+        }
+        healAmt = Math.floor(healAmt * healReduceFactor);
         attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
       }
     }

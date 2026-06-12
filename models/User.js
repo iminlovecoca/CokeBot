@@ -88,6 +88,8 @@ const userSchema = new mongoose.Schema({
   rpg: {
     name: { type: String, default: null },
     nameChanged: { type: Boolean, default: false },
+    freeClassChangeUsed: { type: Boolean, default: false },
+    migratedToWarrior: { type: Boolean, default: false },
     classKey: { type: String, default: null },
     characterAsset: { type: String, default: null },
     level: { type: Number, default: 1 },

@@ -42,7 +42,7 @@ const getItemScore = (item, classKey, baseStats) => {
   if (item.slot === "weapon") {
     // Suitability check for weapon types
     const subType = String(item.subType || "").toLowerCase();
-    const magicalClasses = ["mage", "necromancer", "cleric"];
+    const magicalClasses = ["mage"];
     const isMagicalClass = magicalClasses.includes(classKey);
 
     const isSuitable = isMagicalClass
@@ -56,7 +56,7 @@ const getItemScore = (item, classKey, baseStats) => {
 
   // Non-weapons
   let score = item.power || 0;
-  const magicalClasses = ["mage", "necromancer", "cleric"];
+  const magicalClasses = ["mage"];
   const dexClasses = ["assassin", "archer"];
   
   let weights = {};
@@ -80,7 +80,7 @@ const getItemScore = (item, classKey, baseStats) => {
 
 module.exports = {
   name: "autoequip",
-  aliases: ["ae", "macnhanh", "mặcnhanh"],
+  aliases: ["aeq", "macnhanh", "mặcnhanh"],
   description: "Tự động mặc những trang bị tốt nhất và phù hợp nhất với class của bạn.",
   usage: `${config.prefix}autoequip`,
   examples: [

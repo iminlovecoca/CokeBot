@@ -377,7 +377,7 @@ const selectRpgClass = async (userId, classKey) => {
   const rpgClass = getRpgClass(classKey);
   if (!rpgClass) {
     throw new UserFriendlyError(
-      `${config.emoji.no} Class không hợp lệ. Hãy chọn Warrior, Mage, Assassin hoặc Paladin.`,
+      `${config.emoji.no} Class không hợp lệ. Hãy chọn Warrior, Archer, Mage, Assassin, Paladin hoặc Wretch.`,
     );
   }
 
@@ -396,6 +396,8 @@ const selectRpgClass = async (userId, classKey) => {
     power: calculateStarterPower(),
     stats: rpgClass.stats,
     rank: getRpgRank(config.rpg.starting_level),
+    freeClassChangeUsed: false,
+    migratedToWarrior: true,
     equipped: {},
     items: [],
     lastItemId: 0,
