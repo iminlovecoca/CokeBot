@@ -223,8 +223,17 @@ module.exports = {
 
     if (hasRpgCharacter(userData)) {
       const rpgClass = getRpgClass(userData.rpg.classKey);
-      const avatarFile = userData.rpg.characterAsset || rpgClass.asset;
-      const assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+      let avatarFile = userData.rpg.characterAsset || rpgClass.asset;
+      let assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+
+      if (!fs.existsSync(assetPath)) {
+        avatarFile = rpgClass.asset || "Warrior_male.png";
+        assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+        userData.rpg.characterAsset = avatarFile;
+        userData.markModified("rpg");
+        await userData.save();
+      }
+
       const attachment = new AttachmentBuilder(assetPath, {
         name: avatarFile,
       });
