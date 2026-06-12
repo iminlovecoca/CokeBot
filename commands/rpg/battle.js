@@ -106,7 +106,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 
 const simulatePvP = (p1, p2) => {
   let turn = 1;
-  const maxTurns = 50;
+  const maxTurns = 15;
 
   p1.effects = { armorReduced: 0, healReduced: false };
   p2.effects = { armorReduced: 0, healReduced: false };
@@ -573,51 +573,16 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     user1.rpg?.settings?.battleDisplay,
   );
 
-  // Start generating image in the background (asynchronously)
-  const imgPromise = showImage
-    ? generatePvPImage(
-        player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-        player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-      ).catch((err) => {
-        console.error("Failed to generate PvP image:", err);
-        return null;
-      })
-    : Promise.resolve(null);
-
-  // Reply instantly with Stage 1 text-only embed
-  const initialEmbed = new EmbedBuilder()
-    .setColor("#5865F2")
-    .setDescription("⚔️ **Trận chiến đang diễn ra...**")
-    .addFields(
-      {
-        name: `${player1.name} (${player1.classLabel})`,
-        value: renderTextBar(maxHp1, maxHp1, player1.gearPower),
-        inline: true,
-      },
-      {
-        name: `${player2.name} (${player2.classLabel})`,
-        value: renderTextBar(maxHp2, maxHp2, player2.gearPower),
-        inline: true,
-      },
-    );
-
-  let currentMsg;
-  if (promptMessage && promptMessage.editable) {
-    currentMsg = await promptMessage.edit({
-      embeds: [initialEmbed],
-      components: [],
-    });
-  } else {
-    currentMsg = await message.reply({ embeds: [initialEmbed] });
-  }
-
-  // Sleep for 1500ms (let the background image generation run)
+  let imgData = null;
   if (showImage) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    imgData = await generatePvPImage(
+      player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+      player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+    ).catch((err) => {
+      console.error("Failed to generate PvP image:", err);
+      return null;
+    });
   }
-
-  // Await the image generation result
-  const imgData = await imgPromise;
 
   let attachment = null;
   if (imgData) {
@@ -626,7 +591,6 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     });
   }
 
-  // Stage 2: final result
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .addFields(
@@ -659,9 +623,14 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     );
   }
 
-  const editPayload = { embeds: [finalEmbed] };
+  const replyPayload = { embeds: [finalEmbed] };
   if (attachment) {
-    editPayload.files = [attachment];
+    replyPayload.files = [attachment];
   }
-  await currentMsg.edit(editPayload).catch(() => {});
+
+  if (promptMessage && promptMessage.editable) {
+    await promptMessage.edit({ ...replyPayload, components: [] }).catch(() => {});
+  } else {
+    await message.reply(replyPayload).catch(() => {});
+  }
 };
