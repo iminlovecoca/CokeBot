@@ -1,4 +1,4 @@
-﻿const { DateTime } = require('luxon');
+const { DateTime } = require('luxon');
 const { getUser } = require('../../utils/userUtil');
 const config = require('../../data/config');
 
@@ -21,14 +21,14 @@ module.exports = {
       ? DateTime.fromJSDate(user.lastDaily).setZone('Asia/Ho_Chi_Minh').startOf('day')
       : null;
 
-    if (lastClaim && lastClaim.equals(today)) {
-      const nextClaim = today.plus({ days: 1 });
-      const diff = nextClaim.diff(now, ['hours', 'minutes', 'seconds']).toObject();
-      const h = Math.floor(diff.hours);
-      const m = Math.floor(diff.minutes);
-      const s = Math.floor(diff.seconds);
+    const nextClaim = today.plus({ days: 1 });
+    const diff = nextClaim.diff(now, ['hours', 'minutes', 'seconds']).toObject();
+    const h = Math.floor(diff.hours);
+    const m = Math.floor(diff.minutes);
+    const s = Math.floor(diff.seconds);
 
-      return message.reply(`⏱ **|** **${name}**, cần đợi **${h}H ${m}M ${s}S** để nhận.`);
+    if (lastClaim && lastClaim.equals(today)) {
+      return message.reply(`⏱️ **|** **${name}**, your next daily is in: **${h}H ${m}M ${s}S**`);
     }
 
     let streak = 1;
@@ -58,6 +58,14 @@ module.exports = {
       user.coke += 2000;
     }
 
+    // Add 1 wc item to user inventory
+    if (!user.inventory) {
+      user.inventory = new Map();
+    }
+    const currentWc = user.inventory.get("wc") || 0;
+    user.inventory.set("wc", currentWc + 1);
+    user.markModified("inventory");
+
     const milestones = Object.keys(config.emoji.streakMilestones)
       .map(Number)
       .sort((a, b) => a - b);
@@ -78,17 +86,19 @@ module.exports = {
 
     await user.save();
 
+    let responseText = `💰 **|** **${name}**, Here is your daily ${config.emoji.money} **${reward.toLocaleString()}** Coke!\n`;
     if (brokeStreak) {
-      return message.reply(
-        `${config.emoji.money} **|** **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n` +
-        `${config.emoji.fireBreak} **|** Bạn đã mất chuỗi, bắt đầu lại từ đầu!`
-      );
+      responseText += `${config.emoji.fireBreak} **|** Bạn đã mất chuỗi, bắt đầu lại từ đầu!\n`;
+    } else {
+      responseText += `   **|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
+    }
+    responseText += `📦 **|** You received a **lootbox**!\n`;
+    responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;
+
+    if (milestoneMessage) {
+      responseText += `\n\n${milestoneMessage}`;
     }
 
-    return message.reply(
-      `${config.emoji.money} **|** **${name}** đã nhận được **${reward.toLocaleString()} coke**!\n` +
-      `${streakEmoji} **|** Chuỗi ngày: **${streak} ngày**\n` +
-      (milestoneMessage ? `\n${milestoneMessage}` : '')
-    )
+    return message.reply(responseText);
   }
 };

@@ -74,7 +74,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   const ctx = canvas.getContext("2d");
 
   // Load background
-  const bgPath = path.join(__dirname, "../../assets/backgrounds/dark-bg.png");
+  const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
   const bg = await getCachedImage(bgPath);
   if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
@@ -129,14 +129,15 @@ const simulatePvP = (p1, p2) => {
 
     const defenderEvasion = Math.min(
       0.15,
-      (defender.effectiveStats.dex * 0.1 +
-        defender.effectiveStats.arc * 0.05) /
+      (defender.effectiveStats.dex * 0.1 + defender.effectiveStats.arc * 0.05) /
         100,
     );
     const isEvaded = Math.random() < defenderEvasion;
 
     const attackerWeapon = attacker.weapon;
-    const cleanSubType = attackerWeapon?.subType ? attackerWeapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    const cleanSubType = attackerWeapon?.subType
+      ? attackerWeapon.subType.toLowerCase().replace(/\s+/g, "")
+      : "";
     const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
 
     const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
@@ -146,7 +147,7 @@ const simulatePvP = (p1, p2) => {
 
     if (hasTriggered) {
       if (cleanSubType === "shadowdagger") {
-        defender.effects.armorReduced = 0.30;
+        defender.effects.armorReduced = 0.3;
       } else if (cleanSubType === "poisondagger") {
         attacker.nextAttackMult = 1.5;
       } else if (cleanSubType === "firesword") {
@@ -162,16 +163,17 @@ const simulatePvP = (p1, p2) => {
           holySwordDouble = true;
         }
       } else if (cleanSubType === "darksword") {
-        defender.effects.damageReduced = 0.30;
+        defender.effects.damageReduced = 0.3;
       } else if (cleanSubType === "darkstaff") {
         const effects = ["burn", "weakness", "pierce"];
-        const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
+        const chosenEffect =
+          effects[Math.floor(Math.random() * effects.length)];
         if (chosenEffect === "burn") {
           defender.effects.healReduced = true;
         } else if (chosenEffect === "weakness") {
-          defender.effects.damageReduced = 0.30;
+          defender.effects.damageReduced = 0.3;
         } else {
-          defender.effects.armorReduced = 0.30;
+          defender.effects.armorReduced = 0.3;
         }
       }
     } else if (cleanSubType === "holysword") {
@@ -190,7 +192,7 @@ const simulatePvP = (p1, p2) => {
     if (!isEvaded) {
       const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
       const attackerCritRate = Math.min(
-        0.50,
+        0.5,
         (attacker.effectiveStats.arc * 0.2 +
           attacker.effectiveStats.dex * 0.1) /
           100 +
@@ -201,8 +203,8 @@ const simulatePvP = (p1, p2) => {
 
       const isMagical = CLASS_ATTACK_TYPES[attacker.classKey] === "magical";
       const baseAtk = isMagical
-        ? (attacker.effectiveStats.int * 3.5 + attacker.effectiveStats.arc * 1.5)
-        : (attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5);
+        ? attacker.effectiveStats.int * 3.5 + attacker.effectiveStats.arc * 1.5
+        : attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5;
 
       let rawDamage = baseAtk + attacker.gearPower;
       rawDamage *= 0.85 + Math.random() * 0.3; // variance
@@ -212,15 +214,17 @@ const simulatePvP = (p1, p2) => {
 
       let defenderMitigation = 0;
       if (isMagical) {
-        let mr = defender.effectiveStats.mr * 3.0 + (defender.defensePower || 0);
+        let mr =
+          defender.effectiveStats.mr * 3.0 + (defender.defensePower || 0);
         if (blueStaffPierce) {
           mr *= 0.5;
         }
         defenderMitigation = mr / (mr + 1000);
       } else {
-        let armor = defender.effectiveStats.pr * 3.0 + (defender.defensePower || 0);
+        let armor =
+          defender.effectiveStats.pr * 3.0 + (defender.defensePower || 0);
         if (defender.effects.armorReduced) {
-          armor *= (1 - defender.effects.armorReduced);
+          armor *= 1 - defender.effects.armorReduced;
         }
         if (crimsonDaggerPierce) {
           armor *= 0.5;
@@ -237,14 +241,11 @@ const simulatePvP = (p1, p2) => {
         finalMult *= poisonMult;
       }
       if (attacker.effects.damageReduced) {
-        finalMult *= (1 - attacker.effects.damageReduced);
+        finalMult *= 1 - attacker.effects.damageReduced;
         delete attacker.effects.damageReduced; // consume
       }
 
-      let damage = Math.max(
-        5,
-        Math.floor((rawDamage * finalMult) / 10),
-      );
+      let damage = Math.max(5, Math.floor((rawDamage * finalMult) / 10));
 
       defender.hp = Math.max(0, defender.hp - damage);
 
@@ -256,7 +257,7 @@ const simulatePvP = (p1, p2) => {
           healReduceFactor *= 0.5;
         }
         if (defender.rpgClass?.bonuses?.healReduction) {
-          healReduceFactor *= (1 - defender.rpgClass.bonuses.healReduction);
+          healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
         }
         healAmt = Math.floor(healAmt * healReduceFactor);
         attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
@@ -271,7 +272,9 @@ const simulatePvP = (p1, p2) => {
     turn += 1;
   }
 
-  let winner, loser, isDraw = false;
+  let winner,
+    loser,
+    isDraw = false;
   if (p1.hp <= 0) {
     winner = p2;
     loser = p1;
@@ -377,7 +380,12 @@ module.exports = {
           await interaction.deferUpdate();
           const { updateQuestProgress } = require("../../utils/questUtil");
           await updateQuestProgress(senderId, "pvp_battle", 1, message.channel);
-          await updateQuestProgress(receiverId, "pvp_battle", 1, message.channel);
+          await updateQuestProgress(
+            receiverId,
+            "pvp_battle",
+            1,
+            message.channel,
+          );
           await runPvPBattle(message, prompt, senderId, receiverId);
         } else if (interaction.customId === "pvp_decline") {
           collector.stop("declined");
@@ -491,7 +499,11 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
   const result = simulatePvP(player1, player2);
 
-  let winUser, loseUser, cokeWinner = 0, finalHp1 = 0, finalHp2 = 0;
+  let winUser,
+    loseUser,
+    cokeWinner = 0,
+    finalHp1 = 0,
+    finalHp2 = 0;
   const isP1Winner = result.winner && result.winner.id === player1.id;
 
   if (result.isDraw) {
@@ -531,11 +543,23 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     await loseUser.save();
 
     const { updateQuestProgress } = require("../../utils/questUtil");
-    await updateQuestProgress(p1Id, "exp_gain", result.winner.id === p1Id ? 200 : 50, message.channel);
-    await updateQuestProgress(p2Id, "exp_gain", result.winner.id === p2Id ? 200 : 50, message.channel);
+    await updateQuestProgress(
+      p1Id,
+      "exp_gain",
+      result.winner.id === p1Id ? 200 : 50,
+      message.channel,
+    );
+    await updateQuestProgress(
+      p2Id,
+      "exp_gain",
+      result.winner.id === p2Id ? 200 : 50,
+      message.channel,
+    );
 
-    finalHp1 = result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
-    finalHp2 = result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
+    finalHp1 =
+      result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
+    finalHp2 =
+      result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
   }
 
   const renderTextBar = (hp, max, power) => {
@@ -545,14 +569,16 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
   };
 
-  const showImage = !["text", "compact"].includes(user1.rpg?.settings?.battleDisplay);
+  const showImage = !["text", "compact"].includes(
+    user1.rpg?.settings?.battleDisplay,
+  );
 
   // Start generating image in the background (asynchronously)
   const imgPromise = showImage
     ? generatePvPImage(
         player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
         player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-      ).catch(err => {
+      ).catch((err) => {
         console.error("Failed to generate PvP image:", err);
         return null;
       })
@@ -577,7 +603,10 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
   let currentMsg;
   if (promptMessage && promptMessage.editable) {
-    currentMsg = await promptMessage.edit({ embeds: [initialEmbed], components: [] });
+    currentMsg = await promptMessage.edit({
+      embeds: [initialEmbed],
+      components: [],
+    });
   } else {
     currentMsg = await message.reply({ embeds: [initialEmbed] });
   }
@@ -599,7 +628,7 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
 
   // Stage 2: final result
   const finalEmbed = new EmbedBuilder()
-    .setColor(result.isDraw ? "#F1C40F" : (isP1Winner ? "#2ECC71" : "#E74C3C"))
+    .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .addFields(
       {
         name: `${player1.name} (${player1.classLabel})`,
