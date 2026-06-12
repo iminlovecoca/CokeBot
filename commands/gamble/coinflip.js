@@ -25,25 +25,32 @@ module.exports = {
   ],
   async execute(message, args) {
     const userId = message.author.id;
-    let choice;
-    if (args.length == 0) {
-      choice = "h";
-      throw new UserFriendlyError(
-        `${emoji.no} Cú pháp: \`${config.prefix}cf <heads/tails> <số tiền|all>\``,
-      );
-    } else {
-      choice = args[0].toLowerCase();
-      if (["heads", "h", "head"].includes(choice)) {
-        choice = "h";
-      } else if (["tails", "t", "tail"].includes(choice)) {
-        choice = "t";
+    const isSide = (str) => {
+      if (!str) return false;
+      return ["heads", "h", "head", "tails", "t", "tail"].includes(str.toLowerCase());
+    };
+
+    let choice = "h";
+    let bet = "min";
+
+    if (args.length === 1) {
+      if (isSide(args[0])) {
+        choice = ["tails", "t", "tail"].includes(args[0].toLowerCase()) ? "t" : "h";
+        bet = "min";
       } else {
-        throw new UserFriendlyError(
-          `${emoji.no} Bạn phải chọn \`heads\` hoặc \`tails\`!`,
-        );
+        choice = "h";
+        bet = args[0];
+      }
+    } else if (args.length >= 2) {
+      if (isSide(args[0])) {
+        choice = ["tails", "t", "tail"].includes(args[0].toLowerCase()) ? "t" : "h";
+        bet = args[1];
+      } else {
+        choice = "h";
+        bet = args[0];
       }
     }
-    let bet = args.length == 1 ? "min" : args[1];
+
     const betAmount = await getBetAmount(
       bet,
       userId,

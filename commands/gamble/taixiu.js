@@ -1,4 +1,4 @@
-﻿const random = require("random-number-csprng");
+const random = require("random-number-csprng");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const { incBalance } = require("../../utils/userUtil");
 const { getBetAmount } = require("../../utils/gameUtil");
@@ -43,24 +43,32 @@ module.exports = {
       return notifyCooldown(message, remainingCooldown);
     }
 
-    let choice;
-    if (args.length == 0) {
-      return await message.reply(
-        `${emoji.no} Cú pháp: \`${config.prefix}tx <t/x> [số tiền|all]\``,
-      );
-    } else {
-      choice = args[0].toLowerCase();
-      if (["tai", "t"].includes(choice)) {
-        choice = "tai";
-      } else if (["xiu", "x"].includes(choice)) {
-        choice = "xiu";
+    const isChoice = (str) => {
+      if (!str) return false;
+      return ["tai", "t", "xiu", "x"].includes(str.toLowerCase());
+    };
+
+    let choice = "tai";
+    let bet = "min";
+
+    if (args.length === 1) {
+      if (isChoice(args[0])) {
+        choice = ["xiu", "x"].includes(args[0].toLowerCase()) ? "xiu" : "tai";
+        bet = "min";
       } else {
-        return await message.reply(
-          `${emoji.no} Bạn phải chọn \`tai\` hoặc \`xiu\`!`,
-        );
+        choice = "tai";
+        bet = args[0];
+      }
+    } else if (args.length >= 2) {
+      if (isChoice(args[0])) {
+        choice = ["xiu", "x"].includes(args[0].toLowerCase()) ? "xiu" : "tai";
+        bet = args[1];
+      } else {
+        choice = "tai";
+        bet = args[0];
       }
     }
-    let bet = args.length == 1 ? "min" : args[1];
+
     const amount = await getBetAmount(
       bet,
       userId,

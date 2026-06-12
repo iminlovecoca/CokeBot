@@ -6,17 +6,20 @@ const getBetAmount = async (bet, userId, maxBet, minBet) => {
 	const user = await getUser(userId)
 	let amount
 
-	if (bet === 'min') {
-		amount = minBet
-	} else if (bet === 'all') {
-		amount = maxBet
-	} else if (!isNaN(bet) && bet > 0) {
-		amount = parseInt(bet)
-	} else {
-		throw new UserFriendlyError(`${config.emoji.no} Số tiền cược không hợp lệ!`)
+	let normalizedBet = bet;
+	if (typeof bet === 'string') {
+		normalizedBet = bet.trim().toLowerCase();
 	}
 
-	if (bet === 'all' || bet === 'min') {
+	if (normalizedBet === 'all') {
+		amount = maxBet
+	} else if (normalizedBet !== undefined && normalizedBet !== null && normalizedBet !== '' && !isNaN(normalizedBet) && Number(normalizedBet) > 0) {
+		amount = parseInt(normalizedBet)
+	} else {
+		amount = 1
+	}
+
+	if (normalizedBet === 'all') {
 		amount = Math.min(user.coke, amount)
 	}
 	if (amount == 0 || amount > user.coke) {
