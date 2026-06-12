@@ -86,7 +86,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   const img1 = await getTransparentCharacter(p1Asset);
   if (img1) {
     ctx.save();
-    ctx.translate(-30 + 200, 0);
+    ctx.translate(0 + 200, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(img1, -200, 100);
     ctx.restore();
@@ -95,7 +95,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   const img2 = await getTransparentCharacter(p2Asset);
   if (img2) {
     ctx.save();
-    ctx.drawImage(img2, 540, 100);
+    ctx.drawImage(img2, 450, 100);
     ctx.restore();
   }
 
