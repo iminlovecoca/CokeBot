@@ -92,7 +92,7 @@ module.exports = {
     } else {
       responseText += `   **|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
     }
-    responseText += `📦 **|** You received a **lootbox**!\n`;
+    responseText += `<:crate:1512793698025603282> **|** You received a **lootbox**!\n`;
     responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;
 
     if (milestoneMessage) {
