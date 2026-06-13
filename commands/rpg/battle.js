@@ -400,14 +400,11 @@ module.exports = {
           collector.stop("accepted");
           await interaction.deferUpdate();
           const { updateQuestProgress } = require("../../utils/questUtil");
-          await updateQuestProgress(senderId, "pvp_battle", 1, message.channel);
-          await updateQuestProgress(
-            receiverId,
-            "pvp_battle",
-            1,
-            message.channel,
-          );
-          await runPvPBattle(message, prompt, senderId, receiverId);
+          await Promise.all([
+            updateQuestProgress(senderUser, "pvp_battle", 1, message.channel),
+            updateQuestProgress(receiverUser, "pvp_battle", 1, message.channel),
+          ]);
+          await runPvPBattle(message, prompt, senderUser, receiverUser);
         } else if (interaction.customId === "pvp_decline") {
           collector.stop("declined");
           await interaction.update({
@@ -446,15 +443,16 @@ module.exports = {
         userId: { $ne: senderId },
       }).skip(randomIndex);
 
-      const receiverId = randomOpponent.userId;
-      await runPvPBattle(message, null, senderId, receiverId);
+      await runPvPBattle(message, null, senderUser, randomOpponent);
     }
   },
 };
 
-const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
-  const user1 = await User.findOne({ userId: p1Id });
-  const user2 = await User.findOne({ userId: p2Id });
+const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
+  const user1 = typeof user1OrId === "object" && user1OrId.save ? user1OrId : await User.findOne({ userId: user1OrId });
+  const user2 = typeof user2OrId === "object" && user2OrId.save ? user2OrId : await User.findOne({ userId: user2OrId });
+  const p1Id = user1.userId;
+  const p2Id = user2.userId;
 
   const class1 = getRpgClass(user1.rpg.classKey);
   const class2 = getRpgClass(user2.rpg.classKey);
@@ -552,16 +550,16 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     addRpgExp(user1.rpg, 50);
     user1.rpg.power = calculateRpgPower(user1);
     user1.markModified("rpg");
-    await user1.save();
 
     addRpgExp(user2.rpg, 50);
     user2.rpg.power = calculateRpgPower(user2);
     user2.markModified("rpg");
-    await user2.save();
 
     const { updateQuestProgress } = require("../../utils/questUtil");
-    await updateQuestProgress(p1Id, "exp_gain", 50, message.channel);
-    await updateQuestProgress(p2Id, "exp_gain", 50, message.channel);
+    await Promise.all([
+      updateQuestProgress(user1, "exp_gain", 50, message.channel),
+      updateQuestProgress(user2, "exp_gain", 50, message.channel),
+    ]);
 
     finalHp1 = Math.max(1, player1.hp);
     finalHp2 = Math.max(1, player2.hp);
@@ -577,32 +575,35 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
     addRpgExp(winUser.rpg, 200);
     winUser.rpg.power = calculateRpgPower(winUser);
     winUser.markModified("rpg");
-    await winUser.save();
 
     addRpgExp(loseUser.rpg, 50);
     loseUser.rpg.power = calculateRpgPower(loseUser);
     loseUser.markModified("rpg");
-    await loseUser.save();
 
     const { updateQuestProgress } = require("../../utils/questUtil");
-    await updateQuestProgress(
-      p1Id,
-      "exp_gain",
-      result.winner.id === p1Id ? 200 : 50,
-      message.channel,
-    );
-    await updateQuestProgress(
-      p2Id,
-      "exp_gain",
-      result.winner.id === p2Id ? 200 : 50,
-      message.channel,
-    );
+    await Promise.all([
+      updateQuestProgress(
+        user1,
+        "exp_gain",
+        result.winner.id === p1Id ? 200 : 50,
+        message.channel,
+      ),
+      updateQuestProgress(
+        user2,
+        "exp_gain",
+        result.winner.id === p2Id ? 200 : 50,
+        message.channel,
+      ),
+    ]);
 
     finalHp1 =
       result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
     finalHp2 =
       result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
   }
+
+  // Save both users concurrently
+  await Promise.all([user1.save(), user2.save()]);
 
   const renderTextBar = (hp, max, power) => {
     const ratio = Math.max(0, Math.min(1, hp / max));

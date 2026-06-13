@@ -114,13 +114,19 @@ const checkAndResetDailyQuests = async (user) => {
   }
 };
 
-const updateQuestProgress = async (userId, type, amount, channel, extraData = {}) => {
+const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraData = {}) => {
   const User = require("../models/User");
   const config = require("../data/config");
   
-  const user = await User.findOne({ userId }).exec();
+  let user;
+  if (userIdOrUser && typeof userIdOrUser === "object" && userIdOrUser.save) {
+    user = userIdOrUser;
+  } else {
+    user = await User.findOne({ userId: userIdOrUser }).exec();
+  }
   if (!user || !user.rpg || !user.rpg.quests) return;
   
+  const userId = user.userId;
   await checkAndResetDailyQuests(user);
   
   let modified = false;
