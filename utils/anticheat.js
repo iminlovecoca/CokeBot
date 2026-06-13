@@ -5,8 +5,8 @@ const path = require('path')
 const config = require('../data/config')
 
 try {
-	const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'FontdinerSwanky-Regular.ttf')
-	registerFont(fontPath, { family: 'FontdinerSwanky' })
+	const fontPath = path.join(__dirname, '..', 'assets', 'fonts', 'RobotoSlab-Regular.ttf')
+	registerFont(fontPath, { family: 'Roboto Slab' })
 	console.log('✅ Font registered.')
 } catch (error) {
 	console.error('❌ Failed to register font.')
@@ -38,7 +38,7 @@ const generateCaptchaImage = code => {
 		ctx.stroke()
 	}
 
-	ctx.font = 'bold 30px FontdinerSwanky'
+	ctx.font = 'bold 30px "Roboto Slab"'
 	ctx.fillStyle = '#2C3E50'
 	ctx.textAlign = 'center'
 	ctx.textBaseline = 'middle'

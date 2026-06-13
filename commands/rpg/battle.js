@@ -67,6 +67,27 @@ const getTransparentCharacter = async (pAsset) => {
   return tempCanvas;
 };
 
+// Pre-load all character assets and the background image at startup
+const preloadAssets = async () => {
+  try {
+    const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
+    await getCachedImage(bgPath);
+
+    const charactersDir = path.join(__dirname, "../../assets/characters");
+    if (fs.existsSync(charactersDir)) {
+      const files = fs.readdirSync(charactersDir);
+      for (const file of files) {
+        if (file.endsWith(".png")) {
+          await getTransparentCharacter(file);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("[Battle] Failed to preload assets:", error);
+  }
+};
+preloadAssets();
+
 const generatePvPImage = async (p1Asset, p2Asset) => {
   const width = 800;
   const height = 400;
@@ -444,15 +465,36 @@ const runPvPBattle = async (message, promptMessage, p1Id, p2Id) => {
   const maxHp1 = 150 + stats1.vigor * 20 + user1.rpg.level * 20;
   const maxHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
 
-  // Retrieve actual user names from the client
-  const u1Obj = await message.client.users.fetch(p1Id).catch(() => null);
-  const u2Obj = await message.client.users.fetch(p2Id).catch(() => null);
-  const p1Name =
-    user1.rpg.name ||
-    (u1Obj ? u1Obj.username : `Người chơi #${p1Id.slice(-4)}`);
-  const p2Name =
-    user2.rpg.name ||
-    (u2Obj ? u2Obj.username : `Người chơi #${p2Id.slice(-4)}`);
+  // Retrieve actual user names from the client, checking RPG database/cache first to avoid slow API fetch
+  let p1Name = user1.rpg.name;
+  let p2Name = user2.rpg.name;
+
+  if (!p1Name || !p2Name) {
+    const u1Cached = message.client.users.cache.get(p1Id);
+    const u2Cached = message.client.users.cache.get(p2Id);
+
+    if (!p1Name && u1Cached) p1Name = u1Cached.username;
+    if (!p2Name && u2Cached) p2Name = u2Cached.username;
+
+    if (!p1Name || !p2Name) {
+      const fetchPromises = [];
+      if (!p1Name) {
+        fetchPromises.push(
+          message.client.users.fetch(p1Id)
+            .then((u) => { p1Name = u.username; })
+            .catch(() => { p1Name = `Người chơi #${p1Id.slice(-4)}`; })
+        );
+      }
+      if (!p2Name) {
+        fetchPromises.push(
+          message.client.users.fetch(p2Id)
+            .then((u) => { p2Name = u.username; })
+            .catch(() => { p2Name = `Người chơi #${p2Id.slice(-4)}`; })
+        );
+      }
+      await Promise.all(fetchPromises);
+    }
+  }
 
   const equipped1 = getEquippedItems(user1);
   const equipped2 = getEquippedItems(user2);
