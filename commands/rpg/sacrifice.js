@@ -113,7 +113,7 @@ module.exports = {
     const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
     const userItems = user.rpg.items || [];
     const eligibleItems = userItems.filter(
-      (item) => item.rarity === targetRarity && !equippedIds.has(item.id),
+      (item) => item.rarity === targetRarity && !equippedIds.has(item.id) && !item.isGodset,
     );
 
     if (eligibleItems.length === 0) {

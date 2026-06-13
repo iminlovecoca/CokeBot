@@ -84,6 +84,10 @@ module.exports = {
       return message.reply(`${config.emoji.no} Bạn không sở hữu trang bị RPG có ID \`${itemId}\`.`);
     }
 
+    if (senderItem.isGodset) {
+      return message.reply(`${config.emoji.no} Trang bị từ God Set không thể giao dịch!`);
+    }
+
     // Check if equipped
     const isEquipped = Object.values(senderUser.rpg.equipped || {}).includes(senderItem.id);
     if (isEquipped) {

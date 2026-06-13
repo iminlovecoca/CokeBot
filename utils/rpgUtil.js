@@ -731,6 +731,10 @@ const sellRpgItem = async (userId, itemId) => {
     throw new UserFriendlyError(`${config.emoji.no} Không tìm thấy trang bị RPG ID \`${itemId}\`.`);
   }
 
+  if (item.isGodset) {
+    throw new UserFriendlyError(`${config.emoji.no} Trang bị từ God Set không thể bán!`);
+  }
+
   if (Object.values(user.rpg.equipped || {}).includes(item.id)) {
     throw new UserFriendlyError(
       `${config.emoji.no} Bạn đang mặc trang bị này. Hãy đổi sang món khác trước khi bán.`,
@@ -743,6 +747,48 @@ const sellRpgItem = async (userId, itemId) => {
   user.markModified("rpg");
   await user.save();
   return { user, item, cokeGain: item.sellPrice || 0 };
+};
+
+const revokeRpgGodset = async (userId, client) => {
+  const User = require("../models/User");
+  const user = await User.findOne({ userId });
+  if (!user || !user.rpg || !user.rpg.godsetBackup) return false;
+
+  const backup = user.rpg.godsetBackup;
+
+  // Restore stats and level
+  user.rpg.level = backup.level || 1;
+  user.rpg.exp = backup.exp || 0;
+  user.rpg.rank = backup.rank || "Novice";
+  user.rpg.stats = backup.stats ? { ...backup.stats } : {};
+  user.rpg.equipped = backup.equipped ? { ...backup.equipped } : {};
+
+  // Remove godset items from user's inventory
+  user.rpg.items = (user.rpg.items || []).filter(item => !item.isGodset);
+
+  // Recalculate power
+  user.rpg.power = calculateRpgPower(user);
+
+  // Remove backup
+  user.rpg.godsetBackup = undefined;
+  user.markModified("rpg");
+  await user.save();
+
+  if (client) {
+    try {
+      const discordUser = await client.users.fetch(userId).catch(() => null);
+      if (discordUser) {
+        const dmChannel = await discordUser.createDM().catch(() => null);
+        if (dmChannel) {
+          await dmChannel.send(`⚠️ **[CokeBot]** God Set của bạn đã bị thu hồi/hết hạn. Nhân vật của bạn đã được khôi phục về trạng thái trước đó.`).catch(() => null);
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to send godset revocation notification to ${userId}:`, err);
+    }
+  }
+
+  return true;
 };
 
 const getBossForPower = (power) => {
@@ -796,6 +842,7 @@ module.exports = {
   equipRpgItem,
   unequipRpgSlot,
   sellRpgItem,
+  revokeRpgGodset,
   getBossForPower,
   getItemQuality,
   getGearDisplayName,

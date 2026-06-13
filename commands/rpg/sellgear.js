@@ -84,9 +84,9 @@ module.exports = {
       const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
       const userItems = user.rpg.items || [];
 
-      // Filter items that match the rarity and are NOT equipped
+      // Filter items that match the rarity and are NOT equipped and are NOT godset
       const itemsToSell = userItems.filter(
-        (item) => raritiesToSell.includes(item.rarity) && !equippedIds.has(item.id)
+        (item) => raritiesToSell.includes(item.rarity) && !equippedIds.has(item.id) && !item.isGodset
       );
 
       if (itemsToSell.length === 0) {

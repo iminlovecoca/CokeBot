@@ -8,6 +8,7 @@ const {
   selectRpgClass,
   hasRpgCharacter,
   getGearDisplayName,
+  revokeRpgGodset,
 } = require("../../utils/rpgUtil");
 
 // Define weapon list for robust matching
@@ -28,7 +29,7 @@ module.exports = {
   name: "addgodset",
   aliases: ["givegodset", "godset", "maxrpg"],
   description: "Cấp full set trang bị Divine +10 mạnh nhất và nâng cấp độ nhân vật lên 120 cho người chơi (Chỉ Dev/Owner)",
-  usage: `${config.prefix}addgodset @user [tên vũ khí riêng (ví dụ: Shadow Dagger hoặc Fire Sword)]`,
+  usage: `${config.prefix}addgodset @user [tên vũ khí riêng (ví dụ: Shadow Dagger hoặc Fire Sword)] [số phút]`,
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -36,11 +37,32 @@ module.exports = {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
 
-    const targetArg = args[0];
-    if (!targetArg) {
-      return message.reply(`❌ Cú pháp: \`${config.prefix}addgodset @user [tên vũ khí riêng]\``);
+    if (args.length === 0) {
+      return message.reply(`❌ Cú pháp: \`${config.prefix}addgodset @user [tên vũ khí riêng] [số phút]\` hoặc \`${config.prefix}addgodset remove @user\``);
     }
 
+    // Check if it's a revoke command
+    const isRevoke = args.some(arg => ["remove", "revoke", "clear"].includes(arg.toLowerCase()));
+    if (isRevoke) {
+      const cleanArgs = args.filter(arg => !["remove", "revoke", "clear"].includes(arg.toLowerCase()));
+      const targetArg = cleanArgs[0];
+      if (!targetArg) {
+        return message.reply(`❌ Cú pháp thu hồi: \`${config.prefix}addgodset remove @user\``);
+      }
+      const mention = message.mentions.users.first() || await message.client.users.fetch(targetArg).catch(() => null);
+      if (!mention) {
+        return message.reply("❌ Không tìm thấy người dùng.");
+      }
+
+      const revoked = await revokeRpgGodset(mention.id, message.client);
+      if (revoked) {
+        return message.reply(`✅ | Đã thu hồi God Set và khôi phục trạng thái nhân vật RPG cho **${mention.username}**.`);
+      } else {
+        return message.reply(`❌ | Người dùng **${mention.username}** hiện không sử dụng God Set.`);
+      }
+    }
+
+    const targetArg = args[0];
     const mention = message.mentions.users.first() || await message.client.users.fetch(targetArg).catch(() => null);
     if (!mention) {
       return message.reply("❌ Không tìm thấy người dùng.");
@@ -52,6 +74,39 @@ module.exports = {
     if (!hasRpgCharacter(dbUser)) {
       await selectRpgClass(mention.id, "warrior");
       dbUser = await User.findOne({ userId: mention.id });
+    }
+
+    // Check for duration (last arg)
+    let durationMinutes = null;
+    const lastArg = args[args.length - 1];
+    if (args.length >= 2 && /^\d+$/.test(lastArg)) {
+      const parsedDuration = parseInt(lastArg, 10);
+      if (!isNaN(parsedDuration) && parsedDuration > 0) {
+        durationMinutes = parsedDuration;
+        args.pop(); // remove duration from weapon subtype parsing
+      }
+    }
+
+    // Create or update godset backup
+    let expiresAt = null;
+    if (durationMinutes !== null) {
+      expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+    }
+
+    if (dbUser.rpg.godsetBackup) {
+      // Clean up previous godset items
+      dbUser.rpg.items = dbUser.rpg.items.filter(item => !item.isGodset);
+      dbUser.rpg.godsetBackup.expiresAt = expiresAt;
+    } else {
+      dbUser.rpg.godsetBackup = {
+        level: dbUser.rpg.level || 1,
+        exp: dbUser.rpg.exp || 0,
+        rank: dbUser.rpg.rank || "Novice",
+        stats: dbUser.rpg.stats ? { ...dbUser.rpg.stats } : {},
+        equipped: dbUser.rpg.equipped ? { ...dbUser.rpg.equipped } : {},
+        expiresAt: expiresAt,
+        appliedAt: new Date()
+      };
     }
 
     // 1. Upgrade player character level to 120 (Transcendent) and set all stats to 99 (Max base)
@@ -125,6 +180,7 @@ module.exports = {
       });
 
       if (gear) {
+        gear.isGodset = true; // MARK GEAR AS GODSET
         addRpgGearToUser(dbUser, gear);
         dbUser.rpg.equipped[slot] = gear.id;
         addedGears.push(gear);
@@ -138,11 +194,20 @@ module.exports = {
     dbUser.markModified("rpg");
     await dbUser.save();
 
+    // If duration is specified, set a timer to automatically revoke
+    if (durationMinutes !== null) {
+      setTimeout(async () => {
+        await revokeRpgGodset(mention.id, message.client);
+      }, durationMinutes * 60 * 1000);
+    }
+
+    const durationText = durationMinutes !== null ? `trong **${durationMinutes} phút**` : "vĩnh viễn";
+
     const embed = new EmbedBuilder()
       .setColor("#FFFFFF")
       .setTitle("🔱 Đã Cấp God Set & Đạt Cấp 120 Thành Công")
       .setDescription(
-        `Đã nâng cấp dữ liệu nhân vật RPG của <@${mention.id}>:\n\n` +
+        `Đã nâng cấp dữ liệu nhân vật RPG của <@${mention.id}> ${durationText}:\n\n` +
         `• **Cấp độ (Level)**: \`Level 120 (Transcendent)\`\n` +
         `• **Chỉ số gốc**: \`Vigor/PR/MR/STR/DEX/INT/ARC đều đạt 99 (MAX)\`\n` +
         `• **Lực chiến tổng**: \`+${Math.floor(dbUser.rpg.power).toLocaleString()}\`\n\n` +
