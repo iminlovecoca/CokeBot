@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const config = require("../data/config");
 const { UserFriendlyError } = require("./errors");
 const { getUser } = require("./userUtil");
@@ -104,11 +105,15 @@ const getItemImageFile = (item) => {
   const slot = String(item.slot || "").toLowerCase();
   const subType = String(item.subType || "").toLowerCase();
   const rarity = String(item.rarity || "").toLowerCase();
+  const lowerSubType = subType.toLowerCase().replace(/\s+/g, "");
 
   if (slot === "weapon") {
-    const lowerSubType = subType.toLowerCase().replace(/\s+/g, "");
     if (dungeonKeys.includes(lowerSubType)) {
       return `Weapon/${lowerSubType}.png`;
+    }
+    const specificFile = `Weapon/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
     }
     if (subType.includes("sword") || subType.includes("longsword") || subType.includes("claymore") || subType.includes("rapier")) {
       return "Weapon/normalsword.png";
@@ -121,33 +126,53 @@ const getItemImageFile = (item) => {
   }
 
   if (slot === "armor") {
+    const specificFile = `Armor/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
+    }
     if (subType.includes("assassin")) return "Armor/assassinarmor.png";
-    if (subType.includes("heavy")) return "Armor/heavyarmor.png";
     if (subType.includes("mage") || subType.includes("robe")) return "Armor/magerobe.png";
+    if (subType.includes("heavy") || subType.includes("armor")) return "Armor/heavyarmor.png";
     return "Armor/heavyarmor.png";
   }
 
   if (slot === "helmet") {
-    if (subType.includes("warrior") || subType.includes("helm")) return "Helmet/warriorhelm.png";
+    const specificFile = `Helmet/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
+    }
     if (subType.includes("assassin") || subType.includes("hood")) return "Helmet/assassinhood.png";
     if (subType.includes("wizard") || subType.includes("hat")) return "Helmet/wizardhat.png";
+    if (subType.includes("warrior") || subType.includes("helm") || subType.includes("helmet")) return "Helmet/warriorhelm.png";
     return "Helmet/warriorhelm.png";
   }
 
   if (slot === "boots") {
+    const specificFile = `Boot/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
+    }
     if (subType.includes("assassin")) return "Boot/assassinboot.png";
-    if (subType.includes("knight") || subType.includes("boot")) return "Boot/knightboot.png";
     if (subType.includes("mage")) return "Boot/mageboot.png";
+    if (subType.includes("knight") || subType.includes("boot")) return "Boot/knightboot.png";
     return "Boot/knightboot.png";
   }
 
   if (slot === "ring") {
+    const specificFile = `Ring/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
+    }
     if (subType.includes("mage")) return "Ring/magering.png";
     if (subType.includes("dragon")) return "Ring/dragonring.png";
     return "Ring/ring.png";
   }
 
   if (slot === "necklace") {
+    const specificFile = `Necklace/${lowerSubType}.png`;
+    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
+      return specificFile;
+    }
     if (subType.includes("ember")) return "Necklace/emberneck.png";
     if (subType.includes("crystal") || subType.includes("cristal")) return "Necklace/cristalneck.png";
     return "Necklace/necklace.png";

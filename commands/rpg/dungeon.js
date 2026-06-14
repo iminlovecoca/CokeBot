@@ -1,12 +1,781 @@
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  AttachmentBuilder,
+} = require("discord.js");
+const fs = require("fs");
+const path = require("path");
+const RpgGuild = require("../../models/RpgGuild");
+const User = require("../../models/User");
+const {
+  requireRpgCharacter,
+  getEffectiveRpgStats,
+  calculateRpgPower,
+  getEquippedItems,
+  getRpgClass,
+  generateRpgGearDrop,
+  addRpgGearToUser,
+  addRpgExp,
+} = require("../../utils/rpgUtil");
+const { incBalance } = require("../../utils/userUtil");
 const config = require("../../data/config");
+
+const CLASS_ATTACK_TYPES = {
+  warrior: "physical",
+  archer: "physical",
+  mage: "magical",
+  assassin: "physical",
+  paladin: "physical",
+  wretch: "physical",
+};
+
+// Helper for HP bars
+const getHealthBar = (hp, maxHp) => {
+  if (hp <= 0) return "💀 **Tử nạn**";
+  const percentage = Math.max(0, Math.min(1, hp / maxHp));
+  const filledCount = Math.round(percentage * 10);
+  const emptyCount = 10 - filledCount;
+  const filled = "🟩".repeat(filledCount);
+  const empty = "⬛".repeat(emptyCount);
+  return `${filled}${empty} **${Math.round(percentage * 100)}%** (${hp.toLocaleString()} / ${maxHp.toLocaleString()})`;
+};
+
+const getChapterRarities = (chapter) => {
+  if (chapter === 1) return ["Common", "Rare"];
+  if (chapter === 2) return ["Common", "Rare", "Epic"];
+  if (chapter === 3) return ["Rare", "Epic"];
+  if (chapter === 4) return ["Rare", "Epic", "Legendary"];
+  if (chapter === 5) return ["Epic", "Legendary"];
+  return ["Epic", "Legendary", "Mythic"];
+};
 
 module.exports = {
   name: "dungeon",
-  aliases: ["dg", "dungeons"],
-  description: "Tính năng khiêu chiến Dungeon RPG (Sắp ra mắt)",
+  aliases: ["pb", "phoban"],
+  description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Guild)",
   usage: `${config.prefix}dungeon`,
-
   async execute(message, args) {
-    return message.reply("**Coming soon**");
+    const userId = message.author.id;
+    const client = message.client;
+
+    if (!client.rpgDungeons) {
+      client.rpgDungeons = new Map();
+    }
+
+    if (client.rpgDungeons.has(message.channel.id)) {
+      return message.reply("❌ Hiện tại đang có một phó bản diễn ra tại kênh này. Vui lòng đợi kết thúc!");
+    }
+
+    const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
+    if (!isAdmin) {
+      return message.reply("❌ Chỉ Admin mới có quyền khiêu chiến phó bản Dungeon trong giai đoạn thử nghiệm.");
+    }
+
+    // Check if user is in a guild and is the leader
+    const guild = await RpgGuild.findOne({ members: userId });
+    if (!guild) {
+      return message.reply(`❌ Bạn chưa tham gia guild nào. Hãy dùng \`${config.prefix}guild @User\` để lập tổ đội!`);
+    }
+
+    if (guild.leaderId !== userId) {
+      return message.reply("❌ Chỉ Chủ guild mới có quyền bắt đầu Dungeon.");
+    }
+
+    if (guild.members.length !== 3) {
+      return message.reply(`❌ Cần chính xác **3 thành viên** trong guild để tham gia Dungeon. Hiện tại guild bạn có: **${guild.members.length}/3** thành viên.`);
+    }
+
+    // Display chapter map select board
+    const progress = guild.chapterProgress || 0;
+
+    const row1 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_1")
+        .setLabel("Chương 1")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_2")
+        .setLabel("Chương 2")
+        .setStyle(progress >= 1 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 1),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_3")
+        .setLabel("Chương 3")
+        .setStyle(progress >= 2 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 2)
+    );
+
+    const row2 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_4")
+        .setLabel("Chương 4")
+        .setStyle(progress >= 3 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 3),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_5")
+        .setLabel("Chương 5")
+        .setStyle(progress >= 4 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 4),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_6")
+        .setLabel("Chương 6")
+        .setStyle(progress >= 5 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 5)
+    );
+
+    const mapSelectEmbed = new EmbedBuilder()
+      .setColor("#9B59B6")
+      .setTitle("🗺️ Bản đồ phó bản Dungeon (Chapter 1)")
+      .setDescription(
+        `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn. Đi lần lượt từ chương 1 đến chương 6.\n\n` +
+        `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(6, progress + 1)}**`
+      )
+      .setTimestamp();
+
+    const selectMsg = await message.reply({
+      embeds: [mapSelectEmbed],
+      components: [row1, row2],
+    });
+
+    const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_dungeon_start_");
+    const collector = selectMsg.createMessageComponentCollector({ filter, time: 30000 });
+
+    collector.on("collect", async (i) => {
+      await i.deferUpdate();
+      const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
+      collector.stop("selected");
+      await selectMsg.delete().catch(() => {});
+      
+      // Start the dungeon session
+      await startDungeon({ message, guild, chapter });
+    });
+
+    collector.on("end", (collected, reason) => {
+      if (reason !== "selected") {
+        selectMsg.edit({
+          content: "⏳ Hết thời gian lựa chọn phó bản.",
+          components: [],
+        }).catch(() => {});
+      }
+    });
   },
+};
+
+// Core Dungeon Game Loop
+const startDungeon = async ({ message, guild, chapter }) => {
+  const client = message.client;
+  const channel = message.channel;
+
+  // Double check in-flight dungeon in channel
+  if (client.rpgDungeons.has(channel.id)) {
+    return channel.send("❌ Đang có một phó bản diễn ra tại kênh này.");
+  }
+
+  // Load player characters
+  const playerStates = [];
+  for (const memberId of guild.members) {
+    try {
+      const { user, rpgClass } = await requireRpgCharacter(memberId);
+      const stats = getEffectiveRpgStats(freshUserObject(user));
+      const gearPower = calculateRpgPower(freshUserObject(user));
+      const weapon = getEquippedItems(user).weapon;
+      const maxHp = 150 + stats.vigor * 20 + user.rpg.level * 20;
+
+      playerStates.push({
+        id: memberId,
+        name: user.rpg.name || `<@${memberId}>`,
+        level: user.rpg.level,
+        classKey: user.rpg.classKey,
+        maxHp: maxHp,
+        hp: maxHp,
+        potions: 3,
+        stats: stats,
+        power: gearPower,
+        weapon: weapon,
+        rpgClass: rpgClass,
+        userRef: user, // For rewards
+      });
+    } catch (err) {
+      return channel.send(`❌ Có lỗi khi tải thông tin RPG của thành viên <@${memberId}>. Chắc chắn rằng toàn bộ thành viên đều đã tạo nhân vật.`);
+    }
+  }
+
+  // Initialize active dungeon state
+  const activeDungeon = {
+    guildId: guild._id,
+    chapter: chapter,
+    round: 1,
+    players: playerStates,
+    turnIndex: 0,
+    turnQueue: [],
+    enemy: null,
+    diceRolled: false,
+    diceMultiplier: 1.0,
+    coinFlipCount: 0,
+    phase2Madness: 1.0,
+    logs: ["🏁 Bắt đầu phó bản! Chúc tổ đội may mắn."],
+    actionInProgress: false,
+    gameMessage: null,
+  };
+
+  client.rpgDungeons.set(channel.id, activeDungeon);
+
+  // Setup first round
+  setupRound(activeDungeon);
+
+  // Render initial frame
+  await renderGameScreen(channel, activeDungeon);
+};
+
+// Help to make sure user object isn't cached/stale
+const freshUserObject = (user) => {
+  return user.toObject ? user.toObject() : user;
+};
+
+// Setup current round monsters/boss
+const setupRound = (activeDungeon) => {
+  const { round, chapter } = activeDungeon;
+  const dCfg = config.dungeon || {};
+  const normCfg = dCfg.normal_monster || { base_hp: 20000, round_hp_mult: 0.1, base_atk: 100, round_atk_mult: 0.05, base_defense: 50 };
+  const b1Cfg = dCfg.boss_tf?.phase1 || { base_hp: 300000, base_atk: 300, base_defense: 100 };
+
+  if (round < 7) {
+    // Normal monster
+    const maxHp = Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult));
+    activeDungeon.enemy = {
+      name: `Quái Vật Gác Đền (Vòng ${round})`,
+      maxHp: maxHp,
+      hp: maxHp,
+      atk: Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)),
+      armor: Math.floor(normCfg.base_defense * chapter),
+      magicResist: Math.floor(normCfg.base_defense * chapter),
+      isBoss: false,
+    };
+    activeDungeon.diceRolled = false;
+    activeDungeon.diceMultiplier = 1.0;
+  } else {
+    // Round 7: Boss TF Phase 1
+    const maxHp = b1Cfg.base_hp * chapter;
+    activeDungeon.enemy = {
+      name: "Boss TF (Phase 1)",
+      maxHp: maxHp,
+      hp: maxHp,
+      atk: b1Cfg.base_atk * chapter,
+      armor: b1Cfg.base_defense * chapter,
+      magicResist: b1Cfg.base_defense * chapter,
+      isBoss: true,
+      phase: 1,
+    };
+    activeDungeon.diceRolled = false;
+    activeDungeon.diceMultiplier = 1.0;
+  }
+
+  // Re-build Turn Queue: Alive players first, then Boss/Enemy
+  rebuildTurnQueue(activeDungeon);
+};
+
+const rebuildTurnQueue = (activeDungeon) => {
+  const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
+  activeDungeon.turnQueue = [...alivePlayers, activeDungeon.enemy];
+  activeDungeon.turnIndex = 0;
+};
+
+// Render main game screen
+const renderGameScreen = async (channel, activeDungeon) => {
+  const { chapter, round, players, enemy, turnQueue, turnIndex, logs } = activeDungeon;
+  const currentActor = turnQueue[turnIndex];
+
+  const embed = new EmbedBuilder()
+    .setColor(enemy.isBoss ? "#E74C3C" : "#E67E22")
+    .setTitle(`⚔️ DUNGEON: CHƯƠNG ${chapter} - VÒNG ${round}/7 ⚔️`)
+    .setTimestamp();
+
+  // Top Frame: Enemy info
+  let enemyInfo = `**Thanh máu:**\n${getHealthBar(enemy.hp, enemy.maxHp)}\n`;
+  if (enemy.isBoss) {
+    if (enemy.phase === 1) {
+      if (activeDungeon.diceRolled) {
+        const sign = activeDungeon.diceMultiplier < 1.0 ? "⚠️" : "✨";
+        enemyInfo += `\n🎲 **Xúc sắc:** Đòn đánh của phe ta gây **${Math.round(activeDungeon.diceMultiplier * 100)}%** sát thương (${sign}).`;
+      } else {
+        enemyInfo += `\n🎲 *Chuẩn bị đổ xúc sắc xác định hiệu ứng sát thương...*`;
+      }
+    } else {
+      enemyInfo += `\n👿 **Điên Loạn:** Sát thương AOE tăng thêm **+${Math.round((activeDungeon.phase2Madness - 1) * 100)}%**!\n` +
+                   `🪙 **Đồng xu:** Lượt tích lũy đòn đánh: **${activeDungeon.coinFlipCount || 0}/3**`;
+    }
+  }
+  embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
+
+  // Divider
+  embed.addFields({ name: "--------------------------------------------------------", value: "\u200B" });
+
+  // Bottom Frame: 3 Players
+  players.forEach((p, idx) => {
+    const classIcon = p.rpgClass?.emoji || "👤";
+    const className = p.rpgClass?.name || p.classKey.toUpperCase();
+    const hpInfo = `${getHealthBar(p.hp, p.maxHp)}\n` +
+                   `🧪 Bình máu: **${p.potions}/3** | Lvl: **${p.level}** **${className}**`;
+    embed.addFields({ name: `${classIcon} ${p.name}`, value: hpInfo, inline: true });
+  });
+
+  // Middle Frame: Logs
+  const recentLogs = logs.slice(-5).join("\n");
+  embed.addFields({ name: "📝 Nhật ký chiến trường", value: recentLogs || "*Trận đấu đang diễn ra...*" });
+
+  // Buttons row
+  const row = new ActionRowBuilder();
+  
+  // Disable buttons if action is in progress or dice rolling
+  const disableControls = activeDungeon.actionInProgress || (enemy.isBoss && enemy.phase === 1 && !activeDungeon.diceRolled);
+
+  row.addComponents(
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_action_attack")
+      .setLabel("Tấn công 🗡️")
+      .setStyle(ButtonStyle.Danger)
+      .setDisabled(disableControls),
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_action_heal")
+      .setLabel("Bình máu 🧪")
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(disableControls)
+  );
+
+  if (currentActor && currentActor.id) {
+    embed.setFooter({ text: `👉 Đến lượt của: ${currentActor.name}` });
+  }
+
+  // Handle files (Boss image)
+  const files = [];
+  if (enemy.isBoss) {
+    const fileName = enemy.phase === 1 ? "TF.png" : "TF-2.png";
+    const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
+    if (fs.existsSync(filePath)) {
+      files.push(new AttachmentBuilder(filePath, { name: fileName }));
+      embed.setImage(`attachment://${fileName}`);
+    }
+  }
+
+  const payload = { embeds: [embed], components: [row], files };
+
+  if (activeDungeon.gameMessage) {
+    await activeDungeon.gameMessage.edit(payload).catch(() => {});
+  } else {
+    activeDungeon.gameMessage = await channel.send(payload);
+    setupCollector(channel, activeDungeon);
+  }
+
+  // Dice roll sequence triggers automatically at Round 7 Phase 1
+  if (enemy.isBoss && enemy.phase === 1 && !activeDungeon.diceRolled && !activeDungeon.actionInProgress) {
+    await runDiceRoll(channel, activeDungeon);
+  }
+};
+
+// Phase 1: Dice rolling sequence
+const runDiceRoll = async (channel, activeDungeon) => {
+  activeDungeon.actionInProgress = true;
+  
+  // Pick random alive player to roll
+  const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
+  if (!alivePlayers.length) return;
+  const roller = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+
+  activeDungeon.logs.push(`🎲 <@${roller.id}> đang tung xúc sắc... ${config.emoji.dice_rolling}`);
+  await renderGameScreen(channel, activeDungeon);
+
+  setTimeout(async () => {
+    const diceValue = Math.floor(Math.random() * 6) + 1;
+    const diceEmoji = config.emoji[`dice_${diceValue}`] || "🎲";
+    const isOdd = diceValue % 2 !== 0;
+
+    if (isOdd) {
+      activeDungeon.diceMultiplier = 0.5;
+      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Lẻ**): Giảm 50% sát thương của tổ đội!`);
+    } else {
+      activeDungeon.diceMultiplier = 1.1;
+      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Chẵn**): Tăng 10% sát thương của tổ đội!`);
+    }
+
+    activeDungeon.diceRolled = true;
+    activeDungeon.actionInProgress = false;
+    await renderGameScreen(channel, activeDungeon);
+  }, 2500);
+};
+
+// Setup component interaction collector for the combat screen
+const setupCollector = (channel, activeDungeon) => {
+  const messageId = activeDungeon.gameMessage.id;
+
+  const collector = activeDungeon.gameMessage.createMessageComponentCollector({
+    filter: (i) => i.customId.startsWith("rpg_dungeon_action_") || i.customId.startsWith("rpg_dungeon_coin_"),
+    time: 15 * 60 * 1000, // 15 mins dungeon limit
+  });
+
+  collector.on("collect", async (i) => {
+    // Check if player is in the guild/party
+    const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
+    if (!pExist) {
+      return i.reply({ content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
+    }
+
+    // Check if action is locked
+    if (activeDungeon.actionInProgress) {
+      return i.reply({ content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
+    }
+
+    // Turn verification
+    const currentActor = activeDungeon.turnQueue[activeDungeon.turnIndex];
+    if (!currentActor || currentActor.id !== i.user.id) {
+      return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
+    }
+
+    await i.deferUpdate();
+
+    // Lock actions
+    activeDungeon.actionInProgress = true;
+
+    if (i.customId === "rpg_dungeon_action_heal") {
+      // Process heal
+      if (pExist.potions <= 0) {
+        activeDungeon.actionInProgress = false;
+        return channel.send(`<@${pExist.id}>, bạn đã hết bình máu!`).then((m) => setTimeout(() => m.delete().catch(() => {}), 3000));
+      }
+
+      pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
+      pExist.potions -= 1;
+      activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
+
+      activeDungeon.actionInProgress = false;
+      await nextTurn(channel, activeDungeon);
+    } else if (i.customId === "rpg_dungeon_action_attack") {
+      // Check if coin flip is triggered in Phase 2
+      const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
+      if (isPhase2 && activeDungeon.coinFlipCount === 2) {
+        // Trigger coin flip choice
+        await askCoinFlip(channel, activeDungeon, pExist);
+      } else {
+        // Normal attack
+        await executePlayerAttack(channel, activeDungeon, pExist, 1.0);
+      }
+    }
+  });
+
+  collector.on("end", () => {
+    channel.client.rpgDungeons.delete(channel.id);
+  });
+
+  activeDungeon.collector = collector;
+};
+
+// Ask player to guess Heads or Tails
+const askCoinFlip = async (channel, activeDungeon, player) => {
+  const embed = new EmbedBuilder()
+    .setColor("#F1C40F")
+    .setTitle("🪙 CƠ HỘI NHÂN ĐÔI SÁT THƯƠNG!")
+    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x2 sát thương**!`)
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_coin_heads")
+      .setLabel("Heads (Ngửa) 🪙")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_coin_tails")
+      .setLabel("Tails (Sấp) 🪙")
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  const coinMsg = await channel.send({ content: `<@${player.id}>`, embeds: [embed], components: [row] });
+
+  const filter = (i) => i.user.id === player.id && i.customId.startsWith("rpg_dungeon_coin_");
+  const comp = await coinMsg.awaitMessageComponent({ filter, time: 20000 }).catch(() => null);
+
+  if (!comp) {
+    // Timeout fallback: normal attack
+    await coinMsg.delete().catch(() => {});
+    activeDungeon.logs.push(`⏳ Quá thời gian chọn mặt đồng xu! Sát thương bình thường.`);
+    return executePlayerAttack(channel, activeDungeon, player, 1.0);
+  }
+
+  await comp.deferUpdate();
+  const guess = comp.customId === "rpg_dungeon_coin_heads" ? "h" : "t";
+
+  await coinMsg.edit({
+    content: `🪙 Đồng xu đang quay... ${config.emoji.coinflip}`,
+    embeds: [],
+    components: [],
+  });
+
+  setTimeout(async () => {
+    const isHeads = Math.random() < 0.5;
+    const result = isHeads ? "h" : "t";
+    const resultEmoji = isHeads ? config.emoji.heads : config.emoji.tails;
+    const resultLabel = isHeads ? "Heads" : "Tails";
+
+    await coinMsg.delete().catch(() => {});
+
+    let multiplier = 1.0;
+    if (guess === result) {
+      multiplier = 2.0;
+      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán CHÍNH XÁC! Tấn công được nhân đôi (x2)!`);
+    } else {
+      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán SAI! Sát thương bình thường.`);
+    }
+
+    activeDungeon.coinFlipCount = 0; // reset counter
+    await executePlayerAttack(channel, activeDungeon, player, multiplier);
+  }, 1500);
+};
+
+// Execute player attack action
+const executePlayerAttack = async (channel, activeDungeon, player, multiplier) => {
+  const enemy = activeDungeon.enemy;
+
+  // Damage calculation
+  const isMagical = CLASS_ATTACK_TYPES[player.classKey] === "magical";
+  const baseAttack = isMagical
+    ? player.stats.int * 3.5 + player.stats.arc * 1.5
+    : player.stats.str * 2.5 + player.stats.dex * 1.5;
+
+  let rawDamage = baseAttack + player.power;
+  rawDamage *= 0.85 + Math.random() * 0.3; // variance
+
+  const classCritBonus = player.rpgClass?.bonuses?.critRate || 0;
+  const critRate = Math.min(
+    0.75,
+    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus
+  );
+  const isCrit = Math.random() < critRate;
+  const critMult = 1.5 + player.stats.dex * 0.002;
+  if (isCrit) {
+    rawDamage *= critMult;
+  }
+
+  // Mitigation
+  let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
+  const mitigation = mrOrArmor / (mrOrArmor + 250);
+  let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+
+  // Apply Phase 1 dice multiplier or Phase 2 coin multiplier
+  if (enemy.isBoss) {
+    if (enemy.phase === 1) {
+      damage = Math.floor(damage * activeDungeon.diceMultiplier);
+    } else {
+      damage = Math.floor(damage * multiplier);
+      activeDungeon.coinFlipCount = (activeDungeon.coinFlipCount || 0) + 1;
+    }
+  }
+
+  enemy.hp = Math.max(0, enemy.hp - damage);
+  const critText = isCrit ? "💥 **Chí mạng!** " : "";
+  activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
+
+  activeDungeon.actionInProgress = false;
+
+  if (enemy.hp <= 0) {
+    await handleEnemyDefeat(channel, activeDungeon);
+  } else {
+    await nextTurn(channel, activeDungeon);
+  }
+};
+
+// Proceed to the next actor in the turn queue
+const nextTurn = async (channel, activeDungeon) => {
+  if (activeDungeon.actionInProgress) return;
+
+  const { turnQueue } = activeDungeon;
+  activeDungeon.turnIndex += 1;
+
+  if (activeDungeon.turnIndex >= turnQueue.length) {
+    activeDungeon.turnIndex = 0;
+  }
+
+  const currentActor = turnQueue[activeDungeon.turnIndex];
+
+  // If actor is dead, skip turn
+  if (currentActor.hp <= 0) {
+    return nextTurn(channel, activeDungeon);
+  }
+
+  // If actor is Enemy / Boss: trigger boss turn
+  if (!currentActor.id) {
+    activeDungeon.actionInProgress = true;
+    setTimeout(async () => {
+      await runEnemyTurn(channel, activeDungeon);
+    }, 2000);
+  } else {
+    // If actor is player: render screen & wait for input
+    await renderGameScreen(channel, activeDungeon);
+  }
+};
+
+// Enemy/Boss attack logic
+const runEnemyTurn = async (channel, activeDungeon) => {
+  const enemy = activeDungeon.enemy;
+  const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
+
+  if (!alivePlayers.length) {
+    // Defeat handled elsewhere or below
+    await handleDefeat(channel, activeDungeon);
+    return;
+  }
+
+  const isAOE = enemy.isBoss && enemy.phase === 2;
+
+  if (isAOE) {
+    // Phase 2: AOE attack on all alive players
+    const mult = activeDungeon.phase2Madness;
+    activeDungeon.logs.push(`👿 **${enemy.name}** cười quỷ dị và phóng cuồng phong sát thương diện rộng (AOE)!`);
+
+    alivePlayers.forEach((p) => {
+      const armor = p.stats.pr * 3.0;
+      const mitigation = armor / (armor + 1000);
+      const rawDmg = enemy.atk * mult * (0.85 + Math.random() * 0.3);
+      const damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
+
+      p.hp = Math.max(0, p.hp - damage);
+      activeDungeon.logs.push(`💥 Gây **${damage.toLocaleString()}** st lên **${p.name}**.`);
+      if (p.hp <= 0) {
+        activeDungeon.logs.push(`💀 **${p.name}** đã tử nạn!`);
+      }
+    });
+
+    // Increase madness for next turn
+    activeDungeon.phase2Madness += 0.2;
+  } else {
+    // Phase 1 / Regular monsters: Single target attack on a random alive player
+    const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    const armor = target.stats.pr * 3.0;
+    const mitigation = armor / (armor + 1000);
+    const rawDmg = enemy.atk * (0.85 + Math.random() * 0.3);
+    const damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
+
+    target.hp = Math.max(0, target.hp - damage);
+    activeDungeon.logs.push(`💥 **${enemy.name}** tấn công **${target.name}** gây **${damage.toLocaleString()}** sát thương.`);
+    if (target.hp <= 0) {
+      activeDungeon.logs.push(`💀 **${target.name}** đã tử nạn!`);
+    }
+  }
+
+  // Check if team is wiped out
+  const teamWiped = activeDungeon.players.every((p) => p.hp <= 0);
+  activeDungeon.actionInProgress = false;
+
+  if (teamWiped) {
+    await handleDefeat(channel, activeDungeon);
+  } else {
+    // Re-verify alive list and progress turn queue
+    rebuildTurnQueue(activeDungeon);
+    await nextTurn(channel, activeDungeon);
+  }
+};
+
+// Enemy died: progress round, phase or victory
+const handleEnemyDefeat = async (channel, activeDungeon) => {
+  const { round, chapter, enemy } = activeDungeon;
+
+  if (enemy.isBoss) {
+    if (enemy.phase === 1) {
+      // Transition to Phase 2
+      const dCfg = config.dungeon || {};
+      const b2Cfg = dCfg.boss_tf?.phase2 || { base_hp: 400000, base_atk_mult: 1.5, base_defense: 100 };
+      enemy.name = "Boss TF (Phase 2 - Điên Loạn)";
+      enemy.hp = b2Cfg.base_hp * chapter;
+      enemy.maxHp = b2Cfg.base_hp * chapter;
+      enemy.atk = Math.floor(enemy.atk * b2Cfg.base_atk_mult);
+      enemy.phase = 2;
+      activeDungeon.coinFlipCount = 0;
+      activeDungeon.phase2Madness = 1.0;
+
+      activeDungeon.logs.push(`👿 **Boss TF (Phase 1) đã ngã xuống!** Cơ thể boss bắt đầu biến đổi dữ dội và cười điên cuồng bước vào **Phase 2**!`);
+      rebuildTurnQueue(activeDungeon);
+      await renderGameScreen(channel, activeDungeon);
+    } else {
+      // Defeated Phase 2: Complete Victory!
+      await handleVictory(channel, activeDungeon);
+    }
+  } else {
+    // Vòng 1-6: Advance round
+    activeDungeon.logs.push(`🎉 **Đã tiêu diệt ${enemy.name}!** Sắp bước sang vòng kế tiếp.`);
+    activeDungeon.round += 1;
+    setupRound(activeDungeon);
+    await renderGameScreen(channel, activeDungeon);
+  }
+};
+
+// Victory handler: give rewards, save progress
+const handleVictory = async (channel, activeDungeon) => {
+  const { chapter, players, guildId } = activeDungeon;
+  activeDungeon.collector.stop("victory");
+  channel.client.rpgDungeons.delete(channel.id);
+
+  // Update Guild Progress
+  const guild = await RpgGuild.findById(guildId);
+  if (guild) {
+    guild.chapterProgress = Math.max(guild.chapterProgress, chapter);
+    await guild.save();
+  }
+
+  const dCfg = config.dungeon || {};
+  const rewCfg = dCfg.rewards || { base_coke: 30000, base_exp: 1500 };
+  const cokeReward = rewCfg.base_coke * chapter;
+  const expReward = rewCfg.base_exp * chapter;
+
+  const rewardTexts = [];
+
+  for (const p of players) {
+    const freshUser = await User.findById(p.userRef._id);
+    if (!freshUser) continue;
+
+    // Add coke and exp
+    await incBalance(freshUser.userId, cokeReward);
+    await addRpgExp(freshUser, expReward);
+
+    // Generate random gear drop
+    const gear = await generateRpgGearDrop(freshUser, {
+      level: freshUser.rpg.level,
+      allowedRarities: getChapterRarities(chapter),
+    });
+    await addRpgGearToUser(freshUser, gear);
+    await freshUser.save();
+
+    rewardTexts.push(
+      `👤 <@${p.id}>:\n` +
+      `  • nhận **+${cokeReward.toLocaleString()} Coke**\n` +
+      `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
+      `  • nhận Trang bị: **${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`
+    );
+  }
+
+  const embed = new EmbedBuilder()
+    .setColor("#2ECC71")
+    .setTitle("🏆 CHIẾN THẮNG PHÓ BẢN! 🏆")
+    .setDescription(
+      `Tổ đội của bạn đã xuất sắc chinh phục thành công **Chương ${chapter}**!\n\n` +
+      `**Phần thưởng vượt phó bản:**\n\n${rewardTexts.join("\n\n")}`
+    )
+    .setTimestamp();
+
+  await channel.send({ embeds: [embed] });
+};
+
+// Defeat handler: fail
+const handleDefeat = async (channel, activeDungeon) => {
+  activeDungeon.collector.stop("defeat");
+  channel.client.rpgDungeons.delete(channel.id);
+
+  const embed = new EmbedBuilder()
+    .setColor("#C0392B")
+    .setTitle("💀 THẤT BẠI! 💀")
+    .setDescription(
+      `Toàn bộ thành viên trong tổ đội đã tử nạn! Chiến dịch chinh phục **Chương ${activeDungeon.chapter}** thất bại.\n` +
+      `Hãy rèn luyện thêm lực chiến và thử lại!`
+    )
+    .setTimestamp();
+
+  await channel.send({ embeds: [embed] });
 };

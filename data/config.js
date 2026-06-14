@@ -335,13 +335,13 @@ module.exports = {
           emoji: "⚡",
           asset: "boss_X.png",
           rank: "thuongnhan",
-          hp: 75000,
+          hp: 80000,
           recommended_power: 18500,
           exp: 40000,
-          armor: 2000,
-          magicResist: 1500,
+          armor: 2500,
+          magicResist: 2500,
           damageType: "magical",
-          attackPower: 1250,
+          attackPower: 1300,
         },
         {
           key: "boss_IX",
@@ -349,13 +349,13 @@ module.exports = {
           emoji: "🐉",
           asset: "boss_IX.png",
           rank: "rong",
-          hp: 24000,
+          hp: 25000,
           recommended_power: 7500,
           exp: 11000,
-          armor: 925,
-          magicResist: 600,
+          armor: 1000,
+          magicResist: 800,
           damageType: "physical",
-          attackPower: 750,
+          attackPower: 950,
         },
         {
           key: "boss_XI",
@@ -366,10 +366,10 @@ module.exports = {
           hp: 90000,
           recommended_power: 20000,
           exp: 50000,
-          armor: 1600,
-          magicResist: 1600,
+          armor: 2200,
+          magicResist: 2200,
           damageType: "physical",
-          attackPower: 2500,
+          attackPower: 2550,
         },
         {
           key: "boss_012",
@@ -724,5 +724,30 @@ module.exports = {
     // Timeout after which thread messages are treated as normal chat/commands
     thread_expiry_ms: 60 * 60 * 1000,
     knowledge_base_version: "1.0.0",
+  },
+  dungeon: {
+    normal_monster: {
+      base_hp: 20000,
+      round_hp_mult: 0.1,
+      base_atk: 100,
+      round_atk_mult: 0.05,
+      base_defense: 50,
+    },
+    boss_tf: {
+      phase1: {
+        base_hp: 300000,
+        base_atk: 300,
+        base_defense: 100,
+      },
+      phase2: {
+        base_hp: 400000,
+        base_atk_mult: 1.5, // 1.5x of phase 1 atk
+        base_defense: 100,
+      },
+    },
+    rewards: {
+      base_coke: 30000,
+      base_exp: 1500,
+    },
   },
 };
