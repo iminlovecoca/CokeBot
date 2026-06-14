@@ -33,13 +33,12 @@ const CLASS_ATTACK_TYPES = {
 
 // Helper for HP bars
 const getHealthBar = (hp, maxHp) => {
-  if (hp <= 0) return "💀 **Tử nạn**";
   const percentage = Math.max(0, Math.min(1, hp / maxHp));
   const filledCount = Math.round(percentage * 10);
   const emptyCount = 10 - filledCount;
-  const filled = "🟩".repeat(filledCount);
-  const empty = "⬛".repeat(emptyCount);
-  return `${filled}${empty} **${Math.round(percentage * 100)}%** (${hp.toLocaleString()} / ${maxHp.toLocaleString()})`;
+  const filled = "▰".repeat(filledCount);
+  const empty = "▱".repeat(emptyCount);
+  return `HP\n${filled}${empty}\n${hp.toLocaleString()} / ${maxHp.toLocaleString()}`;
 };
 
 const getChapterRarities = (chapter) => {
@@ -65,7 +64,26 @@ module.exports = {
     }
 
     if (client.rpgDungeons.has(message.channel.id)) {
-      return message.reply("❌ Hiện tại đang có một phó bản diễn ra tại kênh này. Vui lòng đợi kết thúc!");
+      const activeDungeon = client.rpgDungeons.get(message.channel.id);
+      
+      // Check if user is in the party
+      const isMember = activeDungeon.players.some((p) => p.id === userId);
+      if (!isMember) {
+        return message.reply("❌ Hiện tại đang có một phó bản diễn ra tại kênh này. Vui lòng đợi kết thúc!");
+      }
+
+      // Re-send/re-render logic
+      if (activeDungeon.gameMessage) {
+        if (activeDungeon.collector) {
+          activeDungeon.collector.stop("re-sent");
+        }
+        await activeDungeon.gameMessage.edit({ components: [] }).catch(() => {});
+        await activeDungeon.gameMessage.delete().catch(() => {});
+      }
+
+      activeDungeon.gameMessage = null;
+      await renderGameScreen(message.channel, activeDungeon);
+      return;
     }
 
     const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
@@ -214,6 +232,7 @@ const startDungeon = async ({ message, guild, chapter }) => {
     diceMultiplier: 1.0,
     coinFlipCount: 0,
     phase2Madness: 1.0,
+    consecutiveCoinSuccess: 0,
     logs: ["🏁 Bắt đầu phó bản! Chúc tổ đội may mắn."],
     actionInProgress: false,
     gameMessage: null,
@@ -242,11 +261,13 @@ const setupRound = (activeDungeon, channel) => {
     activeDungeon.timeoutTimer = null;
   }
 
-  // Set 5-minute timeout for this round
-  activeDungeon.roundEndTime = Date.now() + 5 * 60 * 1000;
+  // Set timeout for this round: 10 minutes for boss round, 5 minutes for normal rounds
+  const isBossRound = (round === 5);
+  const roundTimeLimit = isBossRound ? 10 * 60 * 1000 : 5 * 60 * 1000;
+  activeDungeon.roundEndTime = Date.now() + roundTimeLimit;
   activeDungeon.timeoutTimer = setTimeout(async () => {
     await handleTimeout(channel, activeDungeon);
-  }, 5 * 60 * 1000);
+  }, roundTimeLimit);
 
   const dCfg = config.dungeon || {};
   const normCfg = dCfg.normal_monster || { base_hp: 20000, round_hp_mult: 0.1, base_atk: 100, round_atk_mult: 0.05, base_defense: 50 };
@@ -326,7 +347,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
   players.forEach((p, idx) => {
     const classIcon = p.rpgClass?.emoji || "👤";
     const className = p.rpgClass?.name || p.classKey.toUpperCase();
-    const hpInfo = `${getHealthBar(p.hp, p.maxHp)}\n` +
+    const statusText = p.hp <= 0 ? "💀 **Tử nạn**\n" : "";
+    const hpInfo = `${statusText}${getHealthBar(p.hp, p.maxHp)}\n` +
                    `🧪 Bình máu: **${p.potions}/3** | Lvl: **${p.level}** **${className}**`;
     embed.addFields({ name: `${classIcon} ${p.name}`, value: hpInfo, inline: true });
   });
@@ -405,10 +427,14 @@ const runDiceRoll = async (channel, activeDungeon) => {
 
     if (isOdd) {
       activeDungeon.diceMultiplier = 0.5;
-      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Lẻ**): Giảm 50% sát thương của tổ đội!`);
+      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Lẻ**): Giảm 50% sát thương của tổ đội (x0.5)!`);
     } else {
-      activeDungeon.diceMultiplier = 1.1;
-      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Chẵn**): Tăng 10% sát thương của tổ đội!`);
+      let mult = 1.5;
+      if (diceValue === 4) mult = 2.0;
+      else if (diceValue === 6) mult = 2.5;
+
+      activeDungeon.diceMultiplier = mult;
+      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Chẵn**): Tăng sát thương của tổ đội lên **x${mult}**!`);
     }
 
     activeDungeon.diceRolled = true;
@@ -513,7 +539,8 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
   if (!comp) {
     // Timeout fallback: normal attack
     await coinMsg.delete().catch(() => {});
-    activeDungeon.logs.push(`⏳ Quá thời gian chọn mặt đồng xu! Sát thương bình thường.`);
+    activeDungeon.logs.push(`⏳ Quá thời gian chọn mặt đồng xu! Sát thương bình thường (x1.0). Chuỗi đoán đúng bị ngắt!`);
+    activeDungeon.consecutiveCoinSuccess = 0;
     activeDungeon.coinFlipCount = 0; // reset counter
     return executePlayerAttack(channel, activeDungeon, player, 1.0);
   }
@@ -537,10 +564,13 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
 
     let multiplier = 1.0;
     if (guess === result) {
-      multiplier = 2.0;
-      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán CHÍNH XÁC! Tấn công được nhân đôi (x2)!`);
+      activeDungeon.consecutiveCoinSuccess = (activeDungeon.consecutiveCoinSuccess || 0) + 1;
+      multiplier = 2.0 + (activeDungeon.consecutiveCoinSuccess - 1) * 0.5;
+      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán CHÍNH XÁC! Nhận chuỗi thắng liên tiếp **${activeDungeon.consecutiveCoinSuccess}** và sát thương được nhân **x${multiplier}**!`);
     } else {
-      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán SAI! Sát thương bình thường.`);
+      activeDungeon.consecutiveCoinSuccess = 0;
+      multiplier = 1.0;
+      activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán SAI! Sát thương bình thường (x1.0). Chuỗi đoán đúng bị ngắt!`);
     }
 
     activeDungeon.coinFlipCount = 0; // reset counter
