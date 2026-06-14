@@ -444,7 +444,7 @@ module.exports = {
         description:
           "Crit và tốc độ cao, rất mạnh trong Arena và săn vật phẩm hiếm.",
         stats: { vigor: 12, pr: 10, mr: 8, str: 10, dex: 17, int: 9, arc: 15 },
-        bonuses: { critRate: 0.08, dropRate: 0.04, healReduction: 0.25 },
+        bonuses: { critRate: 0.08, healReduction: 0.25 },
       },
       paladin: {
         name: "Paladin",

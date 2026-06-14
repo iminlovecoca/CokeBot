@@ -1,13 +1,11 @@
 const User = require('../../models/User');
-const StockHolding = require('../../models/StockHolding');
-const StockSymbol = require('../../models/StockSymbol');
 const { getUser, getRankEmoji } = require('../../utils/userUtil')
 const config = require('../../data/config')
 
 module.exports = {
   name: 'top',
-  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea, stock hoặc gw',
-  usage: `${config.prefix}top [cash|level|rank|luck|tea|stock] [số lượng]`,
+  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea hoặc gw',
+  usage: `${config.prefix}top [cash|level|rank|luck|tea] [số lượng]`,
   examples: [
     { intent: 'Xem top đại gia coke', command: `${config.prefix}top cash` },
     { intent: 'Xem top level (10 người)', command: `${config.prefix}top level 10` }
@@ -26,30 +24,7 @@ module.exports = {
     const guild = message.guild;
 
     switch (type) {
-      case 'stock':
-        title = `Top Chứng Khoán - ${guildName}`;
-        unit = 'MV';
 
-        const holdings = await StockHolding.find({ qty: { $gt: 0 } });
-        const symbols = await StockSymbol.find({});
-        const priceMap = {};
-        for (const s of symbols) priceMap[s.symbol] = s.price;
-
-        const userMap = {};
-        for (const h of holdings) {
-          const curPrice = priceMap[h.symbol] || 0;
-          const mv = h.qty * curPrice;
-          if (!userMap[h.userId]) userMap[h.userId] = 0;
-          userMap[h.userId] += mv;
-        }
-
-        topUsers = Object.entries(userMap)
-          .map(([userId, totalMV]) => ({ userId, totalMV }))
-          .sort((a, b) => b.totalMV - a.totalMV)
-          .slice(0, 50);
-
-        getValue = u => u.totalMV || 0;
-        break;
 
       case 'lvl':
       case 'level':

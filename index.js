@@ -23,7 +23,6 @@ const Species = require("./models/cokemon/Species");
 const Item = require("./models/cokemon/Item");
 const Knowledge = require("./models/Knowledge");
 const { syncNoituData } = require("./utils/noituBootstrap");
-const footballBetSettler = require("./features/footballBetSettler");
 // Music/lavalink removed
 
 const spawner = require("./features/spawner");
@@ -221,7 +220,6 @@ client.once(Events.ClientReady, async () => {
     spawner.initializeSpawner(client);
     rpgBossSpawner.initialize(client);
     // Music & Lavalink initialization removed
-    footballBetSettler.initialize(client);
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);
 
