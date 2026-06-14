@@ -733,21 +733,96 @@ module.exports = {
       round_atk_mult: 0.05,
       base_defense: 50,
     },
-    boss_tf: {
-      phase1: {
-        base_hp: 300000,
-        base_atk: 300,
-        base_defense: 100,
-      },
-      phase2: {
-        base_hp: 400000,
-        base_atk_mult: 1.5, // 1.5x of phase 1 atk
-        base_defense: 100,
-      },
+    ranged_class_mitigation: {
+      classes: ["archer", "mage"],
+      multiplier: 0.6, // take 60% of damage (40% reduction)
     },
     rewards: {
       base_coke: 100000,
       base_exp: 30000,
+    },
+    default_boss: {
+      key: "tf",
+      name_phase1: "Boss TF (Phase 1)",
+      name_phase2: "Boss TF (Phase 2 - Điên Loạn)",
+      image_phase1: "TF.png",
+      image_phase2: "TF-2.png",
+      stats: {
+        phase1: {
+          base_hp: 300000,
+          base_atk: 300,
+          base_defense: 100,
+        },
+        phase2: {
+          base_hp: 400000,
+          base_atk_mult: 1.5,
+          base_defense: 100,
+        },
+      },
+    },
+    chapters: {
+      1: {
+        boss: {
+          key: "skulgod",
+          name_phase1: "Boss Skulgod (Phase 1)",
+          name_phase2: "Boss Skulgod (Phase 2 - Điên Loạn)",
+          image_phase1: "Skulgod.png",
+          image_phase2: "skulgod-2.png",
+          stats: {
+            phase1: {
+              base_hp: 300000,
+              base_atk: 300,
+              base_defense: 100,
+            },
+            phase2: {
+              base_hp: 400000,
+              base_atk_mult: 1.5,
+              base_defense: 100,
+            },
+          },
+          passive: {
+            name: "Lời Nguyền Xương",
+            chance: 0.40,
+            duration: 2,
+            type: "heal_ban",
+          },
+          first_clear_reward: {
+            claim_key: "firesword",
+            emoji: "<:firesword:1514232156279406682>",
+            name: "Hỏa Long Thần Kiếm",
+            rarity: "Ancient",
+            image_path: "Weapon/firesword.png",
+          },
+        },
+      },
+      2: {
+        boss: {
+          key: "tf",
+          name_phase1: "Boss TF (Phase 1)",
+          name_phase2: "Boss TF (Phase 2 - Điên Loạn)",
+          image_phase1: "TF.png",
+          image_phase2: "TF-2.png",
+          stats: {
+            phase1: {
+              base_hp: 300000,
+              base_atk: 300,
+              base_defense: 100,
+            },
+            phase2: {
+              base_hp: 400000,
+              base_atk_mult: 1.5,
+              base_defense: 100,
+            },
+          },
+          first_clear_reward: {
+            claim_key: "crimsondagger",
+            emoji: "<:crimsondagger:1514232163158065252>",
+            name: "Huyết Nguyệt Đoản Đao",
+            rarity: "Ancient",
+            image_path: "Weapon/crimsondagger.png",
+          },
+        },
+      },
     },
   },
 };

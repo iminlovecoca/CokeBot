@@ -247,6 +247,15 @@ const startDungeon = async ({ message, guild, chapter }) => {
 };
 
 // Help to make sure user object isn't cached/stale
+const getBossConfig = (chapter) => {
+  const dCfg = config.dungeon || {};
+  const chCfg = dCfg.chapters?.[chapter];
+  if (chCfg && chCfg.boss) {
+    return chCfg.boss;
+  }
+  return dCfg.default_boss;
+};
+
 const freshUserObject = (user) => {
   return user.toObject ? user.toObject() : user;
 };
@@ -271,14 +280,6 @@ const setupRound = (activeDungeon, channel) => {
 
   const dCfg = config.dungeon || {};
   const normCfg = dCfg.normal_monster || { base_hp: 20000, round_hp_mult: 0.1, base_atk: 100, round_atk_mult: 0.05, base_defense: 50 };
-  const b1Cfg = dCfg.boss_tf?.phase1 || { base_hp: 300000, base_atk: 300, base_defense: 100 };
-
-  let bossName = "Boss TF (Phase 1)";
-  let bossKey = "tf";
-  if (chapter === 1) {
-    bossName = "Boss Skulgod (Phase 1)";
-    bossKey = "skulgod";
-  }
 
   if (round < 5) {
     // Normal monster
@@ -296,10 +297,12 @@ const setupRound = (activeDungeon, channel) => {
     activeDungeon.diceMultiplier = 1.0;
   } else {
     // Round 5: Boss Phase 1
+    const bossCfg = getBossConfig(chapter);
+    const b1Cfg = bossCfg.stats.phase1;
     const maxHp = b1Cfg.base_hp * chapter;
     activeDungeon.enemy = {
-      name: bossName,
-      key: bossKey,
+      name: bossCfg.name_phase1,
+      key: bossCfg.key,
       maxHp: maxHp,
       hp: maxHp,
       atk: b1Cfg.base_atk * chapter,
@@ -394,16 +397,14 @@ const renderGameScreen = async (channel, activeDungeon) => {
   // Handle files (Boss image)
   const files = [];
   if (enemy.isBoss) {
-    let fileName = "";
-    if (enemy.key === "skulgod") {
-      fileName = enemy.phase === 1 ? "Skulgod.png" : "skulgod-2.png";
-    } else {
-      fileName = enemy.phase === 1 ? "TF.png" : "TF-2.png";
-    }
-    const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
-    if (fs.existsSync(filePath)) {
-      files.push(new AttachmentBuilder(filePath, { name: fileName }));
-      embed.setImage(`attachment://${fileName}`);
+    const bossCfg = getBossConfig(chapter);
+    const fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
+    if (fileName) {
+      const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
+      if (fs.existsSync(filePath)) {
+        files.push(new AttachmentBuilder(filePath, { name: fileName }));
+        embed.setImage(`attachment://${fileName}`);
+      }
     }
   }
 
@@ -491,7 +492,9 @@ const setupCollector = (channel, activeDungeon) => {
       // Check if player is heal banned
       if (pExist.healBanRounds && pExist.healBanRounds > 0) {
         activeDungeon.actionInProgress = false;
-        return i.followUp({ content: `❌ Bạn đang bị dính lời nguyền cấm hồi máu của Skulgod trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
+        const bossCfg = getBossConfig(activeDungeon.chapter);
+        const passiveName = bossCfg.passive?.name || "Lời Nguyền Xương";
+        return i.followUp({ content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
       }
 
       // Process heal
@@ -690,14 +693,19 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     return;
   }
 
-  // Skulgod Phase 2 Passive: 40% chance to ban heal potions for 2 turns on a random alive player
-  if (enemy.key === "skulgod" && enemy.phase === 2 && Math.random() < 0.40) {
-    const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
-    target.healBanRounds = 2;
-    activeDungeon.logs.push(`💀 **Boss Skulgod** sử dụng [Lời Nguyền Xương] lên **${target.name}**: Cấm sử dụng bình hồi máu trong 2 lượt!`);
+  // Phase 2 Boss Passive Skill
+  if (enemy.isBoss && enemy.phase === 2) {
+    const bossCfg = getBossConfig(activeDungeon.chapter);
+    const passive = bossCfg.passive;
+    if (passive && passive.type === "heal_ban" && Math.random() < passive.chance) {
+      const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      target.healBanRounds = passive.duration;
+      activeDungeon.logs.push(`💀 **${enemy.name}** sử dụng [${passive.name}] lên **${target.name}**: Cấm sử dụng bình hồi máu trong ${passive.duration} lượt!`);
+    }
   }
 
   const isAOE = enemy.isBoss && enemy.phase === 2;
+  const mitCfg = config.dungeon?.ranged_class_mitigation;
 
   if (isAOE) {
     // Phase 2: AOE attack on all alive players
@@ -710,9 +718,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       const rawDmg = enemy.atk * mult * (0.85 + Math.random() * 0.3);
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
 
-      // Archer & Mage ranged passive: take 40% less damage (only 60% of the damage)
-      if (p.classKey === "archer" || p.classKey === "mage") {
-        damage = Math.floor(damage * 0.6);
+      // Archer & Mage ranged passive mitigation
+      if (mitCfg && mitCfg.classes?.includes(p.classKey)) {
+        damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }
 
       p.hp = Math.max(0, p.hp - damage);
@@ -732,9 +740,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     const rawDmg = enemy.atk * (0.85 + Math.random() * 0.3);
     let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
 
-    // Archer & Mage ranged passive: take 40% less damage (only 60% of the damage)
-    if (target.classKey === "archer" || target.classKey === "mage") {
-      damage = Math.floor(damage * 0.6);
+    // Archer & Mage ranged passive mitigation
+    if (mitCfg && mitCfg.classes?.includes(target.classKey)) {
+      damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
     }
 
     target.hp = Math.max(0, target.hp - damage);
@@ -768,15 +776,10 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
   if (enemy.isBoss) {
     if (enemy.phase === 1) {
       // Transition to Phase 2
-      const dCfg = config.dungeon || {};
-      const b2Cfg = dCfg.boss_tf?.phase2 || { base_hp: 400000, base_atk_mult: 1.5, base_defense: 100 };
-      
-      if (enemy.key === "skulgod") {
-        enemy.name = "Boss Skulgod (Phase 2 - Điên Loạn)";
-      } else {
-        enemy.name = "Boss TF (Phase 2 - Điên Loạn)";
-      }
+      const bossCfg = getBossConfig(chapter);
+      const b2Cfg = bossCfg.stats.phase2;
 
+      enemy.name = bossCfg.name_phase2;
       enemy.hp = b2Cfg.base_hp * chapter;
       enemy.maxHp = b2Cfg.base_hp * chapter;
       enemy.atk = Math.floor(enemy.atk * b2Cfg.base_atk_mult);
@@ -784,7 +787,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       activeDungeon.coinFlipCount = 0;
       activeDungeon.phase2Madness = 1.0;
 
-      activeDungeon.logs.push(`👿 **${enemy.key === "skulgod" ? "Boss Skulgod" : "Boss TF"} (Phase 1) đã ngã xuống!** Cơ thể boss bắt đầu biến đổi dữ dội và cười điên cuồng bước vào **Phase 2**!`);
+      activeDungeon.logs.push(`👿 **${bossCfg.name_phase1}** đã ngã xuống! Cơ thể boss bắt đầu biến đổi dữ dội và cười điên cuồng bước vào **Phase 2**!`);
       
       // Reset player turns for Phase 2
       activeDungeon.players.forEach((p) => {
@@ -848,34 +851,24 @@ const handleVictory = async (channel, activeDungeon) => {
     // Give special weapon on first clear!
     let specialGear = null;
     const claimedWeapons = freshUser.rpg.claimedBossWeapons || [];
-    const claimKey = activeDungeon.chapter === 1 ? "firesword" : "crimsondagger";
+    const bossCfg = getBossConfig(activeDungeon.chapter);
+    const bossReward = bossCfg?.first_clear_reward;
 
-    if (isFirstClearOfChapter && !claimedWeapons.includes(claimKey)) {
-      if (activeDungeon.chapter === 1) {
-        specialGear = await generateRpgGearDrop(freshUser, {
-          slot: "weapon",
-          subType: "Hỏa Long Thần Kiếm",
-          emoji: "<:firesword:1514232156279406682>",
-          rarity: "Ancient",
-          imageKey: "Weapon/firesword.png",
-          forceDrop: true,
-        });
-      } else if (activeDungeon.chapter === 2) {
-        specialGear = await generateRpgGearDrop(freshUser, {
-          slot: "weapon",
-          subType: "Huyết Nguyệt Đoản Đao",
-          emoji: "<:crimsondagger:1514232163158065252>",
-          rarity: "Ancient",
-          imageKey: "Weapon/crimsondagger.png",
-          forceDrop: true,
-        });
-      }
+    if (isFirstClearOfChapter && bossReward && !claimedWeapons.includes(bossReward.claim_key)) {
+      specialGear = await generateRpgGearDrop(freshUser, {
+        slot: "weapon",
+        subType: bossReward.name,
+        emoji: bossReward.emoji,
+        rarity: bossReward.rarity || "Ancient",
+        imageKey: bossReward.image_path,
+        forceDrop: true,
+      });
 
       if (specialGear) {
         if (!freshUser.rpg.claimedBossWeapons) {
           freshUser.rpg.claimedBossWeapons = [];
         }
-        freshUser.rpg.claimedBossWeapons.push(claimKey);
+        freshUser.rpg.claimedBossWeapons.push(bossReward.claim_key);
         freshUser.markModified("rpg");
         await addRpgGearToUser(freshUser, specialGear);
       }
@@ -889,9 +882,8 @@ const handleVictory = async (channel, activeDungeon) => {
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
       `  • nhận Trang bị: **${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`;
 
-    if (specialGear) {
-      const weaponEmoji = activeDungeon.chapter === 1 ? "<:firesword:1514232156279406682>" : "<:crimsondagger:1514232163158065252>";
-      rewardLine += `\n  • 🏆 **PHẦN THƯỞNG LẦN ĐẦU TIÊU DIỆT**: Nhận vũ khí độc quyền ${weaponEmoji} **${specialGear.subType}** (Ancient)!`;
+    if (specialGear && bossReward) {
+      rewardLine += `\n  • 🏆 **PHẦN THƯỞNG LẦN ĐẦU TIÊU DIỆT**: Nhận vũ khí độc quyền ${bossReward.emoji} **${specialGear.subType}** (${specialGear.rarity})!`;
     }
 
     rewardTexts.push(rewardLine);
