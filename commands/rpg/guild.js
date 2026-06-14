@@ -1,6 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const RpgGuild = require("../../models/RpgGuild");
 const { hasRpgCharacter, requireRpgCharacter } = require("../../utils/rpgUtil");
+const { getUser } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
 module.exports = {
@@ -17,7 +18,8 @@ module.exports = {
     const arg = (args[0] || "").toLowerCase();
 
     // Check if user has RPG character
-    const userHasChar = await hasRpgCharacter(userId);
+    const userDoc = await getUser(userId);
+    const userHasChar = hasRpgCharacter(userDoc);
     if (!userHasChar) {
       return message.reply(`❌ Bạn cần tạo nhân vật RPG trước bằng lệnh \`${config.prefix}class\`.`);
     }
@@ -53,7 +55,8 @@ module.exports = {
         return message.reply("❌ Bạn không thể tự mời chính mình.");
       }
 
-      const targetHasChar = await hasRpgCharacter(targetId);
+      const targetUserDoc = await getUser(targetId);
+      const targetHasChar = hasRpgCharacter(targetUserDoc);
       if (!targetHasChar) {
         return message.reply("❌ Người được mời chưa có nhân vật RPG.");
       }
