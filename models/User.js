@@ -98,6 +98,7 @@ const userSchema = new mongoose.Schema({
     stats: { type: Object, default: {} },
     rank: { type: String, default: "Novice" },
     equipped: { type: Object, default: {} },
+    claimedBossWeapons: { type: [String], default: [] },
     items: { type: [Object], default: [] },
     lastItemId: { type: Number, default: 0, index: true },
     lastHuntAt: { type: Date, default: null },

@@ -746,8 +746,8 @@ module.exports = {
       },
     },
     rewards: {
-      base_coke: 30000,
-      base_exp: 1500,
+      base_coke: 100000,
+      base_exp: 30000,
     },
   },
 };

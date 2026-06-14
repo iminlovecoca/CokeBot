@@ -68,6 +68,7 @@ module.exports = {
         u.rpg.exp = 0;
         u.rpg.rank = "Novice";
         u.rpg.stats = { ...rpgClass.stats }; // reset to base stats
+        u.rpg.claimedBossWeapons = []; // reset claimed special boss weapons
         u.rpg.power = calculateRpgPower(u); // recalculate power based on current equipped gear and default stats
         u.markModified("rpg");
         await u.save();

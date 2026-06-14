@@ -207,7 +207,7 @@ const getWeaponScalingStats = (subType) => {
   if (name.includes("staff")) {
     return { prim: "int", sec: "arc" };
   }
-  if (name.includes("dagger")) {
+  if (name.includes("dagger") || name.includes("đao")) {
     return { prim: "dex", sec: "arc" };
   }
   return { prim: "str", sec: "dex" };
@@ -689,7 +689,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     stats,
     quality,
     sellPrice,
-    imageKey: getItemImageFile({ slot, rarity, subType: chosenSubtype.name }),
+    imageKey: options.imageKey || getItemImageFile({ slot, rarity, subType: chosenSubtype.name }),
     subType: chosenSubtype.name,
     emoji: chosenSubtype.emoji,
     scaling,
