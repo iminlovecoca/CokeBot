@@ -208,8 +208,7 @@ const startDungeon = async ({ message, guild, chapter }) => {
     chapter: chapter,
     round: 1,
     players: playerStates,
-    turnIndex: 0,
-    turnQueue: [],
+    currentActor: null,
     enemy: null,
     diceRolled: false,
     diceMultiplier: 1.0,
@@ -218,15 +217,14 @@ const startDungeon = async ({ message, guild, chapter }) => {
     logs: ["🏁 Bắt đầu phó bản! Chúc tổ đội may mắn."],
     actionInProgress: false,
     gameMessage: null,
+    roundEndTime: 0,
+    timeoutTimer: null,
   };
 
   client.rpgDungeons.set(channel.id, activeDungeon);
 
   // Setup first round
-  setupRound(activeDungeon);
-
-  // Render initial frame
-  await renderGameScreen(channel, activeDungeon);
+  setupRound(activeDungeon, channel);
 };
 
 // Help to make sure user object isn't cached/stale
@@ -235,13 +233,26 @@ const freshUserObject = (user) => {
 };
 
 // Setup current round monsters/boss
-const setupRound = (activeDungeon) => {
+const setupRound = (activeDungeon, channel) => {
   const { round, chapter } = activeDungeon;
+
+  // Clear any existing timeout
+  if (activeDungeon.timeoutTimer) {
+    clearTimeout(activeDungeon.timeoutTimer);
+    activeDungeon.timeoutTimer = null;
+  }
+
+  // Set 5-minute timeout for this round
+  activeDungeon.roundEndTime = Date.now() + 5 * 60 * 1000;
+  activeDungeon.timeoutTimer = setTimeout(async () => {
+    await handleTimeout(channel, activeDungeon);
+  }, 5 * 60 * 1000);
+
   const dCfg = config.dungeon || {};
   const normCfg = dCfg.normal_monster || { base_hp: 20000, round_hp_mult: 0.1, base_atk: 100, round_atk_mult: 0.05, base_defense: 50 };
   const b1Cfg = dCfg.boss_tf?.phase1 || { base_hp: 300000, base_atk: 300, base_defense: 100 };
 
-  if (round < 7) {
+  if (round < 5) {
     // Normal monster
     const maxHp = Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult));
     activeDungeon.enemy = {
@@ -256,7 +267,7 @@ const setupRound = (activeDungeon) => {
     activeDungeon.diceRolled = false;
     activeDungeon.diceMultiplier = 1.0;
   } else {
-    // Round 7: Boss TF Phase 1
+    // Round 5: Boss TF Phase 1
     const maxHp = b1Cfg.base_hp * chapter;
     activeDungeon.enemy = {
       name: "Boss TF (Phase 1)",
@@ -272,24 +283,23 @@ const setupRound = (activeDungeon) => {
     activeDungeon.diceMultiplier = 1.0;
   }
 
-  // Re-build Turn Queue: Alive players first, then Boss/Enemy
-  rebuildTurnQueue(activeDungeon);
-};
+  // Reset player turns for this round
+  activeDungeon.players.forEach((p) => {
+    p.hasActedThisRound = false;
+  });
 
-const rebuildTurnQueue = (activeDungeon) => {
-  const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
-  activeDungeon.turnQueue = [...alivePlayers, activeDungeon.enemy];
-  activeDungeon.turnIndex = 0;
+  // Set the first actor and render game screen
+  nextTurn(channel, activeDungeon);
 };
 
 // Render main game screen
 const renderGameScreen = async (channel, activeDungeon) => {
-  const { chapter, round, players, enemy, turnQueue, turnIndex, logs } = activeDungeon;
-  const currentActor = turnQueue[turnIndex];
+  const { chapter, round, players, enemy, logs, currentActor } = activeDungeon;
 
   const embed = new EmbedBuilder()
     .setColor(enemy.isBoss ? "#E74C3C" : "#E67E22")
-    .setTitle(`⚔️ DUNGEON: CHƯƠNG ${chapter} - VÒNG ${round}/7 ⚔️`)
+    .setTitle(`⚔️ DUNGEON: CHƯƠNG ${chapter} - VÒNG ${round}/5 ⚔️`)
+    .setDescription(`⏰ Hết thời gian vòng đấu: <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R>`)
     .setTimestamp();
 
   // Top Frame: Enemy info
@@ -346,6 +356,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
 
   if (currentActor && currentActor.id) {
     embed.setFooter({ text: `👉 Đến lượt của: ${currentActor.name}` });
+  } else {
+    embed.setFooter({ text: "👿 Lượt của kẻ địch..." });
   }
 
   // Handle files (Boss image)
@@ -368,7 +380,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     setupCollector(channel, activeDungeon);
   }
 
-  // Dice roll sequence triggers automatically at Round 7 Phase 1
+  // Dice roll sequence triggers automatically at Round 5 Phase 1
   if (enemy.isBoss && enemy.phase === 1 && !activeDungeon.diceRolled && !activeDungeon.actionInProgress) {
     await runDiceRoll(channel, activeDungeon);
   }
@@ -407,8 +419,6 @@ const runDiceRoll = async (channel, activeDungeon) => {
 
 // Setup component interaction collector for the combat screen
 const setupCollector = (channel, activeDungeon) => {
-  const messageId = activeDungeon.gameMessage.id;
-
   const collector = activeDungeon.gameMessage.createMessageComponentCollector({
     filter: (i) => i.customId.startsWith("rpg_dungeon_action_") || i.customId.startsWith("rpg_dungeon_coin_"),
     time: 15 * 60 * 1000, // 15 mins dungeon limit
@@ -427,7 +437,7 @@ const setupCollector = (channel, activeDungeon) => {
     }
 
     // Turn verification
-    const currentActor = activeDungeon.turnQueue[activeDungeon.turnIndex];
+    const currentActor = activeDungeon.currentActor;
     if (!currentActor || currentActor.id !== i.user.id) {
       return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
     }
@@ -441,16 +451,18 @@ const setupCollector = (channel, activeDungeon) => {
       // Process heal
       if (pExist.potions <= 0) {
         activeDungeon.actionInProgress = false;
-        return channel.send(`<@${pExist.id}>, bạn đã hết bình máu!`).then((m) => setTimeout(() => m.delete().catch(() => {}), 3000));
+        return i.followUp({ content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
       }
 
       pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
       pExist.potions -= 1;
       activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
 
+      pExist.hasActedThisRound = true;
       activeDungeon.actionInProgress = false;
       await nextTurn(channel, activeDungeon);
     } else if (i.customId === "rpg_dungeon_action_attack") {
+      pExist.hasActedThisRound = true;
       // Check if coin flip is triggered in Phase 2
       const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
       if (isPhase2 && activeDungeon.coinFlipCount === 2) {
@@ -464,6 +476,10 @@ const setupCollector = (channel, activeDungeon) => {
   });
 
   collector.on("end", () => {
+    if (activeDungeon.timeoutTimer) {
+      clearTimeout(activeDungeon.timeoutTimer);
+      activeDungeon.timeoutTimer = null;
+    }
     channel.client.rpgDungeons.delete(channel.id);
   });
 
@@ -498,6 +514,7 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
     // Timeout fallback: normal attack
     await coinMsg.delete().catch(() => {});
     activeDungeon.logs.push(`⏳ Quá thời gian chọn mặt đồng xu! Sát thương bình thường.`);
+    activeDungeon.coinFlipCount = 0; // reset counter
     return executePlayerAttack(channel, activeDungeon, player, 1.0);
   }
 
@@ -585,31 +602,22 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 
 // Proceed to the next actor in the turn queue
 const nextTurn = async (channel, activeDungeon) => {
-  if (activeDungeon.actionInProgress) return;
+  const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
+  const nextPlayer = alivePlayers.find((p) => !p.hasActedThisRound);
 
-  const { turnQueue } = activeDungeon;
-  activeDungeon.turnIndex += 1;
+  if (nextPlayer) {
+    activeDungeon.currentActor = nextPlayer;
+    await renderGameScreen(channel, activeDungeon);
+  } else {
+    // All alive players have acted. Set enemy as current actor
+    activeDungeon.currentActor = activeDungeon.enemy;
+    await renderGameScreen(channel, activeDungeon);
 
-  if (activeDungeon.turnIndex >= turnQueue.length) {
-    activeDungeon.turnIndex = 0;
-  }
-
-  const currentActor = turnQueue[activeDungeon.turnIndex];
-
-  // If actor is dead, skip turn
-  if (currentActor.hp <= 0) {
-    return nextTurn(channel, activeDungeon);
-  }
-
-  // If actor is Enemy / Boss: trigger boss turn
-  if (!currentActor.id) {
+    // Trigger enemy turn automatically
     activeDungeon.actionInProgress = true;
     setTimeout(async () => {
       await runEnemyTurn(channel, activeDungeon);
     }, 2000);
-  } else {
-    // If actor is player: render screen & wait for input
-    await renderGameScreen(channel, activeDungeon);
   }
 };
 
@@ -619,7 +627,6 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
 
   if (!alivePlayers.length) {
-    // Defeat handled elsewhere or below
     await handleDefeat(channel, activeDungeon);
     return;
   }
@@ -663,13 +670,17 @@ const runEnemyTurn = async (channel, activeDungeon) => {
 
   // Check if team is wiped out
   const teamWiped = activeDungeon.players.every((p) => p.hp <= 0);
+
+  // Reset player turns for the next round of combat
+  activeDungeon.players.forEach((p) => {
+    p.hasActedThisRound = false;
+  });
+
   activeDungeon.actionInProgress = false;
 
   if (teamWiped) {
     await handleDefeat(channel, activeDungeon);
   } else {
-    // Re-verify alive list and progress turn queue
-    rebuildTurnQueue(activeDungeon);
     await nextTurn(channel, activeDungeon);
   }
 };
@@ -692,42 +703,49 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       activeDungeon.phase2Madness = 1.0;
 
       activeDungeon.logs.push(`👿 **Boss TF (Phase 1) đã ngã xuống!** Cơ thể boss bắt đầu biến đổi dữ dội và cười điên cuồng bước vào **Phase 2**!`);
-      rebuildTurnQueue(activeDungeon);
-      await renderGameScreen(channel, activeDungeon);
+      
+      // Reset player turns for Phase 2
+      activeDungeon.players.forEach((p) => {
+        p.hasActedThisRound = false;
+      });
+
+      await nextTurn(channel, activeDungeon);
     } else {
       // Defeated Phase 2: Complete Victory!
       await handleVictory(channel, activeDungeon);
     }
   } else {
-    // Vòng 1-6: Advance round
+    // Vòng 1-4: Advance round
     activeDungeon.logs.push(`🎉 **Đã tiêu diệt ${enemy.name}!** Sắp bước sang vòng kế tiếp.`);
     activeDungeon.round += 1;
-    setupRound(activeDungeon);
-    await renderGameScreen(channel, activeDungeon);
+    setupRound(activeDungeon, channel);
   }
 };
 
 // Victory handler: give rewards, save progress
 const handleVictory = async (channel, activeDungeon) => {
-  const { chapter, players, guildId } = activeDungeon;
+  if (activeDungeon.timeoutTimer) {
+    clearTimeout(activeDungeon.timeoutTimer);
+    activeDungeon.timeoutTimer = null;
+  }
   activeDungeon.collector.stop("victory");
   channel.client.rpgDungeons.delete(channel.id);
 
   // Update Guild Progress
-  const guild = await RpgGuild.findById(guildId);
+  const guild = await RpgGuild.findById(activeDungeon.guildId);
   if (guild) {
-    guild.chapterProgress = Math.max(guild.chapterProgress, chapter);
+    guild.chapterProgress = Math.max(guild.chapterProgress, activeDungeon.chapter);
     await guild.save();
   }
 
   const dCfg = config.dungeon || {};
   const rewCfg = dCfg.rewards || { base_coke: 30000, base_exp: 1500 };
-  const cokeReward = rewCfg.base_coke * chapter;
-  const expReward = rewCfg.base_exp * chapter;
+  const cokeReward = rewCfg.base_coke * activeDungeon.chapter;
+  const expReward = rewCfg.base_exp * activeDungeon.chapter;
 
   const rewardTexts = [];
 
-  for (const p of players) {
+  for (const p of activeDungeon.players) {
     const freshUser = await User.findById(p.userRef._id);
     if (!freshUser) continue;
 
@@ -738,7 +756,7 @@ const handleVictory = async (channel, activeDungeon) => {
     // Generate random gear drop
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
-      allowedRarities: getChapterRarities(chapter),
+      allowedRarities: getChapterRarities(activeDungeon.chapter),
     });
     await addRpgGearToUser(freshUser, gear);
     await freshUser.save();
@@ -755,7 +773,7 @@ const handleVictory = async (channel, activeDungeon) => {
     .setColor("#2ECC71")
     .setTitle("🏆 CHIẾN THẮNG PHÓ BẢN! 🏆")
     .setDescription(
-      `Tổ đội của bạn đã xuất sắc chinh phục thành công **Chương ${chapter}**!\n\n` +
+      `Tổ đội của bạn đã xuất sắc chinh phục thành công **Chương ${activeDungeon.chapter}**!\n\n` +
       `**Phần thưởng vượt phó bản:**\n\n${rewardTexts.join("\n\n")}`
     )
     .setTimestamp();
@@ -765,6 +783,10 @@ const handleVictory = async (channel, activeDungeon) => {
 
 // Defeat handler: fail
 const handleDefeat = async (channel, activeDungeon) => {
+  if (activeDungeon.timeoutTimer) {
+    clearTimeout(activeDungeon.timeoutTimer);
+    activeDungeon.timeoutTimer = null;
+  }
   activeDungeon.collector.stop("defeat");
   channel.client.rpgDungeons.delete(channel.id);
 
@@ -779,3 +801,27 @@ const handleDefeat = async (channel, activeDungeon) => {
 
   await channel.send({ embeds: [embed] });
 };
+
+// Timeout handler
+const handleTimeout = async (channel, activeDungeon) => {
+  if (activeDungeon.timeoutTimer) {
+    clearTimeout(activeDungeon.timeoutTimer);
+    activeDungeon.timeoutTimer = null;
+  }
+  if (activeDungeon.collector) {
+    activeDungeon.collector.stop("timeout");
+  }
+  channel.client.rpgDungeons.delete(channel.id);
+
+  const embed = new EmbedBuilder()
+    .setColor("#C0392B")
+    .setTitle("💀 HẾT THỜI GIAN! 💀")
+    .setDescription(
+      `Đã quá 5 phút mà tổ đội của bạn chưa vượt qua được vòng đấu này!\n` +
+      `Chiến dịch chinh phục **Chương ${activeDungeon.chapter}** thất bại.`
+    )
+    .setTimestamp();
+
+  await channel.send({ embeds: [embed] });
+};
+
