@@ -12,16 +12,32 @@ module.exports = {
 	],
 	async execute(message) {
 		const allItems = message.client.allItems.filter(item => item.price !== null)
-		const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE)
+
+		const regularItems = allItems.filter(item => !item.item_id.startsWith("somber-") && !item.item_id.startsWith("cristal-"))
+		const stoneItems = allItems.filter(item => item.item_id.startsWith("somber-") || item.item_id.startsWith("cristal-"))
+
+		const regularPages = Math.ceil(regularItems.length / ITEMS_PER_PAGE)
+		const stonePages = Math.ceil(stoneItems.length / ITEMS_PER_PAGE)
+		const totalPages = regularPages + stonePages
 
 		const generateDisplay = (page) => {
-			const startIdx = page * ITEMS_PER_PAGE
-			const pageItems = allItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
 			const paddingChar = '\u2003'
+			let pageItems = []
+			let title = 'Cửa Hàng Cokemon'
+
+			if (page < regularPages) {
+				const startIdx = page * ITEMS_PER_PAGE
+				pageItems = regularItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+			} else {
+				const stonePageIdx = page - regularPages
+				const startIdx = stonePageIdx * ITEMS_PER_PAGE
+				pageItems = stoneItems.slice(startIdx, startIdx + ITEMS_PER_PAGE)
+				title = 'Cửa Hàng Cokemon - Đá Cường Hóa'
+			}
 
 			const embed = new EmbedBuilder()
 				.setColor('#0099ff')
-				.setTitle('Cửa Hàng Cokemon')
+				.setTitle(title)
 				.setDescription(`Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng \`${config.prefix}buy <id> [số lượng]\` để mua hoặc \`${config.prefix}sell <id> [số lượng]\` để bán.`)
 				.setFooter({ text: `Trang ${page + 1}/${totalPages}` })
 

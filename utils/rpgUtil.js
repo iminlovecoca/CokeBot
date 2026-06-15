@@ -843,6 +843,57 @@ const findRpgItemGlobal = async (itemId) => {
   return { item, owner };
 };
 
+const seedUpgradeStones = async (client) => {
+  const Item = require("../models/cokemon/Item");
+  const STONES_TO_SEED = [
+    { item_id: "somber-1", name: "Smithing Stone [1]", description: "Đá thường cấp 1 dùng để nâng cấp vũ khí thường lên +1 -> +3", item_type: "tool", price: 5000, emoji: "<:Somber1:1516030370099761322>" },
+    { item_id: "somber-2", name: "Smithing Stone [2]", description: "Đá thường cấp 2 dùng để nâng cấp vũ khí thường lên +4 -> +6", item_type: "tool", price: 10000, emoji: "<:Somber2:1516030372901687347>" },
+    { item_id: "somber-3", name: "Smithing Stone [3]", description: "Đá thường cấp 3 dùng để nâng cấp vũ khí thường lên +7 -> +9", item_type: "tool", price: 20000, emoji: "<:Somber3:1516030375443566675>" },
+    { item_id: "somber-4", name: "Smithing Stone [4]", description: "Đá thường cấp 4 dùng để nâng cấp vũ khí thường lên +10 -> +12. Nhận từ Boss theo giờ.", item_type: "tool", price: null, emoji: "<:Somber4:1516030379369431091>" },
+    { item_id: "somber-5", name: "Smithing Stone [5]", description: "Đá thường cấp 5 dùng để nâng cấp vũ khí thường lên +13 -> +15. Nhận từ Boss theo giờ.", item_type: "tool", price: null, emoji: "<:Somber5:1516030385241329746>" },
+    { item_id: "somber-6", name: "Smithing Stone [6]", description: "Đá thường cấp 6 dùng để nâng cấp vũ khí thường lên +16 -> +18. Nhận từ Boss theo giờ.", item_type: "tool", price: null, emoji: "<:Somber6:1516030387782942880>" },
+    { item_id: "somber-7", name: "Smithing Stone [7]", description: "Đá thường cấp 7 dùng để nâng cấp vũ khí thường lên +19 -> +21. Nhận từ Boss cấp Thượng Nhân.", item_type: "tool", price: null, emoji: "<:Somber7:1516030382762496191>" },
+    { item_id: "somber-8", name: "Smithing Stone [8]", description: "Đá thường cấp 8 dùng để nâng cấp vũ khí thường lên +22 -> +24. Nhận từ Boss cấp Thượng Nhân.", item_type: "tool", price: null, emoji: "<:Somber8:1516030389855060018>" },
+    { item_id: "somber-9", name: "Ancient Dragon Smithing Stone", description: "Đá rồng cổ đại dùng để nâng cấp vũ khí thường lên tối đa +25. Nhận từ Boss cấp Thượng Nhân.", item_type: "tool", price: null, emoji: "<:Somber9:1516030391960735905>" },
+    { item_id: "cristal-1", name: "Somber Smithing Stone [1]", description: "Đá Cristal cấp 1 dùng để nâng cấp vũ khí dungeon lên +1. Nhận khi diệt Boss Dungeon Chương 1.", item_type: "tool", price: null, emoji: "<:Cristal1:1516030438529961985>" },
+    { item_id: "cristal-2", name: "Somber Smithing Stone [2]", description: "Đá Cristal cấp 2 dùng để nâng cấp vũ khí dungeon lên +2. Nhận khi diệt Boss Dungeon Chương 2.", item_type: "tool", price: null, emoji: "<:Cristal2:1516030440840888390>" },
+    { item_id: "cristal-3", name: "Somber Smithing Stone [3]", description: "Đá Cristal cấp 3 dùng để nâng cấp vũ khí dungeon lên +3. Nhận khi diệt Boss Dungeon Chương 3.", item_type: "tool", price: null, emoji: "<:Cristal3:1516030443089170512>" },
+    { item_id: "cristal-4", name: "Somber Smithing Stone [4]", description: "Đá Cristal cấp 4 dùng để nâng cấp vũ khí dungeon lên +4. Nhận khi diệt Boss Dungeon Chương 4.", item_type: "tool", price: null, emoji: "<:Cristal4:1516030446465712178>" },
+    { item_id: "cristal-5", name: "Somber Smithing Stone [5]", description: "Đá Cristal cấp 5 dùng để nâng cấp vũ khí dungeon lên +5. Nhận khi diệt Boss Dungeon Chương 5.", item_type: "tool", price: null, emoji: "<:Cristal5:1516030455785193595>" },
+    { item_id: "cristal-6", name: "Somber Smithing Stone [6]", description: "Đá Cristal cấp 6 dùng để nâng cấp vũ khí dungeon lên +6. Nhận khi diệt Boss Dungeon Chương 6.", item_type: "tool", price: null, emoji: "<:Cristal6:1516030458301907014>" },
+    { item_id: "cristal-7", name: "Somber Smithing Stone [7]", description: "Đá Cristal cấp 7 dùng để nâng cấp vũ khí dungeon lên +7.", item_type: "tool", price: null, emoji: "<:Cristal7:1516030460004663408>" },
+    { item_id: "cristal-8", name: "Somber Smithing Stone [8]", description: "Đá Cristal cấp 8 dùng để nâng cấp vũ khí dungeon lên +8.", item_type: "tool", price: null, emoji: "<:Cristal8:1516030462970302555>" },
+    { item_id: "cristal-9", name: "Somber Smithing Stone [9]", description: "Đá Cristal cấp 9 dùng để nâng cấp vũ khí dungeon lên +9.", item_type: "tool", price: null, emoji: "<:Cristal9:1516030465461715005>" },
+    { item_id: "cristal-10", name: "Somber Ancient Dragon Smithing Stone", description: "Đá Cristal rồng cổ đại dùng để nâng cấp vũ khí dungeon lên tối đa +10.", item_type: "tool", price: null, emoji: "👑" },
+  ];
+
+  for (const stone of STONES_TO_SEED) {
+    let dbStone = await Item.findOne({ item_id: stone.item_id });
+    if (!dbStone) {
+      dbStone = await Item.create(stone);
+      console.log(`💎 Seeded upgrade stone in DB: ${stone.item_id}`);
+    } else {
+      let changed = false;
+      if (dbStone.price !== stone.price) { dbStone.price = stone.price; changed = true; }
+      if (dbStone.emoji !== stone.emoji) { dbStone.emoji = stone.emoji; changed = true; }
+      if (dbStone.name !== stone.name) { dbStone.name = stone.name; changed = true; }
+      if (dbStone.description !== stone.description) { dbStone.description = stone.description; changed = true; }
+      if (changed) {
+        await dbStone.save();
+        console.log(`💎 Updated upgrade stone in DB: ${stone.item_id}`);
+      }
+    }
+
+    const cachedIdx = client.allItems.findIndex((i) => i.item_id === stone.item_id);
+    const stoneObj = dbStone.toObject ? dbStone.toObject() : dbStone;
+    if (cachedIdx > -1) {
+      client.allItems[cachedIdx] = stoneObj;
+    } else {
+      client.allItems.push(stoneObj);
+    }
+  }
+};
+
 module.exports = {
   classEntries,
   getRpgClass,
@@ -881,4 +932,5 @@ module.exports = {
   getLegacyMapping,
   dungeonWeapons,
   dungeonKeys,
+  seedUpgradeStones,
 };

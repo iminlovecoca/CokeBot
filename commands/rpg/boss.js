@@ -54,6 +54,7 @@ const sendRewardDm = async ({
   expGain,
   cokeGain,
   isLastHit,
+  stones,
 }) => {
   const discordUser = await client.users.fetch(userId).catch(() => null);
   if (!discordUser) return;
@@ -64,6 +65,10 @@ const sendRewardDm = async ({
         `#${gear.id} **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} Coke`,
     )
     .join("\n");
+
+  const stoneLines = stones && stones.length
+    ? stones.map(s => `${s.emoji} **${s.name}** (x${s.quantity})`).join("\n")
+    : null;
 
   const embed = new EmbedBuilder()
     .setColor(isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
@@ -85,8 +90,17 @@ const sendRewardDm = async ({
       {
         name: "Trang bị nhận được",
         value: gearLines || "Không có",
+        inline: true,
       },
     );
+
+  if (stoneLines) {
+    embed.addFields({
+      name: "Đá nâng cấp nhận được",
+      value: stoneLines,
+      inline: true,
+    });
+  }
 
   await discordUser.send({ embeds: [embed] }).catch(() => null);
 };
@@ -166,6 +180,40 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
       user.coke += cokeGain;
 
+      // Drops for hourly boss
+      const stonesDropped = [];
+      if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
+        const dropCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 stones
+        const stoneOptions = bossRankKey === "rong"
+          ? ["somber-4", "somber-5", "somber-6"]
+          : ["somber-7", "somber-8", "somber-9"];
+
+        if (!user.inventory) {
+          user.inventory = new Map();
+        }
+
+        for (let i = 0; i < dropCount; i++) {
+          const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
+          const currentQty = user.inventory.get(stoneId) || 0;
+          user.inventory.set(stoneId, currentQty + 1);
+
+          // Track for displaying
+          const found = stonesDropped.find(s => s.id === stoneId);
+          if (found) {
+            found.quantity += 1;
+          } else {
+            const stoneData = client.allItems.find(item => item.item_id === stoneId);
+            stonesDropped.push({
+              id: stoneId,
+              name: stoneData?.name || stoneId,
+              emoji: stoneData?.emoji || "💎",
+              quantity: 1
+            });
+          }
+        }
+        user.markModified("inventory");
+      }
+
       user.rpg.power = calculateRpgPower(user);
       await user.save();
 
@@ -189,6 +237,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         expGain,
         cokeGain,
         isLastHit,
+        stones: stonesDropped
       });
     } catch (error) {
       console.warn("[RPG_BOSS] Reward failed:", userId, error.message);

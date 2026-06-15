@@ -205,6 +205,9 @@ client.once(Events.ClientReady, async () => {
       client.allItems.push(wcItem.toObject ? wcItem.toObject() : wcItem);
     }
 
+    const { seedUpgradeStones } = require("./utils/rpgUtil");
+    await seedUpgradeStones(client);
+
     console.log(
       `✅ Cached ${client.allSpecies.length} species & ${client.allItems.length} items.`,
     );

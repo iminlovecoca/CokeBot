@@ -911,12 +911,24 @@ const handleVictory = async (channel, activeDungeon) => {
       }
     }
 
+    // Give cristal stone reward based on chapter!
+    const cristalStoneId = `cristal-${activeDungeon.chapter}`;
+    if (!freshUser.inventory) {
+      freshUser.inventory = new Map();
+    }
+    const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
+    freshUser.inventory.set(cristalStoneId, currentQty + 1);
+    freshUser.markModified("inventory");
+
     await addRpgGearToUser(freshUser, gear);
     await freshUser.save();
+
+    const stoneItem = channel.client.allItems?.find(i => i.item_id === cristalStoneId) || { name: `Somber Smithing Stone [${activeDungeon.chapter}]`, emoji: "💎" };
 
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${cokeReward.toLocaleString()} Coke**\n` +
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
+      `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: **${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`;
 
     if (specialGear && bossReward) {
