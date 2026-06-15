@@ -334,19 +334,38 @@ const renderGameScreen = async (channel, activeDungeon) => {
     .setDescription(`⏰ Hết thời gian vòng đấu: <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R>`)
     .setTimestamp();
 
+  const bossCfg = enemy.isBoss ? getBossConfig(chapter) : null;
+  const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
+  const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
+
   // Top Frame: Enemy info
   let enemyInfo = `**Thanh máu:**\n${getHealthBar(enemy.hp, enemy.maxHp)}\n`;
   if (enemy.isBoss) {
     if (enemy.phase === 1) {
-      if (activeDungeon.diceRolled) {
-        const sign = activeDungeon.diceMultiplier < 1.0 ? "⚠️" : "✨";
-        enemyInfo += `\n🎲 **Xúc sắc:** Đòn đánh của phe ta gây **${Math.round(activeDungeon.diceMultiplier * 100)}%** sát thương (${sign}).`;
-      } else {
-        enemyInfo += `\n🎲 *Chuẩn bị đổ xúc sắc xác định hiệu ứng sát thương...*`;
+      if (hasDice) {
+        if (activeDungeon.diceRolled) {
+          const sign = activeDungeon.diceMultiplier < 1.0 ? "⚠️" : "✨";
+          enemyInfo += `\n🎲 **Xúc sắc:** Đòn đánh của phe ta gây **${Math.round(activeDungeon.diceMultiplier * 100)}%** sát thương (${sign}).`;
+        } else {
+          enemyInfo += `\n🎲 *Chuẩn bị đổ xúc sắc xác định hiệu ứng sát thương...*`;
+        }
       }
     } else {
-      enemyInfo += `\n👿 **Điên Loạn:** Sát thương AOE tăng thêm **+${Math.round((activeDungeon.phase2Madness - 1) * 100)}%**!\n` +
-                   `🪙 **Đồng xu:** Lượt tích lũy đòn đánh: **${activeDungeon.coinFlipCount || 0}/3**`;
+      if (hasCoin) {
+        enemyInfo += `\n👿 **Điên Loạn:** Sát thương AOE tăng thêm **+${Math.round((activeDungeon.phase2Madness - 1) * 100)}%**!\n` +
+                     `🪙 **Đồng xu:** Lượt tích lũy đòn đánh: **${activeDungeon.coinFlipCount || 0}/3**`;
+      } else {
+        enemyInfo += `\n👿 **Điên Loạn:** Sát thương AOE tăng thêm **+${Math.round((activeDungeon.phase2Madness - 1) * 100)}%**!`;
+      }
+
+      if (bossCfg?.mechanics?.vulnerable_on_heal_ban) {
+        const isAnyPlayerHealBanned = players.some((p) => p.hp > 0 && p.healBanRounds && p.healBanRounds > 0);
+        if (isAnyPlayerHealBanned) {
+          enemyInfo += `\n💀 **Suy Yếu:** Boss đang bị giảm phòng ngự do dính Lời Nguyền Xương (Nhận x2 sát thương)!`;
+        } else {
+          enemyInfo += `\n💀 **Lời Nguyền Xương:** Khi có thành viên bị cấm hồi máu, Boss sẽ nhận x2 sát thương!`;
+        }
+      }
     }
   }
   embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
@@ -373,7 +392,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const row = new ActionRowBuilder();
   
   // Disable buttons if action is in progress or dice rolling
-  const disableControls = activeDungeon.actionInProgress || (enemy.isBoss && enemy.phase === 1 && !activeDungeon.diceRolled);
+  const disableControls = activeDungeon.actionInProgress || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
 
   row.addComponents(
     new ButtonBuilder()
@@ -418,7 +437,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   }
 
   // Dice roll sequence triggers automatically at Round 5 Phase 1
-  if (enemy.isBoss && enemy.phase === 1 && !activeDungeon.diceRolled && !activeDungeon.actionInProgress) {
+  if (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled && !activeDungeon.actionInProgress) {
     await runDiceRoll(channel, activeDungeon);
   }
 };
@@ -523,7 +542,9 @@ const setupCollector = (channel, activeDungeon) => {
 
       // Check if coin flip is triggered in Phase 2
       const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
-      if (isPhase2 && activeDungeon.coinFlipCount === 2) {
+      const bossCfg = getBossConfig(activeDungeon.chapter);
+      const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
+      if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
         // Trigger coin flip choice
         await askCoinFlip(channel, activeDungeon, pExist);
       } else {
@@ -641,11 +662,27 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 
   // Apply Phase 1 dice multiplier or Phase 2 coin multiplier
   if (enemy.isBoss) {
+    const bossCfg = getBossConfig(activeDungeon.chapter);
+    const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
+    const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
+
     if (enemy.phase === 1) {
-      damage = Math.floor(damage * activeDungeon.diceMultiplier);
+      if (hasDice) {
+        damage = Math.floor(damage * activeDungeon.diceMultiplier);
+      }
     } else {
-      damage = Math.floor(damage * multiplier);
-      activeDungeon.coinFlipCount = (activeDungeon.coinFlipCount || 0) + 1;
+      if (hasCoin) {
+        damage = Math.floor(damage * multiplier);
+        activeDungeon.coinFlipCount = (activeDungeon.coinFlipCount || 0) + 1;
+      }
+    }
+
+    // Vulnerable on heal ban mechanic: takes x2 damage when any alive player is heal banned
+    if (bossCfg?.mechanics?.vulnerable_on_heal_ban) {
+      const isAnyPlayerHealBanned = activeDungeon.players.some((p) => p.hp > 0 && p.healBanRounds && p.healBanRounds > 0);
+      if (isAnyPlayerHealBanned) {
+        damage = Math.floor(damage * 2.0);
+      }
     }
   }
 

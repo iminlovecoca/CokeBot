@@ -759,6 +759,11 @@ module.exports = {
           base_defense: 100,
         },
       },
+      mechanics: {
+        dice_roll: true,
+        coin_flip: true,
+        vulnerable_on_heal_ban: false,
+      },
     },
     chapters: {
       1: {
@@ -785,6 +790,11 @@ module.exports = {
             chance: 0.40,
             duration: 2,
             type: "heal_ban",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            vulnerable_on_heal_ban: true,
           },
           first_clear_reward: {
             claim_key: "firesword",
@@ -813,6 +823,11 @@ module.exports = {
               base_atk_mult: 1.5,
               base_defense: 100,
             },
+          },
+          mechanics: {
+            dice_roll: true,
+            coin_flip: true,
+            vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {
             claim_key: "crimsondagger",
