@@ -211,6 +211,12 @@ const buyItem = async (client, userId, itemId, quantity) => {
         );
       }
 
+      if (item.price === null || item.price === undefined) {
+        throw new UserFriendlyError(
+          `${config.emoji.no} Vật phẩm này không được bán trong Cửa hàng.`,
+        );
+      }
+
       const user = await getUser(userId, session);
       const totalCost = item.price * quantity;
       if (user.coke < totalCost) {
@@ -238,6 +244,12 @@ const sellItem = async (client, userId, itemId, quantity) => {
       if (!item) {
         throw new UserFriendlyError(
           `${config.emoji.no} Vật phẩm không tồn tại.`,
+        );
+      }
+
+      if (item.price === null || item.price === undefined) {
+        throw new UserFriendlyError(
+          `${config.emoji.no} Vật phẩm này không thể bán vào Cửa hàng.`,
         );
       }
 
