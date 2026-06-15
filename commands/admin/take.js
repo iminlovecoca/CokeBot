@@ -20,7 +20,7 @@ module.exports = {
       const targetUser =
         message.mentions.users.first() ||
         (await message.client.users.fetch(args[1]).catch(() => null));
-      const itemId = args[2];
+      const itemId = args[2]?.toLowerCase();
       let qty = parseInt(args[3]);
       if (isNaN(qty)) qty = 1;
 
