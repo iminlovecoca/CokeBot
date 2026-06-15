@@ -1,28 +1,11 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const config = require("../../data/config");
 const {
   requireRpgCharacter,
   getGearDisplayName,
   calculateRpgPower,
+  isDungeonWeapon,
 } = require("../../utils/rpgUtil");
-
-const dungeonKeys = [
-  "shadowdagger",
-  "poisondagger",
-  "firesword",
-  "greenstaff",
-  "bluestaff",
-  "crimsondagger",
-  "holysword",
-  "darksword",
-  "darkstaff"
-];
-
-const isDungeonWeapon = (item) => {
-  if (item.slot !== "weapon") return false;
-  const key = (item.subType || "").toLowerCase().replace(/\s+/g, "");
-  return dungeonKeys.includes(key);
-};
 
 module.exports = {
   name: "enhance",
@@ -120,57 +103,159 @@ module.exports = {
       );
     }
 
-    // Process Upgrade
-    user.coke -= cokeCost;
-    
-    const newQty = userStoneQty - stoneQty;
-    if (newQty === 0) {
-      user.inventory.delete(stoneId);
-    } else {
-      user.inventory.set(stoneId, newQty);
-    }
-    user.markModified("inventory");
+    // Confirmation Buttons
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("confirm_enhance")
+        .setLabel("Xác nhận")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("cancel_enhance")
+        .setLabel("Hủy")
+        .setStyle(ButtonStyle.Danger)
+    );
 
-    // Update item upgradeLevel and name
-    item.upgradeLevel = nextLvl;
-    item.name = getGearDisplayName(item);
-    user.markModified("rpg");
-
-    // Recalculate power
-    user.rpg.power = calculateRpgPower(user);
-    await user.save();
-
-    // Response Embed
-    const embed = new EmbedBuilder()
-      .setColor("#FFD700")
-      .setTitle("✨ CƯỜNG HÓA VŨ KHÍ THÀNH CÔNG! ✨")
+    const confirmEmbed = new EmbedBuilder()
+      .setColor("#FFA500")
+      .setTitle("🛡️ Xác Nhận Cường Hóa Vũ Khí")
       .setDescription(
-        `Chúc mừng bạn đã nâng cấp thành công vũ khí của mình lên **+${nextLvl}**!\n\n` +
-          `🗡️ **Vũ khí**: ${getGearDisplayName(item)}\n` +
-          `💰 Coke tiêu hao: **-${cokeCost.toLocaleString()} Coke**\n` +
-          `💎 Nguyên liệu tiêu hao: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
-          `💪 Lực chiến tổng hiện tại: **${user.rpg.power.toLocaleString()}**`
+        `Bạn có chắc chắn muốn cường hóa vũ khí sau không?\n` +
+          `🗡️ **Vũ khí**: ${getGearDisplayName(item)} (**+${currentLvl}** ➡️ **+${nextLvl}**)\n\n` +
+          `💰 Coke tiêu hao: **${cokeCost.toLocaleString()} Coke**\n` +
+          `💎 Nguyên liệu tiêu hao: **${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
+          `*Nhấp **Xác nhận** bên dưới để tiến hành cường hóa.*`
       )
       .setTimestamp();
 
-    const path = require("path");
-    const fs = require("fs");
-    const { AttachmentBuilder } = require("discord.js");
-    let itemAttachment = null;
-    const imgKey = item.imageKey || (require("../../utils/rpgUtil").getItemImageFile(item));
-    if (imgKey) {
-      const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
-      if (fs.existsSync(itemImagePath)) {
-        itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
-        embed.setThumbnail("attachment://item.png");
+    const confirmMsg = await message.reply({
+      embeds: [confirmEmbed],
+      components: [row],
+    });
+
+    try {
+      const interaction = await confirmMsg.awaitMessageComponent({
+        filter: (i) => i.user.id === message.author.id,
+        time: 20000,
+      });
+
+      if (interaction.customId === "confirm_enhance") {
+        // Reload data to ensure consistency and avoid duplication/race condition
+        const { getUser } = require("../../utils/userUtil");
+        const freshUser = await getUser(message.author.id);
+
+        if (!freshUser || !freshUser.rpg || !freshUser.rpg.classKey) {
+          return interaction.update({
+            content: "❌ Không tìm thấy nhân vật RPG của bạn.",
+            embeds: [],
+            components: [],
+          });
+        }
+
+        const freshItems = freshUser.rpg.items || [];
+        const freshItemIndex = freshItems.findIndex((it) => it.id === itemId);
+        if (freshItemIndex === -1) {
+          return interaction.update({
+            content: "❌ Không tìm thấy vũ khí này trong túi đồ của bạn nữa.",
+            embeds: [],
+            components: [],
+          });
+        }
+
+        const freshItem = freshItems[freshItemIndex];
+        const freshCurrentLvl = freshItem.upgradeLevel || 0;
+
+        if (freshCurrentLvl !== currentLvl) {
+          return interaction.update({
+            content: `❌ Giao dịch thất bại: Cấp độ vũ khí hiện tại đã thay đổi hoặc đang được xử lý trong một phiên khác.`,
+            embeds: [],
+            components: [],
+          });
+        }
+
+        if (freshUser.coke < cokeCost) {
+          return interaction.update({
+            content: `❌ Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** Coke nhưng bạn chỉ có **${freshUser.coke.toLocaleString()}** Coke.`,
+            embeds: [],
+            components: [],
+          });
+        }
+
+        if (!freshUser.inventory) {
+          freshUser.inventory = new Map();
+        }
+        const freshUserStoneQty = freshUser.inventory.get(stoneId) || 0;
+        if (freshUserStoneQty < stoneQty) {
+          return interaction.update({
+            content: `❌ Bạn không đủ nguyên liệu! Cần **${stoneQty} x ${stoneEmoji} ${stoneName}** nhưng hiện tại chỉ có **${freshUserStoneQty}** viên trong túi đồ.`,
+            embeds: [],
+            components: [],
+          });
+        }
+
+        // Process Upgrade
+        freshUser.coke -= cokeCost;
+        const newQty = freshUserStoneQty - stoneQty;
+        if (newQty === 0) {
+          freshUser.inventory.delete(stoneId);
+        } else {
+          freshUser.inventory.set(stoneId, newQty);
+        }
+        freshUser.markModified("inventory");
+
+        // Update item upgradeLevel and name
+        freshItem.upgradeLevel = nextLvl;
+        freshItem.name = getGearDisplayName(freshItem);
+        freshUser.markModified("rpg");
+
+        // Recalculate power
+        freshUser.rpg.power = calculateRpgPower(freshUser);
+        await freshUser.save();
+
+        // Response Embed
+        const successEmbed = new EmbedBuilder()
+          .setColor("#FFD700")
+          .setTitle("✨ CƯỜNG HÓA VŨ KHÍ THÀNH CÔNG! ✨")
+          .setDescription(
+            `Chúc mừng bạn đã nâng cấp thành công vũ khí của mình lên **+${nextLvl}**!\n\n` +
+              `🗡️ **Vũ khí**: ${getGearDisplayName(freshItem)}\n` +
+              `💰 Coke tiêu hao: **-${cokeCost.toLocaleString()} Coke**\n` +
+              `💎 Nguyên liệu tiêu hao: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
+              `💪 Lực chiến tổng hiện tại: **${freshUser.rpg.power.toLocaleString()}**`
+          )
+          .setTimestamp();
+
+        const path = require("path");
+        const fs = require("fs");
+        const { AttachmentBuilder } = require("discord.js");
+        let itemAttachment = null;
+        const imgKey = freshItem.imageKey || (require("../../utils/rpgUtil").getItemImageFile(freshItem));
+        if (imgKey) {
+          const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+          if (fs.existsSync(itemImagePath)) {
+            itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
+            successEmbed.setThumbnail("attachment://item.png");
+          }
+        }
+
+        const payload = { embeds: [successEmbed], components: [] };
+        if (itemAttachment) {
+          payload.files = [itemAttachment];
+        }
+
+        return interaction.update(payload);
+      } else {
+        return interaction.update({
+          content: "❌ Đã hủy yêu cầu cường hóa vũ khí.",
+          embeds: [],
+          components: [],
+        });
       }
+    } catch (err) {
+      await confirmMsg.edit({
+        content: "❌ Hết thời gian chờ, yêu cầu cường hóa vũ khí đã tự động hủy.",
+        embeds: [],
+        components: [],
+      }).catch(() => {});
     }
-
-    const payload = { embeds: [embed] };
-    if (itemAttachment) {
-      payload.files = [itemAttachment];
-    }
-
-    return message.reply(payload);
   },
 };

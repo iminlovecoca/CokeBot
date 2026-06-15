@@ -85,7 +85,7 @@ async function runTests() {
   const shadowDagger = await generateRpgGearDrop(mockUser, {
     forceDrop: true,
     slot: "weapon",
-    rarity: "Epic",
+    rarity: "Epic", // Should be overridden to Ancient
     level: 50,
     upgradeLevel: 0,
     subType: "Shadow Dagger"
@@ -100,9 +100,12 @@ async function runTests() {
     subType: "Dagger"
   });
 
-  console.log(`Dungeon Weapon: ${shadowDagger.name} | Base Power: ${shadowDagger.power}`);
-  console.log(`Normal Weapon: ${normalDagger.name} | Base Power: ${normalDagger.power}`);
+  console.log(`Dungeon Weapon: ${shadowDagger.name} | Rarity: ${shadowDagger.rarity} | Base Power: ${shadowDagger.power}`);
+  console.log(`Normal Weapon: ${normalDagger.name} | Rarity: ${normalDagger.rarity} | Base Power: ${normalDagger.power}`);
   
+  if (shadowDagger.rarity !== "Ancient") {
+    throw new Error(`FAIL: Dungeon weapon rarity was not forced to Ancient (got: ${shadowDagger.rarity})`);
+  }
   if (shadowDagger.power <= normalDagger.power) {
     throw new Error("FAIL: Dungeon weapon base power is not higher than normal weapon of same tier!");
   }
@@ -115,15 +118,15 @@ async function runTests() {
   const dungeonScaling = getWeaponScaling(shadowDagger);
 
   console.log(`Normal Dagger (Epic) Scaling: STR:${normalScaling.str}, DEX:${normalScaling.dex}, INT:${normalScaling.int}, ARC:${normalScaling.arc}`);
-  console.log(`Shadow Dagger (Epic) Scaling: STR:${dungeonScaling.str}, DEX:${dungeonScaling.dex}, INT:${dungeonScaling.int}, ARC:${dungeonScaling.arc}`);
+  console.log(`Shadow Dagger (Ancient) Scaling: STR:${dungeonScaling.str}, DEX:${dungeonScaling.dex}, INT:${dungeonScaling.int}, ARC:${dungeonScaling.arc}`);
   
   // Epic Dagger scales with DEX (primary grade Epic -> B) and ARC (secondary grade Epic -> C)
-  // Dungeon Dagger should scale with DEX (B -> A) and ARC (C -> B)
   if (normalScaling.dex !== "B" || normalScaling.arc !== "C") {
     throw new Error(`FAIL: Normal Epic Dagger scaling is unexpected (DEX: ${normalScaling.dex}, ARC: ${normalScaling.arc})`);
   }
-  if (dungeonScaling.dex !== "A" || dungeonScaling.arc !== "B") {
-    throw new Error(`FAIL: Dungeon Epic Dagger scaling did not bump grades by 1 tier (DEX: ${dungeonScaling.dex}, ARC: ${dungeonScaling.arc})`);
+  // Dungeon Dagger (Ancient) scales with DEX (Ancient S -> S) and ARC (Ancient A -> S)
+  if (dungeonScaling.dex !== "S" || dungeonScaling.arc !== "S") {
+    throw new Error(`FAIL: Dungeon Ancient Dagger scaling is unexpected (DEX: ${dungeonScaling.dex}, ARC: ${dungeonScaling.arc})`);
   }
   console.log("SUCCESS: Scaling grade bump verified.\n");
 

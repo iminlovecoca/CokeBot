@@ -64,6 +64,43 @@ const dungeonWeapons = [
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
+const isDungeonWeaponHelper = (slot, subType) => {
+  if (slot !== "weapon") return false;
+  const subNameClean = String(subType || "").toLowerCase().replace(/\s+/g, "");
+  
+  // 1. Check English keys and names
+  const matchEnglish = dungeonWeapons.some(dw => 
+    dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean
+  );
+  if (matchEnglish) return true;
+
+  // 2. Check Vietnamese/custom names from config boss rewards
+  const dCfg = config.dungeon || {};
+  
+  // Check default boss reward
+  if (dCfg.default_boss?.first_clear_reward?.name) {
+    const defaultName = dCfg.default_boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
+    if (subNameClean === defaultName) return true;
+  }
+  
+  // Check all chapters boss rewards
+  if (dCfg.chapters) {
+    for (const ch of Object.values(dCfg.chapters)) {
+      if (ch.boss?.first_clear_reward?.name) {
+        const chName = ch.boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
+        if (subNameClean === chName) return true;
+      }
+    }
+  }
+
+  return false;
+};
+
+const isDungeonWeapon = (item) => {
+  if (!item) return false;
+  return isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
+};
+
 const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
@@ -244,9 +281,8 @@ const getWeaponScaling = (item) => {
   let primGrade = primaryGrades[rarity] || "E";
   let secGrade = secondaryGrades[rarity] || "E";
   
-  const cleanSubType = subType.toLowerCase().replace(/\s+/g, "");
-  const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
-  if (isDungeonWeapon) {
+  const isDungeon = isDungeonWeaponHelper(item.slot, item.subType);
+  if (isDungeon) {
     const bumpGrade = (grade) => {
       const grades = ["-", "E", "D", "C", "B", "A", "S"];
       const idx = grades.indexOf(grade);
@@ -574,18 +610,23 @@ const generateRpgGearDrop = async (user, options = {}) => {
     const foundDungeon = dungeonWeapons.find(dw => dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
     const foundSlot = slotSubtypes.find(st => st.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
     if (foundDungeon) {
-      chosenSubtype = { name: foundDungeon.name, emoji: foundDungeon.emoji };
+      chosenSubtype = { name: foundDungeon.name, emoji: options.emoji || foundDungeon.emoji };
     } else if (foundSlot) {
       chosenSubtype = { name: foundSlot.name, emoji: foundSlot.emoji };
     } else {
-      chosenSubtype = { name: options.subType, emoji: slot === "weapon" ? "🗡️" : "🛡️" };
+      chosenSubtype = { name: options.subType, emoji: options.emoji || (slot === "weapon" ? "🗡️" : "🛡️") };
     }
   } else {
     chosenSubtype = slotSubtypes[Math.floor(Math.random() * slotSubtypes.length)] || { name: slot.toUpperCase(), emoji: "🛡️" };
   }
 
+  const isDungeon = isDungeonWeaponHelper(slot, chosenSubtype.name);
+
   let rarity, rarityConfig;
-  if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
+  if (isDungeon) {
+    rarity = "Ancient";
+    rarityConfig = config.rpg.gear_rarities["Ancient"];
+  } else if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
     rarity = options.rarity;
     rarityConfig = config.rpg.gear_rarities[rarity];
   } else {
@@ -603,7 +644,6 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const level = options.level || (slot === "weapon" ? 1 : (user.rpg.level || 1));
 
   // Power config bump for Dungeon Weapons: quality and power is 1 tier higher
-  const isDungeon = slot === "weapon" && dungeonKeys.includes(chosenSubtype.name.toLowerCase().replace(/\s+/g, ""));
   let powerRarityConfig = rarityConfig;
   if (isDungeon) {
     const getNextRarity = (rar) => {
@@ -933,4 +973,6 @@ module.exports = {
   dungeonWeapons,
   dungeonKeys,
   seedUpgradeStones,
+  isDungeonWeapon,
+  isDungeonWeaponHelper,
 };
