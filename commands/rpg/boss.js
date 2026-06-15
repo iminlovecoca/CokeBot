@@ -62,7 +62,7 @@ const sendRewardDm = async ({
   const gearLines = gears
     .map(
       (gear) =>
-        `#${gear.id} **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} Coke`,
+        `#${gear.id} **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`) | +${gear.power.toLocaleString()} Lực chiến | bán ${gear.sellPrice.toLocaleString()} <:cokecy:1509951335016173662>`,
     )
     .join("\n");
 
@@ -83,7 +83,7 @@ const sendRewardDm = async ({
         name: "Đóng góp & Phần thưởng",
         value:
           `Sát thương: **${damage.toLocaleString()}**\n` +
-          `Coke nhận được: **+${cokeGain.toLocaleString()} Coke**\n` +
+          `Coke nhận được: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
           `EXP RPG: **+${expGain.toLocaleString()}**`,
         inline: true,
       },
@@ -119,8 +119,8 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   const bossRankKey = activeBoss.boss.rank || "thuong";
   const rankReward = config.rpg.boss?.bossRankRewards?.[bossRankKey] || {
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
-    participantRarities: ["Common", "Rare"],
-    lastHitRarities: ["Rare"],
+    participantRarities: ["Rare"],
+    lastHitRarities: ["Rare", "Epic"],
     cokeMin: 500, cokeMax: 1000,
     lastHitCokeMin: 2000, lastHitCokeMax: 5000,
     expMult: 1, lastHitExpMult: 1.5,
@@ -299,7 +299,7 @@ const buildAttackResultEmbed = ({
     }
 
     if (participant.hp <= 0) {
-      battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay bằng 1,000 Coke.`;
+      battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay bằng 1,000 <:cokecy:1509951335016173662>.`;
       if (bossHealed && bossHealed > 0) {
         battleLog += `\n🚨 **[HỒI PHỤC]** Boss hấp thụ sinh mệnh của bạn và hồi phục **${bossHealed.toLocaleString()}** HP (20% lượng HP đã mất)!`;
       }
@@ -323,8 +323,8 @@ const buildAttackResultEmbed = ({
         name: "Lượt đánh boss",
         value:
           `Tổng lượt: **${participant.attacks}**\n` +
-          `Phí lượt này: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} Coke` : "Miễn phí"}**\n` +
-          `Coke hiện có: **${user.coke.toLocaleString()}**`,
+          `Phí lượt này: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} <:cokecy:1509951335016173662>` : "Miễn phí"}**\n` +
+          `Coke hiện có: **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>`,
         inline: true,
       },
     );
@@ -538,7 +538,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
       return {
         ok: false,
-        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức bằng **1,000 Coke**.`,
+        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức bằng **1,000** <:cokecy:1509951335016173662>.`,
         components: [reviveRow],
         ephemeral: true,
       };
@@ -554,7 +554,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
       ok: false,
       content:
         `${config.emoji.no} Bạn đã dùng hết **${freeAttacks}** lượt đánh boss miễn phí. ` +
-        `Lượt tiếp theo cần **${paidAttackCost.toLocaleString()} Coke**, nhưng bạn chỉ có **${user.coke.toLocaleString()} Coke**.`,
+        `Lượt tiếp theo cần **${paidAttackCost.toLocaleString()}** <:cokecy:1509951335016173662>, nhưng bạn chỉ có **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>.`,
     };
   }
 
@@ -938,7 +938,7 @@ const handleReviveInteraction = async (interaction) => {
   const reviveCost = 1000;
   if (user.coke < reviveCost) {
     return interaction.editReply({
-      content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()} Coke**, bạn có: **${user.coke.toLocaleString()} Coke**)`,
+      content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>, bạn có: **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>)`,
     });
   }
 
@@ -953,7 +953,7 @@ const handleReviveInteraction = async (interaction) => {
   await user.save();
 
   return interaction.editReply({
-    content: `✅ Bạn đã hồi sinh thành công bằng **1,000 Coke**! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Fight!** để tiếp tục tấn công boss.`,
+    content: `✅ Bạn đã hồi sinh thành công bằng **1,000** <:cokecy:1509951335016173662>! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Fight!** để tiếp tục tấn công boss.`,
   });
 };
 

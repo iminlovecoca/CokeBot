@@ -84,7 +84,7 @@ module.exports = {
     // Validate Coke
     if (user.coke < cokeCost) {
       return message.reply(
-        `${config.emoji.no} Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** Coke nhưng bạn chỉ có **${user.coke.toLocaleString()}** Coke.`
+        `${config.emoji.no} Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${user.coke.toLocaleString()}** ${config.emoji.money}.`
       );
     }
 
@@ -121,7 +121,7 @@ module.exports = {
       .setDescription(
         `Bạn có chắc chắn muốn cường hóa vũ khí sau không?\n` +
           `🗡️ **Vũ khí**: ${getGearDisplayName(item)} (**+${currentLvl}** ➡️ **+${nextLvl}**)\n\n` +
-          `💰 Coke tiêu hao: **${cokeCost.toLocaleString()} Coke**\n` +
+          `${config.emoji.money} Coke tiêu hao: **${cokeCost.toLocaleString()}**\n` +
           `💎 Nguyên liệu tiêu hao: **${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
           `*Nhấp **Xác nhận** bên dưới để tiến hành cường hóa.*`
       )
@@ -174,7 +174,7 @@ module.exports = {
 
         if (freshUser.coke < cokeCost) {
           return interaction.update({
-            content: `❌ Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** Coke nhưng bạn chỉ có **${freshUser.coke.toLocaleString()}** Coke.`,
+            content: `❌ Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${freshUser.coke.toLocaleString()}** ${config.emoji.money}.`,
             embeds: [],
             components: [],
           });
@@ -218,7 +218,7 @@ module.exports = {
           .setDescription(
             `Chúc mừng bạn đã nâng cấp thành công vũ khí của mình lên **+${nextLvl}**!\n\n` +
               `🗡️ **Vũ khí**: ${getGearDisplayName(freshItem)}\n` +
-              `💰 Coke tiêu hao: **-${cokeCost.toLocaleString()} Coke**\n` +
+              `${config.emoji.money} Coke tiêu hao: **-${cokeCost.toLocaleString()}**\n` +
               `💎 Nguyên liệu tiêu hao: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
               `💪 Lực chiến tổng hiện tại: **${freshUser.rpg.power.toLocaleString()}**`
           )

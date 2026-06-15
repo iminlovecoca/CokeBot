@@ -5,13 +5,14 @@ const { getUser } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
 module.exports = {
-  name: "guild",
+  name: "party",
+  aliases: ["pt", "guild", "g", "todoi", "tổđội"],
   description: "Quản lý tổ đội RPG (tối đa 3 người)",
-  usage: `${config.prefix}guild [@mention | leave | info]`,
+  usage: `${config.prefix}party [@mention | leave | info]`,
   examples: [
-    { intent: "Mời bạn bè vào guild/tạo guild", command: `${config.prefix}guild @User` },
-    { intent: "Xem thông tin guild hiện tại", command: `${config.prefix}guild info` },
-    { intent: "Rời khỏi guild hiện tại", command: `${config.prefix}guild leave` },
+    { intent: "Mời bạn bè vào party/tạo party", command: `${config.prefix}party @User` },
+    { intent: "Xem thông tin party hiện tại", command: `${config.prefix}party info` },
+    { intent: "Rời khỏi party hiện tại", command: `${config.prefix}party leave` },
   ],
   async execute(message, args) {
     const userId = message.author.id;
@@ -27,18 +28,18 @@ module.exports = {
     if (arg === "leave") {
       const guild = await RpgGuild.findOne({ members: userId });
       if (!guild) {
-        return message.reply("❌ Bạn không ở trong bất kỳ guild nào.");
+        return message.reply("❌ Bạn không ở trong bất kỳ party nào.");
       }
 
       if (guild.leaderId === userId) {
         // Disband guild
         await RpgGuild.deleteOne({ _id: guild._id });
-        return message.reply("📢 Guild đã được giải tán vì Chủ guild rời đi.");
+        return message.reply("📢 Party đã được giải tán vì Trưởng nhóm rời đi.");
       } else {
         // Leave guild
         guild.members = guild.members.filter((id) => id !== userId);
         await guild.save();
-        return message.reply("📢 Bạn đã rời khỏi guild thành công.");
+        return message.reply("📢 Bạn đã rời khỏi party thành công.");
       }
     }
 
@@ -47,7 +48,7 @@ module.exports = {
     if (targetUser) {
       const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
       if (!isAdmin) {
-        return message.reply("❌ Chỉ Admin mới có quyền tạo guild và mời người chơi khác gia nhập trong giai đoạn thử nghiệm.");
+        return message.reply("❌ Chỉ Admin mới có quyền tạo party và mời người chơi khác gia nhập trong giai đoạn thử nghiệm.");
       }
 
       const targetId = targetUser.id;
@@ -64,7 +65,7 @@ module.exports = {
       // Find or create sender's guild
       let guild = await RpgGuild.findOne({ members: userId });
       if (guild && guild.leaderId !== userId) {
-        return message.reply("❌ Chỉ Chủ guild mới có quyền mời thành viên mới.");
+        return message.reply("❌ Chỉ Trưởng nhóm mới có quyền mời thành viên mới.");
       }
 
       if (!guild) {
@@ -78,13 +79,13 @@ module.exports = {
       }
 
       if (guild.members.length >= 3) {
-        return message.reply("❌ Guild của bạn đã đạt số lượng tối đa (3 thành viên).");
+        return message.reply("❌ Party của bạn đã đạt số lượng tối đa (3 thành viên).");
       }
 
       // Check if target is already in a guild
       const targetGuild = await RpgGuild.findOne({ members: targetId });
       if (targetGuild) {
-        return message.reply("❌ Người này đã tham gia một guild khác rồi.");
+        return message.reply("❌ Người này đã tham gia một party khác rồi.");
       }
 
       // Send invite message with buttons
@@ -100,7 +101,7 @@ module.exports = {
       );
 
       const inviteMsg = await message.reply({
-        content: `⚔️ **Lời Mời Gia Nhập Guild** ⚔️\n<@${targetId}>, bạn đã được <@${userId}> mời gia nhập guild. Đồng ý tham gia chứ?`,
+        content: `⚔️ **Lời Mời Gia Nhập Party** ⚔️\n<@${targetId}>, bạn đã được <@${userId}> mời gia nhập party. Đồng ý tham gia chứ?`,
         components: [row],
       });
 
@@ -115,14 +116,14 @@ module.exports = {
           // Re-fetch guild to ensure it's not full
           const freshGuild = await RpgGuild.findById(guild._id);
           if (!freshGuild) {
-            return i.editReply({ content: "❌ Lỗi: Guild không còn tồn tại.", components: [] });
+            return i.editReply({ content: "❌ Lỗi: Party không còn tồn tại.", components: [] });
           }
           if (freshGuild.members.length >= 3) {
-            return i.editReply({ content: "❌ Lỗi: Guild đã đầy.", components: [] });
+            return i.editReply({ content: "❌ Lỗi: Party đã đầy.", components: [] });
           }
           const freshTargetGuild = await RpgGuild.findOne({ members: targetId });
           if (freshTargetGuild) {
-            return i.editReply({ content: "❌ Bạn đã gia nhập một guild khác.", components: [] });
+            return i.editReply({ content: "❌ Bạn đã gia nhập một party khác.", components: [] });
           }
 
           freshGuild.members.push(targetId);
@@ -130,13 +131,13 @@ module.exports = {
 
           collector.stop("accepted");
           return inviteMsg.edit({
-            content: `✅ <@${targetId}> đã đồng ý gia nhập guild của <@${userId}>! (Thành viên: ${freshGuild.members.length}/3)`,
+            content: `✅ <@${targetId}> đã đồng ý gia nhập party của <@${userId}>! (Thành viên: ${freshGuild.members.length}/3)`,
             components: [],
           });
         } else {
           collector.stop("declined");
           return inviteMsg.edit({
-            content: `❌ <@${targetId}> đã từ chối lời mời gia nhập guild.`,
+            content: `❌ <@${targetId}> đã từ chối lời mời gia nhập party.`,
             components: [],
           });
         }
@@ -145,7 +146,7 @@ module.exports = {
       collector.on("end", (collected, reason) => {
         if (reason !== "accepted" && reason !== "declined") {
           inviteMsg.edit({
-            content: "⏳ Lời mời gia nhập guild đã hết hạn.",
+            content: "⏳ Lời mời gia nhập party đã hết hạn.",
             components: [],
           }).catch(() => {});
         }
@@ -156,17 +157,17 @@ module.exports = {
     // Default to show guild info
     const guild = await RpgGuild.findOne({ members: userId });
     if (!guild) {
-      return message.reply(`❌ Bạn chưa tham gia guild nào. Hãy dùng lệnh \`${config.prefix}guild @User\` để mời người chơi khác và thành lập tổ đội!`);
+      return message.reply(`❌ Bạn chưa tham gia party nào. Hãy dùng lệnh \`${config.prefix}party @User\` để mời người chơi khác và thành lập tổ đội!`);
     }
 
     const memberLines = guild.members.map((id, index) => {
-      const role = id === guild.leaderId ? "👑 Chủ guild" : "🛡️ Thành viên";
+      const role = id === guild.leaderId ? "👑 Trưởng nhóm" : "🛡️ Thành viên";
       return `${index + 1}. <@${id}> - **${role}**`;
     }).join("\n");
 
     const embed = new EmbedBuilder()
       .setColor("#3498DB")
-      .setTitle("🛡️ Thông Tin Guild RPG")
+      .setTitle("🛡️ Thông Tin Party RPG")
       .addFields(
         { name: "Thành viên", value: memberLines },
         { name: "Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/6** chương của Chapter 1` }

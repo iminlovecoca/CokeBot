@@ -42,8 +42,8 @@ const getHealthBar = (hp, maxHp) => {
 };
 
 const getChapterRarities = (chapter) => {
-  if (chapter === 1) return ["Common", "Rare"];
-  if (chapter === 2) return ["Common", "Rare", "Epic"];
+  if (chapter === 1) return ["Rare"];
+  if (chapter === 2) return ["Rare", "Epic"];
   if (chapter === 3) return ["Rare", "Epic"];
   if (chapter === 4) return ["Rare", "Epic", "Legendary"];
   if (chapter === 5) return ["Epic", "Legendary"];
@@ -53,7 +53,7 @@ const getChapterRarities = (chapter) => {
 module.exports = {
   name: "dungeon",
   aliases: ["pb", "phoban"],
-  description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Guild)",
+  description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Party)",
   usage: `${config.prefix}dungeon`,
   async execute(message, args) {
     const userId = message.author.id;
@@ -91,18 +91,18 @@ module.exports = {
       return message.reply("❌ Chỉ Admin mới có quyền khiêu chiến phó bản Dungeon trong giai đoạn thử nghiệm.");
     }
 
-    // Check if user is in a guild and is the leader
+    // Check if user is in a guild/party and is the leader
     const guild = await RpgGuild.findOne({ members: userId });
     if (!guild) {
-      return message.reply(`❌ Bạn chưa tham gia guild nào. Hãy dùng \`${config.prefix}guild @User\` để lập tổ đội!`);
+      return message.reply(`❌ Bạn chưa tham gia party nào. Hãy dùng \`${config.prefix}party @User\` để lập tổ đội!`);
     }
 
     if (guild.leaderId !== userId) {
-      return message.reply("❌ Chỉ Chủ guild mới có quyền bắt đầu Dungeon.");
+      return message.reply("❌ Chỉ Trưởng nhóm mới có quyền bắt đầu Dungeon.");
     }
 
     if (guild.members.length !== 3) {
-      return message.reply(`❌ Cần chính xác **3 thành viên** trong guild để tham gia Dungeon. Hiện tại guild bạn có: **${guild.members.length}/3** thành viên.`);
+      return message.reply(`❌ Cần chính xác **3 thành viên** trong party để tham gia Dungeon. Hiện tại party bạn có: **${guild.members.length}/3** thành viên.`);
     }
 
     // Display chapter map select board
@@ -926,7 +926,7 @@ const handleVictory = async (channel, activeDungeon) => {
     const stoneItem = channel.client.allItems?.find(i => i.item_id === cristalStoneId) || { name: `Somber Smithing Stone [${activeDungeon.chapter}]`, emoji: "💎" };
 
     let rewardLine = `👤 <@${p.id}>:\n` +
-      `  • nhận **+${cokeReward.toLocaleString()} Coke**\n` +
+      `  • nhận **+${cokeReward.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: **${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`;
