@@ -24,6 +24,7 @@ const {
   getItemImageFile,
   getWeaponPower,
   getWeaponScaling,
+  getDungeonWeaponKey,
 } = require("../../utils/rpgUtil");
 
 const ITEMS_PER_PAGE = 10;
@@ -160,9 +161,39 @@ module.exports = {
         const scaling = getWeaponScaling(item);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
 
+        // Auto-correct scaling in DB if it is incorrect
+        const currentScaling = item.scaling || {};
+        if (JSON.stringify(currentScaling) !== JSON.stringify(scaling)) {
+          item.scaling = scaling;
+          owner.markModified("rpg");
+          owner.save().catch(err => console.error("Failed to auto-save corrected weapon scaling:", err));
+        }
+
         desc += `Lực chiến cơ bản: **${item.power.toLocaleString()}**\n` +
                 `Lực chiến thực tế: ${powerText}\n` +
                 `**Scale:** \`${scalingText}\``;
+
+        const dungKey = getDungeonWeaponKey(item.subType || item.subtype);
+        if (dungKey) {
+          const passives = {
+            shadowdagger: "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)",
+            poisondagger: "Tăng 50% sát thương cho đòn tiếp theo",
+            firesword: "Giảm 50% hồi máu của boss/đối thủ vĩnh viễn",
+            greenstaff: "Hồi phục HP bằng 25% sát thương gây ra",
+            bluestaff: "Đòn đánh xuyên 50% kháng phép",
+            crimsondagger: "Đòn đánh xuyên 50% giáp vật lý",
+            holysword: "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương",
+            darksword: "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó",
+            darkstaff: "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce",
+            gravitybow: "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (S) | INT (A) (Không có nội tại kích hoạt)"
+          };
+          const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
+          if (dungKey === "gravitybow") {
+            desc += `\n**Nội tại:** *${passiveDesc}*`;
+          } else {
+            desc += `\n**Nội tại (Tỉ lệ kích hoạt 45%):** *${passiveDesc}*`;
+          }
+        }
       } else {
         const statsText = formatStats(item.stats) || "Không có";
         desc += `Lực chiến: **+${item.power.toLocaleString()}**\n` +

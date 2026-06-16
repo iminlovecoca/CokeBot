@@ -1344,12 +1344,14 @@ const handleVictory = async (channel, activeDungeon) => {
 
     // Add coke and exp
     await incBalance(freshUser.userId, cokeReward);
-    await addRpgExp(freshUser, expReward);
+    addRpgExp(freshUser.rpg, expReward);
+    freshUser.markModified("rpg");
 
     // Generate random gear drop
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
+      forceDrop: true,
     });
     
     // Give special weapon on first clear!
@@ -1358,7 +1360,7 @@ const handleVictory = async (channel, activeDungeon) => {
     const bossCfg = getBossConfig(activeDungeon.chapter);
     const bossReward = bossCfg?.first_clear_reward;
 
-    if (isFirstClearOfChapter && bossReward && !claimedWeapons.includes(bossReward.claim_key)) {
+    if (bossReward && !claimedWeapons.includes(bossReward.claim_key)) {
       specialGear = await generateRpgGearDrop(freshUser, {
         slot: "weapon",
         subType: bossReward.name,
@@ -1387,16 +1389,22 @@ const handleVictory = async (channel, activeDungeon) => {
     freshUser.inventory.set(cristalStoneId, currentQty + 1);
     freshUser.markModified("inventory");
 
-    await addRpgGearToUser(freshUser, gear);
+    if (gear) {
+      await addRpgGearToUser(freshUser, gear);
+    }
     await freshUser.save();
 
     const stoneItem = channel.client.allItems?.find(i => i.item_id === cristalStoneId) || { name: `Somber Smithing Stone [${activeDungeon.chapter}]`, emoji: "💎" };
+
+    const gearText = gear 
+      ? `**${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`
+      : "Không nhận được";
 
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${cokeReward.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
-      `  • nhận Trang bị: **${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`;
+      `  • nhận Trang bị: ${gearText}`;
 
     if (specialGear && bossReward) {
       rewardLine += `\n  • 🏆 **PHẦN THƯỞNG LẦN ĐẦU TIÊU DIỆT**: Nhận vũ khí độc quyền ${bossReward.emoji} **${specialGear.subType}** (${specialGear.rarity})!`;

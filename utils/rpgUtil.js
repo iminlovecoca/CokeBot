@@ -235,7 +235,12 @@ const getLegacyMapping = (slot) => {
 };
 
 const getWeaponScalingStats = (subType) => {
-  const name = String(subType || "").toLowerCase();
+  let name = String(subType || "").toLowerCase();
+  const dungKey = getDungeonWeaponKey(subType);
+  if (dungKey) {
+    name = dungKey;
+  }
+
   if (name.includes("claymore")) {
     return { prim: "str", sec: "int" };
   }
@@ -245,17 +250,27 @@ const getWeaponScalingStats = (subType) => {
   if (name.includes("halberd")) {
     return { prim: "str", sec: "arc" };
   }
-  if (name.includes("staff")) {
+  if (name.includes("staff") || name.includes("trượng")) {
     return { prim: "int", sec: "arc" };
   }
-  if (name.includes("dagger") || name.includes("đao")) {
+  if (name.includes("dagger") || name.includes("đao") || name.includes("đoản đao")) {
     return { prim: "dex", sec: "arc" };
   }
   return { prim: "str", sec: "dex" };
 };
 
 const getWeaponScaling = (item) => {
-  if (item.scaling) return item.scaling;
+  const isDungeon = isDungeonWeapon(item);
+  const subTypeClean = String(item.subType || "").toLowerCase();
+  const isStaff = subTypeClean.includes("staff") || subTypeClean.includes("trượng");
+  const isDagger = subTypeClean.includes("dagger") || subTypeClean.includes("đao") || subTypeClean.includes("đoản đao");
+
+  const hasScalingBug = item.scaling && (
+    (isStaff && item.scaling.int === "-") ||
+    (isDagger && item.scaling.dex === "-")
+  );
+
+  if (item.scaling && !isDungeon && !hasScalingBug) return item.scaling;
   
   const scaling = { str: "-", dex: "-", int: "-", arc: "-" };
   const subType = String(item.subType || "Longsword").toLowerCase();
@@ -289,7 +304,6 @@ const getWeaponScaling = (item) => {
   let primGrade = primaryGrades[rarity] || "E";
   let secGrade = secondaryGrades[rarity] || "E";
   
-  const isDungeon = isDungeonWeaponHelper(item.slot, item.subType);
   if (isDungeon) {
     const bumpGrade = (grade) => {
       const grades = ["-", "E", "D", "C", "B", "A", "S"];
