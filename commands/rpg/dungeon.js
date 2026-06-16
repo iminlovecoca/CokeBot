@@ -401,7 +401,7 @@ const setupRound = (activeDungeon, channel) => {
   const setupBossState = () => {
     const bossCfg = getBossConfig(chapter);
     const b1Cfg = bossCfg.stats.phase1;
-    const maxHp = b1Cfg.base_hp * chapter;
+    const maxHp = b1Cfg.base_hp;
     activeDungeon.enemy = {
       name: bossCfg.name_phase1,
       key: bossCfg.key,
@@ -523,6 +523,9 @@ const renderGameScreen = async (channel, activeDungeon) => {
   }
   embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
 
+  // Separator: between Boss and Players
+  embed.addFields({ name: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", value: "\u200B" });
+
   // Bottom Frame: 3 Players
   players.forEach((p, idx) => {
     const classIcon = p.rpgClass?.emoji || "👤";
@@ -544,6 +547,9 @@ const renderGameScreen = async (channel, activeDungeon) => {
                    `Lvl **${p.level}** | **${className}**`;
     embed.addFields({ name: `${classIcon} ${p.name}`, value: hpInfo, inline: true });
   });
+
+  // Separator: between Players and Logs
+  embed.addFields({ name: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", value: "\u200B" });
 
   // Middle Frame: Logs
   const recentLogs = logs.slice(-5).join("\n");
@@ -1255,8 +1261,8 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       const b2Cfg = bossCfg.stats.phase2;
 
       enemy.name = bossCfg.name_phase2;
-      enemy.hp = b2Cfg.base_hp * chapter;
-      enemy.maxHp = b2Cfg.base_hp * chapter;
+      enemy.hp = b2Cfg.base_hp;
+      enemy.maxHp = b2Cfg.base_hp;
       enemy.atk = Math.floor(enemy.atk * b2Cfg.base_atk_mult);
       enemy.phase = 2;
       enemy.bleedRounds = 0; // Clear bleed when entering phase 2

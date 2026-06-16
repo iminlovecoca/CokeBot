@@ -160,7 +160,7 @@ module.exports = {
       attack_cooldown_ms: 15 * 1000,
       free_attacks_per_user: 3,
       paid_attack_cost: 10000,
-      reward_rarities: ["Rare", "Epic"],
+      reward_rarities: ["Epic"],
       last_hit_bonus_gear: 2,
       // Boss rank tiers:
       //   thuong    = Cấp Thường   (recommended_power < 1000)
@@ -173,9 +173,9 @@ module.exports = {
           emoji: "⚔️",
           color: "#95A5A6",
           spawnWeight: 50,
-          // Participant: 1 gear drop (Rare). Last hit: +1 gear (Rare/Epic).
-          participantRarities: ["Rare"],
-          lastHitRarities: ["Rare", "Epic"],
+          // Participant: 1 gear drop (Epic). Last hit: +1 gear (Epic).
+          participantRarities: ["Epic"],
+          lastHitRarities: ["Epic"],
           cokeMin: 500,
           cokeMax: 1000,
           lastHitCokeMin: 2000,
@@ -188,9 +188,9 @@ module.exports = {
           emoji: "✨",
           color: "#3498DB",
           spawnWeight: 30,
-          // Participant: 1 gear (Rare/Epic). Last hit: +1 gear (Epic).
-          participantRarities: ["Rare", "Epic"],
-          lastHitRarities: ["Rare", "Epic"],
+          // Participant: 1 gear (Epic). Last hit: +1 gear (Epic).
+          participantRarities: ["Epic"],
+          lastHitRarities: ["Epic"],
           cokeMin: 2000,
           cokeMax: 5000,
           lastHitCokeMin: 8000,
@@ -775,12 +775,12 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 300000,
+              base_hp: 150000,
               base_atk: 300,
               base_defense: 100,
             },
             phase2: {
-              base_hp: 400000,
+              base_hp: 200000,
               base_atk_mult: 1.5,
               base_defense: 100,
             },
@@ -807,34 +807,34 @@ module.exports = {
       },
       2: {
         boss: {
-          key: "tf",
-          name_phase1: "Boss TF (Phase 1)",
-          name_phase2: "Boss TF (Phase 2 - Điên Loạn)",
-          image_phase1: "TF.png",
-          image_phase2: "TF-2.png",
+          key: "vaelmor",
+          name_phase1: "Vaelmor (Kịch Độc Cổ Thần)",
+          name_phase2: "Vaelmor (Miasma Điên Cuồng)",
+          image_phase1: "Vaelmor.png",
+          image_phase2: "Vaelmor.png",
           stats: {
             phase1: {
-              base_hp: 300000,
+              base_hp: 200000,
               base_atk: 300,
               base_defense: 100,
             },
             phase2: {
-              base_hp: 400000,
-              base_atk_mult: 1.5,
+              base_hp: 250000,
+              base_atk_mult: 1.8,
               base_defense: 100,
             },
           },
           mechanics: {
-            dice_roll: true,
+            dice_roll: false,
             coin_flip: true,
             vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {
-            claim_key: "crimsondagger",
-            emoji: "<:crimsondagger:1514232163158065252>",
-            name: "Huyết Nguyệt Đoản Đao",
+            claim_key: "greenstaff",
+            emoji: "<:greenstaff:1514232158502518945>",
+            name: "Mộc Diệp Pháp Trượng",
             rarity: "Ancient",
-            image_path: "Weapon/crimsondagger.png",
+            image_path: "Weapon/greenstaff.png",
           },
         },
       },
@@ -847,12 +847,12 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 450000,
+              base_hp: 280000,
               base_atk: 250,
               base_defense: 120,
             },
             phase2: {
-              base_hp: 550000,
+              base_hp: 340000,
               base_atk_mult: 1.6,
               base_defense: 120,
             },
@@ -880,12 +880,12 @@ module.exports = {
           image_phase2: "Eldric.png",
           stats: {
             phase1: {
-              base_hp: 600000,
+              base_hp: 360000,
               base_atk: 450,
               base_defense: 150,
             },
             phase2: {
-              base_hp: 750000,
+              base_hp: 420000,
               base_atk_mult: 1.7,
               base_defense: 150,
             },
@@ -906,34 +906,34 @@ module.exports = {
       },
       5: {
         boss: {
-          key: "vaelmor",
-          name_phase1: "Vaelmor (Kịch Độc Cổ Thần)",
-          name_phase2: "Vaelmor (Miasma Điên Cuồng)",
-          image_phase1: "Vaelmor.png",
-          image_phase2: "Vaelmor.png",
+          key: "tf",
+          name_phase1: "Boss TF (Phase 1)",
+          name_phase2: "Boss TF (Phase 2 - Điên Loạn)",
+          image_phase1: "TF.png",
+          image_phase2: "TF-2.png",
           stats: {
             phase1: {
-              base_hp: 800000,
+              base_hp: 440000,
               base_atk: 550,
               base_defense: 180,
             },
             phase2: {
-              base_hp: 1000000,
-              base_atk_mult: 1.8,
+              base_hp: 500000,
+              base_atk_mult: 1.5,
               base_defense: 180,
             },
           },
           mechanics: {
-            dice_roll: false,
+            dice_roll: true,
             coin_flip: true,
             vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {
-            claim_key: "greenstaff",
-            emoji: "<:greenstaff:1514232158502518945>",
-            name: "Mộc Diệp Pháp Trượng",
+            claim_key: "crimsondagger",
+            emoji: "<:crimsondagger:1514232163158065252>",
+            name: "Huyết Nguyệt Đoản Đao",
             rarity: "Ancient",
-            image_path: "Weapon/greenstaff.png",
+            image_path: "Weapon/crimsondagger.png",
           },
         },
       },
@@ -946,12 +946,12 @@ module.exports = {
           image_phase2: "Veilreaper.png",
           stats: {
             phase1: {
-              base_hp: 1100000,
+              base_hp: 500000,
               base_atk: 700,
               base_defense: 220,
             },
             phase2: {
-              base_hp: 1400000,
+              base_hp: 550000,
               base_atk_mult: 2.0,
               base_defense: 220,
             },

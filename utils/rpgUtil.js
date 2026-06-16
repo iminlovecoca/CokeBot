@@ -65,23 +65,23 @@ const dungeonWeapons = [
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
-const isDungeonWeaponHelper = (slot, subType) => {
-  if (slot !== "weapon") return false;
-  const subNameClean = String(subType || "").toLowerCase().replace(/\s+/g, "");
+const getDungeonWeaponKey = (subType) => {
+  if (!subType) return null;
+  const subNameClean = String(subType).toLowerCase().replace(/\s+/g, "");
   
   // 1. Check English keys and names
-  const matchEnglish = dungeonWeapons.some(dw => 
+  const found = dungeonWeapons.find(dw => 
     dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean
   );
-  if (matchEnglish) return true;
+  if (found) return found.key;
 
-  // 2. Check Vietnamese/custom names from config boss rewards
+  // 2. Check default boss reward
   const dCfg = config.dungeon || {};
-  
-  // Check default boss reward
   if (dCfg.default_boss?.first_clear_reward?.name) {
     const defaultName = dCfg.default_boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
-    if (subNameClean === defaultName) return true;
+    if (subNameClean === defaultName) {
+      return dCfg.default_boss.first_clear_reward.claim_key;
+    }
   }
   
   // Check all chapters boss rewards
@@ -89,12 +89,19 @@ const isDungeonWeaponHelper = (slot, subType) => {
     for (const ch of Object.values(dCfg.chapters)) {
       if (ch.boss?.first_clear_reward?.name) {
         const chName = ch.boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
-        if (subNameClean === chName) return true;
+        if (subNameClean === chName) {
+          return ch.boss.first_clear_reward.claim_key;
+        }
       }
     }
   }
 
-  return false;
+  return null;
+};
+
+const isDungeonWeaponHelper = (slot, subType) => {
+  if (slot !== "weapon") return false;
+  return getDungeonWeaponKey(subType) !== null;
 };
 
 const isDungeonWeapon = (item) => {
@@ -140,14 +147,15 @@ const getItemImageFile = (item) => {
   const slot = String(item.slot || "").toLowerCase();
   const subType = String(item.subType || "").toLowerCase();
   const rarity = String(item.rarity || "").toLowerCase();
-  const lowerSubType = subType.toLowerCase().replace(/\s+/g, "");
+  const lowerSubType = subType.replace(/\s+/g, "");
 
   if (slot === "weapon") {
-    if (dungeonKeys.includes(lowerSubType)) {
-      if (lowerSubType === "gravitybow") {
+    const dungKey = getDungeonWeaponKey(item.subType || item.subtype);
+    if (dungKey) {
+      if (dungKey === "gravitybow") {
         return "Weapon/GravityBow.png";
       }
-      return `Weapon/${lowerSubType}.png`;
+      return `Weapon/${dungKey}.png`;
     }
     if (subType.includes("staff")) {
       return "Weapon/normalstaff.png";
@@ -979,5 +987,6 @@ module.exports = {
   seedUpgradeStones,
   isDungeonWeapon,
   isDungeonWeaponHelper,
+  getDungeonWeaponKey,
   subTypes,
 };

@@ -128,8 +128,8 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   const bossRankKey = activeBoss.boss.rank || "thuong";
   const rankReward = config.rpg.boss?.bossRankRewards?.[bossRankKey] || {
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
-    participantRarities: ["Rare"],
-    lastHitRarities: ["Rare", "Epic"],
+    participantRarities: ["Epic"],
+    lastHitRarities: ["Epic"],
     cokeMin: 500, cokeMax: 1000,
     lastHitCokeMin: 2000, lastHitCokeMax: 5000,
     expMult: 1, lastHitExpMult: 1.5,
