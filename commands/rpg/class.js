@@ -364,6 +364,7 @@ module.exports = {
               }
               await i.update(renderChangePayload(false));
             } else if (i.isButton()) {
+              await i.deferUpdate().catch(() => {});
               if (i.customId === "rpg_class_change_accept") {
                 changeCollector.stop("accepted");
                 const updatedUser = await getUser(message.author.id);
@@ -377,7 +378,7 @@ module.exports = {
                 updatedUser.markModified("rpg");
                 await updatedUser.save();
 
-                await i.update({
+                await i.editReply({
                   content: `🎉 Đổi Class thành công! Bạn hiện là **${rpgClass.name}**.`,
                   components: [],
                   embeds: [buildClassEmbed(currentClassKey, rpgClass, updatedUser, currentAvatar)],
@@ -395,7 +396,7 @@ module.exports = {
                   name: originalAvatar,
                 });
 
-                await i.update({
+                await i.editReply({
                   content: isFree
                     ? "Đã hủy đổi Class."
                     : "Đã hủy đổi Class. Bạn đã được hoàn lại 100k Coke.",
@@ -502,6 +503,8 @@ module.exports = {
             });
           }
 
+          await modalSubmit.deferUpdate().catch(() => {});
+
           finalUser.coke -= renameCost;
           finalUser.rpg.name = newName;
           finalUser.rpg.nameChanged = true;
@@ -517,7 +520,7 @@ module.exports = {
             name: currentAvatar,
           });
 
-          await modalSubmit.update({
+          await modalSubmit.editReply({
             content: `🎉 Đã đổi tên nhân vật thành công! Tên mới: **${newName}** (Đã trừ ${renameCost.toLocaleString()} Coke).`,
             embeds: [buildClassEmbed(finalUser.rpg.classKey, rpgClass, finalUser, currentAvatar)],
             files: [attachment],
@@ -615,6 +618,7 @@ module.exports = {
             });
           }
 
+          await modalSubmit.deferUpdate().catch(() => {});
           collector.stop("accepted");
 
           const rpgClass = getRpgClass(currentClassKey);
@@ -641,7 +645,7 @@ module.exports = {
           });
           await user.save();
 
-          await modalSubmit.update({
+          await modalSubmit.editReply({
             content: `🎉 Đã khởi tạo nhân vật thành công! Bạn là **${rpgClass.name}** tên là **${characterName}**. Hãy gõ \`${config.prefix}hunt\` hoặc \`${config.prefix}h\` để bắt đầu chiến đấu!`,
             ...renderMessagePayload(true),
           });
