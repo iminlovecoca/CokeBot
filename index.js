@@ -127,6 +127,10 @@ loadFiles(path.join(__dirname, "commands"), (filePath) => {
   const cmd = require(filePath);
   if (cmd.name) {
     cmd.filePath = filePath;
+    const relativePath = path.relative(path.join(__dirname, "commands"), filePath);
+    const pathParts = relativePath.split(path.sep);
+    cmd.category = pathParts.length > 1 ? pathParts[0].toLowerCase() : "general";
+    
     if (filePath.includes(`${path.sep}commands${path.sep}noitu${path.sep}`)) {
       client.noituCommands.set(cmd.name, cmd);
     } else {
@@ -203,6 +207,41 @@ client.once(Events.ClientReady, async () => {
       client.allItems[wcIndex] = wcItem.toObject ? wcItem.toObject() : wcItem;
     } else {
       client.allItems.push(wcItem.toObject ? wcItem.toObject() : wcItem);
+    }
+
+    // Seed or update dungeonkey to ensure correct emoji and metadata
+    let keyItem = await Item.findOne({ item_id: "dungeonkey" });
+    if (!keyItem) {
+      keyItem = await Item.create({
+        item_id: "dungeonkey",
+        name: "Chìa khóa Phó bản",
+        description: "Dùng để mở cổng phó bản Dungeon. Nhận từ việc tiêu diệt Boss Rồng/Thượng Nhân hoặc mua ở cửa hàng.",
+        item_type: "tool",
+        price: 250000,
+        emoji: "<:key:1516398711712911461>"
+      });
+      console.log("🔑 Seeded dungeonkey item in DB.");
+    } else {
+      let updated = false;
+      if (keyItem.emoji !== "<:key:1516398711712911461>") {
+        keyItem.emoji = "<:key:1516398711712911461>";
+        updated = true;
+      }
+      if (keyItem.price !== 250000) {
+        keyItem.price = 250000;
+        updated = true;
+      }
+      if (updated) {
+        await keyItem.save();
+        console.log("🔑 Updated dungeonkey item in DB.");
+      }
+    }
+
+    const keyIndex = client.allItems.findIndex((i) => i.item_id === "dungeonkey");
+    if (keyIndex > -1) {
+      client.allItems[keyIndex] = keyItem.toObject ? keyItem.toObject() : keyItem;
+    } else {
+      client.allItems.push(keyItem.toObject ? keyItem.toObject() : keyItem);
     }
 
     const { seedUpgradeStones } = require("./utils/rpgUtil");

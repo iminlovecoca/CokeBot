@@ -289,6 +289,18 @@ module.exports = {
             (cmd) => cmd.aliases && cmd.aliases.includes(commandName),
           );
         if (command) {
+          const isDev = config.permissions?.dev_ids?.includes(userId) || userId === process.env.OWNER_ID;
+          if (!isDev && client.lockedFeatures && client.lockedFeatures.length > 0) {
+            const cmdName = command.name.toLowerCase();
+            const cmdCategory = (command.category || "").toLowerCase();
+            const isLocked = client.lockedFeatures.some(feature => {
+              const f = feature.toLowerCase();
+              return f === cmdName || f === cmdCategory || (command.aliases && command.aliases.map(a => a.toLowerCase()).includes(f));
+            });
+            if (isLocked) {
+              return message.reply(`🚫 Tính năng/lệnh này đã bị chủ bot khóa tạm thời.`);
+            }
+          }
           await command.execute(message, parsedArgs);
         }
       }

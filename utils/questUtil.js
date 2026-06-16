@@ -137,7 +137,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
     const quest = activeQuests[i];
     if (quest.type !== type) continue;
     
-    if (type === "hunt_loot" && extraData.rarity !== quest.rarity) continue;
+    if (type === "hunt_loot" && String(extraData.rarity || "").toLowerCase() !== String(quest.rarity || "").toLowerCase()) continue;
     
     quest.progress = Math.min(quest.target, (quest.progress || 0) + amount);
     modified = true;

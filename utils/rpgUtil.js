@@ -60,7 +60,8 @@ const dungeonWeapons = [
   { name: "Crimson Dagger", key: "crimsondagger", emoji: "<:crimsondagger:1514232163158065252>" },
   { name: "Holy Sword", key: "holysword", emoji: "<:holysword:1514232165334777876>" },
   { name: "Dark Sword", key: "darksword", emoji: "<:darksword:1514232167595769949>" },
-  { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" }
+  { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" },
+  { name: "Gravity Bow", key: "gravitybow", emoji: "<:GravityBow:1516389241347641415>" }
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
@@ -105,10 +106,7 @@ const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
     { name: "Staff", emoji: "<:staff:1514231936581898240>" },
-    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" },
-    { name: "Claymore", emoji: "<:longsword:1514231939865903104>" },
-    { name: "Rapier", emoji: "<:dagger:1514231934191009853>" },
-    { name: "Halberd", emoji: "<:staff:1514231936581898240>" }
+    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" }
   ],
   armor: [
     { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
@@ -146,17 +144,15 @@ const getItemImageFile = (item) => {
 
   if (slot === "weapon") {
     if (dungeonKeys.includes(lowerSubType)) {
+      if (lowerSubType === "gravitybow") {
+        return "Weapon/GravityBow.png";
+      }
       return `Weapon/${lowerSubType}.png`;
     }
-    const specificFile = `Weapon/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("sword") || subType.includes("longsword") || subType.includes("claymore") || subType.includes("rapier")) {
-      return "Weapon/normalsword.png";
-    } else if (subType.includes("staff") || subType.includes("halberd")) {
+    if (subType.includes("staff")) {
       return "Weapon/normalstaff.png";
-    } else if (subType.includes("dagger")) {
+    }
+    if (subType.includes("dagger") || subType.includes("dangger")) {
       return "Weapon/normaldagger.png";
     }
     return "Weapon/normalsword.png";
@@ -256,6 +252,10 @@ const getWeaponScaling = (item) => {
   const scaling = { str: "-", dex: "-", int: "-", arc: "-" };
   const subType = String(item.subType || "Longsword").toLowerCase();
   const rarity = item.rarity || "Common";
+  
+  if (subType.includes("gravitybow") || subType.includes("gravity bow")) {
+    return { str: "-", dex: "S", int: "A", arc: "S" };
+  }
   
   const { prim, sec } = getWeaponScalingStats(subType);
   
@@ -664,44 +664,48 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   let scaling = null;
   if (slot === "weapon") {
-    scaling = { str: "-", dex: "-", int: "-", arc: "-" };
     const subName = chosenSubtype.name.toLowerCase();
-    const { prim, sec } = getWeaponScalingStats(subName);
-    
-    const primaryGrades = {
-      Common: "D",
-      Rare: "C",
-      Epic: "B",
-      Legendary: "A",
-      Mythic: "S",
-      Ancient: "S",
-      Divine: "S"
-    };
-    const secondaryGrades = {
-      Common: "E",
-      Rare: "D",
-      Epic: "C",
-      Legendary: "B",
-      Mythic: "B",
-      Ancient: "A",
-      Divine: "S"
-    };
-    
-    let primGrade = primaryGrades[rarity] || "E";
-    let secGrade = secondaryGrades[rarity] || "E";
-    if (isDungeon) {
-      const bumpGrade = (grade) => {
-        const grades = ["-", "E", "D", "C", "B", "A", "S"];
-        const idx = grades.indexOf(grade);
-        if (idx === -1) return grade;
-        return grades[Math.min(grades.length - 1, idx + 1)];
+    if (subName.includes("gravitybow") || subName.includes("gravity bow")) {
+      scaling = { str: "-", dex: "S", int: "A", arc: "S" };
+    } else {
+      scaling = { str: "-", dex: "-", int: "-", arc: "-" };
+      const { prim, sec } = getWeaponScalingStats(subName);
+      
+      const primaryGrades = {
+        Common: "D",
+        Rare: "C",
+        Epic: "B",
+        Legendary: "A",
+        Mythic: "S",
+        Ancient: "S",
+        Divine: "S"
       };
-      primGrade = bumpGrade(primGrade);
-      secGrade = bumpGrade(secGrade);
+      const secondaryGrades = {
+        Common: "E",
+        Rare: "D",
+        Epic: "C",
+        Legendary: "B",
+        Mythic: "B",
+        Ancient: "A",
+        Divine: "S"
+      };
+      
+      let primGrade = primaryGrades[rarity] || "E";
+      let secGrade = secondaryGrades[rarity] || "E";
+      if (isDungeon) {
+        const bumpGrade = (grade) => {
+          const grades = ["-", "E", "D", "C", "B", "A", "S"];
+          const idx = grades.indexOf(grade);
+          if (idx === -1) return grade;
+          return grades[Math.min(grades.length - 1, idx + 1)];
+        };
+        primGrade = bumpGrade(primGrade);
+        secGrade = bumpGrade(secGrade);
+      }
+      
+      scaling[prim] = primGrade;
+      scaling[sec] = secGrade;
     }
-    
-    scaling[prim] = primGrade;
-    scaling[sec] = secGrade;
   }
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
@@ -975,4 +979,5 @@ module.exports = {
   seedUpgradeStones,
   isDungeonWeapon,
   isDungeonWeaponHelper,
+  subTypes,
 };

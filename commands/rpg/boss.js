@@ -55,6 +55,7 @@ const sendRewardDm = async ({
   cokeGain,
   isLastHit,
   stones,
+  keyDropped,
 }) => {
   const discordUser = await client.users.fetch(userId).catch(() => null);
   if (!discordUser) return;
@@ -98,6 +99,14 @@ const sendRewardDm = async ({
     embed.addFields({
       name: "Đá nâng cấp nhận được",
       value: stoneLines,
+      inline: true,
+    });
+  }
+
+  if (keyDropped) {
+    embed.addFields({
+      name: "Phó bản nhận được",
+      value: `<:key:1516398711712911461> **Chìa khóa Phó bản** (x1)`,
       inline: true,
     });
   }
@@ -214,6 +223,21 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         user.markModified("inventory");
       }
 
+      // Key drop for dungeon
+      let keyDropped = false;
+      if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
+        const keyDropChance = bossRankKey === "thuongnhan" ? 1.0 : 0.5;
+        if (Math.random() < keyDropChance) {
+          if (!user.inventory) {
+            user.inventory = new Map();
+          }
+          const currentQty = user.inventory.get("dungeonkey") || 0;
+          user.inventory.set("dungeonkey", currentQty + 1);
+          user.markModified("inventory");
+          keyDropped = true;
+        }
+      }
+
       user.rpg.power = calculateRpgPower(user);
       await user.save();
 
@@ -237,7 +261,8 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         expGain,
         cokeGain,
         isLastHit,
-        stones: stonesDropped
+        stones: stonesDropped,
+        keyDropped
       });
     } catch (error) {
       console.warn("[RPG_BOSS] Reward failed:", userId, error.message);

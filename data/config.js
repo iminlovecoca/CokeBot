@@ -838,6 +838,138 @@ module.exports = {
           },
         },
       },
+      3: {
+        boss: {
+          key: "mourngait",
+          name_phase1: "Mourngait (Bị Phong Ấn)",
+          name_phase2: "Mourngait (Hắc Hỏa Phá Lệ)",
+          image_phase1: "Mourngait.png",
+          image_phase2: "Mourngait.png",
+          stats: {
+            phase1: {
+              base_hp: 450000,
+              base_atk: 250,
+              base_defense: 120,
+            },
+            phase2: {
+              base_hp: 550000,
+              base_atk_mult: 1.6,
+              base_defense: 120,
+            },
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: true,
+            vulnerable_on_heal_ban: false,
+          },
+          first_clear_reward: {
+            claim_key: "bluestaff",
+            emoji: "<:bluestaff:1514232160897339442>",
+            name: "Lam Tinh Thần Trượng",
+            rarity: "Ancient",
+            image_path: "Weapon/bluestaff.png",
+          },
+        },
+      },
+      4: {
+        boss: {
+          key: "eldric",
+          name_phase1: "Eldric (Thần Cung Trọng Lực)",
+          name_phase2: "Eldric (Tâm Trọng Lực Cực Hạn)",
+          image_phase1: "Eldric.png",
+          image_phase2: "Eldric.png",
+          stats: {
+            phase1: {
+              base_hp: 600000,
+              base_atk: 450,
+              base_defense: 150,
+            },
+            phase2: {
+              base_hp: 750000,
+              base_atk_mult: 1.7,
+              base_defense: 150,
+            },
+          },
+          mechanics: {
+            dice_roll: true,
+            coin_flip: false,
+            vulnerable_on_heal_ban: false,
+          },
+          first_clear_reward: {
+            claim_key: "gravitybow",
+            emoji: "<:GravityBow:1516389241347641415>",
+            name: "Cung Trọng Lực GravityBow",
+            rarity: "Ancient",
+            image_path: "Weapon/GravityBow.png",
+          },
+        },
+      },
+      5: {
+        boss: {
+          key: "vaelmor",
+          name_phase1: "Vaelmor (Kịch Độc Cổ Thần)",
+          name_phase2: "Vaelmor (Miasma Điên Cuồng)",
+          image_phase1: "Vaelmor.png",
+          image_phase2: "Vaelmor.png",
+          stats: {
+            phase1: {
+              base_hp: 800000,
+              base_atk: 550,
+              base_defense: 180,
+            },
+            phase2: {
+              base_hp: 1000000,
+              base_atk_mult: 1.8,
+              base_defense: 180,
+            },
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: true,
+            vulnerable_on_heal_ban: false,
+          },
+          first_clear_reward: {
+            claim_key: "greenstaff",
+            emoji: "<:greenstaff:1514232158502518945>",
+            name: "Mộc Diệp Pháp Trượng",
+            rarity: "Ancient",
+            image_path: "Weapon/greenstaff.png",
+          },
+        },
+      },
+      6: {
+        boss: {
+          key: "veilreaper",
+          name_phase1: "Veilreaper (Tử Thần Hắc Hỏa)",
+          name_phase2: "Veilreaper (Chiến Thần Diệt Vong)",
+          image_phase1: "Veilreaper.png",
+          image_phase2: "Veilreaper.png",
+          stats: {
+            phase1: {
+              base_hp: 1100000,
+              base_atk: 700,
+              base_defense: 220,
+            },
+            phase2: {
+              base_hp: 1400000,
+              base_atk_mult: 2.0,
+              base_defense: 220,
+            },
+          },
+          mechanics: {
+            dice_roll: true,
+            coin_flip: true,
+            vulnerable_on_heal_ban: false,
+          },
+          first_clear_reward: {
+            claim_key: "shadowdagger",
+            emoji: "<:shadowdagger:1514232151766339635>",
+            name: "Ảnh Hồn Đoản Đao",
+            rarity: "Ancient",
+            image_path: "Weapon/shadowdagger.png",
+          },
+        },
+      },
     },
   },
 };

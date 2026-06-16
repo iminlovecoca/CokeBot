@@ -444,6 +444,15 @@ module.exports = {
         const levelsGained = addRpgExp(user.rpg, xpGain);
         user.rpg.power = calculateRpgPower(user);
 
+        // Update quest progress
+        const { updateQuestProgress } = require("../../utils/questUtil");
+        if (xpGain > 0) {
+          await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+        }
+        for (const gear of gearsDropped) {
+          await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: gear.rarity });
+        }
+
         // Reset states
         user.rpg.autohunt.isActive = false;
         user.rpg.autohunt.startTime = null;
@@ -643,6 +652,15 @@ module.exports = {
       const previousLevel = user.rpg.level;
       const levelsGained = addRpgExp(user.rpg, xpGain);
       user.rpg.power = calculateRpgPower(user);
+
+      // Update quest progress
+      const { updateQuestProgress } = require("../../utils/questUtil");
+      if (xpGain > 0) {
+        await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+      }
+      for (const gear of gearsDropped) {
+        await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: gear.rarity });
+      }
 
       // Reset states
       user.rpg.autohunt.isActive = false;

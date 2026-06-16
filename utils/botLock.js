@@ -5,13 +5,15 @@ async function loadBotLock(client) {
   try {
     let doc = await BotLock.findById('singleton');
     if (!doc) {
-      doc = await BotLock.create({ _id: 'singleton', locked: false });
+      doc = await BotLock.create({ _id: 'singleton', locked: false, lockedFeatures: [] });
     }
     client.botLocked = !!doc.locked;
-    console.log(`🔒 Bot lock status: ${client.botLocked ? 'LOCKED' : 'UNLOCKED'}`);
+    client.lockedFeatures = doc.lockedFeatures || [];
+    console.log(`🔒 Bot lock status: ${client.botLocked ? 'LOCKED' : 'UNLOCKED'}, Locked features: ${client.lockedFeatures.join(', ')}`);
   } catch (e) {
     console.error('❌ Failed to load bot lock status:', e);
     client.botLocked = false;
+    client.lockedFeatures = [];
   }
 }
 
