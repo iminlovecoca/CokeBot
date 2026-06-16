@@ -613,8 +613,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
 
   // Handle files (Boss image always displayed centered)
   const files = [];
-  const bossCfg = getBossConfig(chapter);
-  const fileName = (enemy.isBoss && enemy.phase === 2) ? bossCfg.image_phase2 : bossCfg.image_phase1;
+  const chapterBossCfg = getBossConfig(chapter);
+  const fileName = (enemy.isBoss && enemy.phase === 2) ? chapterBossCfg.image_phase2 : chapterBossCfg.image_phase1;
   if (fileName) {
     const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
     if (fs.existsSync(filePath)) {
