@@ -754,7 +754,7 @@ module.exports = {
           base_defense: 100,
         },
         phase2: {
-          base_hp: 400000,
+          base_hp: 150000,
           base_atk_mult: 1.5,
           base_defense: 100,
         },
@@ -780,7 +780,7 @@ module.exports = {
               base_defense: 100,
             },
             phase2: {
-              base_hp: 200000,
+              base_hp: 75000,
               base_atk_mult: 1.5,
               base_defense: 100,
             },
@@ -819,7 +819,7 @@ module.exports = {
               base_defense: 100,
             },
             phase2: {
-              base_hp: 250000,
+              base_hp: 100000,
               base_atk_mult: 1.8,
               base_defense: 100,
             },
@@ -852,7 +852,7 @@ module.exports = {
               base_defense: 120,
             },
             phase2: {
-              base_hp: 340000,
+              base_hp: 140000,
               base_atk_mult: 1.6,
               base_defense: 120,
             },
@@ -885,7 +885,7 @@ module.exports = {
               base_defense: 150,
             },
             phase2: {
-              base_hp: 420000,
+              base_hp: 180000,
               base_atk_mult: 1.7,
               base_defense: 150,
             },
@@ -918,7 +918,7 @@ module.exports = {
               base_defense: 180,
             },
             phase2: {
-              base_hp: 500000,
+              base_hp: 220000,
               base_atk_mult: 1.5,
               base_defense: 180,
             },
@@ -951,7 +951,7 @@ module.exports = {
               base_defense: 220,
             },
             phase2: {
-              base_hp: 550000,
+              base_hp: 250000,
               base_atk_mult: 2.0,
               base_defense: 220,
             },

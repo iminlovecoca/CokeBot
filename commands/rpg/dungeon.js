@@ -474,12 +474,12 @@ const renderGameScreen = async (channel, activeDungeon) => {
   };
   const blessingName = BLESSING_NAMES[activeDungeon.blessing || "none"];
 
-  let descriptionText = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
+  let descriptionText = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
                         `⏰ **Thời gian:** <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R> | ✨ **Buff:** ${activeDungeon.blessing === "active" ? "Có" : "Không"}`;
   if (activeDungeon.isSimulation) {
     descriptionText += ` | ⚡ **Tốc độ:** **${activeDungeon.speed || 1.0}x**`;
   }
-  descriptionText += `\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`;
+  descriptionText += `\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`;
 
   const embed = new EmbedBuilder()
     .setColor(enemy.isBoss ? "#E74C3C" : "#E67E22")
@@ -524,7 +524,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
 
   // Separator: between Boss and Players
-  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
   // Bottom Frame: 3 Players
   players.forEach((p, idx) => {
@@ -549,7 +549,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   });
 
   // Separator: between Players and Logs
-  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
   // Middle Frame: Logs
   const recentLogs = logs.slice(-5).join("\n");
@@ -558,8 +558,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
   // Buttons row
   const row = new ActionRowBuilder();
   
-  // Disable buttons if action is in progress or dice rolling
-  let disableControls = activeDungeon.actionInProgress || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
+  // Disable buttons if action is in progress or dice rolling or finished
+  let disableControls = activeDungeon.actionInProgress || activeDungeon.isFinished || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
   if (activeDungeon.isSimulation) {
     disableControls = true;
   }
@@ -577,7 +577,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       .setDisabled(disableControls)
   );
 
-  const isPlayerTurn = currentActor && currentActor.id;
+  const isPlayerTurn = !activeDungeon.isFinished && currentActor && currentActor.id;
   if (isPlayerTurn && currentActor.classKey !== "wretch") {
     let skillLabel = "Kỹ Năng ✨";
     let isSkillDisabled = disableControls;
@@ -605,21 +605,56 @@ const renderGameScreen = async (channel, activeDungeon) => {
     );
   }
 
-  if (currentActor && currentActor.id) {
+  if (activeDungeon.isFinished) {
+    embed.setFooter({ text: "🏁 Trận đấu đã kết thúc." });
+  } else if (currentActor && currentActor.id) {
     embed.setFooter({ text: `👉 Đến lượt của: ${currentActor.name}` });
   } else {
     embed.setFooter({ text: "👿 Lượt của kẻ địch..." });
   }
 
-  // Handle files (Boss image always displayed centered)
+  // Handle files (Boss/Creep image)
   const files = [];
-  const chapterBossCfg = getBossConfig(chapter);
-  const fileName = (enemy.isBoss && enemy.phase === 2) ? chapterBossCfg.image_phase2 : chapterBossCfg.image_phase1;
-  if (fileName) {
-    const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
-    if (fs.existsSync(filePath)) {
-      files.push(new AttachmentBuilder(filePath, { name: fileName }));
-      embed.setImage(`attachment://${fileName}`);
+  if (enemy.isBoss) {
+    const bossCfg = getBossConfig(chapter);
+    const fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
+    if (fileName) {
+      const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
+      if (fs.existsSync(filePath)) {
+        files.push(new AttachmentBuilder(filePath, { name: fileName }));
+        embed.setImage(`attachment://${fileName}`);
+      }
+    }
+  } else {
+    // Normal monster round: check for creep image under Creeps folder
+    if (chapter === 4 && round === 3) {
+      const filePath = path.join(__dirname, "../../assets/dungeons/Creeps/Draugor.png");
+      if (fs.existsSync(filePath)) {
+        const fileName = "Draugor.png";
+        files.push(new AttachmentBuilder(filePath, { name: fileName }));
+        embed.setImage(`attachment://${fileName}`);
+      }
+    } else {
+      const bossCfg = getBossConfig(chapter);
+      const bossKey = bossCfg?.key ? bossCfg.key.toUpperCase() : "";
+      if (bossKey) {
+        const extensions = ["jpg", "png", "webp"];
+        let filePath = null;
+        let foundExt = null;
+        for (const ext of extensions) {
+          const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/${bossKey}-creep${round}.${ext}`);
+          if (fs.existsSync(testPath)) {
+            filePath = testPath;
+            foundExt = ext;
+            break;
+          }
+        }
+        if (filePath) {
+          const fileName = `${bossKey}-creep${round}.${foundExt}`;
+          files.push(new AttachmentBuilder(filePath, { name: fileName }));
+          embed.setImage(`attachment://${fileName}`);
+        }
+      }
     }
   }
 
@@ -847,20 +882,20 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
   if (player.classKey === "warrior") {
     activeDungeon.logs.push(`⚔️ **${player.name}** giải phóng kỹ năng **[Trọng Kiếm]**, chém một đòn cực mạnh vào **${enemy.name}**!`);
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 3.0);
+    await executePlayerAttack(channel, activeDungeon, player, 4.0);
     player.rage = 0;
   } else if (player.classKey === "assassin") {
     activeDungeon.logs.push(`🗡️ **${player.name}** tung chiêu thức **[Đâm Lén]** cực hiểm hóc vào điểm yếu của **${enemy.name}**!`);
     enemy.bleedRounds = 3;
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 1.0);
+    await executePlayerAttack(channel, activeDungeon, player, 2.0);
     player.rage = 0;
   } else if (player.classKey === "archer") {
     activeDungeon.logs.push(`🏹 **${player.name}** giương cung bắn ra đại tiễn **[Xuyên Táo]** xuyên thấu **${enemy.name}**!`);
     activeDungeon.archerDoubleDmgNext = true;
     activeDungeon.archerCasterId = player.id;
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 2.0);
+    await executePlayerAttack(channel, activeDungeon, player, 3.0);
     player.rage = 0;
   } else if (player.classKey === "mage") {
     const currentMana = player.mana ?? 100;
@@ -870,7 +905,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     }
     player.mana = currentMana - 25;
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
-    await executePlayerAttack(channel, activeDungeon, player, 2.0);
+    await executePlayerAttack(channel, activeDungeon, player, 3.0);
   } else if (player.classKey === "paladin") {
     const healAmount = Math.floor((activeDungeon.totalDamageTaken || 0) * 0.1);
     activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, hồi phục sinh mệnh cho toàn đội bằng 10% sát thương đã nhận trước đó (**${healAmount.toLocaleString()}** HP)!`);
@@ -944,7 +979,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     ? player.stats.int * 3.5 + player.stats.arc * 1.5
     : player.stats.str * 2.5 + player.stats.dex * 1.5;
 
-  let rawDamage = baseAttack + player.power;
+  let rawDamage = (baseAttack + player.power) * multiplier;
   if (activeDungeon.blessing === "active") {
     rawDamage *= 1.2;
   }
@@ -986,7 +1021,6 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
       }
     } else {
       if (hasCoin) {
-        damage = Math.floor(damage * multiplier);
         activeDungeon.coinFlipCount = (activeDungeon.coinFlipCount || 0) + 1;
       }
     }
@@ -1262,6 +1296,9 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
 
 // Victory handler: give rewards, save progress
 const handleVictory = async (channel, activeDungeon) => {
+  activeDungeon.isFinished = true;
+  await renderGameScreen(channel, activeDungeon);
+
   if (activeDungeon.timeoutTimer) {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
@@ -1382,6 +1419,9 @@ const handleVictory = async (channel, activeDungeon) => {
 
 // Defeat handler: fail
 const handleDefeat = async (channel, activeDungeon) => {
+  activeDungeon.isFinished = true;
+  await renderGameScreen(channel, activeDungeon);
+
   if (activeDungeon.timeoutTimer) {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
@@ -1405,6 +1445,9 @@ const handleDefeat = async (channel, activeDungeon) => {
 
 // Timeout handler
 const handleTimeout = async (channel, activeDungeon) => {
+  activeDungeon.isFinished = true;
+  await renderGameScreen(channel, activeDungeon);
+
   if (activeDungeon.timeoutTimer) {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
