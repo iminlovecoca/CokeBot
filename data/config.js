@@ -237,7 +237,7 @@ module.exports = {
           emoji: "🎄",
           asset: "boss_01.webp",
           rank: "thuong",
-          hp: 1200,
+          hp: 12000,
           recommended_power: 120,
           exp: 200,
           armor: 100,
@@ -826,7 +826,7 @@ module.exports = {
           },
           mechanics: {
             dice_roll: false,
-            coin_flip: true,
+            coin_flip: false,
             vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {
@@ -859,7 +859,7 @@ module.exports = {
           },
           mechanics: {
             dice_roll: false,
-            coin_flip: true,
+            coin_flip: false,
             vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {
@@ -891,7 +891,7 @@ module.exports = {
             },
           },
           mechanics: {
-            dice_roll: true,
+            dice_roll: false,
             coin_flip: false,
             vulnerable_on_heal_ban: false,
           },
@@ -957,8 +957,8 @@ module.exports = {
             },
           },
           mechanics: {
-            dice_roll: true,
-            coin_flip: true,
+            dice_roll: false,
+            coin_flip: false,
             vulnerable_on_heal_ban: false,
           },
           first_clear_reward: {

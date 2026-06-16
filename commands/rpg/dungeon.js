@@ -524,7 +524,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
 
   // Separator: between Boss and Players
-  embed.addFields({ name: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", value: "\u200B" });
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
   // Bottom Frame: 3 Players
   players.forEach((p, idx) => {
@@ -549,7 +549,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   });
 
   // Separator: between Players and Logs
-  embed.addFields({ name: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬", value: "\u200B" });
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
   // Middle Frame: Logs
   const recentLogs = logs.slice(-5).join("\n");
@@ -611,48 +611,15 @@ const renderGameScreen = async (channel, activeDungeon) => {
     embed.setFooter({ text: "👿 Lượt của kẻ địch..." });
   }
 
-  // Handle files (Boss/Creep image)
+  // Handle files (Boss image always displayed centered)
   const files = [];
-  if (enemy.isBoss) {
-    const bossCfg = getBossConfig(chapter);
-    const fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
-    if (fileName) {
-      const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
-      if (fs.existsSync(filePath)) {
-        files.push(new AttachmentBuilder(filePath, { name: fileName }));
-        embed.setImage(`attachment://${fileName}`);
-      }
-    }
-  } else {
-    // Normal monster round: check for creep image under Creeps folder
-    if (chapter === 4 && round === 3) {
-      const filePath = path.join(__dirname, "../../assets/dungeons/Creeps/Draugor.png");
-      if (fs.existsSync(filePath)) {
-        const fileName = "Draugor.png";
-        files.push(new AttachmentBuilder(filePath, { name: fileName }));
-        embed.setImage(`attachment://${fileName}`);
-      }
-    } else {
-      const bossCfg = getBossConfig(chapter);
-      const bossKey = bossCfg?.key ? bossCfg.key.toUpperCase() : "";
-      if (bossKey) {
-        const extensions = ["jpg", "png", "webp"];
-        let filePath = null;
-        let foundExt = null;
-        for (const ext of extensions) {
-          const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/${bossKey}-creep${round}.${ext}`);
-          if (fs.existsSync(testPath)) {
-            filePath = testPath;
-            foundExt = ext;
-            break;
-          }
-        }
-        if (filePath) {
-          const fileName = `${bossKey}-creep${round}.${foundExt}`;
-          files.push(new AttachmentBuilder(filePath, { name: fileName }));
-          embed.setImage(`attachment://${fileName}`);
-        }
-      }
+  const bossCfg = getBossConfig(chapter);
+  const fileName = (enemy.isBoss && enemy.phase === 2) ? bossCfg.image_phase2 : bossCfg.image_phase1;
+  if (fileName) {
+    const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
+    if (fs.existsSync(filePath)) {
+      files.push(new AttachmentBuilder(filePath, { name: fileName }));
+      embed.setImage(`attachment://${fileName}`);
     }
   }
 
