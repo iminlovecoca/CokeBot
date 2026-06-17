@@ -268,137 +268,147 @@ module.exports = {
 
 // Hàm xử lý việc lắc xúc xắc và trả thưởng
 async function runRollingPhase(game, client) {
-  if (game.status !== "betting") return;
-  game.status = "rolling";
+  try {
+    if (game.status !== "betting") return;
+    game.status = "rolling";
 
-  // Hủy đăng ký lắng nghe sự kiện
-  if (game.modalCollectorListener) {
-    client.off("interactionCreate", game.modalCollectorListener);
-  }
+    // Hủy đăng ký lắng nghe sự kiện
+    if (game.modalCollectorListener) {
+      client.removeListener("interactionCreate", game.modalCollectorListener);
+    }
 
-  // Cập nhật giao diện thông báo đang lắc
-  const disabledButtons = generateGameButtons(game.gameId, true);
-  const rollingEmbed = new EmbedBuilder()
-    .setColor("#FFD700")
-    .setTitle("🎲 BẦU CUA TÔM CÁ 🎲")
-    .setDescription(
-      `👤 **Người tạo:** <@${game.hostId}>\n` +
-      `🛑 **Đã hết thời gian đặt cược!**\n\n` +
-      `<a:dice_rolldice:1403773919751831643> **Đang lắc đĩa...**\n` +
-      `🎲  **[ ? ]    [ ? ]    [ ? ]**`
-    );
+    // Cập nhật giao diện thông báo đang lắc
+    const disabledButtons = generateGameButtons(game.gameId, true);
+    const rollingEmbed = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("🎲 BẦU CUA TÔM CÁ 🎲")
+      .setDescription(
+        `👤 **Người tạo:** <@${game.hostId}>\n` +
+        `🛑 **Đã hết thời gian đặt cược!**\n\n` +
+        `<a:dice_rolldice:1403773919751831643> **Đang lắc đĩa...**\n` +
+        `🎲  **[ ? ]    [ ? ]    [ ? ]**`
+      );
 
-  await game.message.edit({
-    embeds: [rollingEmbed],
-    components: disabledButtons
-  }).catch(() => null);
+    await game.message.edit({
+      embeds: [rollingEmbed],
+      components: disabledButtons
+    }).catch(() => null);
 
-  // Chờ 3 giây lắc đĩa như yêu cầu
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+    // Chờ 3 giây lắc đĩa như yêu cầu
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  // Chọn ngẫu nhiên kết quả 3 viên xúc xắc bầu cua
-  const results = [];
-  for (let i = 0; i < 3; i++) {
-    const idx = await random(0, 5);
-    results.push(ITEMS[idx]);
-  }
+    // Chọn ngẫu nhiên kết quả 3 viên xúc xắc bầu cua
+    const results = [];
+    for (let i = 0; i < 3; i++) {
+      const idx = await random(0, 5);
+      results.push(ITEMS[idx]);
+    }
 
-  const winPlayers = [];
-  const losePlayers = [];
-  const drawPlayers = [];
+    const winPlayers = [];
+    const losePlayers = [];
+    const drawPlayers = [];
 
-  // Tính tiền thưởng và phân loại người chơi
-  for (const [userId, userBets] of game.bets.entries()) {
-    const totalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
-    let totalPrize = 0;
-    const details = [];
+    // Tính tiền thưởng và phân loại người chơi
+    for (const [userId, userBets] of game.bets.entries()) {
+      const totalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
+      let totalPrize = 0;
+      const details = [];
 
-    for (const bet of userBets) {
-      const matchCount = results.filter((r) => r.id === bet.choice).length;
-      if (matchCount > 0) {
-        // Hoàn cược + thắng gấp x lần số lượng xuất hiện (ví dụ: trúng 1 con -> nhận x2 tiền cược)
-        const prize = bet.amount * (matchCount + 1);
-        totalPrize += prize;
-        details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thắng x${matchCount} (+${(bet.amount * matchCount).toLocaleString()})`);
+      for (const bet of userBets) {
+        const matchCount = results.filter((r) => r.id === bet.choice).length;
+        if (matchCount > 0) {
+          // Hoàn cược + thắng gấp x lần số lượng xuất hiện (ví dụ: trúng 1 con -> nhận x2 tiền cược)
+          const prize = bet.amount * (matchCount + 1);
+          totalPrize += prize;
+          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thắng x${matchCount} (+${(bet.amount * matchCount).toLocaleString()})`);
+        } else {
+          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thua (-${bet.amount.toLocaleString()})`);
+        }
+      }
+
+      // Trả thưởng vào tài khoản người chơi
+      if (totalPrize > 0) {
+        await incBalance(userId, totalPrize);
+      }
+
+      const netProfit = totalPrize - totalBet;
+      const username = game.usernames.get(userId) || `<@${userId}>`;
+
+      if (netProfit > 0) {
+        winPlayers.push({ username, netProfit, details });
+      } else if (netProfit < 0) {
+        losePlayers.push({ username, netProfit, details });
       } else {
-        details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thua (-${bet.amount.toLocaleString()})`);
+        drawPlayers.push({ username, netProfit, details });
       }
     }
 
-    // Trả thưởng vào tài khoản người chơi
-    if (totalPrize > 0) {
-      await incBalance(userId, totalPrize);
+    // Tạo hiển thị kết quả xúc xắc
+    const resultDisplay =
+      `✨ **KẾT QUẢ XÚC XẮC** ✨\n\n` +
+      `🌟 **[ ${results[0].emoji} ${results[0].name} ]**  ` +
+      `**[ ${results[1].emoji} ${results[1].name} ]**  ` +
+      `**[ ${results[2].emoji} ${results[2].name} ]** 🌟`;
+
+    const embedResult = new EmbedBuilder()
+      .setColor("#FFD700")
+      .setTitle("🎲 KẾT QUẢ BẦU CUA TÔM CÁ 🎲")
+      .setDescription(
+        `👤 **Người tạo:** <@${game.hostId}>\n` +
+        `🏁 **Trận đấu đã kết thúc!**\n\n` +
+        `${resultDisplay}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `📊 **CHI TIẾT TRẢ THƯỞNG**`
+      );
+
+    const resultLines = [];
+    if (winPlayers.length > 0) {
+      resultLines.push(`🎉 **Thắng cuộc:**`);
+      winPlayers.forEach((p) => {
+        resultLines.push(`• **${p.username}**: nhận lại cược và thắng **+${p.netProfit.toLocaleString()}** Coke (${p.details.join(", ")})`);
+      });
+    }
+    if (losePlayers.length > 0) {
+      if (resultLines.length > 0) resultLines.push("");
+      resultLines.push(`😢 **Thua cuộc:**`);
+      losePlayers.forEach((p) => {
+        resultLines.push(`• **${p.username}**: mất **${Math.abs(p.netProfit).toLocaleString()}** Coke (${p.details.join(", ")})`);
+      });
+    }
+    if (drawPlayers.length > 0) {
+      if (resultLines.length > 0) resultLines.push("");
+      resultLines.push(`⚖️ **Hòa vốn:**`);
+      drawPlayers.forEach((p) => {
+        resultLines.push(`• **${p.username}**: hòa vốn (${p.details.join(", ")})`);
+      });
     }
 
-    const netProfit = totalPrize - totalBet;
-    const username = game.usernames.get(userId) || `<@${userId}>`;
-
-    if (netProfit > 0) {
-      winPlayers.push({ username, netProfit, details });
-    } else if (netProfit < 0) {
-      losePlayers.push({ username, netProfit, details });
+    if (resultLines.length === 0) {
+      embedResult.addFields({
+        name: "Thông tin",
+        value: "Không có người chơi nào tham gia đặt cược trong phiên này."
+      });
     } else {
-      drawPlayers.push({ username, netProfit, details });
+      embedResult.addFields({
+        name: "Bảng kết quả",
+        value: resultLines.join("\n")
+      });
     }
+
+    await game.message.edit({
+      embeds: [embedResult],
+      components: []
+    }).catch(() => null);
+
+  } catch (error) {
+    console.error("[Baucua Error] Error in runRollingPhase:", error);
+    try {
+      await game.message.reply(`❌ **Đã xảy ra lỗi hệ thống khi tính kết quả Bầu Cua:** \`${error.message}\`. Vui lòng liên hệ Admin!`).catch(() => null);
+    } catch (msgErr) {
+      console.error("[Baucua Error] Failed to send error message to channel:", msgErr);
+    }
+  } finally {
+    // Xóa game khỏi danh sách game đang chạy
+    activeGames.delete(game.channelId);
   }
-
-  // Tạo hiển thị kết quả xúc xắc
-  const resultDisplay =
-    `✨ **KẾT QUẢ XÚC XẮC** ✨\n\n` +
-    `🌟 **[ ${results[0].emoji} ${results[0].name} ]**  ` +
-    `**[ ${results[1].emoji} ${results[1].name} ]**  ` +
-    `**[ ${results[2].emoji} ${results[2].name} ]** 🌟`;
-
-  const embedResult = new EmbedBuilder()
-    .setColor("#FFD700")
-    .setTitle("🎲 KẾT QUẢ BẦU CUA TÔM CÁ 🎲")
-    .setDescription(
-      `👤 **Người tạo:** <@${game.hostId}>\n` +
-      `🏁 **Trận đấu đã kết thúc!**\n\n` +
-      `${resultDisplay}\n\n` +
-      `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-      `📊 **CHI TIẾT TRẢ THƯỞNG**`
-    );
-
-  const resultLines = [];
-  if (winPlayers.length > 0) {
-    resultLines.push(`🎉 **Thắng cuộc:**`);
-    winPlayers.forEach((p) => {
-      resultLines.push(`• **${p.username}**: nhận lại cược và thắng **+${p.netProfit.toLocaleString()}** Coke (${p.details.join(", ")})`);
-    });
-  }
-  if (losePlayers.length > 0) {
-    if (resultLines.length > 0) resultLines.push("");
-    resultLines.push(`😢 **Thua cuộc:**`);
-    losePlayers.forEach((p) => {
-      resultLines.push(`• **${p.username}**: mất **${Math.abs(p.netProfit).toLocaleString()}** Coke (${p.details.join(", ")})`);
-    });
-  }
-  if (drawPlayers.length > 0) {
-    if (resultLines.length > 0) resultLines.push("");
-    resultLines.push(`⚖️ **Hòa vốn:**`);
-    drawPlayers.forEach((p) => {
-      resultLines.push(`• **${p.username}**: hòa vốn (${p.details.join(", ")})`);
-    });
-  }
-
-  if (resultLines.length === 0) {
-    embedResult.addFields({
-      name: "Thông tin",
-      value: "Không có người chơi nào tham gia đặt cược trong phiên này."
-    });
-  } else {
-    embedResult.addFields({
-      name: "Bảng kết quả",
-      value: resultLines.join("\n")
-    });
-  }
-
-  await game.message.edit({
-    embeds: [embedResult],
-    components: []
-  }).catch(() => null);
-
-  // Xóa game khỏi danh sách game đang chạy
-  activeGames.delete(game.channelId);
 }
