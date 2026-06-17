@@ -449,9 +449,8 @@ module.exports = {
         if (xpGain > 0) {
           await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
         }
-        for (const gear of gearsDropped) {
-          await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: gear.rarity });
-        }
+        // Quest hunt_loot chỉ được hoàn thành qua hunt thủ công, không tính cho autohunt
+
 
         // Reset states
         user.rpg.autohunt.isActive = false;
@@ -658,9 +657,7 @@ module.exports = {
       if (xpGain > 0) {
         await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
       }
-      for (const gear of gearsDropped) {
-        await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: gear.rarity });
-      }
+      // Quest hunt_loot chỉ được hoàn thành qua hunt thủ công, không tính cho autohunt
 
       // Reset states
       user.rpg.autohunt.isActive = false;
