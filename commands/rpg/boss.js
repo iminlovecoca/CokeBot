@@ -148,7 +148,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     if (rankKey === "thuongnhan") {
       if (type === "participant") {
         if (r < 5) return "Ancient";
-        if (r < 35) return "Mythic";
+        if (r < 20) return "Mythic";
         return "Legendary";
       }
     }

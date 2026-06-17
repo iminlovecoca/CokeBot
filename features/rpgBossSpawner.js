@@ -218,13 +218,35 @@ const spawnRandomBoss = async (client, options = {}) => {
       bossesByRank[b.rank].push(b);
     }
 
-    const rankWeights = config.rpg.boss?.bossRankRewards || {};
-    let activeRanks = Object.keys(bossesByRank).filter((rank) => rankWeights[rank]);
+    const rankWeights = {};
+    for (const [rank, val] of Object.entries(config.rpg.boss?.bossRankRewards || {})) {
+      rankWeights[rank] = { ...val };
+    }
 
-    // Force dragon tier or higher between 18h and 24h (0h)
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
     const now = DateTime.now().setZone(timezone);
     const currentHour = now.hour;
+
+    // Tinh chỉnh tỉ lệ boss thượng nhân xuất hiện:
+    // - Từ 9h sáng đến 15h là 10% (thuong=50, than=25, rong=15, thuongnhan=10)
+    // - Từ 18h đến 00h là 30% (rong=70, thuongnhan=30 khi isNightBoss lọc)
+    if (currentHour >= 9 && currentHour < 15) {
+      if (rankWeights.thuong) rankWeights.thuong.spawnWeight = 50;
+      if (rankWeights.than) rankWeights.than.spawnWeight = 25;
+      if (rankWeights.rong) rankWeights.rong.spawnWeight = 15;
+      if (rankWeights.thuongnhan) rankWeights.thuongnhan.spawnWeight = 10;
+    } else if (currentHour >= 18 || currentHour === 0) {
+      if (rankWeights.rong) rankWeights.rong.spawnWeight = 70;
+      if (rankWeights.thuongnhan) rankWeights.thuongnhan.spawnWeight = 30;
+    } else {
+      if (rankWeights.thuong) rankWeights.thuong.spawnWeight = 50;
+      if (rankWeights.than) rankWeights.than.spawnWeight = 30;
+      if (rankWeights.rong) rankWeights.rong.spawnWeight = 15;
+      if (rankWeights.thuongnhan) rankWeights.thuongnhan.spawnWeight = 5;
+    }
+
+    let activeRanks = Object.keys(bossesByRank).filter((rank) => rankWeights[rank]);
+
     const isNightBoss = currentHour >= 18 || currentHour === 0;
 
     if (isNightBoss) {
