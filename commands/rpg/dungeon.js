@@ -907,32 +907,40 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
     await executePlayerAttack(channel, activeDungeon, player, 3.0);
   } else if (player.classKey === "paladin") {
-    const healAmount = Math.floor((activeDungeon.totalDamageTaken || 0) * 0.1);
-    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, hồi phục sinh mệnh cho toàn đội bằng 10% sát thương đã nhận trước đó (**${healAmount.toLocaleString()}** HP)!`);
+    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 10% lượng máu đã mất cho toàn đội!`);
 
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
+        // Clear all debuffs instantly
+        const clearedDebuffs = [];
+        if (p.poisonRounds && p.poisonRounds > 0) {
+          p.poisonRounds = 0;
+          clearedDebuffs.push("Độc");
+        }
         if (p.healBanRounds && p.healBanRounds > 0) {
-          activeDungeon.logs.push(`🚫 **${p.name}** bị cấm hồi máu, không nhận được trị liệu.`);
-        } else {
+          p.healBanRounds = 0;
+          clearedDebuffs.push("Cấm Hồi Máu");
+        }
+        if (clearedDebuffs.length > 0) {
+          activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
+        }
+
+        // Heal 10% of lost HP
+        const lostHp = p.maxHp - p.hp;
+        const healAmount = Math.floor(lostHp * 0.1);
+        if (healAmount > 0) {
           const oldHp = p.hp;
           p.hp = Math.min(p.maxHp, p.hp + healAmount);
           const actualHealed = p.hp - oldHp;
-          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP.`);
+          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (10% máu đã mất).`);
+        } else {
+          activeDungeon.logs.push(`💚 **${p.name}** đang đầy máu.`);
         }
       }
     });
 
     player.rage = 0;
     player.hasActedThisRound = true;
-
-    // Decrement heal ban if they have any
-    if (player.healBanRounds && player.healBanRounds > 0) {
-      player.healBanRounds -= 1;
-      if (player.healBanRounds === 0) {
-        activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${player.name}** đã được giải trừ.`);
-      }
-    }
 
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
@@ -1170,6 +1178,11 @@ const runEnemyTurn = async (channel, activeDungeon) => {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }
 
+      // Paladin passive 5% damage reduction
+      if (p.classKey === "paladin") {
+        damage = Math.floor(damage * 0.95);
+      }
+
       const actualDmg = Math.min(p.hp, damage);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
 
@@ -1217,6 +1230,11 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       // Archer & Mage ranged passive mitigation
       if (mitCfg && mitCfg.classes?.includes(target.classKey)) {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
+      }
+
+      // Paladin passive 5% damage reduction
+      if (target.classKey === "paladin") {
+        damage = Math.floor(damage * 0.95);
       }
 
       if (enemy.key === "draugor" && Math.random() < 0.35) {

@@ -119,12 +119,12 @@ module.exports = {
     ],
     gear_drop: {
       // Chance for a hunt to drop any gear. 0.056 = 5.6%.
-      drop_rate: 0.06,
-      luck_rate_per_point: 0.0002,
+      drop_rate: 0.08,
+      luck_rate_per_point: 0.0005,
       max_drop_rate: 0.2,
     },
     gear_slots: {
-      weapon: { rate: 20, stat_pool: [] },
+      weapon: { rate: 35, stat_pool: [] },
       armor: { rate: 18, stat_pool: ["vigor", "pr", "mr"] },
       helmet: { rate: 16, stat_pool: ["vigor", "pr", "mr"] },
       boots: { rate: 16, stat_pool: ["dex", "vigor", "pr", "mr", "arc"] },
@@ -144,10 +144,10 @@ module.exports = {
       Common: { rate: 70, power: 45, sell: 120, stat: 1 },
       Rare: { rate: 22, power: 90, sell: 350, stat: 2 },
       Epic: { rate: 6.4, power: 180, sell: 1100, stat: 4 },
-      Legendary: { rate: 0.05, power: 380, sell: 4200, stat: 7 },
-      Mythic: { rate: 0.005, power: 780, sell: 15000, stat: 11 },
-      Ancient: { rate: 0.0045, power: 1450, sell: 65000, stat: 16 },
-      Divine: { rate: 0.00005, power: 2800, sell: 250000, stat: 24 },
+      Legendary: { rate: 0.1, power: 380, sell: 4200, stat: 7 },
+      Mythic: { rate: 0.01, power: 780, sell: 15000, stat: 11 },
+      Ancient: { rate: 0.0054, power: 1450, sell: 65000, stat: 16 },
+      Divine: { rate: 0.0005, power: 2800, sell: 250000, stat: 24 },
     },
     boss: {
       spawn_channel_ids: (process.env.RPG_BOSS_CHANNEL_IDS || "")

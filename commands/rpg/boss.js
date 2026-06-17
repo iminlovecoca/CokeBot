@@ -135,6 +135,26 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     expMult: 1, lastHitExpMult: 1.5,
   };
 
+  const rollRarityForBoss = (rankKey, type) => {
+    const r = Math.random() * 100;
+    if (rankKey === "thuong" || rankKey === "than") {
+      return r < 10 ? "Legendary" : "Epic";
+    }
+    if (rankKey === "rong") {
+      if (r < 5) return "Mythic";
+      if (r < 25) return "Legendary";
+      return "Epic";
+    }
+    if (rankKey === "thuongnhan") {
+      if (type === "participant") {
+        if (r < 5) return "Ancient";
+        if (r < 35) return "Mythic";
+        return "Legendary";
+      }
+    }
+    return null;
+  };
+
   for (const [userId, participant] of activeBoss.participants.entries()) {
     try {
       const { user, rpgClass } = await requireRpgCharacter(userId);
@@ -142,9 +162,11 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       const gears = [];
 
       // Reward gear 1 — participant drop (scales by rank)
+      const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
       const gear1 = await generateRpgGearDrop(user, {
         forceDrop: true,
-        allowedRarities: rankReward.participantRarities,
+        rarity: rolledRarity1 || undefined,
+        allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
       });
       if (gear1) {
         addRpgGearToUser(user, gear1);
@@ -153,9 +175,11 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
       // Reward gear 2 — last hit bonus (scales by rank)
       if (isLastHit) {
+        const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
         const gear2 = await generateRpgGearDrop(user, {
           forceDrop: true,
-          allowedRarities: rankReward.lastHitRarities,
+          rarity: rolledRarity2 || undefined,
+          allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
         });
         if (gear2) {
           addRpgGearToUser(user, gear2);
