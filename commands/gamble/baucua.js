@@ -5,10 +5,8 @@ const {
   ButtonStyle,
   ModalBuilder,
   TextInputBuilder,
-  TextInputStyle,
-  AttachmentBuilder
+  TextInputStyle
 } = require("discord.js");
-const { createCanvas } = require("canvas");
 const random = require("random-number-csprng");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const { incBalance, decBalance } = require("../../utils/userUtil");
@@ -29,48 +27,48 @@ const ITEMS = [
 
 const activeGames = new Map();
 
-// Hàm tạo giao diện bảng đặt cược
+// Hàm tạo giao diện bảng đặt cược (giống phong cách bảng căn cột của OwO)
 function generateGameEmbed(game) {
   const timestampDiscord = `<t:${Math.floor((game.createdAt + 60000) / 1000)}:R>`;
 
-  const embed = new EmbedBuilder()
-    .setColor("#FFD700")
-    .setTitle("BẦU CUA TÔM CÁ")
-    .setDescription(
-      `**Chủ sòng:** <@${game.hostId}>\n` +
-      `**Thời gian kết thúc:** ${timestampDiscord}\n\n` +
-      `**Click các nút bên dưới để chọn và cược (Tối đa 250k):**`
-    );
+  let description =
+    `**Chủ sòng:** <@${game.hostId}>\n` +
+    `**Thời gian kết thúc:** ${timestampDiscord}\n\n` +
+    `**Click các nút bên dưới để chọn và cược (Tối đa 250k):**\n\n` +
+    `\` Con vật \` \`   Tổng cược   \` \` Người chơi \`\n`;
 
-  const betDetails = [];
   ITEMS.forEach((item) => {
+    // Tìm tất cả các cược của con vật này
     const itemBets = [];
+    let totalItemBet = 0;
+
     for (const [userId, bets] of game.bets.entries()) {
       const amountOnItem = bets
         .filter((b) => b.choice === item.id)
         .reduce((sum, b) => sum + b.amount, 0);
       if (amountOnItem > 0) {
+        totalItemBet += amountOnItem;
         const username = game.usernames.get(userId) || `<@${userId}>`;
         itemBets.push(`${username} (**${amountOnItem.toLocaleString()}**)`);
       }
     }
 
-    if (itemBets.length > 0) {
-      betDetails.push(`${item.emoji} **${item.name}**: ${itemBets.join(", ")}`);
-    } else {
-      betDetails.push(`${item.emoji} **${item.name}**: *Chưa có cược*`);
-    }
+    const animalStr = `${item.emoji} ${item.name}`.padEnd(8, " ");
+    const totalBetStr = totalItemBet.toLocaleString().padEnd(13, " ");
+    const playersStr = itemBets.length > 0 ? itemBets.join(", ") : "*Chưa có cược*";
+
+    description += `\` ${animalStr} \` \` ${totalBetStr} \` ${playersStr}\n`;
   });
 
-  embed.addFields({
-    name: "DANH SÁCH ĐẶT CƯỢC",
-    value: betDetails.join("\n")
-  });
+  const embed = new EmbedBuilder()
+    .setColor("#FFD700")
+    .setTitle("BẦU CUA TÔM CÁ")
+    .setDescription(description);
 
   return embed;
 }
 
-// Hàm tạo các nút đặt cược (xanh lá success)
+// Hàm tạo các nút đặt cược (màu xanh Success)
 function generateGameButtons(gameId, disabled = false) {
   const row1 = new ActionRowBuilder();
   const row2 = new ActionRowBuilder();
@@ -98,114 +96,10 @@ function generateGameButtons(gameId, disabled = false) {
   return [row1, row2];
 }
 
-// Hàm vẽ 3 thẻ xúc xắc kết quả bằng Canvas (giống phong cách thẻ bài OwO)
-function generateRollImage(results) {
-  const width = 600;
-  const height = 250;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
-
-  // Nền ảnh tối giống dark mode của Discord
-  ctx.fillStyle = "#2f3136";
-  ctx.fillRect(0, 0, width, height);
-
-  const cardWidth = 150;
-  const cardHeight = 210;
-  const gap = 25;
-  const startX = (width - (3 * cardWidth + 2 * gap)) / 2;
-  const y = 20;
-
-  const colors = {
-    cua: { border: "#e74c3c", name: "CUA", bg: "#1e1f22" },
-    tom: { border: "#e67e22", name: "TÔM", bg: "#1e1f22" },
-    bau: { border: "#2ecc71", name: "BẦU", bg: "#1e1f22" },
-    ga: { border: "#f1c40f", name: "GÀ", bg: "#1e1f22" },
-    huou: { border: "#d35400", name: "HƯƠU", bg: "#1e1f22" },
-    ca: { border: "#3498db", name: "CÁ", bg: "#1e1f22" }
-  };
-
-  const drawRoundRect = (x, y, w, h, r) => {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  };
-
-  for (let i = 0; i < 3; i++) {
-    const item = results[i];
-    const cfg = colors[item.id] || { border: "#FFD700", name: item.name.toUpperCase(), bg: "#1e1f22" };
-    const cardX = startX + i * (cardWidth + gap);
-
-    // Vẽ bóng đổ nhẹ cho thẻ
-    ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-
-    // Vẽ nền thẻ bài
-    drawRoundRect(cardX, y, cardWidth, cardHeight, 12);
-    ctx.fillStyle = cfg.bg;
-    ctx.fill();
-
-    // Reset shadow
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Vẽ viền thẻ bài
-    drawRoundRect(cardX, y, cardWidth, cardHeight, 12);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = cfg.border;
-    ctx.stroke();
-
-    // Tiêu đề thẻ: XÚC XẮC 1, 2, 3
-    ctx.fillStyle = "#a3a6ac";
-    ctx.font = "bold 11px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(`XÚC XẮC ${i + 1}`, cardX + cardWidth / 2, y + 25);
-
-    // Vạch kẻ chia nhỏ dưới tiêu đề
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cardX + 20, y + 42);
-    ctx.lineTo(cardX + cardWidth - 20, y + 42);
-    ctx.stroke();
-
-    // Vẽ tên con vật lớn có màu sắc ở giữa thẻ
-    ctx.fillStyle = cfg.border;
-    ctx.font = "bold 34px sans-serif";
-    ctx.fillText(cfg.name, cardX + cardWidth / 2, y + 105);
-
-    // Vẽ vòng tròn viền trang trí xung quanh tên
-    ctx.beginPath();
-    ctx.arc(cardX + cardWidth / 2, y + 105, 42, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Vẽ Emoji của con vật ở góc dưới
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "24px sans-serif";
-    ctx.fillText(item.emoji, cardX + cardWidth / 2, y + 165);
-  }
-
-  return canvas.toBuffer("image/png");
-}
-
 module.exports = {
   name: "baucua",
   aliases: ["bc", "bctc"],
-  description: "🎲 Trò chơi Bầu Cua Tôm Cá cược bằng Coke phong cách OwO!",
+  description: "🎲 Trò chơi Bầu Cua Tôm Cá nhiều người chơi phong cách OwO!",
   usage: `${config.prefix}baucua`,
   examples: [
     {
@@ -378,7 +272,7 @@ async function runRollingPhase(game, client) {
       client.removeListener("interactionCreate", game.modalCollectorListener);
     }
 
-    // Cập nhật giao diện đang lắc
+    // Cập nhật giao diện thông báo đang lắc
     const disabledButtons = generateGameButtons(game.gameId, true);
     const rollingEmbed = new EmbedBuilder()
       .setColor("#FFD700")
@@ -387,7 +281,7 @@ async function runRollingPhase(game, client) {
         `**Người tạo:** <@${game.hostId}>\n` +
         `**Đã hết thời gian đặt cược!**\n\n` +
         `**Đang lắc đĩa...**\n` +
-        `**[ ? ]  [ ? ]  [ ? ]**`
+        `\` 🎲 Lắc... \` \` 🎲 Lắc... \` \` 🎲 Lắc... \``
       );
 
     await game.message.edit({
@@ -442,9 +336,12 @@ async function runRollingPhase(game, client) {
       }
     }
 
-    // Vẽ hình ảnh xúc xắc kết quả bằng canvas
-    const imageBuffer = generateRollImage(results);
-    const attachment = new AttachmentBuilder(imageBuffer, { name: "roll.png" });
+    // Hiển thị kết quả xúc xắc bằng Text / Emoji (không dùng Canvas theo style cờ bạc OwO)
+    const resultDisplay =
+      `**KẾT QUẢ XÚC XẮC**\n\n` +
+      `\` ${results[0].emoji} ${results[0].name.toUpperCase()} \` ` +
+      `\` ${results[1].emoji} ${results[1].name.toUpperCase()} \` ` +
+      `\` ${results[2].emoji} ${results[2].name.toUpperCase()} \``;
 
     // Tạo bảng xếp hạng trả thưởng (Bảng căn cột style OwO)
     const resultLines = [];
@@ -467,26 +364,14 @@ async function runRollingPhase(game, client) {
       .setDescription(
         `**Người tạo:** <@${game.hostId}>\n` +
         `**Trận đấu kết thúc!**\n\n` +
+        `${resultDisplay}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `**CHI TIẾT TRẢ THƯỞNG**`
-      )
-      .setImage("attachment://roll.png");
-
-    if (resultLines.length === 1) {
-      embedResult.addFields({
-        name: "Bảng kết quả",
-        value: "*Không có người chơi nào tham gia đặt cược.*"
-      });
-    } else {
-      embedResult.addFields({
-        name: "Bảng kết quả",
-        value: resultLines.join("\n")
-      });
-    }
+        `**CHI TIẾT TRẢ THƯỞNG**\n\n` +
+        (resultLines.length === 1 ? "*Không có người chơi nào tham gia đặt cược.*" : resultLines.join("\n"))
+      );
 
     await game.message.edit({
       embeds: [embedResult],
-      files: [attachment],
       components: []
     }).catch(() => null);
 
