@@ -169,16 +169,24 @@ module.exports = {
         const item = ITEMS.find((i) => i.id === choiceId);
         if (!item) return;
 
-        // Mỗi người chỉ được đặt cược tối đa 1 lần trong 1 ván
+        // Mỗi người được đặt cược tối đa 3 lần trong 1 ván
         const userBets = game.bets.get(interaction.user.id) || [];
-        if (userBets.length > 0) {
+        if (userBets.length >= 3) {
           return interaction.reply({
-            content: `${emoji.no} Bạn đã đặt cược trong ván này rồi! Mỗi người chỉ được đặt cược 1 lần.`,
+            content: `${emoji.no} Bạn đã đặt cược tối đa 3 lần cho phiên game này rồi!`,
             ephemeral: true
           });
         }
 
-        const maxRemainingBet = 250000;
+        const currentTotalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
+        if (currentTotalBet >= 250000) {
+          return interaction.reply({
+            content: `${emoji.no} Bạn đã cược tối đa hạn mức **250,000** Coke cho phiên game này rồi!`,
+            ephemeral: true
+          });
+        }
+
+        const maxRemainingBet = 250000 - currentTotalBet;
 
         // Mở Modal đặt cược
         const modal = new ModalBuilder()
@@ -213,16 +221,23 @@ module.exports = {
 
         const betInputVal = interaction.fields.getTextInputValue("bc_input_amount").trim();
 
-        // Mỗi người chỉ được đặt cược tối đa 1 lần trong 1 ván
+        // Mỗi người được đặt cược tối đa 3 lần trong 1 ván
         const userBets = game.bets.get(interaction.user.id) || [];
-        if (userBets.length > 0) {
+        if (userBets.length >= 3) {
           return interaction.reply({
-            content: `${emoji.no} Bạn đã đặt cược trong ván này rồi! Mỗi người chỉ được đặt cược 1 lần.`,
+            content: `${emoji.no} Bạn đã đặt cược tối đa 3 lần cho phiên game này rồi!`,
             ephemeral: true
           });
         }
 
-        const maxRemainingBet = 250000;
+        const currentTotalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
+        const maxRemainingBet = 250000 - currentTotalBet;
+        if (maxRemainingBet <= 0) {
+          return interaction.reply({
+            content: `${emoji.no} Bạn đã cược tối đa hạn mức **250,000** Coke cho phiên game này rồi!`,
+            ephemeral: true
+          });
+        }
 
         try {
           // Sử dụng hàm tiện ích getBetAmount
