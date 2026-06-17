@@ -347,11 +347,11 @@ async function runRollingPhase(game, client) {
     const allPlayers = [...winPlayers, ...losePlayers, ...drawPlayers];
     allPlayers.sort((a, b) => b.netProfit - a.netProfit);
 
-    const resultDisplay =
-      `**KẾT QUẢ XÚC XẮC**\n` +
-      `**[ ${results[0].emoji} ${results[0].name.toUpperCase()} ]** ` +
-      `**[ ${results[1].emoji} ${results[1].name.toUpperCase()} ]** ` +
-      `**[ ${results[2].emoji} ${results[2].name.toUpperCase()} ]**`;
+    // const resultDisplay =
+    //   `**KẾT QUẢ XÚC XẮC**\n` +
+    //   `**[ ${results[0].emoji} ${results[0].name.toUpperCase()} ]** ` +
+    //   `**[ ${results[1].emoji} ${results[1].name.toUpperCase()} ]** ` +
+    //   `**[ ${results[2].emoji} ${results[2].name.toUpperCase()} ]**`;
 
     const resultLines = [];
     resultLines.push("` Rank ` `   Payout   ` ` Player `");
