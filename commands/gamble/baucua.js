@@ -34,14 +34,35 @@ function generateGameEmbed(game) {
   const drift = getDrift();
   const timestampDiscord = `<t:${Math.floor((game.createdAt + 60000 - drift) / 1000)}:R>`;
 
+  let description =
+    `**Chủ sòng:** <@${game.hostId}>\n` +
+    `**Thời gian kết thúc:** ${timestampDiscord}\n\n` +
+    `**Click các nút bên dưới để chọn và cược (Tối đa 250k):**\n\n` +
+    `**DANH SÁCH ĐẶT CƯỢC**\n`;
+
+  ITEMS.forEach((item) => {
+    const itemBets = [];
+    let totalItemBet = 0;
+
+    for (const [userId, bets] of game.bets.entries()) {
+      const amountOnItem = bets
+        .filter((b) => b.choice === item.id)
+        .reduce((sum, b) => sum + b.amount, 0);
+      if (amountOnItem > 0) {
+        totalItemBet += amountOnItem;
+        const username = game.usernames.get(userId) || `<@${userId}>`;
+        itemBets.push(`${username} (**${amountOnItem.toLocaleString()}**)`);
+      }
+    }
+
+    const playersStr = itemBets.length > 0 ? itemBets.join(", ") : "*Chưa có cược*";
+    description += `${item.emoji} **${item.name}** (${totalItemBet.toLocaleString()}): ${playersStr}\n`;
+  });
+
   const embed = new EmbedBuilder()
     .setColor("#248046") // Màu xanh lá giống OwO
     .setTitle("BẦU CUA TÔM CÁ")
-    .setDescription(
-      `**Chủ sòng:** <@${game.hostId}>\n` +
-      `**Thời gian kết thúc:** ${timestampDiscord}\n\n` +
-      `**Click các nút bên dưới để chọn và cược (Tối đa 250k):**`
-    )
+    .setDescription(description)
     .setImage(`attachment://baucua_betting_${game.gameId}.png`);
 
   return embed;
@@ -326,11 +347,48 @@ async function runRollingPhase(game, client) {
     const allPlayers = [...winPlayers, ...losePlayers, ...drawPlayers];
     allPlayers.sort((a, b) => b.netProfit - a.netProfit);
 
-    // Vẽ và gửi kết quả bằng Canvas
-    const resultAttachment = await drawResultCanvas(game, results, allPlayers);
+    const resultDisplay =
+      `**KẾT QUẢ XÚC XẮC**\n` +
+      `**[ ${results[0].emoji} ${results[0].name.toUpperCase()} ]** ` +
+      `**[ ${results[1].emoji} ${results[1].name.toUpperCase()} ]** ` +
+      `**[ ${results[2].emoji} ${results[2].name.toUpperCase()} ]**`;
+
+    const resultLines = [];
+    resultLines.push("` Rank ` `   Payout   ` ` Player `");
+
+    allPlayers.forEach((p, index) => {
+      const rankStr = String(index + 1).padEnd(4, " ");
+      const profitSign = p.netProfit >= 0 ? "+" : "";
+      const profitStr = `${profitSign}${p.netProfit.toLocaleString()}`.padEnd(10, " ");
+      resultLines.push(`\`  ${rankStr} \` \` ${profitStr} \` ${p.username} (${p.details.join(", ")})`);
+    });
+
+    let totalBet = 0;
+    let totalWinners = 0;
+    allPlayers.forEach(p => {
+      const userBets = game.bets.get(p.userId) || [];
+      totalBet += userBets.reduce((sum, b) => sum + b.amount, 0);
+      if (p.netProfit > 0) totalWinners++;
+    });
+
+    // Vẽ và gửi kết quả bằng Canvas (chỉ chứa 3 xúc xắc rolled khổng lồ)
+    const resultAttachment = await drawResultCanvas(game, results);
     const embedResult = new EmbedBuilder()
       .setColor("#248046")
       .setTitle("KẾT QUẢ BẦU CUA")
+      .setDescription(
+        `**Người tạo:** <@${game.hostId}>\n` +
+        `**Trận đấu kết thúc!**\n\n` +
+        `${resultDisplay}\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `**CHI TIẾT TRẢ THƯỞNG**\n` +
+        (resultLines.length === 1 ? "*Không có người chơi nào đặt cược.*" : resultLines.join("\n")) +
+        `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `**THỐNG KÊ PHIÊN CHƠI**\n` +
+        `• Tổng tiền cược: **${totalBet.toLocaleString()} Coke**\n` +
+        `• Số người thắng: **${totalWinners} người chơi**\n` +
+        `• Tổng số người chơi: **${game.bets.size} người chơi**`
+      )
       .setImage(`attachment://baucua_result_${game.gameId}.png`);
 
     await game.message.edit({
