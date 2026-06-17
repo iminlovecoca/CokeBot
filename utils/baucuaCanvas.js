@@ -135,7 +135,7 @@ async function drawBettingCanvas(game) {
     // Load và vẽ ảnh pixel art của con vật
     const img = await getCachedImage(itemCfg.imageFile);
     if (img) {
-      ctx.drawImage(img, cardX + (cardWidth - 70) / 2, cardY + 42, 70, 70);
+      ctx.drawImage(img, cardX + (cardWidth - 95) / 2, cardY + 38, 95, 95);
     } else {
       // Fallback vẽ chữ to nếu không load được ảnh
       ctx.font = '40px "Arial"';
@@ -258,7 +258,7 @@ async function drawResultCanvas(game, results, leaderboard) {
     // Vẽ ảnh pixel art
     const img = await getCachedImage(itemCfg.imageFile);
     if (img) {
-      ctx.drawImage(img, cardX + (cardWidth - 70) / 2, cardY + 62, 70, 70);
+      ctx.drawImage(img, cardX + (cardWidth - 90) / 2, cardY + 55, 90, 90);
     } else {
       ctx.font = '40px "Arial"';
       ctx.fillText("🎲", cardX + cardWidth / 2, cardY + 110);
