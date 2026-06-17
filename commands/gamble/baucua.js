@@ -33,10 +33,11 @@ function generateGameEmbed(game) {
 
   const embed = new EmbedBuilder()
     .setColor("#FFD700")
-    .setTitle("🎲 BẦU CUA TÔM CÁ 🎲")
+    .setTitle("BẦU CUA TÔM CÁ")
     .setDescription(
-      `👤 **Chủ sòng:** <@${game.hostId}>\n` +
-      `⏳ **Thời gian đặt cược kết thúc:** ${timestampDiscord}\n\n`
+      `**Chủ sòng:** <@${game.hostId}>\n` +
+      `**Thời gian kết thúc:** ${timestampDiscord}\n\n` +
+      `**Click các nút bên dưới để chọn và cược (Tối đa 250k):**`
     );
 
   const betDetails = [];
@@ -60,7 +61,7 @@ function generateGameEmbed(game) {
   });
 
   embed.addFields({
-    name: "📊 DANH SÁCH ĐẶT CƯỢC",
+    name: "DANH SÁCH ĐẶT CƯỢC",
     value: betDetails.join("\n")
   });
 
@@ -77,7 +78,7 @@ function generateGameButtons(gameId, disabled = false) {
       new ButtonBuilder()
         .setCustomId(`bc_btn_${gameId}_${item.id}`)
         .setLabel(`${item.emoji} ${item.name}`)
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Success)
         .setDisabled(disabled)
     );
   });
@@ -87,7 +88,7 @@ function generateGameButtons(gameId, disabled = false) {
       new ButtonBuilder()
         .setCustomId(`bc_btn_${gameId}_${item.id}`)
         .setLabel(`${item.emoji} ${item.name}`)
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Success)
         .setDisabled(disabled)
     );
   });
@@ -165,18 +166,16 @@ module.exports = {
         const item = ITEMS.find((i) => i.id === choiceId);
         if (!item) return;
 
-        // Tính tổng tiền cược hiện tại của user
+        // Mỗi người chỉ được đặt cược tối đa 1 lần trong 1 ván
         const userBets = game.bets.get(interaction.user.id) || [];
-        const currentTotalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
-
-        if (currentTotalBet >= 250000) {
+        if (userBets.length > 0) {
           return interaction.reply({
-            content: `${emoji.no} Bạn đã cược tối đa hạn mức **250,000** Coke cho phiên game này rồi!`,
+            content: `${emoji.no} Bạn đã đặt cược trong ván này rồi! Mỗi người chỉ được đặt cược 1 lần.`,
             ephemeral: true
           });
         }
 
-        const maxRemainingBet = 250000 - currentTotalBet;
+        const maxRemainingBet = 250000;
 
         // Mở Modal nhập tiền cược
         const modal = new ModalBuilder()
@@ -211,17 +210,16 @@ module.exports = {
 
         const betInputVal = interaction.fields.getTextInputValue("bc_input_amount").trim();
 
-        // Tính toán hạn mức cược còn lại
+        // Mỗi người chỉ được đặt cược tối đa 1 lần trong 1 ván
         const userBets = game.bets.get(interaction.user.id) || [];
-        const currentTotalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
-        const maxRemainingBet = 250000 - currentTotalBet;
-
-        if (maxRemainingBet <= 0) {
+        if (userBets.length > 0) {
           return interaction.reply({
-            content: `${emoji.no} Bạn đã cược tối đa hạn mức **250,000** Coke cho phiên game này rồi!`,
+            content: `${emoji.no} Bạn đã đặt cược trong ván này rồi! Mỗi người chỉ được đặt cược 1 lần.`,
             ephemeral: true
           });
         }
+
+        const maxRemainingBet = 250000;
 
         try {
           // Sử dụng hàm tiện ích getBetAmount của bot để đảm bảo tính đồng nhất
@@ -277,16 +275,16 @@ async function runRollingPhase(game, client) {
       client.removeListener("interactionCreate", game.modalCollectorListener);
     }
 
-    // Cập nhật giao diện thông báo đang lắc
+    // Cập nhật giao diện thông báo đang lắc (bỏ các emoji trang trí thừa)
     const disabledButtons = generateGameButtons(game.gameId, true);
     const rollingEmbed = new EmbedBuilder()
       .setColor("#FFD700")
-      .setTitle("🎲 BẦU CUA TÔM CÁ 🎲")
+      .setTitle("BẦU CUA TÔM CÁ")
       .setDescription(
-        `👤 **Người tạo:** <@${game.hostId}>\n` +
-        `🛑 **Đã hết thời gian đặt cược!**\n\n` +
-        `<a:dice_rolldice:1403773919751831643> **Đang lắc đĩa...**\n` +
-        `🎲  **[ ? ]    [ ? ]    [ ? ]**`
+        `**Người tạo:** <@${game.hostId}>\n` +
+        `**Đã hết thời gian đặt cược!**\n\n` +
+        `**Đang lắc đĩa...**\n` +
+        `**[ ? ]  [ ? ]  [ ? ]**`
       );
 
     await game.message.edit({
@@ -320,9 +318,9 @@ async function runRollingPhase(game, client) {
           // Hoàn cược + thắng gấp x lần số lượng xuất hiện (ví dụ: trúng 1 con -> nhận x2 tiền cược)
           const prize = bet.amount * (matchCount + 1);
           totalPrize += prize;
-          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thắng x${matchCount} (+${(bet.amount * matchCount).toLocaleString()})`);
+          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thắng x${matchCount} (+**${(bet.amount * matchCount).toLocaleString()}**)`);
         } else {
-          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thua (-${bet.amount.toLocaleString()})`);
+          details.push(`${ITEMS.find((i) => i.id === bet.choice).emoji} thua (-**${bet.amount.toLocaleString()}**)`);
         }
       }
 
@@ -343,36 +341,36 @@ async function runRollingPhase(game, client) {
       }
     }
 
-    // Tạo hiển thị kết quả xúc xắc
+    // Tạo hiển thị kết quả xúc xắc (bỏ các emoji lấp lánh trang trí)
     const resultDisplay =
-      `✨ **KẾT QUẢ XÚC XẮC** ✨\n\n` +
-      `🌟 **[ ${results[0].emoji} ${results[0].name} ]**  ` +
-      `**[ ${results[1].emoji} ${results[1].name} ]**  ` +
-      `**[ ${results[2].emoji} ${results[2].name} ]** 🌟`;
+      `**KẾT QUẢ XÚC XẮC**\n\n` +
+      `**[ ${results[0].emoji} ${results[0].name} ]** ` +
+      `**[ ${results[1].emoji} ${results[1].name} ]** ` +
+      `**[ ${results[2].emoji} ${results[2].name} ]**`;
 
     const embedResult = new EmbedBuilder()
       .setColor("#FFD700")
-      .setTitle("🎲 KẾT QUẢ BẦU CUA TÔM CÁ 🎲")
+      .setTitle("KẾT QUẢ BẦU CUA")
       .setDescription(
-        `👤 **Người tạo:** <@${game.hostId}>\n` +
-        `🏁 **Trận đấu đã kết thúc!**\n\n` +
+        `**Người tạo:** <@${game.hostId}>\n` +
+        `**Trận đấu kết thúc!**\n\n` +
         `${resultDisplay}\n\n` +
         `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-        `📊 **CHI TIẾT TRẢ THƯỞNG**`
+        `**CHI TIẾT TRẢ THƯỞNG**`
       );
 
     const resultLines = [];
     if (winPlayers.length > 0) {
-      resultLines.push(`🎉 **Thắng cuộc:**`);
+      resultLines.push(`**Thắng cuộc:**`);
       winPlayers.forEach((p) => {
-        resultLines.push(`• **${p.username}**: nhận lại cược và thắng **+${p.netProfit.toLocaleString()}** Coke (${p.details.join(", ")})`);
+        resultLines.push(`• **${p.username}**: nhận lại và thắng **+${p.netProfit.toLocaleString()}** Coke (${p.details.join(", ")})`);
       });
     }
     if (losePlayers.length > 0) {
       if (resultLines.length > 0) resultLines.push("");
-      resultLines.push(`😢 **Thua cuộc:**`);
+      resultLines.push(`**Thua cuộc:**`);
       losePlayers.forEach((p) => {
-        resultLines.push(`• **${p.username}**: mất **${Math.abs(p.netProfit).toLocaleString()}** Coke (${p.details.join(", ")})`);
+        resultLines.push(`• **${p.username}**: mất **-${Math.abs(p.netProfit).toLocaleString()}** Coke (${p.details.join(", ")})`);
       });
     }
     if (drawPlayers.length > 0) {
