@@ -16,7 +16,7 @@ const initializeSpawner = (client) => {
   console.log("✅ Spawner has been initialized.");
 
   const isMissingChannelError = (error) =>
-    error?.code === 10003 || error?.status === 404;
+    error?.code === 10003 || error?.status === 404 || error?.code === 50001 || error?.status === 403;
 
   const pruneMissingChannel = (channelId) => {
     spawnChannels.delete(channelId);
