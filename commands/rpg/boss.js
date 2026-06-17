@@ -225,17 +225,14 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
       // Key drop for dungeon
       let keyDropped = false;
-      if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
-        const keyDropChance = bossRankKey === "thuongnhan" ? 1.0 : 0.5;
-        if (Math.random() < keyDropChance) {
-          if (!user.inventory) {
-            user.inventory = new Map();
-          }
-          const currentQty = user.inventory.get("dungeonkey") || 0;
-          user.inventory.set("dungeonkey", currentQty + 1);
-          user.markModified("inventory");
-          keyDropped = true;
+      if (bossRankKey === "thuongnhan") {
+        if (!user.inventory) {
+          user.inventory = new Map();
         }
+        const currentQty = user.inventory.get("dungeonkey") || 0;
+        user.inventory.set("dungeonkey", currentQty + 1);
+        user.markModified("inventory");
+        keyDropped = true;
       }
 
       user.rpg.power = calculateRpgPower(user);
