@@ -225,7 +225,7 @@ module.exports = {
         await interaction.update({
           embeds: [buildEmbed(avail, currStats)],
           components: buildInteractiveComponents(avail, currStats),
-        });
+        }).catch(() => {});
       } else if (interaction.isButton()) {
         if (interaction.customId === "rpg_stat_reset") {
           return interaction.reply({
@@ -262,7 +262,7 @@ module.exports = {
           await interaction.update({
             embeds: [buildEmbed(avail, currStats)],
             components: buildInteractiveComponents(avail, currStats),
-          });
+          }).catch(() => {});
         }
       }
     });
