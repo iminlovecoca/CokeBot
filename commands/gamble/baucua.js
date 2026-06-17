@@ -254,10 +254,7 @@ module.exports = {
             interaction.member?.displayName || interaction.user.username
           );
 
-          await interaction.reply({
-            content: `${emoji.yes} Bạn đã đặt cược thành công **${amount.toLocaleString()}** Coke vào **${item.emoji} ${item.name}**!`,
-            ephemeral: true
-          });
+          await interaction.deferUpdate();
 
           const attachment = await drawBettingCanvas(game);
           await game.message.edit({
