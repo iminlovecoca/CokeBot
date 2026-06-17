@@ -32,6 +32,7 @@ const { performStartupCleanup } = require("./utils/botCleanup");
 const { initializeAutohuntReminders } = require("./features/autohuntReminder");
 const { initializeGodsetExpirations } = require("./features/godsetExpiryManager");
 const config = require("./data/config");
+const { syncTimeDrift } = require("./utils/timeSync");
 
 process.on("unhandledRejection", (error) => {
   console.error("❌ Unhandled rejection:", error);
@@ -352,5 +353,6 @@ mongoose.connection.on("disconnected", () =>
 // Start Lavalink before connecting to DB and logging in.
 // Connect to DB and login.
 (async () => {
+  await syncTimeDrift().catch(() => null);
   await connectWithRetry();
 })();

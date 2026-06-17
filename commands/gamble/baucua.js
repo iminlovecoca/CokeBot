@@ -15,6 +15,7 @@ const config = require("../../data/config");
 const emoji = config.emoji;
 const settings = config.gamble_settings;
 const { drawBettingCanvas, drawResultCanvas } = require("../../utils/baucuaCanvas");
+const { getDrift } = require("../../utils/timeSync");
 
 // Danh sách 6 con vật bầu cua tôm cá
 const ITEMS = [
@@ -30,7 +31,8 @@ const activeGames = new Map();
 
 // Hàm tạo giao diện bảng đặt cược (giống phong cách bảng căn cột của OwO)
 function generateGameEmbed(game) {
-  const timestampDiscord = `<t:${Math.floor((game.createdAt + 60000) / 1000)}:R>`;
+  const drift = getDrift();
+  const timestampDiscord = `<t:${Math.floor((game.createdAt + 60000 - drift) / 1000)}:R>`;
 
   const embed = new EmbedBuilder()
     .setColor("#248046") // Màu xanh lá giống OwO
