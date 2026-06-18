@@ -23,6 +23,7 @@ module.exports = {
     }
 
     let selectedWeapon = "none";
+    let selectedRank = "Epic";
     let eventInfo = null;
 
     const generatePanelEmbed = () => {
@@ -35,7 +36,7 @@ module.exports = {
         .addFields(
           {
             name: "🗡️ Vũ khí phần thưởng:",
-            value: selectedWeapon === "none" ? "*Không thưởng vũ khí*" : `\`${selectedWeapon.toUpperCase()}\``,
+            value: selectedWeapon === "none" ? "*Không thưởng vũ khí*" : `\`[${selectedRank.toUpperCase()}] ${selectedWeapon.toUpperCase()}\``,
             inline: true,
           }
         );
@@ -61,7 +62,7 @@ module.exports = {
             name: "🎁 Phần thưởng khác",
             value: `▫️ Coke: +${eventInfo.coke.toLocaleString()} Coke\n` +
                    (eventInfo.otherItem ? `▫️ Vật phẩm: \`${eventInfo.otherItem}\` x${eventInfo.otherQty}\n` : "") +
-                   (eventInfo.weaponRank && selectedWeapon !== "none" ? `▫️ Bậc vũ khí: \`${eventInfo.weaponRank}\`` : ""),
+                   (selectedWeapon !== "none" ? `▫️ Bậc vũ khí: \`${eventInfo.weaponRank || selectedRank}\`` : ""),
             inline: false
           }
         );
@@ -95,6 +96,21 @@ module.exports = {
 
       const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 
+      const rankSelectMenu = new StringSelectMenuBuilder()
+        .setCustomId("setevent_select_rank")
+        .setPlaceholder(`Chọn bậc vũ khí (Hiện tại: ${selectedRank})...`)
+        .addOptions([
+          { label: "Common", value: "Common", description: "Bậc Thường" },
+          { label: "Rare", value: "Rare", description: "Bậc Hiếm" },
+          { label: "Epic", value: "Epic", description: "Bậc Sử Thi" },
+          { label: "Legendary", value: "Legendary", description: "Bậc Truyền Thuyết" },
+          { label: "Mythic", value: "Mythic", description: "Bậc Thần Thoại" },
+          { label: "Ancient", value: "Ancient", description: "Bậc Cổ Đại" },
+          { label: "Divine", value: "Divine", description: "Bậc Thần Thánh" }
+        ]);
+
+      const rankRow = new ActionRowBuilder().addComponents(rankSelectMenu);
+
       const btnRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("setevent_btn_open_modal")
@@ -111,7 +127,7 @@ module.exports = {
           .setStyle(ButtonStyle.Secondary)
       );
 
-      return [selectRow, btnRow];
+      return [selectRow, rankRow, btnRow];
     };
 
     const panelMsg = await message.reply({
@@ -127,6 +143,16 @@ module.exports = {
     collector.on("collect", async (interaction) => {
       if (interaction.customId === "setevent_select_weapon") {
         selectedWeapon = interaction.values[0];
+        await interaction.update({
+          embeds: [generatePanelEmbed()],
+          components: generatePanelComponents()
+        }).catch(() => null);
+
+      } else if (interaction.customId === "setevent_select_rank") {
+        selectedRank = interaction.values[0];
+        if (eventInfo) {
+          eventInfo.weaponRank = selectedRank;
+        }
         await interaction.update({
           embeds: [generatePanelEmbed()],
           components: generatePanelComponents()
@@ -258,7 +284,7 @@ module.exports = {
         const coke = parseInt(rewardsParts[0]) || 0;
         const otherItem = rewardsParts[1] || null;
         const otherQty = parseInt(rewardsParts[2]) || 0;
-        const weaponRank = rewardsParts[3] || null;
+        const weaponRank = rewardsParts[3] || selectedRank || null;
 
         if (coke < 0) {
           return modalSubmit.followUp({ content: "❌ Số Coke không thể là số âm.", ephemeral: true });
@@ -321,7 +347,7 @@ module.exports = {
         rewards: {
           coke: eventInfo.coke,
           gear: selectedWeapon !== "none" ? {
-            rank: eventInfo.weaponRank || "Epic",
+            rank: eventInfo.weaponRank || selectedRank || "Epic",
             type: "weapon",
             name: selectedWeapon
           } : null,
