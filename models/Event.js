@@ -18,7 +18,8 @@ const EventSchema = new mongoose.Schema({
   },
   requirement: {
     type: { type: String, default: null },
-    target: { type: Number, default: 0 }
+    target: { type: Number, default: 0 },
+    chapter: { type: Number, default: null }
   },
   active: { type: Boolean, default: true }
 }, { versionKey: false, timestamps: true });

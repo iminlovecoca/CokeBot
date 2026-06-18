@@ -150,6 +150,10 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
       const eventIdStr = String(ev._id);
       if (claimedEvents.includes(eventIdStr)) continue;
 
+      if (type === "dungeon_win" && ev.requirement.chapter && ev.requirement.chapter !== extraData?.chapter) {
+        continue;
+      }
+
       const currentProgress = user.rpg.eventProgress[eventIdStr] || 0;
       const target = ev.requirement.target || 1;
       if (currentProgress >= target) continue;

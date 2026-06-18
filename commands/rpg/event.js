@@ -6,14 +6,18 @@ const { requireRpgCharacter, generateRpgGearDrop, addRpgGearToUser } = require("
 const { getUser } = require("../../utils/userUtil");
 const { DateTime } = require("luxon");
 
-const getRequirementLabel = (type) => {
+const getRequirementLabel = (req) => {
+  if (!req) return "";
   const labels = {
-    boss_fight: "Đánh Boss Thế Giới",
+    boss_fight: "Tham gia hạ gục Boss Thế Giới",
+    boss_last_hit: "Dứt điểm Boss Thế Giới",
+    rpg_top_leaderboard: "Đứng đầu BXH Lực chiến RPG",
+    dungeon_win: req.chapter ? `Chiến thắng Dungeon Chương ${req.chapter}` : "Chiến thắng Dungeon",
     pvp_battle: "Thi đấu PvP",
     hunt_loot: "Loot đồ từ Hunt",
     exp_gain: "Nhận Exp RPG",
   };
-  return labels[type] || type;
+  return labels[req.type] || req.type;
 };
 
 module.exports = {
@@ -30,6 +34,8 @@ module.exports = {
       expiresAt: { $gt: new Date() },
       active: true
     }).sort({ createdAt: 1 });
+
+    const topUser = await User.findOne({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
 
     if (activeEvents.length === 0) {
       const embed = new EmbedBuilder()
@@ -67,10 +73,14 @@ module.exports = {
 
         let reqStr = "";
         if (ev.requirement && ev.requirement.type) {
-          const progress = userObj?.rpg?.eventProgress?.[String(ev._id)] || 0;
+          let progress = userObj?.rpg?.eventProgress?.[String(ev._id)] || 0;
+          if (ev.requirement.type === "rpg_top_leaderboard") {
+            const isTop = topUser && topUser.userId === userObj.userId;
+            progress = isTop ? 1 : 0;
+          }
           const target = ev.requirement.target || 1;
           const isDone = progress >= target ? "✨ Hoàn thành!" : `[${progress}/${target}]`;
-          reqStr = `  ▫ \`Yêu cầu:\` **${isDone}** ${getRequirementLabel(ev.requirement.type)}\n`;
+          reqStr = `  ▫ \`Yêu cầu:\` **${isDone}** ${getRequirementLabel(ev.requirement)}\n`;
         }
 
         let rewardsStr = `  ▫ **Coke:** +${ev.rewards.coke.toLocaleString()} Coke ${config.emoji.money}`;
@@ -97,7 +107,11 @@ module.exports = {
       const row = new ActionRowBuilder();
       activeEvents.forEach((ev, idx) => {
         const hasClaimed = claimedEvents.includes(String(ev._id));
-        const progress = userObj?.rpg?.eventProgress?.[String(ev._id)] || 0;
+        let progress = userObj?.rpg?.eventProgress?.[String(ev._id)] || 0;
+        if (ev.requirement?.type === "rpg_top_leaderboard") {
+          const isTop = topUser && topUser.userId === userObj.userId;
+          progress = isTop ? 1 : 0;
+        }
         const target = ev.requirement?.target || 0;
         const isLocked = ev.requirement?.type && (progress < target);
 
@@ -144,7 +158,12 @@ module.exports = {
       }
 
       if (event.requirement && event.requirement.type) {
-        const progress = freshUser.rpg.eventProgress?.[eventId] || 0;
+        let progress = freshUser.rpg.eventProgress?.[eventId] || 0;
+        if (event.requirement.type === "rpg_top_leaderboard") {
+          const topUserNow = await User.findOne({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+          const isTop = topUserNow && topUserNow.userId === freshUser.userId;
+          progress = isTop ? 1 : 0;
+        }
         if (progress < event.requirement.target) {
           return interaction.reply({ content: "❌ Bạn chưa hoàn thành mục tiêu yêu cầu của sự kiện này!", flags: 64 });
         }

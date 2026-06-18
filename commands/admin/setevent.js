@@ -44,10 +44,10 @@ module.exports = {
         let reqDisplay = "Không yêu cầu (Nhận ngay)";
         if (eventInfo.requirementType) {
           const reqLabels = {
-            boss_fight: "Đánh Boss Thế Giới",
-            pvp_battle: "Thi đấu PvP",
-            hunt_loot: "Loot đồ từ Hunt",
-            exp_gain: "Nhận Exp RPG",
+            boss_fight: "Tham gia đánh Boss Thế Giới",
+            boss_last_hit: "Dứt điểm Boss Thế Giới",
+            rpg_top_leaderboard: "Đứng đầu BXH Lực chiến RPG",
+            dungeon_win: `Chiến thắng Dungeon Chương ${eventInfo.requirementChapter || ""}`,
           };
           reqDisplay = `Đạt **${eventInfo.requirementTarget}** lần **${reqLabels[eventInfo.requirementType] || eventInfo.requirementType}**`;
         }
@@ -230,18 +230,27 @@ module.exports = {
         // Validate Requirement
         let requirementType = null;
         let requirementTarget = 0;
+        let requirementChapter = null;
         if (reqRaw) {
           const reqParts = reqRaw.split(",").map(s => s.trim());
           const type = reqParts[0].toLowerCase();
           const target = parseInt(reqParts[1]);
 
-          const validTypes = ["boss_fight", "pvp_battle", "hunt_loot", "exp_gain"];
+          const validTypes = ["boss_fight", "boss_last_hit", "rpg_top_leaderboard", "dungeon_win"];
           if (!validTypes.includes(type) || isNaN(target) || target <= 0) {
             return modalSubmit.followUp({ content: `❌ Yêu cầu không hợp lệ. Loại yêu cầu chỉ được: ${validTypes.join(", ")} và số lượng mục tiêu phải là số nguyên dương.`, ephemeral: true });
           }
 
           requirementType = type;
           requirementTarget = target;
+
+          if (type === "dungeon_win") {
+            const ch = parseInt(reqParts[2]);
+            if (isNaN(ch) || ch < 1 || ch > 6) {
+              return modalSubmit.followUp({ content: "❌ Đối với yêu cầu `dungeon_win`, vui lòng nhập thêm chương từ 1 đến 6. Ví dụ: `dungeon_win,1,6`.", ephemeral: true });
+            }
+            requirementChapter = ch;
+          }
         }
 
         // Validate Rewards
@@ -264,6 +273,7 @@ module.exports = {
           reqRaw,
           requirementType,
           requirementTarget,
+          requirementChapter,
           rewardsRaw,
           coke,
           otherItem,
@@ -305,7 +315,8 @@ module.exports = {
         expiresAt: eventInfo.expiresAt,
         requirement: eventInfo.requirementType ? {
           type: eventInfo.requirementType,
-          target: eventInfo.requirementTarget
+          target: eventInfo.requirementTarget,
+          chapter: eventInfo.requirementChapter
         } : null,
         rewards: {
           coke: eventInfo.coke,
@@ -321,18 +332,18 @@ module.exports = {
         }
       });
 
-      const getRequirementLabel = (type) => {
+      const getRequirementLabel = (ev) => {
         const labels = {
-          boss_fight: "Đánh Boss Thế Giới",
-          pvp_battle: "Thi đấu PvP",
-          hunt_loot: "Loot đồ từ Hunt",
-          exp_gain: "Nhận Exp RPG",
+          boss_fight: "Tham gia đánh Boss Thế Giới",
+          boss_last_hit: "Dứt điểm Boss Thế Giới",
+          rpg_top_leaderboard: "Đứng đầu BXH Lực chiến RPG",
+          dungeon_win: `Chiến thắng Dungeon Chương ${ev.requirement?.chapter || ""}`,
         };
-        return labels[type] || type;
+        return labels[ev.requirement?.type] || ev.requirement?.type;
       };
 
       const reqDisplay = event.requirement && event.requirement.type
-        ? `Đạt **${event.requirement.target}** lần **${getRequirementLabel(event.requirement.type)}**`
+        ? `Đạt **${event.requirement.target}** lần **${getRequirementLabel(event)}**`
         : "Không yêu cầu (Nhận ngay)";
 
       const embed = new EmbedBuilder()

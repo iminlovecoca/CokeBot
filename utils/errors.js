@@ -9,11 +9,16 @@ class UserFriendlyError extends Error {
 
 const handleCommandError = async (error, message) => {
     if (error instanceof UserFriendlyError) {
-        await message.reply(error.message)
+        await message.reply(error.message).catch(async () => {
+            await message.channel.send(`<@${message.author.id}>, ${error.message}`).catch(() => {});
+        });
     } else {
         console.error(`[FATAL_COMMAND_ERROR] User: ${message.author.username}, Command: "${message.content}"`)
         console.error(error)
-        await message.reply(`${config.emoji.no} Rất tiếc, đã có một lỗi không mong muốn xảy ra. Vấn đề đã được ghi nhận.`)
+        const errMsg = `${config.emoji.no} Rất tiếc, đã có một lỗi không mong muốn xảy ra. Vấn đề đã được ghi nhận.`;
+        await message.reply(errMsg).catch(async () => {
+            await message.channel.send(`<@${message.author.id}> ${errMsg}`).catch(() => {});
+        });
     }
 }
 
