@@ -8,6 +8,7 @@ const {
   Collection,
   Events,
   Partials,
+  Options,
 } = require("discord.js");
 
 const originalSetTimeout = global.setTimeout;
@@ -48,8 +49,6 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildVoiceStates,
   ],
   partials: [
     Partials.Message,
@@ -57,6 +56,17 @@ const client = new Client({
     Partials.Reaction,
     Partials.User,
   ],
+  sweepers: {
+    ...Options.DefaultSweeperSettings,
+    messages: {
+      interval: 3600, // Every hour
+      lifetime: 1800, // Remove messages older than 30 minutes
+    },
+    users: {
+      interval: 3600, // Every hour
+      filter: () => (user) => user.id !== client.user.id, // Sweep all users except the bot itself
+    }
+  }
 });
 
 client.commands = new Collection();
@@ -245,6 +255,41 @@ client.once(Events.ClientReady, async () => {
       client.allItems.push(keyItem.toObject ? keyItem.toObject() : keyItem);
     }
 
+    // Seed or update abyssalhorn to ensure correct emoji and metadata
+    let hornItem = await Item.findOne({ item_id: "abyssalhorn" });
+    if (!hornItem) {
+      hornItem = await Item.create({
+        item_id: "abyssalhorn",
+        name: "Tù và Vực thẳm",
+        description: "Dùng để triệu hồi ngẫu nhiên một con Boss Thế Giới tại kênh hiện tại mà không cần đợi giờ xuất hiện.",
+        item_type: "tool",
+        price: 250000,
+        emoji: "<:AbyssalHorn:1517221292124930190>"
+      });
+      console.log("📯 Seeded abyssalhorn item in DB.");
+    } else {
+      let updated = false;
+      if (hornItem.emoji !== "<:AbyssalHorn:1517221292124930190>") {
+        hornItem.emoji = "<:AbyssalHorn:1517221292124930190>";
+        updated = true;
+      }
+      if (hornItem.price !== 250000) {
+        hornItem.price = 250000;
+        updated = true;
+      }
+      if (updated) {
+        await hornItem.save();
+        console.log("📯 Updated abyssalhorn item in DB.");
+      }
+    }
+
+    const hornIndex = client.allItems.findIndex((i) => i.item_id === "abyssalhorn");
+    if (hornIndex > -1) {
+      client.allItems[hornIndex] = hornItem.toObject ? hornItem.toObject() : hornItem;
+    } else {
+      client.allItems.push(hornItem.toObject ? hornItem.toObject() : hornItem);
+    }
+
     const { seedUpgradeStones } = require("./utils/rpgUtil");
     await seedUpgradeStones(client);
 
@@ -331,6 +376,7 @@ async function connectWithRetry() {
       serverSelectionTimeoutMS: 20000,
       retryWrites: true,
       family: 4,
+      keepAlive: true,
     });
     client.login(process.env.TOKEN);
   } catch (err) {

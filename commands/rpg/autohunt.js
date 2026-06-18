@@ -229,7 +229,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
         inline: true,
       },
       {
-        name: `🔵 Coke Essence - ${essence.toLocaleString()}`,
+        name: `<:Essence:1517225845448773905> Coke Essence - ${essence.toLocaleString()}`,
         value: `\`Current Max Autohunt: ${maxhunt.toLocaleString()} hunts, ${(gainInfo.stat * durInfo.stat).toLocaleString()} essence, and ${(expInfo.stat * durInfo.stat).toLocaleString()} XP for ${maxCost.toLocaleString()} Coke\``,
         inline: false,
       },
@@ -297,7 +297,7 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
         `⏱️ **Thời gian**: \`${elapsedHours.toFixed(1)} giờ\`  |  🎯 **Lượt săn**: \`${huntsCount.toLocaleString()}\`\n\n` +
         `💎 **Phần thưởng:**\n` +
         `• ⚔️ EXP Nhân vật: **+${xpGain.toLocaleString()}** ${levelsGained > 0 ? `(🎉 **Lên cấp ${newLevel}!**)` : ""}\n` +
-        `• 🔵 Coke Essence: **+${essenceGain.toLocaleString()}**\n` +
+        `• <:Essence:1517225845448773905> Coke Essence: **+${essenceGain.toLocaleString()}**\n` +
         `• 🎒 Trang bị nhặt: **${gearsDropped.length}** món\n\n` +
         `📦 **Chi tiết trang bị:**\n` +
         `${gearDetailLine}`

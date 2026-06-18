@@ -158,7 +158,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
       } else if (quest.rewardType === "essence") {
         if (!user.rpg.autohunt) user.rpg.autohunt = {};
         user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + quest.rewardValue;
-        rewardText = `+**${quest.rewardValue.toLocaleString()} Essence** 🔵`;
+        rewardText = `+**${quest.rewardValue.toLocaleString()} Essence** <:Essence:1517225845448773905>`;
       } else if (quest.rewardType === "box") {
         if (!user.inventory) user.inventory = {};
         const currentCount = user.inventory.get("wc") || 0;

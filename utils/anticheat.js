@@ -133,6 +133,30 @@ const checkMessage = message => {
 
 	// Bot detection
 	if (config.anticheat.bot_detection_enabled && content.startsWith(config.prefix)) {
+		const command = content.slice(config.prefix.length).split(' ')[0].toLowerCase()
+
+		// 1. Random verification check on high-value commands (0.6% chance)
+		if (config.anticheat.focus_high_value_commands.includes(command)) {
+			if (Math.random() < 0.006) {
+				console.log(`[Anti-Cheat] User ${userId} (${username}) flagged by random validation check.`)
+				return { status: 'TRIGGER_VERIFICATION', reason: 'random validation check' }
+			}
+		}
+
+		// 2. Consecutive command play without a 2-minute break
+		if (history.lastCommandTime && (now - history.lastCommandTime) > 2 * 60 * 1000) {
+			history.consecutiveCommandsCount = 1
+		} else {
+			history.consecutiveCommandsCount = (history.consecutiveCommandsCount || 0) + 1
+		}
+		history.lastCommandTime = now
+
+		if (history.consecutiveCommandsCount >= 200) {
+			console.log(`[Anti-Cheat] User ${userId} (${username}) flagged for consecutive play (>200 commands without break).`)
+			history.consecutiveCommandsCount = 0 // Reset
+			return { status: 'TRIGGER_VERIFICATION', reason: 'consecutive play (>200 commands without break)' }
+		}
+
 		// Rhythm and Monotony (per-channel)
 		if (!history.channelData.has(channelId)) {
 			history.channelData.set(channelId, { timestamps: [], lastCommand: '', consecutive: 0 })
@@ -190,13 +214,13 @@ const checkMessage = message => {
 				let isBot = false
 				let flagReason = ''
 
-				if (diffs.length >= 4 && stdDevDiffs < 1000) {
+				if (diffs.length >= 4 && stdDevDiffs < 150) {
 					isBot = true
 					flagReason = `step consistency (stdDevDiffs: ${stdDevDiffs.toFixed(0)}ms)`
 				} else if (stdDev < config.anticheat.rhythm_std_dev_threshold_ms) {
 					isBot = true
 					flagReason = `absolute rhythm (stdDev: ${stdDev.toFixed(0)}ms)`
-				} else if (cv < 0.22 && !hasQuickCommands) {
+				} else if (cv < 0.08 && !hasQuickCommands) {
 					isBot = true
 					flagReason = `relative rhythm (cv: ${cv.toFixed(2)})`
 				}
@@ -209,7 +233,6 @@ const checkMessage = message => {
 		}
 
 		// Suspicious Focus (global)
-		const command = content.slice(config.prefix.length).split(' ')[0].toLowerCase()
 		const category = config.anticheat.focus_high_value_commands.includes(command) ? 'high_value' : 'other'
 		history.globalCommandHistory.push({ category })
 		if (history.globalCommandHistory.length > config.anticheat.focus_history_length) {

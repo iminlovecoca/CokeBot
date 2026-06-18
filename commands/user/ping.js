@@ -24,7 +24,7 @@ module.exports = {
     let dbPing = 'Không đo được';
     try {
       const start = Date.now();
-      await User.findOne().lean();
+      await mongoose.connection.db.command({ ping: 1 });
       dbPing = `${Date.now() - start}ms`;
     } catch (err) {
       dbPing = '❌ Lỗi';

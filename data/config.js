@@ -341,7 +341,7 @@ module.exports = {
           armor: 2900,
           magicResist: 2900,
           damageType: "magical",
-          attackPower: 1300,
+          attackPower: 2200,
         },
         {
           key: "boss_IX",
@@ -696,15 +696,15 @@ module.exports = {
     // Rhythm
     rhythm_history_length: 15,
     rhythm_min_messages: 10,
-    rhythm_std_dev_threshold_ms: 2000,
+    rhythm_std_dev_threshold_ms: 250,
 
     // Monotony (consecutive commands)
-    monotony_threshold: 30,
+    monotony_threshold: 60,
 
     // Focus (command ratio)
     focus_history_length: 50,
     focus_min_commands: 25,
-    focus_high_value_commands: ["c", "catch"],
+    focus_high_value_commands: ["c", "catch", "hunt", "h", "autohunt", "ah", "dungeon", "dg", "battle", "b", "boss", "bs"],
     focus_ratio_threshold: 0.85,
 
     // Verification

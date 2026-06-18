@@ -340,18 +340,27 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           );
         }
       }
-    } else if (item.item_type === "tool" && (itemId === "wc" || itemId === "weapon_box")) {
+    } else if (item.item_type === "tool" && (itemId === "wc" || itemId === "weapon_box" || itemId === "abyssalhorn")) {
       const { hasRpgCharacter } = require("./rpgUtil");
       const dbUser = await User.findOne({ userId: user.id });
       if (!hasRpgCharacter(dbUser)) {
         throw new UserFriendlyError(
-          `${config.emoji.no} Bạn chưa tạo nhân vật RPG. Hãy dùng lệnh \`${config.prefix}class\` để tạo nhân vật trước khi mở hòm vũ khí.`
+          `${config.emoji.no} Bạn chưa tạo nhân vật RPG. Hãy dùng lệnh \`${config.prefix}class\` để tạo nhân vật trước khi sử dụng vật phẩm này.`
         );
       }
-      if (quantity === "all") {
-        quantityToUse = dbUser.inventory.get(itemId) || 0;
+      if (itemId === "abyssalhorn") {
+        if (client.rpgBosses && client.rpgBosses.has(channelId)) {
+          throw new UserFriendlyError(
+            `${config.emoji.no} Đang có một Boss Thế Giới đang xuất hiện tại kênh này rồi!`
+          );
+        }
+        quantityToUse = 1;
       } else {
-        quantityToUse = quantity;
+        if (quantity === "all") {
+          quantityToUse = dbUser.inventory.get(itemId) || 0;
+        } else {
+          quantityToUse = quantity;
+        }
       }
       if (quantityToUse <= 0) {
         throw new UserFriendlyError(
@@ -442,6 +451,14 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         await addCokemonXp(cokemon, xpNeeded);
       }
       resultMessage += `🎉 **${getCokemonName(cokemon)}** ${getCokemonEmoji(cokemon)} đã ăn ${quantityToUse} ${item.name} ${item.emoji} và tăng từ **cấp ${originalLevel}** lên **cấp ${cokemon.level}**!`;
+    } else if (item.item_type === "tool" && itemId === "abyssalhorn") {
+      const { spawnBossNow } = require("../features/rpgBossSpawner");
+      const spawnedBoss = await spawnBossNow(client, channelId);
+      if (spawnedBoss) {
+        resultMessage = `📢 **${user.username || user.id}** đã sử dụng **Tù Và Vực Thẳm** <:AbyssalHorn:1517221292124930190> và thức tỉnh **${spawnedBoss.boss.name}** tại kênh này!`;
+      } else {
+        resultMessage = `❌ Triệu hồi Boss thất bại, vui lòng thử lại sau.`;
+      }
     } else if (item.item_type === "tool" && (itemId === "wc" || itemId === "weapon_box")) {
       const channel = await client.channels.fetch(channelId).catch(() => null);
       if (!channel) {
