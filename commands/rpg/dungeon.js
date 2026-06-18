@@ -375,10 +375,14 @@ const setupRound = (activeDungeon, channel) => {
   // Set timeout for this round: 10 minutes for boss round, 5 minutes for normal rounds
   const isBossRound = (round === 5);
   const roundTimeLimit = isBossRound ? 10 * 60 * 1000 : 5 * 60 * 1000;
-  activeDungeon.roundEndTime = Date.now() + roundTimeLimit;
-  activeDungeon.timeoutTimer = setTimeout(async () => {
-    await handleTimeout(channel, activeDungeon);
-  }, roundTimeLimit);
+  
+  const isC6BossIntro = (chapter === 6 && round === 5 && !activeDungeon.veilreaperStoryShown);
+  if (!isC6BossIntro) {
+    activeDungeon.roundEndTime = Date.now() + roundTimeLimit;
+    activeDungeon.timeoutTimer = setTimeout(async () => {
+      await handleTimeout(channel, activeDungeon);
+    }, roundTimeLimit);
+  }
 
   const dCfg = config.dungeon || {};
   const normCfg = dCfg.normal_monster || { base_hp: 20000, round_hp_mult: 0.1, base_atk: 100, round_atk_mult: 0.05, base_defense: 50 };
@@ -485,6 +489,12 @@ const setupRound = (activeDungeon, channel) => {
       const playDialogue = async (index) => {
         if (index >= dialogues.length) {
           activeDungeon.actionInProgress = false;
+          
+          activeDungeon.roundEndTime = Date.now() + roundTimeLimit;
+          activeDungeon.timeoutTimer = setTimeout(async () => {
+            await handleTimeout(channel, activeDungeon);
+          }, roundTimeLimit);
+
           setupBossState();
           return;
         }
@@ -496,11 +506,11 @@ const setupRound = (activeDungeon, channel) => {
           .setDescription(diag.description)
           .setTimestamp();
 
-        const filePath = path.join(__dirname, "../../assets/dungeons/Veilreaper.png");
+        const eyesPath = path.join(__dirname, "../../assets/backgrounds/eyes.png");
         const files = [];
-        if (fs.existsSync(filePath)) {
-          files.push(new AttachmentBuilder(filePath, { name: "Veilreaper.png" }));
-          introEmbed.setImage("attachment://Veilreaper.png");
+        if (fs.existsSync(eyesPath)) {
+          files.push(new AttachmentBuilder(eyesPath, { name: "eyes.png" }));
+          introEmbed.setImage("attachment://eyes.png");
         }
 
         const msg = await channel.send({ embeds: [introEmbed], files }).catch(() => null);

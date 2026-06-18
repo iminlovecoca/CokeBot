@@ -131,12 +131,12 @@ const buildBossComponents = (activeBoss, status = "alive") => {
 const getNextSpawnDelay = () => {
   const bossConfig = config.rpg.boss || {};
   const timezone = bossConfig.spawn_timezone || "Asia/Ho_Chi_Minh";
-  const spawnHours = [...(bossConfig.spawn_hours || [9, 12, 15, 18, 22])]
+  const spawnHours = [...(bossConfig.spawn_hours || [3, 6, 9, 12, 15, 18, 21, 0])]
     .map(Number)
     .filter((hour) => Number.isInteger(hour) && hour >= 0 && hour <= 23)
     .sort((a, b) => a - b);
   const now = DateTime.now().setZone(timezone);
-  const hours = spawnHours.length ? spawnHours : [9, 12, 15, 18, 22];
+  const hours = spawnHours.length ? spawnHours : [3, 6, 9, 12, 15, 18, 21, 0];
 
   for (const hour of hours) {
     const candidate = now.set({ hour, minute: 0, second: 0, millisecond: 0 });
@@ -230,7 +230,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     // Tinh chỉnh tỉ lệ boss thượng nhân xuất hiện:
     // - Từ 9h sáng đến 15h là 10% (thuong=50, than=25, rong=15, thuongnhan=10)
     // - Từ 18h đến 00h là 30% (rong=70, thuongnhan=30 khi isNightBoss lọc)
-    if (currentHour >= 9 && currentHour < 15) {
+    if ((currentHour >= 9 && currentHour < 15) || currentHour === 3 || currentHour === 6) {
       if (rankWeights.thuong) rankWeights.thuong.spawnWeight = 50;
       if (rankWeights.than) rankWeights.than.spawnWeight = 25;
       if (rankWeights.rong) rankWeights.rong.spawnWeight = 15;

@@ -99,6 +99,7 @@ const userSchema = new mongoose.Schema({
     rank: { type: String, default: "Novice" },
     equipped: { type: Object, default: {} },
     claimedBossWeapons: { type: [String], default: [] },
+    claimedEvents: { type: [String], default: [] },
     godsetBackup: { type: Object, default: null },
     items: { type: [Object], default: [] },
     lastItemId: { type: Number, default: 0, index: true },

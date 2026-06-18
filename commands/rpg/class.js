@@ -10,9 +10,20 @@ const {
   TextInputStyle,
 } = require("discord.js");
 const config = require("../../data/config");
-const { getUser } = require("../../utils/userUtil");
+const { getUser, isDev, isAdmin } = require("../../utils/userUtil");
 const path = require("path");
 const fs = require("fs");
+
+const getCharacterAssetPath = (avatarFile) => {
+  let assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+  if (!fs.existsSync(assetPath)) {
+    const skinPath = path.join(__dirname, "../../assets/skins", avatarFile);
+    if (fs.existsSync(skinPath)) {
+      assetPath = skinPath;
+    }
+  }
+  return assetPath;
+};
 const {
   classEntries,
   calculateRpgPower,
@@ -225,11 +236,11 @@ module.exports = {
     if (hasRpgCharacter(userData)) {
       const rpgClass = getRpgClass(userData.rpg.classKey);
       let avatarFile = userData.rpg.characterAsset || rpgClass.asset;
-      let assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+      let assetPath = getCharacterAssetPath(avatarFile);
 
       if (!fs.existsSync(assetPath)) {
         avatarFile = rpgClass.asset || "Warrior_male.png";
-        assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
+        assetPath = getCharacterAssetPath(avatarFile);
         userData.rpg.characterAsset = avatarFile;
         userData.markModified("rpg");
         await userData.save();
@@ -238,6 +249,8 @@ module.exports = {
       const attachment = new AttachmentBuilder(assetPath, {
         name: avatarFile,
       });
+
+      const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
 
       const actionRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -252,9 +265,9 @@ module.exports = {
           .setEmoji("📝"),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_skins")
-          .setLabel("Skins (🔒)")
+          .setLabel(isUserAdmin ? "Skins" : "Skins (🔒)")
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(true)
+          .setDisabled(!isUserAdmin)
       );
 
       const prompt = await message.reply({
@@ -269,7 +282,81 @@ module.exports = {
       });
 
       collector.on("collect", async (interaction) => {
-        if (interaction.customId === "rpg_class_action_classes") {
+        if (interaction.customId === "rpg_class_action_skins") {
+          const user = await getUser(message.author.id);
+          const isAllowed = isDev(message.author.id) || isAdmin(message.author.id);
+          if (!isAllowed) {
+            return interaction.reply({ content: "❌ Bạn không có quyền truy cập tính năng này!", flags: 64 });
+          }
+
+          const classKey = user.rpg.classKey;
+          const skinsDir = path.join(__dirname, "../../assets/skins");
+          if (!fs.existsSync(skinsDir)) {
+            return interaction.reply({ content: "❌ Thư mục skins không tồn tại!", flags: 64 });
+          }
+
+          const skinFiles = fs.readdirSync(skinsDir)
+            .filter(file => file.toLowerCase().startsWith(classKey.toLowerCase()) && file.endsWith(".png"));
+
+          if (skinFiles.length === 0) {
+            return interaction.reply({ content: `❌ Không tìm thấy skin nào cho class **${classKey}** trong thư mục skins!`, flags: 64 });
+          }
+
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("rpg_class_select_skin")
+            .setPlaceholder("Chọn một skin để áp dụng...")
+            .addOptions(
+              skinFiles.map(file => ({
+                label: file.replace(".png", ""),
+                value: file,
+              }))
+            );
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+          const btnRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId("rpg_class_skins_back")
+              .setLabel("Quay lại")
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.update({
+            content: `✨ **Chọn Skin cho Class ${classKey.toUpperCase()}** (Chỉ dành cho Admin)`,
+            embeds: [],
+            files: [],
+            components: [row, btnRow]
+          });
+        } else if (interaction.customId === "rpg_class_select_skin") {
+          const selectedSkin = interaction.values[0];
+          const user = await getUser(message.author.id);
+          user.rpg.characterAsset = selectedSkin;
+          user.markModified("rpg");
+          await user.save();
+
+          const rpgClass = getRpgClass(user.rpg.classKey);
+          const assetPath = getCharacterAssetPath(selectedSkin);
+          const attachment = new AttachmentBuilder(assetPath, { name: selectedSkin });
+
+          await interaction.update({
+            content: `🎉 Đã áp dụng skin **${selectedSkin.replace(".png", "")}** thành công!`,
+            embeds: [buildClassEmbed(user.rpg.classKey, rpgClass, user, selectedSkin)],
+            files: [attachment],
+            components: [actionRow]
+          });
+        } else if (interaction.customId === "rpg_class_skins_back") {
+          const user = await getUser(message.author.id);
+          const rpgClass = getRpgClass(user.rpg.classKey);
+          const currentAsset = user.rpg.characterAsset || rpgClass.asset;
+          const assetPath = getCharacterAssetPath(currentAsset);
+          const attachment = new AttachmentBuilder(assetPath, { name: currentAsset });
+
+          await interaction.update({
+            content: null,
+            embeds: [buildClassEmbed(user.rpg.classKey, rpgClass, user, currentAsset)],
+            files: [attachment],
+            components: [actionRow]
+          });
+        } else if (interaction.customId === "rpg_class_action_classes") {
           const user = await getUser(message.author.id);
           const isFree = !user.rpg.freeClassChangeUsed;
           const changeCost = isFree ? 0 : 100000;
@@ -320,7 +407,7 @@ module.exports = {
           const renderChangePayload = (disabled = false) => {
             const rpgClass = getRpgClass(currentClassKey);
             const embed = buildClassEmbed(currentClassKey, rpgClass, null, currentAvatar);
-            const assetPath = path.join(__dirname, "../../assets/characters", currentAvatar);
+            const assetPath = getCharacterAssetPath(currentAvatar);
             const attachment = new AttachmentBuilder(assetPath, {
               name: currentAvatar,
             });
@@ -396,7 +483,7 @@ module.exports = {
 
                 const originalClass = getRpgClass(refundedUser.rpg.classKey);
                 const originalAvatar = refundedUser.rpg.characterAsset || originalClass.asset;
-                const originalAssetPath = path.join(__dirname, "../../assets/characters", originalAvatar);
+                const originalAssetPath = getCharacterAssetPath(originalAvatar);
                 const originalAttachment = new AttachmentBuilder(originalAssetPath, {
                   name: originalAvatar,
                 });
@@ -520,7 +607,7 @@ module.exports = {
 
           const rpgClass = getRpgClass(finalUser.rpg.classKey);
           const currentAvatar = finalUser.rpg.characterAsset || rpgClass.asset;
-          const assetPath = path.join(__dirname, "../../assets/characters", currentAvatar);
+          const assetPath = getCharacterAssetPath(currentAvatar);
           const attachment = new AttachmentBuilder(assetPath, {
             name: currentAvatar,
           });
@@ -550,7 +637,7 @@ module.exports = {
 
     const renderMessagePayload = (disabled = false) => {
       const rpgClass = getRpgClass(currentClassKey);
-      const assetPath = path.join(__dirname, "../../assets/characters", currentAvatar);
+      const assetPath = getCharacterAssetPath(currentAvatar);
       const attachment = new AttachmentBuilder(assetPath, {
         name: currentAvatar,
       });
