@@ -376,7 +376,6 @@ async function connectWithRetry() {
       serverSelectionTimeoutMS: 20000,
       retryWrites: true,
       family: 4,
-      keepAlive: true,
     });
     client.login(process.env.TOKEN);
   } catch (err) {
