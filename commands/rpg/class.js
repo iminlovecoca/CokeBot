@@ -249,7 +249,12 @@ module.exports = {
           .setCustomId("rpg_class_action_name")
           .setLabel("Name")
           .setStyle(ButtonStyle.Primary)
-          .setEmoji("📝")
+          .setEmoji("📝"),
+        new ButtonBuilder()
+          .setCustomId("rpg_class_action_skins")
+          .setLabel("Skins (🔒)")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
       );
 
       const prompt = await message.reply({

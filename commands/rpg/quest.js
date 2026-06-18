@@ -81,7 +81,7 @@ module.exports = {
         if (quest.rewardType === "coke") {
           rewardStr = `${quest.rewardValue.toLocaleString()} ${config.emoji.money}`;
         } else if (quest.rewardType === "essence") {
-          rewardStr = `${quest.rewardValue.toLocaleString()} <:Essence:1517225845448773905>`;
+          rewardStr = `${quest.rewardValue.toLocaleString()} <:Essence:1517230428828995594>`;
         } else if (quest.rewardType === "box") {
           rewardStr = "<:crate:1512793698025603282>".repeat(quest.rewardValue);
         }

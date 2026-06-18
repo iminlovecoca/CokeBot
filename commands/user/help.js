@@ -6,6 +6,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 const config = require("../../data/config");
+const { isDev, isAdmin } = require("../../utils/userUtil");
 
 module.exports = {
   name: "help",
@@ -20,6 +21,8 @@ module.exports = {
     },
   ],
   async execute(message, args) {
+    const userId = message.author.id;
+    const showAdmin = isDev(userId) || isAdmin(userId);
     const commands = message.client.commands;
     const noituCommands = message.client.noituCommands || new Map();
 
@@ -53,6 +56,11 @@ module.exports = {
       }
 
       const { command, scope } = found;
+      const isAdminCommand = command.filePath && path.dirname(require.resolve(command.filePath)).endsWith("admin");
+      if (isAdminCommand && !showAdmin) {
+        return message.reply("Đó không phải là một lệnh hợp lệ!");
+      }
+
       const commandPrefix =
         scope === "noitu" ? `${config.prefix} noitu ` : `${config.prefix}`;
 
@@ -97,9 +105,12 @@ module.exports = {
       }
       return message.reply({ embeds: [detailEmbed] });
     } else {
-      const commandFolders = fs.readdirSync(
+      let commandFolders = fs.readdirSync(
         path.join(__dirname, "../../commands"),
       ).filter((folder) => folder !== "noitu");
+      if (!showAdmin) {
+        commandFolders = commandFolders.filter((folder) => folder !== "admin");
+      }
       let currentCategory = "main";
 
       const generateEmbed = (category) => {
@@ -112,19 +123,30 @@ module.exports = {
 
         if (category === "main") {
           // Main Menu View: Show all categories
-          embed.setTitle("Chọn một danh mục để xem các lệnh").setDescription(
-            commandFolders
-              .map((folder) => {
-                const emoji =
-                  config.category_emojis[folder] ||
-                  config.category_emojis["default"];
-                const categoryName =
-                  folder.charAt(0).toUpperCase() + folder.slice(1);
-                return `- ${emoji} **${categoryName}**`;
-              })
-              .join("\n"),
-          );
+          let desc = commandFolders
+            .map((folder) => {
+              const emoji =
+                config.category_emojis[folder] ||
+                config.category_emojis["default"];
+              const categoryName =
+                folder.charAt(0).toUpperCase() + folder.slice(1);
+              return `- ${emoji} **${categoryName}**`;
+            })
+            .join("\n");
+
+          if (showAdmin) {
+            const packageJson = require("../../package.json");
+            desc += `\n\n**Phiên bản bot:** \`v${packageJson.version}\``;
+          }
+
+          embed.setTitle("Chọn một danh mục để xem các lệnh").setDescription(desc);
         } else {
+          if (category === "admin" && !showAdmin) {
+            return embed
+              .setColor("#FF0000")
+              .setTitle("⚠️ Lỗi")
+              .setDescription("Bạn không có quyền truy cập danh mục này.");
+          }
           // Category View: Show commands in the selected category
           const emoji =
             config.category_emojis[category] ||
