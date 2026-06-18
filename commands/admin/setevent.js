@@ -1,149 +1,323 @@
-const { EmbedBuilder } = require("discord.js");
+const {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+} = require("discord.js");
 const Event = require("../../models/Event");
 const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
+const { DateTime } = require("luxon");
 
 module.exports = {
   name: "setevent",
-  description: "Thiết lập một sự kiện RPG mới với thời gian, yêu cầu và phần thưởng tùy chọn (Chỉ Admin)",
+  description: "Thiết lập một sự kiện RPG mới bằng giao diện Dialog/Modal (Chỉ Admin)",
   usage: `${config.prefix}setevent`,
   async execute(message, args = []) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
     }
 
-    const filter = (m) => m.author.id === message.author.id;
-    const channel = message.channel;
+    let selectedWeapon = "none";
+    let eventInfo = null;
 
-    try {
-      // Prompt 1: Event Name
-      await message.reply("📝 **Bước 1/7:** Nhập **Tên của sự kiện** (ví dụ: *Sự Kiện Sát Thần*):");
-      const nameMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const name = nameMsg.first().content.trim();
-      if (!name) return message.reply("❌ Tên sự kiện không hợp lệ. Đã hủy thiết lập.");
+    const generatePanelEmbed = () => {
+      const embed = new EmbedBuilder()
+        .setColor("#3498DB")
+        .setTitle("⚙️ THIẾT LẬP SỰ KIỆN RPG")
+        .setDescription(
+          "Hãy sử dụng menu chọn vũ khí bên dưới và nút **Nhập Thông Tin** để cấu hình sự kiện."
+        )
+        .addFields(
+          {
+            name: "🗡️ Vũ khí phần thưởng:",
+            value: selectedWeapon === "none" ? "*Không thưởng vũ khí*" : `\`${selectedWeapon.toUpperCase()}\``,
+            inline: true,
+          }
+        );
 
-      // Prompt 2: Event Description
-      await message.reply("📝 **Bước 2/7:** Nhập **Nội dung/Mô tả sự kiện**:");
-      const descMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const description = descMsg.first().content.trim();
-      if (!description) return message.reply("❌ Mô tả sự kiện không hợp lệ. Đã hủy thiết lập.");
+      if (eventInfo) {
+        let reqDisplay = "Không yêu cầu (Nhận ngay)";
+        if (eventInfo.requirementType) {
+          const reqLabels = {
+            boss_fight: "Đánh Boss Thế Giới",
+            pvp_battle: "Thi đấu PvP",
+            hunt_loot: "Loot đồ từ Hunt",
+            exp_gain: "Nhận Exp RPG",
+          };
+          reqDisplay = `Đạt **${eventInfo.requirementTarget}** lần **${reqLabels[eventInfo.requirementType] || eventInfo.requirementType}**`;
+        }
 
-      // Prompt 3: Duration
-      await message.reply("⏰ **Bước 3/7:** Nhập **Thời gian diễn ra** (ví dụ: `24` cho 24 giờ, `3d` cho 3 ngày):");
-      const durMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const durStr = durMsg.first().content.trim().toLowerCase();
-      let durationHours = 0;
-      if (durStr.endsWith("d")) {
-        durationHours = parseFloat(durStr) * 24;
-      } else if (durStr.endsWith("h")) {
-        durationHours = parseFloat(durStr);
+        embed.addFields(
+          { name: "📝 Tên sự kiện", value: eventInfo.name, inline: false },
+          { name: "📖 Mô tả", value: eventInfo.description, inline: false },
+          { name: "⏰ Hết hạn lúc", value: `<t:${Math.floor(eventInfo.expiresAt.getTime() / 1000)}:F>`, inline: false },
+          { name: "🎯 Yêu cầu", value: reqDisplay, inline: true },
+          {
+            name: "🎁 Phần thưởng khác",
+            value: `▫️ Coke: +${eventInfo.coke.toLocaleString()} Coke\n` +
+                   (eventInfo.otherItem ? `▫️ Vật phẩm: \`${eventInfo.otherItem}\` x${eventInfo.otherQty}\n` : "") +
+                   (eventInfo.weaponRank && selectedWeapon !== "none" ? `▫️ Bậc vũ khí: \`${eventInfo.weaponRank}\`` : ""),
+            inline: false
+          }
+        );
       } else {
-        durationHours = parseFloat(durStr);
+        embed.addFields({ name: "📝 Thông tin sự kiện", value: "*Chưa nhập*", inline: false });
       }
 
-      if (isNaN(durationHours) || durationHours <= 0) {
-        return message.reply("❌ Thời gian không hợp lệ. Đã hủy thiết lập.");
-      }
-      const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+      return embed;
+    };
 
-      // Prompt 4: Event Requirement
-      let requirement = null;
-      await message.reply("🎯 **Bước 4/7:** Bạn có muốn thêm **Yêu cầu/Mục tiêu hoàn thành** để được nhận quà không? (Trả lời: `yes`/`no` hoặc `y`/`n`):");
-      const reqConfirmMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const reqConfirm = reqConfirmMsg.first().content.trim().toLowerCase();
+    const generatePanelComponents = () => {
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId("setevent_select_weapon")
+        .setPlaceholder("Chọn vũ khí thưởng (Không bắt buộc)...")
+        .addOptions([
+          { label: "Không thưởng vũ khí", value: "none", description: "Bỏ chọn vũ khí phần thưởng." },
+          { label: "Longsword", value: "longsword", description: "Vũ khí thường (Chiến binh)" },
+          { label: "Staff", value: "staff", description: "Pháp trượng thường (Pháp sư)" },
+          { label: "Dagger", value: "dagger", description: "Đoản đao thường (Sát thủ)" },
+          { label: "Shadow Dagger", value: "shadowdagger", description: "Ảnh Hồn Đoản Đao (Ancient)" },
+          { label: "Poison Dagger", value: "poisondagger", description: "Kịch Độc Đoản Đao" },
+          { label: "Firesword", value: "firesword", description: "Hỏa Long Thần Kiếm (Ancient)" },
+          { label: "Green Staff", value: "greenstaff", description: "Mộc Diệp Pháp Trượng (Ancient)" },
+          { label: "Blue Staff", value: "bluestaff", description: "Lam Tinh Thần Trượng (Ancient)" },
+          { label: "Crimson Dagger", value: "crimsondagger", description: "Huyết Nguyệt Đoản Đao (Ancient)" },
+          { label: "Holy Sword", value: "holysword", description: "Thánh Kiếm Hoàng Kim" },
+          { label: "Dark Sword", value: "darksword", description: "Hắc Diệu Ma Kiếm" },
+          { label: "Dark Staff", value: "darkstaff", description: "Hắc Diệu Ma Trượng" },
+          { label: "Gravity Bow", value: "gravitybow", description: "Cung Trọng Lực (Ancient)" }
+        ]);
 
-      if (reqConfirm === "yes" || reqConfirm === "y") {
-        await message.reply("▫️ Nhập loại yêu cầu (`boss_fight` để đánh boss, `pvp_battle` để đấu pvp, `hunt_loot` để loot đồ, `exp_gain` để nhận exp):");
-        const reqTypeMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const type = reqTypeMsg.first().content.trim().toLowerCase();
+      const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 
-        const validTypes = ["boss_fight", "pvp_battle", "hunt_loot", "exp_gain"];
-        if (!validTypes.includes(type)) {
-          return message.reply("❌ Loại yêu cầu không hợp lệ. Đã hủy thiết lập.");
+      const btnRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("setevent_btn_open_modal")
+          .setLabel("Nhập Thông Tin 📝")
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId("setevent_btn_create")
+          .setLabel("Tạo Sự Kiện 🎉")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(!eventInfo),
+        new ButtonBuilder()
+          .setCustomId("setevent_btn_cancel")
+          .setLabel("Hủy ❌")
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+      return [selectRow, btnRow];
+    };
+
+    const panelMsg = await message.reply({
+      embeds: [generatePanelEmbed()],
+      components: generatePanelComponents()
+    });
+
+    const collector = panelMsg.createMessageComponentCollector({
+      filter: (i) => i.user.id === message.author.id,
+      time: 300000 // 5 minutes
+    });
+
+    collector.on("collect", async (interaction) => {
+      if (interaction.customId === "setevent_select_weapon") {
+        selectedWeapon = interaction.values[0];
+        await interaction.update({
+          embeds: [generatePanelEmbed()],
+          components: generatePanelComponents()
+        }).catch(() => null);
+
+      } else if (interaction.customId === "setevent_btn_open_modal") {
+        const modal = new ModalBuilder()
+          .setCustomId("setevent_input_modal")
+          .setTitle("Cấu hình Sự Kiện RPG");
+
+        const nameInput = new TextInputBuilder()
+          .setCustomId("event_name")
+          .setLabel("Tên sự kiện:")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("Ví dụ: Sự Kiện Sát Thần")
+          .setMaxLength(100)
+          .setRequired(true);
+
+        const descInput = new TextInputBuilder()
+          .setCustomId("event_desc")
+          .setLabel("Nội dung/Mô tả sự kiện:")
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder("Mô tả cách thức hoặc nội dung sự kiện...")
+          .setMaxLength(200)
+          .setRequired(true);
+
+        const dateInput = new TextInputBuilder()
+          .setCustomId("event_expire")
+          .setLabel("Hết hạn lúc (DD/MM/YYYY HH:mm):")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("Ví dụ: 25/06/2026 18:00")
+          .setMaxLength(30)
+          .setRequired(true);
+
+        const reqInput = new TextInputBuilder()
+          .setCustomId("event_req")
+          .setLabel("Yêu cầu (Format: loai,target):")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("Ví dụ: boss_fight,3 (Để trống nếu nhận ngay)")
+          .setMaxLength(50)
+          .setRequired(false);
+
+        const rewardsInput = new TextInputBuilder()
+          .setCustomId("event_rewards")
+          .setLabel("Phần thưởng (Format: coke,item,qty,rank):")
+          .setStyle(TextInputStyle.Short)
+          .setPlaceholder("Ví dụ: 50000,dungeonkey,2,Legendary")
+          .setMaxLength(100)
+          .setRequired(true);
+
+        if (eventInfo) {
+          nameInput.setValue(eventInfo.name);
+          descInput.setValue(eventInfo.description);
+          dateInput.setValue(eventInfo.expireRaw);
+          if (eventInfo.reqRaw) reqInput.setValue(eventInfo.reqRaw);
+          rewardsInput.setValue(eventInfo.rewardsRaw);
         }
 
-        await message.reply("▫️ Nhập số lượng mục tiêu (ví dụ: `3` đối với đánh boss 3 lần, `5000` đối với 5000 exp):");
-        const reqTargetMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const target = parseInt(reqTargetMsg.first().content.trim());
+        modal.addComponents(
+          new ActionRowBuilder().addComponents(nameInput),
+          new ActionRowBuilder().addComponents(descInput),
+          new ActionRowBuilder().addComponents(dateInput),
+          new ActionRowBuilder().addComponents(reqInput),
+          new ActionRowBuilder().addComponents(rewardsInput)
+        );
 
-        if (isNaN(target) || target <= 0) {
-          return message.reply("❌ Số lượng mục tiêu không hợp lệ. Đã hủy thiết lập.");
+        await interaction.showModal(modal);
+
+        // Await modal submission
+        const modalSubmit = await interaction.awaitModalSubmit({
+          filter: (i) => i.customId === "setevent_input_modal" && i.user.id === message.author.id,
+          time: 120000
+        }).catch(() => null);
+
+        if (!modalSubmit) return;
+
+        await modalSubmit.deferUpdate();
+
+        const name = modalSubmit.fields.getTextInputValue("event_name").trim();
+        const description = modalSubmit.fields.getTextInputValue("event_desc").trim();
+        const expireRaw = modalSubmit.fields.getTextInputValue("event_expire").trim();
+        const reqRaw = modalSubmit.fields.getTextInputValue("event_req").trim();
+        const rewardsRaw = modalSubmit.fields.getTextInputValue("event_rewards").trim();
+
+        // Validate Expiration Date
+        let expiresAt = DateTime.fromFormat(expireRaw, "dd/MM/yyyy HH:mm", { zone: "Asia/Ho_Chi_Minh" }).toJSDate();
+        if (isNaN(expiresAt.getTime())) {
+          // Fallback to end of day format
+          const fallbackDate = DateTime.fromFormat(expireRaw, "dd/MM/yyyy", { zone: "Asia/Ho_Chi_Minh" });
+          if (fallbackDate.isValid) {
+            expiresAt = fallbackDate.endOf("day").toJSDate();
+          } else {
+            return modalSubmit.followUp({ content: "❌ Định dạng thời gian không hợp lệ. Vui lòng nhập đúng `DD/MM/YYYY HH:mm` hoặc `DD/MM/YYYY`.", ephemeral: true });
+          }
         }
 
-        requirement = { type, target };
-      }
-
-      // Prompt 5: Coke Reward
-      await message.reply("💰 **Bước 5/7:** Nhập **Số Coke phần thưởng** (chắc chắn có, ví dụ: `50000`):");
-      const cokeMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const coke = parseInt(cokeMsg.first().content.trim());
-      if (isNaN(coke) || coke < 0) {
-        return message.reply("❌ Số Coke không hợp lệ. Đã hủy thiết lập.");
-      }
-
-      // Prompt 6: Gear Reward
-      let gear = null;
-      await message.reply("🛡️ **Bước 6/7:** Bạn có muốn thêm phần thưởng **Trang bị/Vũ khí** không? (Trả lời: `yes`/`no` hoặc `y`/`n`):");
-      const gearConfirmMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const gearConfirm = gearConfirmMsg.first().content.trim().toLowerCase();
-
-      if (gearConfirm === "yes" || gearConfirm === "y") {
-        await message.reply("▫️ Nhập **Độ hiếm/Rank của trang bị** (Common, Rare, Epic, Legendary, Mythic, Ancient, Divine):");
-        const rankMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const rank = rankMsg.first().content.trim();
-
-        await message.reply("▫️ Nhập **Loại trang bị (slot)** (weapon, armor, helmet, boots, ring, necklace):");
-        const typeMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const typeRaw = typeMsg.first().content.trim().toLowerCase();
-
-        // Map slot type like addgear
-        const slotMap = {
-          "weapon": "weapon", "w": "weapon", "vukhi": "weapon",
-          "armor": "armor", "a": "armor", "giap": "armor",
-          "helmet": "helmet", "h": "helmet", "mu": "helmet",
-          "boots": "boots", "b": "boots", "giay": "boots",
-          "ring": "ring", "r": "ring", "nhan": "ring",
-          "necklace": "necklace", "n": "necklace", "daychuyen": "necklace"
-        };
-        const type = slotMap[typeRaw] || typeRaw;
-
-        await message.reply("▫️ Nhập **Tên trang bị (subtype)** (ví dụ: *Crimson Dagger*, *Blue Staff*, *gravitybow*):");
-        const gearNameMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const gearName = gearNameMsg.first().content.trim();
-
-        gear = { rank, type, name: gearName };
-      }
-
-      // Prompt 7: Other Reward
-      let other = null;
-      await message.reply("📦 **Bước 7/7:** Bạn có muốn thêm **Phần thưởng khác** không? (Trả lời: `yes`/`no` hoặc `y`/`n`):");
-      const otherConfirmMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-      const otherConfirm = otherConfirmMsg.first().content.trim().toLowerCase();
-
-      if (otherConfirm === "yes" || otherConfirm === "y") {
-        await message.reply("▫️ Nhập **Mã/Tên vật phẩm** (ví dụ: `dungeonkey`, `wc`, `abyssalhorn`):");
-        const itemMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const itemName = itemMsg.first().content.trim();
-
-        await message.reply("▫️ Nhập **Số lượng**:");
-        const qtyMsg = await channel.awaitMessages({ filter, max: 1, time: 60000, errors: ["time"] });
-        const quantity = parseInt(qtyMsg.first().content.trim());
-
-        if (!isNaN(quantity) && quantity > 0) {
-          other = { name: itemName, quantity };
+        if (expiresAt.getTime() <= Date.now()) {
+          return modalSubmit.followUp({ content: "❌ Thời gian hết hạn phải ở tương lai.", ephemeral: true });
         }
-      }
 
-      // Create Event
-      const event = await Event.create({
-        name,
-        description,
-        expiresAt,
-        requirement,
-        rewards: {
+        // Validate Requirement
+        let requirementType = null;
+        let requirementTarget = 0;
+        if (reqRaw) {
+          const reqParts = reqRaw.split(",").map(s => s.trim());
+          const type = reqParts[0].toLowerCase();
+          const target = parseInt(reqParts[1]);
+
+          const validTypes = ["boss_fight", "pvp_battle", "hunt_loot", "exp_gain"];
+          if (!validTypes.includes(type) || isNaN(target) || target <= 0) {
+            return modalSubmit.followUp({ content: `❌ Yêu cầu không hợp lệ. Loại yêu cầu chỉ được: ${validTypes.join(", ")} và số lượng mục tiêu phải là số nguyên dương.`, ephemeral: true });
+          }
+
+          requirementType = type;
+          requirementTarget = target;
+        }
+
+        // Validate Rewards
+        const rewardsParts = rewardsRaw.split(",").map(s => s.trim());
+        const coke = parseInt(rewardsParts[0]) || 0;
+        const otherItem = rewardsParts[1] || null;
+        const otherQty = parseInt(rewardsParts[2]) || 0;
+        const weaponRank = rewardsParts[3] || null;
+
+        if (coke < 0) {
+          return modalSubmit.followUp({ content: "❌ Số Coke không thể là số âm.", ephemeral: true });
+        }
+
+        // Update active eventInfo settings
+        eventInfo = {
+          name,
+          description,
+          expireRaw,
+          expiresAt,
+          reqRaw,
+          requirementType,
+          requirementTarget,
+          rewardsRaw,
           coke,
-          gear,
-          other
+          otherItem,
+          otherQty,
+          weaponRank
+        };
+
+        // Re-render setup panel
+        await panelMsg.edit({
+          embeds: [generatePanelEmbed()],
+          components: generatePanelComponents()
+        }).catch(() => null);
+
+      } else if (interaction.customId === "setevent_btn_cancel") {
+        collector.stop("cancelled");
+
+      } else if (interaction.customId === "setevent_btn_create") {
+        collector.stop("create");
+      }
+    });
+
+    collector.on("end", async (collected, reason) => {
+      if (reason === "cancelled") {
+        await panelMsg.delete().catch(() => null);
+        return;
+      }
+
+      if (reason !== "create") {
+        await panelMsg.edit({ content: "⏳ Đã hết thời gian thiết lập sự kiện.", embeds: [], components: [] }).catch(() => null);
+        return;
+      }
+
+      await panelMsg.delete().catch(() => null);
+
+      // Create event in database
+      const event = await Event.create({
+        name: eventInfo.name,
+        description: eventInfo.description,
+        expiresAt: eventInfo.expiresAt,
+        requirement: eventInfo.requirementType ? {
+          type: eventInfo.requirementType,
+          target: eventInfo.requirementTarget
+        } : null,
+        rewards: {
+          coke: eventInfo.coke,
+          gear: selectedWeapon !== "none" ? {
+            rank: eventInfo.weaponRank || "Epic",
+            type: "weapon",
+            name: selectedWeapon
+          } : null,
+          other: eventInfo.otherItem ? {
+            name: eventInfo.otherItem,
+            quantity: eventInfo.otherQty
+          } : null
         }
       });
 
@@ -179,11 +353,7 @@ module.exports = {
         )
         .setTimestamp();
 
-      return message.reply({ embeds: [embed] });
-
-    } catch (err) {
-      console.error("[SETEVENT] Error during setup:", err);
-      return message.reply("❌ Quá thời gian phản hồi hoặc có lỗi xảy ra. Thiết lập sự kiện đã bị hủy.");
-    }
+      return message.channel.send({ embeds: [embed] });
+    });
   }
 };
