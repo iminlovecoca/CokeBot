@@ -148,6 +148,7 @@ module.exports = {
                  `Sở hữu bởi: <@${owner.userId}>\n` +
                  `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
                  `Rarity: **${item.rarity}**\n` +
+                 `Cấp độ: **${item.level || 1}**\n` +
                  `Chất lượng: **${getItemQuality(item)}%**\n` +
                  `Đang mặc: **${equippedEntry ? "Có ✨" : "Không"}**\n` +
                  `Giá bán: **${item.sellPrice.toLocaleString()} Coke**\n\n`;
@@ -172,6 +173,9 @@ module.exports = {
         desc += `Lực chiến cơ bản: **${item.power.toLocaleString()}**\n` +
                 `Lực chiến thực tế: ${powerText}\n` +
                 `**Scale:** \`${scalingText}\``;
+
+        const statsText = formatStats(item.stats) || "Không có";
+        desc += `\n**Chỉ số phụ:** **${statsText}**`;
 
         const dungKey = getDungeonWeaponKey(item.subType || item.subtype);
         if (dungKey) {

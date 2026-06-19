@@ -562,11 +562,14 @@ const maxVarianceByRarity = {
   Divine: 7
 };
 
-const generateGearStats = (slot, rarity, level, subType = "") => {
+const generateGearStats = (slot, rarity, quality, subType = "") => {
   const rarityConfig = config.rpg.gear_rarities[rarity] || { stat: 1 };
   const statBase = rarityConfig.stat || 1;
-  const levelBonus = Math.floor((level || 1) / 12);
   const maxVar = maxVarianceByRarity[rarity] || 1;
+
+  const qualityVal = typeof quality === "number" ? quality : 50;
+  const qualityFactor = Math.max(0, Math.min(1, (qualityVal - 10) / 90));
+  const varRoll = Math.round(qualityFactor * (maxVar - 1));
 
   let fixedStat = null;
   let randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"];
@@ -629,15 +632,15 @@ const generateGearStats = (slot, rarity, level, subType = "") => {
     const pool = ["str", "int", "dex", "arc", "vigor"];
     const picked = pickUnique(pool, 2);
     const stats = {};
-    stats[picked[0]] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
-    stats[picked[1]] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
+    stats[picked[0]] = statBase + varRoll;
+    stats[picked[1]] = statBase + varRoll;
     return stats;
   }
 
   const randomStat = randomPool[Math.floor(Math.random() * randomPool.length)] || "vigor";
   const stats = {};
-  stats[fixedStat] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
-  stats[randomStat] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
+  stats[fixedStat] = statBase + varRoll;
+  stats[randomStat] = statBase + varRoll;
 
   return stats;
 };
@@ -739,7 +742,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     rarityConfig = result[1];
   }
 
-  const level = options.level || (slot === "weapon" ? 1 : (user.rpg.level || 1));
+  const level = 1;
 
   // Power config bump for Dungeon Weapons: quality and power is 1 tier higher
   let powerRarityConfig = rarityConfig;
@@ -756,8 +759,8 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  const stats = generateGearStats(slot, rarity, level, chosenSubtype.name);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name);
   const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 
   let scaling = null;
@@ -1053,6 +1056,7 @@ module.exports = {
   requireRpgCharacter,
   addRpgExp,
   pickRpgHuntGround,
+  generateGearStats,
   generateRpgGearDrop,
   addRpgGearToUser,
   findRpgItem,

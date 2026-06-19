@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const User = require("../models/User");
 const config = require("../data/config");
-const { calculateRpgPower, getGearDisplayName } = require("../utils/rpgUtil");
+const { calculateRpgPower, getGearDisplayName, generateGearStats } = require("../utils/rpgUtil");
 
 const maxVarianceByRarity = {
   Common: 1,
@@ -55,7 +55,11 @@ const runSync = async () => {
         const rarityConfig = config.rpg.gear_rarities[rarity];
         if (!rarityConfig) continue;
 
-        const level = item.level || 1;
+        const level = 1;
+        if (item.level !== level) {
+          item.level = level;
+          gearModified = true;
+        }
         const levelBonus = Math.floor(level * 4.5);
 
         // 2. Reconstruct variance from quality
@@ -76,30 +80,11 @@ const runSync = async () => {
           gearModified = true;
         }
 
-        // 5. Recalculate stats keeping the same stat keys (to prevent overlaps)
-        const statsKeys = Object.keys(item.stats || {});
-        if (statsKeys.length > 0) {
-          const statBase = rarityConfig.stat || 1;
-          const levelBonusStats = Math.floor(level / 12);
-          const maxVar = maxVarianceByRarity[rarity] || 1;
-
-          const newStats = {};
-          for (const key of statsKeys) {
-            newStats[key] = statBase + levelBonusStats + Math.floor(Math.random() * maxVar);
-          }
-
-          let statsChanged = false;
-          for (const key of statsKeys) {
-            if (item.stats[key] !== newStats[key]) {
-              statsChanged = true;
-              break;
-            }
-          }
-
-          if (statsChanged) {
-            item.stats = newStats;
-            gearModified = true;
-          }
+        // 5. Recalculate stats using fixed + random slot rules (preventing overlaps)
+        const newStats = generateGearStats(item.slot, rarity, quality, item.subType || item.subtype || "");
+        if (JSON.stringify(item.stats) !== JSON.stringify(newStats)) {
+          item.stats = newStats;
+          gearModified = true;
         }
 
         if (gearModified) {
