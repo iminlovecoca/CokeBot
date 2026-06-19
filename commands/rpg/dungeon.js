@@ -658,6 +658,12 @@ const renderGameScreen = async (channel, activeDungeon) => {
       if (mana < 25) {
         isSkillDisabled = true;
       }
+    } else if (currentActor.classKey === "paladin") {
+      const rage = currentActor.rage ?? 0;
+      skillLabel = `Thiên Mệnh ✨ (${rage}% Nộ)`;
+      if (rage < 50) {
+        isSkillDisabled = true;
+      }
     } else {
       const rage = currentActor.rage ?? 0;
       skillLabel = `Kỹ Năng ✨ (${rage}% Nộ)`;
@@ -1009,7 +1015,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
     await executePlayerAttack(channel, activeDungeon, player, 3.0);
   } else if (player.classKey === "paladin") {
-    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 10% lượng máu đã mất cho toàn đội!`);
+    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 10% lượng máu tối đa cho toàn đội!`);
 
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
@@ -1027,14 +1033,13 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
           activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
 
-        // Heal 10% of lost HP
-        const lostHp = p.maxHp - p.hp;
-        const healAmount = Math.floor(lostHp * 0.1);
-        if (healAmount > 0) {
-          const oldHp = p.hp;
-          p.hp = Math.min(p.maxHp, p.hp + healAmount);
-          const actualHealed = p.hp - oldHp;
-          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (10% máu đã mất).`);
+        // Heal 10% of each member's own max HP
+        const healAmount = Math.floor(p.maxHp * 0.1);
+        const oldHp = p.hp;
+        p.hp = Math.min(p.maxHp, p.hp + healAmount);
+        const actualHealed = p.hp - oldHp;
+        if (actualHealed > 0) {
+          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (10% máu tối đa).`);
         } else {
           activeDungeon.logs.push(`💚 **${p.name}** đang đầy máu.`);
         }
@@ -1244,11 +1249,14 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     return;
   }
 
-  // Poise recovery at the start of boss turn
+  // Poise broken → boss bị stun, bỏ lượt này và phục hồi Poise
   if (enemy.isBoss && enemy.poiseBroken) {
+    activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
     enemy.poiseBroken = false;
     enemy.poise = enemy.poiseMax || (100 + (activeDungeon.chapter || 1) * 25);
-    activeDungeon.logs.push(`🛡️ **${enemy.name}** đã đứng dậy, hồi phục toàn bộ Poise và kết thúc suy yếu!`);
+    activeDungeon.actionInProgress = false;
+    await nextTurn(channel, activeDungeon);
+    return;
   }
 
   // Bleed tick check
@@ -1667,6 +1675,8 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
   if (player.classKey !== "wretch") {
     if (player.classKey === "mage") {
       if ((player.mana ?? 100) >= 25) useSkill = true;
+    } else if (player.classKey === "paladin") {
+      if ((player.rage ?? 0) >= 50) useSkill = true;
     } else {
       if ((player.rage ?? 0) >= 100) useSkill = true;
     }
