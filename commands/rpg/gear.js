@@ -143,12 +143,17 @@ module.exports = {
         attachment = new AttachmentBuilder(assetPath, { name: path.basename(imageFile) });
       }
 
+      let levelText = "";
+      if (item.slot === "weapon") {
+        levelText = `Cấp cường hóa: **+${item.upgradeLevel || 0}**\n`;
+      }
+
       let desc = `ID: \`${item.id}\`\n` +
                  `UID: \`${item.uid || "N/A"}\`\n` +
                  `Sở hữu bởi: <@${owner.userId}>\n` +
                  `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
                  `Rarity: **${item.rarity}**\n` +
-                 `Cấp độ: **${item.level || 1}**\n` +
+                 levelText +
                  `Chất lượng: **${getItemQuality(item)}%**\n` +
                  `Đang mặc: **${equippedEntry ? "Có ✨" : "Không"}**\n` +
                  `Giá bán: **${item.sellPrice.toLocaleString()} Coke**\n\n`;
