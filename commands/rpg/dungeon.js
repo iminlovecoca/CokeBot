@@ -1015,7 +1015,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
     await executePlayerAttack(channel, activeDungeon, player, 3.0);
   } else if (player.classKey === "paladin") {
-    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 10% lượng máu tối đa cho toàn đội!`);
+    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 35% lượng máu tối đa cho toàn đội!`);
 
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
@@ -1033,20 +1033,20 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
           activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
 
-        // Heal 10% of each member's own max HP
-        const healAmount = Math.floor(p.maxHp * 0.1);
+        // Heal 35% of each member's own max HP
+        const healAmount = Math.floor(p.maxHp * 0.35);
         const oldHp = p.hp;
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
         const actualHealed = p.hp - oldHp;
         if (actualHealed > 0) {
-          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (10% máu tối đa).`);
+          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (35% máu tối đa).`);
         } else {
           activeDungeon.logs.push(`💚 **${p.name}** đang đầy máu.`);
         }
       }
     });
 
-    player.rage = 0;
+    player.rage = Math.max(0, (player.rage || 0) - 50);
     player.hasActedThisRound = true;
 
     activeDungeon.actionInProgress = false;
@@ -1254,6 +1254,10 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
     enemy.poiseBroken = false;
     enemy.poise = enemy.poiseMax || (100 + (activeDungeon.chapter || 1) * 25);
+    // Reset player turns for the next round of combat
+    activeDungeon.players.forEach((p) => {
+      p.hasActedThisRound = false;
+    });
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
     return;
