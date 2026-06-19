@@ -53,8 +53,15 @@ const getTransparentCharacter = async (pAsset) => {
     return transparentCharCache.get(pAsset);
   }
 
-  const pImgPath = path.join(__dirname, "../../assets/characters", pAsset);
-  if (!fs.existsSync(pImgPath)) return null;
+  let pImgPath = path.join(__dirname, "../../assets/characters", pAsset);
+  if (!fs.existsSync(pImgPath)) {
+    const skinPath = path.join(__dirname, "../../assets/skins", pAsset);
+    if (fs.existsSync(skinPath)) {
+      pImgPath = skinPath;
+    } else {
+      return null;
+    }
+  }
 
   const img = await loadImage(pImgPath);
   const width = 200;

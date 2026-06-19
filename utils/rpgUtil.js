@@ -138,7 +138,7 @@ const subTypes = {
   necklace: [
     { name: "Necklace", emoji: "<:necklace:1514236494859206729>" },
     { name: "Ember Necklace", emoji: "<:emberneck:1514236492891820062>" },
-    { name: "Crystal Necklace", emoji: "<:cristalneck:1514236490102607933>" }
+    { name: "Mage Necklace", emoji: "<:mageneck:1517491429478367252>" }
   ]
 };
 
@@ -215,7 +215,7 @@ const getItemImageFile = (item) => {
       return specificFile;
     }
     if (subType.includes("ember")) return "Necklace/emberneck.png";
-    if (subType.includes("crystal") || subType.includes("cristal")) return "Necklace/cristalneck.png";
+    if (subType.includes("crystal") || subType.includes("cristal") || subType.includes("mage")) return "Necklace/mageneck.png";
     return "Necklace/necklace.png";
   }
 
@@ -552,16 +552,92 @@ const pickRpgHuntGround = () => {
   };
 };
 
-const generateGearStats = (slot, rarityConfig, level) => {
-  const slotConfig = config.rpg.gear_slots?.[slot] || {};
-  const statPool = slotConfig.stat_pool || ["str", "int", "dex", "vigor", "pr", "mr", "arc"];
+const maxVarianceByRarity = {
+  Common: 1,
+  Rare: 1,
+  Epic: 2,
+  Legendary: 3,
+  Mythic: 4,
+  Ancient: 5,
+  Divine: 7
+};
+
+const generateGearStats = (slot, rarity, level, subType = "") => {
+  const rarityConfig = config.rpg.gear_rarities[rarity] || { stat: 1 };
   const statBase = rarityConfig.stat || 1;
   const levelBonus = Math.floor((level || 1) / 12);
-  const stats = {};
+  const maxVar = maxVarianceByRarity[rarity] || 1;
 
-  for (const stat of pickUnique(statPool, 2)) {
-    stats[stat] = statBase + levelBonus + Math.floor(Math.random() * (statBase + 1));
+  let fixedStat = null;
+  let randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"];
+
+  const subTypeLower = String(subType || "").toLowerCase();
+
+  if (slot === "helmet") {
+    fixedStat = "vigor";
+    if (subTypeLower.includes("warrior") || subTypeLower.includes("knight")) {
+      randomPool = ["pr", "mr"];
+    } else if (subTypeLower.includes("wizard") || subTypeLower.includes("mage") || subTypeLower.includes("hat")) {
+      randomPool = ["arc"];
+    } else if (subTypeLower.includes("assassin") || subTypeLower.includes("hood")) {
+      randomPool = ["dex"];
+    } else {
+      randomPool = ["pr", "mr", "arc", "dex"];
+    }
+  } else if (slot === "armor") {
+    fixedStat = "vigor";
+    if (subTypeLower.includes("heavy")) {
+      randomPool = ["pr", "mr"];
+    } else if (subTypeLower.includes("mage") || subTypeLower.includes("robe")) {
+      randomPool = ["arc", "int"];
+    } else if (subTypeLower.includes("assassin")) {
+      randomPool = ["dex", "arc"];
+    } else {
+      randomPool = ["pr", "mr", "arc", "int", "dex"];
+    }
+  } else if (slot === "ring") {
+    if (subTypeLower.includes("mage")) {
+      fixedStat = "int";
+    } else if (subTypeLower.includes("dragon")) {
+      fixedStat = "dex";
+    } else {
+      fixedStat = "str";
+    }
+    randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"].filter(s => s !== fixedStat);
+  } else if (slot === "necklace") {
+    if (subTypeLower.includes("mage")) {
+      fixedStat = "int";
+    } else if (subTypeLower.includes("ember")) {
+      fixedStat = "dex";
+    } else {
+      fixedStat = "str";
+    }
+    randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"].filter(s => s !== fixedStat);
+  } else if (slot === "boots") {
+    if (subTypeLower.includes("mage")) {
+      fixedStat = "int";
+    } else if (subTypeLower.includes("knight")) {
+      fixedStat = "str";
+    } else if (subTypeLower.includes("assassin")) {
+      fixedStat = "dex";
+    } else {
+      fixedStat = "str";
+    }
+    randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"].filter(s => s !== fixedStat);
+  } else {
+    // Weapons or other slots: pick 2 random stats from pool
+    const pool = ["str", "int", "dex", "arc", "vigor"];
+    const picked = pickUnique(pool, 2);
+    const stats = {};
+    stats[picked[0]] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
+    stats[picked[1]] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
+    return stats;
   }
+
+  const randomStat = randomPool[Math.floor(Math.random() * randomPool.length)] || "vigor";
+  const stats = {};
+  stats[fixedStat] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
+  stats[randomStat] = statBase + levelBonus + Math.floor(Math.random() * maxVar);
 
   return stats;
 };
@@ -680,7 +756,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  const stats = generateGearStats(slot, powerRarityConfig, level);
+  const stats = generateGearStats(slot, rarity, level, chosenSubtype.name);
   const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
   const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 

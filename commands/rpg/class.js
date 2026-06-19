@@ -48,12 +48,20 @@ const statLabels = {
   arc: "ARC",
 };
 
-const statLine = (stats) => {
+const statLine = (stats, rpgClass = null) => {
   const format = (key) => `**${statLabels[key]}:** **${stats[key] || 0}**`;
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}`;
+  let critStr = "";
+  if (rpgClass) {
+    const classCritBonus = rpgClass.bonuses?.critRate || 0;
+    const arc = stats.arc || 0;
+    const dex = stats.dex || 0;
+    const baseCrit = (arc * 0.2 + dex * 0.1) + classCritBonus * 100;
+    critStr = `   |   **CRIT:** **${baseCrit.toFixed(1)}%**`;
+  }
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
 };
 
-const statLineWithBonus = (baseStats, effectiveStats) => {
+const statLineWithBonus = (baseStats, effectiveStats, rpgClass = null) => {
   const format = (key) => {
     const base = baseStats[key] || 0;
     const eff = effectiveStats[key] || 0;
@@ -64,7 +72,15 @@ const statLineWithBonus = (baseStats, effectiveStats) => {
     }
     return `**${label}:** **${eff}**`;
   };
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}`;
+  let critStr = "";
+  if (rpgClass) {
+    const classCritBonus = rpgClass.bonuses?.critRate || 0;
+    const effArc = effectiveStats.arc || 0;
+    const effDex = effectiveStats.dex || 0;
+    const effCrit = (effArc * 0.2 + effDex * 0.1) + classCritBonus * 100;
+    critStr = `   |   **CRIT:** **${effCrit.toFixed(1)}%**`;
+  }
+  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
 };
 
 const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {
@@ -77,9 +93,9 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
         ? userData.rpg.stats[key]
         : (startingStats[key] || 0);
     }
-    statsValue = statLineWithBonus(baseStats, getEffectiveRpgStats(userData));
+    statsValue = statLineWithBonus(baseStats, getEffectiveRpgStats(userData), rpgClass);
   } else {
-    statsValue = statLine(rpgClass.stats);
+    statsValue = statLine(rpgClass.stats, rpgClass);
   }
 
   const assetName = customAvatar || rpgClass.asset;
@@ -101,11 +117,20 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       {
         name: "Thiên hướng",
         value: Object.entries(rpgClass.bonuses || {})
-          .map(([key, value]) =>
-            typeof value === "number" && value < 1
-              ? `${key}: +${Math.round(value * 100)}%`
-              : `${key}: +${value}`
-          )
+          .map(([key, value]) => {
+            const labels = {
+              critRate: "Tỷ lệ chí mạng",
+              bossDamage: "Sát thương Boss",
+              pvpDefense: "Phòng thủ PvP",
+              expGain: "Tăng EXP",
+              dropRate: "Tỷ lệ rơi đồ",
+              healReduction: "Giảm hồi máu đối thủ"
+            };
+            const label = labels[key] || key;
+            return typeof value === "number" && value < 1
+              ? `${label}: +${Math.round(value * 100)}%`
+              : `${label}: +${value}`;
+          })
           .join("\n"),
         inline: true,
       },

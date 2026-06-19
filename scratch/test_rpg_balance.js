@@ -20,6 +20,7 @@ console.log("\n=== Testing World Boss Drop Rates (Simulating 10,000 kills each) 
 
 const rollRarityForBoss = (rankKey, type) => {
   const r = Math.random() * 100;
+  const typeLower = String(type || "").toLowerCase();
   if (rankKey === "thuong" || rankKey === "than") {
     return r < 10 ? "Legendary" : "Epic";
   }
@@ -29,9 +30,15 @@ const rollRarityForBoss = (rankKey, type) => {
     return "Epic";
   }
   if (rankKey === "thuongnhan") {
-    if (type === "participant") {
+    if (typeLower === "participant") {
+      if (r < 1) return "Ancient";
+      if (r < 15) return "Mythic";
+      return "Legendary";
+    }
+    if (typeLower === "lasthit") {
+      if (r < 1) return "Divine";
       if (r < 5) return "Ancient";
-      if (r < 20) return "Mythic";
+      if (r < 25) return "Mythic";
       return "Legendary";
     }
   }
@@ -57,7 +64,7 @@ for (let i = 0; i < 10000; i++) {
 }
 console.log(`- Cấp Rồng drops: Epic = ${(epicCount2 / 100).toFixed(2)}% (Target: 75%), Legendary = ${(legCount2 / 100).toFixed(2)}% (Target: 20%), Mythic = ${(mythCount2 / 100).toFixed(2)}% (Target: 5%)`);
 
-// 3. Sage tier Participant (80% Legendary, 15% Mythic, 5% Ancient)
+// 3. Sage tier Participant (85% Legendary, 14% Mythic, 1% Ancient)
 let legCount3 = 0, mythCount3 = 0, ancCount3 = 0;
 for (let i = 0; i < 10000; i++) {
   const rolled = rollRarityForBoss("thuongnhan", "participant");
@@ -65,7 +72,18 @@ for (let i = 0; i < 10000; i++) {
   else if (rolled === "Mythic") mythCount3++;
   else if (rolled === "Ancient") ancCount3++;
 }
-console.log(`- Cấp Thượng Nhân participant drops: Legendary = ${(legCount3 / 100).toFixed(2)}% (Target: 80%), Mythic = ${(mythCount3 / 100).toFixed(2)}% (Target: 15%), Ancient = ${(ancCount3 / 100).toFixed(2)}% (Target: 5%)`);
+console.log(`- Cấp Thượng Nhân participant drops: Legendary = ${(legCount3 / 100).toFixed(2)}% (Target: 85%), Mythic = ${(mythCount3 / 100).toFixed(2)}% (Target: 14%), Ancient = ${(ancCount3 / 100).toFixed(2)}% (Target: 1%)`);
+
+// 4. Sage tier Last Hit (75% Legendary, 20% Mythic, 4% Ancient, 1% Divine)
+let legCount4 = 0, mythCount4 = 0, ancCount4 = 0, divCount4 = 0;
+for (let i = 0; i < 10000; i++) {
+  const rolled = rollRarityForBoss("thuongnhan", "lasthit");
+  if (rolled === "Legendary") legCount4++;
+  else if (rolled === "Mythic") mythCount4++;
+  else if (rolled === "Ancient") ancCount4++;
+  else if (rolled === "Divine") divCount4++;
+}
+console.log(`- Cấp Thượng Nhân lastHit drops: Legendary = ${(legCount4 / 100).toFixed(2)}% (Target: 75%), Mythic = ${(mythCount4 / 100).toFixed(2)}% (Target: 20%), Ancient = ${(ancCount4 / 100).toFixed(2)}% (Target: 4%), Divine = ${(divCount4 / 100).toFixed(2)}% (Target: 1%)`);
 
 console.log("✅ World Boss drop rates converge to targets successfully!");
 

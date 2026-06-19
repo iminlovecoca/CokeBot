@@ -137,6 +137,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
   const rollRarityForBoss = (rankKey, type) => {
     const r = Math.random() * 100;
+    const typeLower = String(type || "").toLowerCase();
     if (rankKey === "thuong" || rankKey === "than") {
       return r < 10 ? "Legendary" : "Epic";
     }
@@ -146,9 +147,15 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       return "Epic";
     }
     if (rankKey === "thuongnhan") {
-      if (type === "participant") {
+      if (typeLower === "participant") {
+        if (r < 1) return "Ancient";
+        if (r < 15) return "Mythic";
+        return "Legendary";
+      }
+      if (typeLower === "lasthit") {
+        if (r < 1) return "Divine";
         if (r < 5) return "Ancient";
-        if (r < 20) return "Mythic";
+        if (r < 25) return "Mythic";
         return "Legendary";
       }
     }

@@ -214,13 +214,13 @@ const checkMessage = message => {
 				let isBot = false
 				let flagReason = ''
 
-				if (diffs.length >= 4 && stdDevDiffs < 150) {
+				if (diffs.length >= 4 && stdDevDiffs < 80) {
 					isBot = true
 					flagReason = `step consistency (stdDevDiffs: ${stdDevDiffs.toFixed(0)}ms)`
 				} else if (stdDev < config.anticheat.rhythm_std_dev_threshold_ms) {
 					isBot = true
 					flagReason = `absolute rhythm (stdDev: ${stdDev.toFixed(0)}ms)`
-				} else if (cv < 0.08 && !hasQuickCommands) {
+				} else if (cv < 0.04 && !hasQuickCommands) {
 					isBot = true
 					flagReason = `relative rhythm (cv: ${cv.toFixed(2)})`
 				}
