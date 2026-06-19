@@ -61,7 +61,9 @@ const dungeonWeapons = [
   { name: "Holy Sword", key: "holysword", emoji: "<:holysword:1514232165334777876>" },
   { name: "Dark Sword", key: "darksword", emoji: "<:darksword:1514232167595769949>" },
   { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" },
-  { name: "Gravity Bow", key: "gravitybow", emoji: "<:GravityBow:1516389241347641415>" }
+  { name: "Gravity Bow", key: "gravitybow", emoji: "<:GravityBow:1516389241347641415>" },
+  { name: "Dusk and Dawn", key: "duskanddawn", emoji: "<:DuskandDawn:1517552769270153277>" },
+  { name: "River of Blood", key: "riverofblood", emoji: "<:RiverofBlood:1517552771824615424>" }
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
@@ -143,79 +145,128 @@ const subTypes = {
 };
 
 
+const removeVietnameseTones = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
+const getCleanName = (name) => {
+  if (!name) return "";
+  let clean = name.replace(/<:[a-zA-Z0-9_]+:[0-9]+>/g, "");
+  clean = clean.replace(/[\u00a9\u00ae\u2000-\u3300\ud83c\ud000-\ud83d\udfff\ud83e\ud000-\ud83e\udfff]/g, "");
+  clean = clean.replace(/\+\d+/g, "");
+  return clean.replace(/\s+/g, " ").trim();
+};
+
+const findImageInDir = (subDir, subType, name, extraCandidate = null) => {
+  const dirPath = path.join(__dirname, "../assets/items", subDir);
+  if (!fs.existsSync(dirPath)) return null;
+
+  const files = fs.readdirSync(dirPath);
+  const candidates = [];
+  if (subType) {
+    candidates.push(removeVietnameseTones(subType).toLowerCase().replace(/\s+/g, ""));
+  }
+  if (name) {
+    const clean = getCleanName(name);
+    if (clean) {
+      candidates.push(removeVietnameseTones(clean).toLowerCase().replace(/\s+/g, ""));
+    }
+  }
+  if (extraCandidate) {
+    candidates.push(removeVietnameseTones(extraCandidate).toLowerCase().replace(/\s+/g, ""));
+  }
+
+  for (const cand of candidates) {
+    if (!cand) continue;
+    const match = files.find(f => {
+      const fName = f.toLowerCase().replace(/\s+/g, "");
+      return fName === `${cand}.png` || fName === cand;
+    });
+    if (match) {
+      return `${subDir}/${match}`;
+    }
+  }
+  return null;
+};
+
 const getItemImageFile = (item) => {
   const slot = String(item.slot || "").toLowerCase();
-  const subType = String(item.subType || "").toLowerCase();
-  const rarity = String(item.rarity || "").toLowerCase();
-  const lowerSubType = subType.replace(/\s+/g, "");
+  let subType = String(item.subType || item.subtype || "").trim();
+  if (!subType || subType.toLowerCase() === "undefined") {
+    subType = getCleanName(item.name || "");
+  }
 
   if (slot === "weapon") {
-    const dungKey = getDungeonWeaponKey(item.subType || item.subtype);
+    const dungKey = getDungeonWeaponKey(subType);
+    const matched = findImageInDir("Weapon", subType, item.name, dungKey);
+    if (matched) return matched;
+
     if (dungKey) {
       if (dungKey === "gravitybow") {
         return "Weapon/GravityBow.png";
       }
       return `Weapon/${dungKey}.png`;
     }
-    if (subType.includes("staff")) {
-      return "Weapon/normalstaff.png";
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("staff")) {
+      return "Weapon/staff.png";
     }
-    if (subType.includes("dagger") || subType.includes("dangger")) {
-      return "Weapon/normaldagger.png";
+    if (lowerSub.includes("dagger") || lowerSub.includes("dangger")) {
+      return "Weapon/dagger.png";
     }
-    return "Weapon/normalsword.png";
+    return "Weapon/longsword.png";
   }
 
   if (slot === "armor") {
-    const specificFile = `Armor/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("assassin")) return "Armor/assassinarmor.png";
-    if (subType.includes("mage") || subType.includes("robe")) return "Armor/magerobe.png";
-    if (subType.includes("heavy") || subType.includes("armor")) return "Armor/heavyarmor.png";
+    const matched = findImageInDir("Armor", subType, item.name);
+    if (matched) return matched;
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("assassin")) return "Armor/assassinarmor.png";
+    if (lowerSub.includes("mage") || lowerSub.includes("robe")) return "Armor/magerobe.png";
+    if (lowerSub.includes("heavy") || lowerSub.includes("armor")) return "Armor/heavyarmor.png";
     return "Armor/heavyarmor.png";
   }
 
   if (slot === "helmet") {
-    const specificFile = `Helmet/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("assassin") || subType.includes("hood")) return "Helmet/assassinhood.png";
-    if (subType.includes("wizard") || subType.includes("hat")) return "Helmet/wizardhat.png";
-    if (subType.includes("warrior") || subType.includes("helm") || subType.includes("helmet")) return "Helmet/warriorhelm.png";
+    const matched = findImageInDir("Helmet", subType, item.name);
+    if (matched) return matched;
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("assassin") || lowerSub.includes("hood")) return "Helmet/assassinhood.png";
+    if (lowerSub.includes("wizard") || lowerSub.includes("hat")) return "Helmet/wizardhat.png";
+    if (lowerSub.includes("warrior") || lowerSub.includes("helm") || lowerSub.includes("helmet")) return "Helmet/warriorhelm.png";
     return "Helmet/warriorhelm.png";
   }
 
   if (slot === "boots") {
-    const specificFile = `Boot/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("assassin")) return "Boot/assassinboot.png";
-    if (subType.includes("mage")) return "Boot/mageboot.png";
-    if (subType.includes("knight") || subType.includes("boot")) return "Boot/knightboot.png";
+    const matched = findImageInDir("Boot", subType, item.name);
+    if (matched) return matched;
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("assassin")) return "Boot/assassinboot.png";
+    if (lowerSub.includes("mage")) return "Boot/mageboot.png";
+    if (lowerSub.includes("knight") || lowerSub.includes("boot")) return "Boot/knightboot.png";
     return "Boot/knightboot.png";
   }
 
   if (slot === "ring") {
-    const specificFile = `Ring/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("mage")) return "Ring/magering.png";
-    if (subType.includes("dragon")) return "Ring/dragonring.png";
+    const matched = findImageInDir("Ring", subType, item.name);
+    if (matched) return matched;
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("mage")) return "Ring/magering.png";
+    if (lowerSub.includes("dragon")) return "Ring/dragonring.png";
     return "Ring/ring.png";
   }
 
   if (slot === "necklace") {
-    const specificFile = `Necklace/${lowerSubType}.png`;
-    if (fs.existsSync(path.join(__dirname, "../assets/items", specificFile))) {
-      return specificFile;
-    }
-    if (subType.includes("ember")) return "Necklace/emberneck.png";
-    if (subType.includes("crystal") || subType.includes("cristal") || subType.includes("mage")) return "Necklace/mageneck.png";
+    const matched = findImageInDir("Necklace", subType, item.name);
+    if (matched) return matched;
+    const lowerSub = subType.toLowerCase();
+    if (lowerSub.includes("ember")) return "Necklace/emberneck.png";
+    if (lowerSub.includes("crystal") || lowerSub.includes("cristal") || lowerSub.includes("mage")) return "Necklace/mageneck.png";
     return "Necklace/necklace.png";
   }
 
@@ -241,15 +292,14 @@ const getWeaponScalingStats = (subType) => {
     name = dungKey;
   }
 
-  if (name.includes("claymore")) {
-    return { prim: "str", sec: "int" };
+  // Special named weapons
+  if (name.includes("duskanddawn") || name.includes("dusk and dawn") || name.includes("dusk")) {
+    return { prim: "int", sec: "dex" };
   }
-  if (name.includes("rapier")) {
-    return { prim: "dex", sec: "int" };
+  if (name.includes("riverofblood") || name.includes("river of blood") || name.includes("river")) {
+    return { prim: "arc", sec: "dex" };
   }
-  if (name.includes("halberd")) {
-    return { prim: "str", sec: "arc" };
-  }
+
   if (name.includes("staff") || name.includes("trượng")) {
     return { prim: "int", sec: "arc" };
   }
@@ -264,10 +314,14 @@ const getWeaponScaling = (item) => {
   const subTypeClean = String(item.subType || "").toLowerCase();
   const isStaff = subTypeClean.includes("staff") || subTypeClean.includes("trượng");
   const isDagger = subTypeClean.includes("dagger") || subTypeClean.includes("đao") || subTypeClean.includes("đoản đao");
+  const isDuskAndDawn = subTypeClean.includes("dusk");
+  const isRiverOfBlood = subTypeClean.includes("river");
 
   const hasScalingBug = item.scaling && (
     (isStaff && item.scaling.int === "-") ||
-    (isDagger && item.scaling.dex === "-")
+    (isDagger && item.scaling.dex === "-") ||
+    (isDuskAndDawn && item.scaling.int === "-") ||
+    (isRiverOfBlood && item.scaling.arc === "-")
   );
 
   if (item.scaling && !isDungeon && !hasScalingBug) return item.scaling;
@@ -563,6 +617,9 @@ const maxVarianceByRarity = {
 };
 
 const generateGearStats = (slot, rarity, quality, subType = "") => {
+  if (slot === "weapon") {
+    return {};
+  }
   const rarityConfig = config.rpg.gear_rarities[rarity] || { stat: 1 };
   const statBase = rarityConfig.stat || 1;
   const maxVar = maxVarianceByRarity[rarity] || 1;
@@ -637,7 +694,11 @@ const generateGearStats = (slot, rarity, quality, subType = "") => {
     return stats;
   }
 
-  const randomStat = randomPool[Math.floor(Math.random() * randomPool.length)] || "vigor";
+  // Use quality as a deterministic seed so the same item always gets the same random stat.
+  // quality is a float like 69.9 → multiply by 1000 to get an integer seed.
+  const qualitySeed = Math.round((typeof quality === "number" ? quality : 50) * 1000);
+  const randomIndex = qualitySeed % randomPool.length;
+  const randomStat = randomPool[randomIndex] || "vigor";
   const stats = {};
   stats[fixedStat] = statBase + varRoll;
   stats[randomStat] = statBase + varRoll;

@@ -46,7 +46,7 @@ const getItemScore = (item, classKey, baseStats) => {
     const isMagicalClass = magicalClasses.includes(classKey);
 
     const isSuitable = isMagicalClass
-      ? (subType.includes("staff") || subType.includes("claymore") || subType.includes("rapier"))
+      ? (subType.includes("staff") || subType.includes("dusk"))
       : !subType.includes("staff");
 
     const scaledPower = getWeaponPower(item, baseStats);

@@ -179,9 +179,6 @@ module.exports = {
                 `Lực chiến thực tế: ${powerText}\n` +
                 `**Scale:** \`${scalingText}\``;
 
-        const statsText = formatStats(item.stats) || "Không có";
-        desc += `\n**Chỉ số phụ:** **${statsText}**`;
-
         const dungKey = getDungeonWeaponKey(item.subType || item.subtype);
         if (dungKey) {
           const passives = {

@@ -115,24 +115,23 @@ const mockDropGenerator = async () => {
   }
   console.log("SUCCESS: weapon power scaled correctly.");
 
-  // 5. Test new weapon subtypes scaling
+  // 5. Test new special weapon subtypes scaling
   console.log("Testing special weapon subtypes scaling...");
-  const claymore = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Claymore" });
-  if (claymore.scaling.str !== "B" || claymore.scaling.int !== "C") {
-    console.error("FAIL: Claymore (STR + INT) scaling incorrect:", claymore.scaling);
+  // Dusk and Dawn and River of Blood are dungeon weapons (Ancient rarity forced, grades bumped by 1)
+  // Ancient base: prim=S, sec=A → bumped: prim=S, sec=S
+  const duskAndDawn = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", subType: "Dusk and Dawn", emoji: "<:DuskandDawn:1517552769270153277>" });
+  if (duskAndDawn.scaling.int !== "S" || duskAndDawn.scaling.dex !== "S") {
+    console.error("FAIL: Dusk and Dawn (INT + DEX) scaling incorrect:", duskAndDawn.scaling);
     process.exit(1);
   }
-  const rapier = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Rapier" });
-  if (rapier.scaling.dex !== "B" || rapier.scaling.int !== "C") {
-    console.error("FAIL: Rapier (DEX + INT) scaling incorrect:", rapier.scaling);
+  const riverOfBlood = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", subType: "River of Blood", emoji: "<:RiverofBlood:1517552771824615424>" });
+  if (riverOfBlood.scaling.arc !== "S" || riverOfBlood.scaling.dex !== "S") {
+    console.error("FAIL: River of Blood (ARC + DEX) scaling incorrect:", riverOfBlood.scaling);
     process.exit(1);
   }
-  const halberd = await generateRpgGearDrop(mockUser, { forceDrop: true, slot: "weapon", rarity: "Epic", subType: "Halberd" });
-  if (halberd.scaling.str !== "B" || halberd.scaling.arc !== "C") {
-    console.error("FAIL: Halberd (STR + ARC) scaling incorrect:", halberd.scaling);
-    process.exit(1);
-  }
-  console.log("SUCCESS: Special weapon scaling (Claymore, Rapier, Halberd) verified.");
+  console.log("SUCCESS: Special weapon scaling (Dusk and Dawn, River of Blood) verified.");
+  console.log(`  Dusk and Dawn [${duskAndDawn.rarity}]: INT=${duskAndDawn.scaling.int}, DEX=${duskAndDawn.scaling.dex}`);
+  console.log(`  River of Blood [${riverOfBlood.rarity}]: ARC=${riverOfBlood.scaling.arc}, DEX=${riverOfBlood.scaling.dex}`);
 };
 
 mockDropGenerator().then(() => {

@@ -161,6 +161,17 @@ const expireBoss = async (client, channelId) => {
   activeBoss.expired = true;
   client.rpgBosses.delete(channelId);
 
+  try {
+    const SpawnedBoss = require("../models/SpawnedBoss");
+    if (activeBoss.dbId) {
+      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, { expired: true }).catch(() => null);
+    } else {
+      await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, { expired: true }).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Failed to mark boss as expired in DB:", err);
+  }
+
   if (activeBoss.updateQueue) {
     await activeBoss.updateQueue.catch(() => null);
   }
@@ -313,6 +324,30 @@ const spawnRandomBoss = async (client, options = {}) => {
     if (attachment) {
       activeBoss.imageUrl = attachment.url;
     }
+
+    try {
+      const SpawnedBoss = require("../models/SpawnedBoss");
+      const dbBoss = await SpawnedBoss.create({
+        bossId: activeBoss.id,
+        channelId: activeBoss.channelId,
+        boss: activeBoss.boss,
+        hp: activeBoss.hp,
+        maxHp: activeBoss.maxHp,
+        participants: {},
+        lastHitUserId: null,
+        spawnedAt: activeBoss.spawnedAt,
+        expiresAt: activeBoss.expiresAt,
+        messageId: activeBoss.messageId,
+        messageIds: activeBoss.messageIds,
+        imageUrl: activeBoss.imageUrl,
+        phase: 1,
+        effects: { armorReduced: 0, healReduced: false }
+      });
+      activeBoss.dbId = dbBoss._id;
+    } catch (err) {
+      console.error("[RPG_BOSS] Failed to save spawned boss to DB:", err);
+    }
+
     activeBoss.expireTimer = setTimeout(
       () => expireBoss(client, channelId),
       config.rpg.boss?.lifetime_ms || 10 * 60 * 1000,
@@ -329,9 +364,94 @@ const spawnRandomBoss = async (client, options = {}) => {
 const spawnBossNow = (client, channelId = null, bossKey = null) =>
   spawnRandomBoss(client, { channelId, bossKey, scheduleNext: false });
 
-const initialize = (client) => {
+const initialize = async (client) => {
   client.rpgBosses = client.rpgBosses || new Map();
   if (client.rpgBossSpawnTimer) clearTimeout(client.rpgBossSpawnTimer);
+
+  // 1. Reload active bosses from Database
+  try {
+    const SpawnedBoss = require("../models/SpawnedBoss");
+    const activeDbBosses = await SpawnedBoss.find({ defeated: false, expired: false, rewarded: false }).exec();
+    console.log(`[RPG_BOSS] Reloading ${activeDbBosses.length} active bosses from DB...`);
+    for (const dbBoss of activeDbBosses) {
+      if (dbBoss.expiresAt > Date.now()) {
+        const activeBoss = {
+          dbId: dbBoss._id,
+          id: dbBoss.bossId,
+          channelId: dbBoss.channelId,
+          boss: dbBoss.boss,
+          hp: dbBoss.hp,
+          maxHp: dbBoss.maxHp,
+          participants: new Map(Object.entries(dbBoss.participants || {})),
+          lastHitUserId: dbBoss.lastHitUserId,
+          defeated: dbBoss.defeated,
+          expired: dbBoss.expired,
+          spawnedAt: dbBoss.spawnedAt,
+          expiresAt: dbBoss.expiresAt,
+          messageId: dbBoss.messageId,
+          messageIds: dbBoss.messageIds || [dbBoss.messageId],
+          imageUrl: dbBoss.imageUrl,
+          phase: dbBoss.phase || 1,
+          effects: dbBoss.effects || { armorReduced: 0, healReduced: false }
+        };
+
+        const msLeft = dbBoss.expiresAt - Date.now();
+        activeBoss.expireTimer = setTimeout(
+          () => expireBoss(client, dbBoss.channelId),
+          msLeft
+        );
+        client.rpgBosses.set(dbBoss.channelId, activeBoss);
+      } else {
+        dbBoss.expired = true;
+        await dbBoss.save();
+      }
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Error reloading active bosses from DB:", err);
+  }
+
+  // 2. Recover unrewarded defeated bosses
+  try {
+    const SpawnedBoss = require("../models/SpawnedBoss");
+    const unrewarded = await SpawnedBoss.find({ defeated: true, rewarded: false }).exec();
+    if (unrewarded.length > 0) {
+      console.log(`[RPG_BOSS] Found ${unrewarded.length} unrewarded defeated bosses. Resuming reward distribution...`);
+      const { finishBoss } = require("../commands/rpg/boss");
+      for (const dbBoss of unrewarded) {
+        const channel = await client.channels.fetch(dbBoss.channelId).catch(() => null);
+        if (channel) {
+          const activeBoss = {
+            dbId: dbBoss._id,
+            id: dbBoss.bossId,
+            channelId: dbBoss.channelId,
+            boss: dbBoss.boss,
+            hp: dbBoss.hp,
+            maxHp: dbBoss.maxHp,
+            participants: new Map(Object.entries(dbBoss.participants || {})),
+            lastHitUserId: dbBoss.lastHitUserId,
+            defeated: dbBoss.defeated,
+            expired: dbBoss.expired,
+            spawnedAt: dbBoss.spawnedAt,
+            expiresAt: dbBoss.expiresAt,
+            messageId: dbBoss.messageId,
+            messageIds: dbBoss.messageIds || [dbBoss.messageId],
+            imageUrl: dbBoss.imageUrl,
+            phase: dbBoss.phase || 1,
+            effects: dbBoss.effects || { armorReduced: 0, healReduced: false }
+          };
+          await finishBoss({ client, channel, activeBoss }).catch((err) => {
+            console.error(`[RPG_BOSS] Failed to recover finishBoss for ${dbBoss.bossId}:`, err);
+          });
+        } else {
+          dbBoss.rewarded = true;
+          await dbBoss.save();
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Error recovering unrewarded bosses:", err);
+  }
+
   scheduleNextBoss(client);
   console.log("✅ RPG boss spawner initialized.");
 };

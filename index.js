@@ -306,7 +306,7 @@ client.once(Events.ClientReady, async () => {
 
     await loadBotLock(client);
     spawner.initializeSpawner(client);
-    rpgBossSpawner.initialize(client);
+    await rpgBossSpawner.initialize(client);
     // Music & Lavalink initialization removed
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);

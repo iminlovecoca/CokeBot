@@ -125,6 +125,15 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     await activeBoss.updateQueue.catch(() => null);
   }
 
+  const SpawnedBoss = require("../../models/SpawnedBoss");
+  let dbBoss = null;
+  if (activeBoss.dbId) {
+    dbBoss = await SpawnedBoss.findById(activeBoss.dbId).exec().catch(() => null);
+  } else {
+    dbBoss = await SpawnedBoss.findOne({ bossId: activeBoss.id }).exec().catch(() => null);
+  }
+  const rewardedUserIds = dbBoss?.rewardedUserIds || [];
+
   const bossRankKey = activeBoss.boss.rank || "thuong";
   const rankReward = config.rpg.boss?.bossRankRewards?.[bossRankKey] || {
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
@@ -163,6 +172,10 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   };
 
   for (const [userId, participant] of activeBoss.participants.entries()) {
+    if (rewardedUserIds.includes(userId)) {
+      console.log(`[RPG_BOSS] Skipping already rewarded user ${userId} for boss ${activeBoss.id}`);
+      continue;
+    }
     try {
       const { user, rpgClass } = await requireRpgCharacter(userId);
       const isLastHit = userId === activeBoss.lastHitUserId;
@@ -269,6 +282,12 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       user.rpg.power = calculateRpgPower(user);
       await user.save();
 
+      if (dbBoss) {
+        await SpawnedBoss.findByIdAndUpdate(dbBoss._id, {
+          $addToSet: { rewardedUserIds: userId }
+        }).catch(() => null);
+      }
+
       // Quest progress updates
       const { updateQuestProgress } = require("../../utils/questUtil");
       await updateQuestProgress(userId, "boss_fight", 1, channel);
@@ -310,6 +329,28 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       }
       await bossMessage.edit(payload).catch(() => null);
     }
+  }
+
+  try {
+    const SpawnedBoss = require("../../models/SpawnedBoss");
+    const participantsObj = {};
+    for (const [uid, part] of activeBoss.participants.entries()) {
+      participantsObj[uid] = part;
+    }
+    const updateData = {
+      defeated: true,
+      rewarded: true,
+      hp: activeBoss.hp,
+      lastHitUserId: activeBoss.lastHitUserId,
+      participants: participantsObj,
+    };
+    if (activeBoss.dbId) {
+      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
+    } else {
+      await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, updateData).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Failed to save final finishBoss state to DB:", err);
   }
 };
 
@@ -859,6 +900,31 @@ const performBossAttack = async ({ client, channel, userId }) => {
   await updateQuestProgress(userId, "boss_damage", damage, channel);
   await updateBossMessage(channel, activeBoss);
 
+  try {
+    const SpawnedBoss = require("../../models/SpawnedBoss");
+    const participantsObj = {};
+    for (const [uid, part] of activeBoss.participants.entries()) {
+      participantsObj[uid] = part;
+    }
+    const updateData = {
+      hp: activeBoss.hp,
+      maxHp: activeBoss.maxHp,
+      boss: activeBoss.boss,
+      phase: activeBoss.phase || 1,
+      effects: activeBoss.effects || { armorReduced: 0, healReduced: false },
+      lastHitUserId: activeBoss.lastHitUserId,
+      participants: participantsObj,
+      defeated: activeBoss.hp <= 0,
+    };
+    if (activeBoss.dbId) {
+      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
+    } else {
+      await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, updateData).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Failed to update boss attack state in DB:", err);
+  }
+
   const embed = buildAttackResultEmbed({
     activeBoss,
     damage,
@@ -1002,6 +1068,21 @@ const handleReviveInteraction = async (interaction) => {
   participant.hp = maxHp;
   participant.koUntil = 0;
   activeBoss.participants.set(interaction.user.id, participant);
+
+  try {
+    const SpawnedBoss = require("../../models/SpawnedBoss");
+    const participantsObj = {};
+    for (const [uid, part] of activeBoss.participants.entries()) {
+      participantsObj[uid] = part;
+    }
+    if (activeBoss.dbId) {
+      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, { participants: participantsObj }).catch(() => null);
+    } else {
+      await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, { participants: participantsObj }).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Failed to update boss revive status in DB:", err);
+  }
 
   await user.save();
 

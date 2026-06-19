@@ -7,7 +7,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const User = require("../models/User");
 const config = require("../data/config");
-const { calculateRpgPower, getGearDisplayName, generateGearStats } = require("../utils/rpgUtil");
+const { calculateRpgPower, getGearDisplayName, generateGearStats, getItemImageFile } = require("../utils/rpgUtil");
 
 const maxVarianceByRarity = {
   Common: 1,
@@ -84,6 +84,13 @@ const runSync = async () => {
         const newStats = generateGearStats(item.slot, rarity, quality, item.subType || item.subtype || "");
         if (JSON.stringify(item.stats) !== JSON.stringify(newStats)) {
           item.stats = newStats;
+          gearModified = true;
+        }
+
+        // 6. Recalculate imageKey to ensure correct asset path resolution
+        const newImg = getItemImageFile(item);
+        if (newImg && item.imageKey !== newImg) {
+          item.imageKey = newImg;
           gearModified = true;
         }
 
