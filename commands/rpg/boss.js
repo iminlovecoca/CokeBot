@@ -513,7 +513,8 @@ const buildAttackResultEmbed = ({
     }
 
     if (participant.hp <= 0) {
-      battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay bằng 1,000 <:cokecy:1509951335016173662>.`;
+      const reviveText = user.rpg?.godsetBackup ? "miễn phí" : "bằng 1,000 <:cokecy:1509951335016173662>";
+      battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay ${reviveText}.`;
       if (bossHealed && bossHealed > 0) {
         battleLog += `\n🚨 **[HỒI PHỤC]** Boss hấp thụ sinh mệnh của bạn và hồi phục **${bossHealed.toLocaleString()}** HP (20% lượng HP đã mất)!`;
       }
@@ -752,7 +753,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
       return {
         ok: false,
-        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức bằng **1,000** <:cokecy:1509951335016173662>.`,
+        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức ${user.rpg?.godsetBackup ? "**miễn phí**" : "bằng **1,000** <:cokecy:1509951335016173662>"}.`,
         components: [reviveRow],
         ephemeral: true,
       };
@@ -760,8 +761,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
   }
 
   const freeAttacks = config.rpg.boss?.free_attacks_per_user ?? 3;
-  const paidAttackCost = config.rpg.boss?.paid_attack_cost ?? 10000;
-  const isPaidAttack = participant.attacks >= freeAttacks;
+  const hasGodset = !!user.rpg?.godsetBackup;
+  const paidAttackCost = hasGodset ? 0 : (config.rpg.boss?.paid_attack_cost ?? 10000);
+  const isPaidAttack = participant.attacks >= freeAttacks && !hasGodset;
 
   if (isPaidAttack && user.coke < paidAttackCost) {
     return {
@@ -1174,7 +1176,7 @@ const handleReviveInteraction = async (interaction) => {
     });
   }
 
-  const reviveCost = 1000;
+  const reviveCost = user.rpg?.godsetBackup ? 0 : 1000;
   if (user.coke < reviveCost) {
     return interaction.editReply({
       content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>, bạn có: **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>)`,

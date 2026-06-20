@@ -87,6 +87,13 @@ const filterLabels = {
   rarity_Mythic: "Cấp Mythic",
   rarity_Ancient: "Cấp Ancient",
   rarity_Divine: "Cấp Divine",
+  stat_vigor: "Chỉ số: Vigor",
+  stat_pr: "Chỉ số: PR (Physical Resist)",
+  stat_mr: "Chỉ số: MR (Magic Resist)",
+  stat_str: "Chỉ số: Strength",
+  stat_dex: "Chỉ số: Dexterity",
+  stat_int: "Chỉ số: Intelligence",
+  stat_arc: "Chỉ số: Arcane",
 };
 
 const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterType, sortBy, rpgClass }) => {
@@ -248,6 +255,21 @@ module.exports = {
       } else if (filterType.startsWith("rarity_")) {
         const rarity = filterType.slice(7);
         filtered = filtered.filter((item) => item.rarity === rarity);
+      } else if (filterType.startsWith("stat_")) {
+        const statName = filterType.slice(5);
+        filtered = filtered.filter((item) => {
+          if (!item.stats) return false;
+          const getStatVal = (k) => {
+            const val = item.stats[k];
+            if (typeof val === "number") return val;
+            return 0;
+          };
+          if (statName === "vigor") return getStatVal("vigor") > 0 || getStatVal("vit") > 0;
+          if (statName === "pr") return getStatVal("pr") > 0 || getStatVal("def") > 0;
+          if (statName === "dex") return getStatVal("dex") > 0 || getStatVal("agi") > 0;
+          if (statName === "arc") return getStatVal("arc") > 0 || getStatVal("luck") > 0;
+          return getStatVal(statName) > 0;
+        });
       }
 
       if (sortBy === "id") {
@@ -296,7 +318,14 @@ module.exports = {
             { label: "Lọc: Legendary", value: "rarity_Legendary", default: filterType === "rarity_Legendary" },
             { label: "Lọc: Mythic", value: "rarity_Mythic", default: filterType === "rarity_Mythic" },
             { label: "Lọc: Ancient", value: "rarity_Ancient", default: filterType === "rarity_Ancient" },
-            { label: "Lọc: Divine", value: "rarity_Divine", default: filterType === "rarity_Divine" }
+            { label: "Lọc: Divine", value: "rarity_Divine", default: filterType === "rarity_Divine" },
+            { label: "Lọc chỉ số: Vigor", value: "stat_vigor", default: filterType === "stat_vigor" },
+            { label: "Lọc chỉ số: PR (Physical Resist)", value: "stat_pr", default: filterType === "stat_pr" },
+            { label: "Lọc chỉ số: MR (Magic Resist)", value: "stat_mr", default: filterType === "stat_mr" },
+            { label: "Lọc chỉ số: Strength", value: "stat_str", default: filterType === "stat_str" },
+            { label: "Lọc chỉ số: Dexterity", value: "stat_dex", default: filterType === "stat_dex" },
+            { label: "Lọc chỉ số: Intelligence", value: "stat_int", default: filterType === "stat_int" },
+            { label: "Lọc chỉ số: Arcane", value: "stat_arc", default: filterType === "stat_arc" }
           )
       );
 
