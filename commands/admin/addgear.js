@@ -143,6 +143,7 @@ module.exports = {
         level: levelInput,
         upgradeLevel: upgradeLevelInput,
         subType: subtypeInput,
+        fromAdmin: true,
       });
 
       if (gear) {

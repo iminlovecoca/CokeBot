@@ -168,7 +168,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       if (item) {
         const ownerStats = getEffectiveRpgStats(userData);
         const finalPower = item.slot === "weapon" ? getWeaponPower(item, ownerStats) : item.power;
-        return `• ${slotName}: **${getGearDisplayName(item)}** (+${finalPower.toLocaleString()} Lực chiến)`;
+        return `• ${slotName}: \`G${item.id}\` **${getGearDisplayName(item)}** (+${finalPower.toLocaleString()} Lực chiến)`;
       } else {
         return `• ${slotName}: ❎`;
       }

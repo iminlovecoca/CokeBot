@@ -177,6 +177,7 @@ module.exports = {
         level,
         upgradeLevel: isWeapon ? 10 : 0, // weapons get upgraded to +10
         subType: isWeapon ? weaponSubtype : null,
+        fromAdmin: true,
       });
 
       if (gear) {

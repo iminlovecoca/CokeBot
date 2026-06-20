@@ -67,6 +67,22 @@ const dungeonWeapons = [
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
+const NORMAL_WEAPONS = ["longsword", "dagger", "staff"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood"];
+
+const getWeaponCategory = (subType) => {
+  if (!subType) return null;
+  const clean = String(subType).toLowerCase().replace(/\s+/g, "");
+  if (NORMAL_WEAPONS.includes(clean)) return "normal";
+  if (EVENT_WEAPONS.includes(clean)) return "event";
+  
+  const found = dungeonWeapons.find(dw => 
+    dw.key === clean || dw.name.toLowerCase().replace(/\s+/g, "") === clean
+  );
+  if (found) return "dungeon";
+  return null;
+};
+
 const getDungeonWeaponKey = (subType) => {
   if (!subType) return null;
   const subNameClean = String(subType).toLowerCase().replace(/\s+/g, "");
@@ -774,10 +790,19 @@ const generateRpgGearDrop = async (user, options = {}) => {
       const isDev = (config.permissions?.dev_ids || []).includes(user?.userId) || 
                     user?.userId === process.env.OWNER_ID || 
                     user?.userId === "123456" || 
-                    options.fromDungeon ||
+                    options.fromAdmin ||
                     options.allowRiverOfBlood;
       if (!isDev) {
-        throw new UserFriendlyError(`${config.emoji?.no || "❌"} Vũ khí đặc biệt (${foundDungeon.name}) chỉ có thể sở hữu từ Dungeon.`);
+        const category = getWeaponCategory(subNameClean);
+        if (category === "event") {
+          if (!options.fromEvent) {
+            throw new UserFriendlyError(`${config.emoji?.no || "❌"} Vũ khí sự kiện (${foundDungeon.name}) chỉ có thể sở hữu từ Sự kiện đặc biệt.`);
+          }
+        } else if (category === "dungeon") {
+          if (!options.fromDungeon) {
+            throw new UserFriendlyError(`${config.emoji?.no || "❌"} Vũ khí phó bản (${foundDungeon.name}) chỉ có thể sở hữu từ Dungeon.`);
+          }
+        }
       }
     }
     const foundSlot = slotSubtypes.find(st => st.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
@@ -795,12 +820,12 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const isDungeon = isDungeonWeaponHelper(slot, chosenSubtype.name);
 
   let rarity, rarityConfig;
-  if (isDungeon) {
-    rarity = "Ancient";
-    rarityConfig = config.rpg.gear_rarities["Ancient"];
-  } else if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
+  if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
     rarity = options.rarity;
     rarityConfig = config.rpg.gear_rarities[rarity];
+  } else if (isDungeon) {
+    rarity = "Ancient";
+    rarityConfig = config.rpg.gear_rarities["Ancient"];
   } else {
     const rarityEntries = Object.entries(config.rpg.gear_rarities).filter(
       ([r]) => !options.allowedRarities || options.allowedRarities.includes(r),

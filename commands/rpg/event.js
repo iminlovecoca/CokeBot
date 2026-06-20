@@ -184,6 +184,7 @@ module.exports = {
           level: freshUser.rpg.level || 1,
           upgradeLevel: 0,
           subType: event.rewards.gear.name,
+          fromEvent: true,
         });
 
         if (gear) {
