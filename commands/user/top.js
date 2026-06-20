@@ -59,7 +59,7 @@ module.exports = {
         title = `Top Lực Chiến RPG - ${guildName}`;
         unit = 'Lực chiến';
         getValue = u => Math.floor(u.rpg?.power || 0);
-        topUsers = await User.find({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+        topUsers = await User.find({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
         break;
 
       case 'cash':

@@ -353,6 +353,12 @@ module.exports = {
       );
     }
 
+    if (senderUser.rpg?.godsetBackup) {
+      return message.reply(
+        `${config.emoji.no} Bạn không thể tham gia PvP lúc này.`,
+      );
+    }
+
     if (targetMention) {
       const receiverId = targetMention.id;
       if (receiverId === senderId) {
@@ -369,6 +375,12 @@ module.exports = {
       } catch {
         return message.reply(
           `${config.emoji.no} Đối phương chưa tạo nhân vật RPG. Họ cần dùng lệnh \`${config.prefix}class\` trước.`,
+        );
+      }
+
+      if (receiverUser.rpg?.godsetBackup) {
+        return message.reply(
+          `${config.emoji.no} Đối phương không thể tham gia PvP lúc này.`,
         );
       }
 
@@ -436,6 +448,7 @@ module.exports = {
       const count = await User.countDocuments({
         "rpg.classKey": { $ne: null },
         userId: { $ne: senderId },
+        "rpg.godsetBackup": null,
       });
 
       if (count === 0) {
@@ -448,6 +461,7 @@ module.exports = {
       const randomOpponent = await User.findOne({
         "rpg.classKey": { $ne: null },
         userId: { $ne: senderId },
+        "rpg.godsetBackup": null,
       }).skip(randomIndex);
 
       await runPvPBattle(message, null, senderUser, randomOpponent);

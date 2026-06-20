@@ -35,7 +35,7 @@ module.exports = {
       active: true
     }).sort({ createdAt: 1 });
 
-    const topUser = await User.findOne({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+    const topUser = await User.findOne({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
 
     if (activeEvents.length === 0) {
       const embed = new EmbedBuilder()
@@ -160,7 +160,7 @@ module.exports = {
       if (event.requirement && event.requirement.type) {
         let progress = freshUser.rpg.eventProgress?.[eventId] || 0;
         if (event.requirement.type === "rpg_top_leaderboard") {
-          const topUserNow = await User.findOne({ "rpg.classKey": { $ne: null }, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+          const topUserNow = await User.findOne({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
           const isTop = topUserNow && topUserNow.userId === freshUser.userId;
           progress = isTop ? 1 : 0;
         }
