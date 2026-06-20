@@ -749,12 +749,12 @@ module.exports = {
       image_phase2: "TF-2.png",
       stats: {
         phase1: {
-          base_hp: 350000,
-          base_atk: 300,
+          base_hp: 300000,
+          base_atk: 250,
           base_defense: 100,
         },
         phase2: {
-          base_hp: 200000,
+          base_hp: 150000,
           base_atk_mult: 1.5,
           base_defense: 100,
         },
@@ -775,12 +775,12 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 200000,
-              base_atk: 300,
+              base_hp: 150000,
+              base_atk: 250,
               base_defense: 100,
             },
             phase2: {
-              base_hp: 125000,
+              base_hp: 75000,
               base_atk_mult: 1.5,
               base_defense: 100,
             },
@@ -814,12 +814,12 @@ module.exports = {
           image_phase2: "Vaelmor.png",
           stats: {
             phase1: {
-              base_hp: 250000,
-              base_atk: 300,
+              base_hp: 200000,
+              base_atk: 250,
               base_defense: 100,
             },
             phase2: {
-              base_hp: 150000,
+              base_hp: 100000,
               base_atk_mult: 1.8,
               base_defense: 100,
             },
@@ -847,12 +847,12 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 330000,
-              base_atk: 250,
+              base_hp: 280000,
+              base_atk: 220,
               base_defense: 120,
             },
             phase2: {
-              base_hp: 190000,
+              base_hp: 140000,
               base_atk_mult: 1.6,
               base_defense: 120,
             },
@@ -880,12 +880,12 @@ module.exports = {
           image_phase2: "Eldric.png",
           stats: {
             phase1: {
-              base_hp: 410000,
-              base_atk: 450,
+              base_hp: 360000,
+              base_atk: 380,
               base_defense: 150,
             },
             phase2: {
-              base_hp: 230000,
+              base_hp: 180000,
               base_atk_mult: 1.7,
               base_defense: 150,
             },
@@ -913,12 +913,12 @@ module.exports = {
           image_phase2: "TF-2.png",
           stats: {
             phase1: {
-              base_hp: 490000,
-              base_atk: 550,
+              base_hp: 440000,
+              base_atk: 460,
               base_defense: 180,
             },
             phase2: {
-              base_hp: 270000,
+              base_hp: 220000,
               base_atk_mult: 1.5,
               base_defense: 180,
             },
@@ -946,12 +946,12 @@ module.exports = {
           image_phase2: "Veilreaper.png",
           stats: {
             phase1: {
-              base_hp: 550000,
-              base_atk: 700,
+              base_hp: 500000,
+              base_atk: 580,
               base_defense: 220,
             },
             phase2: {
-              base_hp: 300000,
+              base_hp: 250000,
               base_atk_mult: 2.0,
               base_defense: 220,
             },

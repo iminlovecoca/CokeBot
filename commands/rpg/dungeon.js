@@ -425,7 +425,7 @@ const setupRound = (activeDungeon, channel) => {
     const leaderScaler = 1 + (leaderLevel * 0.01) + (leaderPower * 0.0002);
 
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
-    const poiseMax = 100 + chapter * 25;
+    const poiseMax = 80 + chapter * 20;
 
     activeDungeon.enemy = {
       name: bossCfg.name_phase1,
@@ -672,6 +672,12 @@ const renderGameScreen = async (channel, activeDungeon) => {
       }
     }
 
+    // Check skill ban debuff
+    if (currentActor.skillBanRounds && currentActor.skillBanRounds > 0) {
+      isSkillDisabled = true;
+      skillLabel = `${skillLabel.split(" ✨")[0]} 🚫 (Bị Cấm)`;
+    }
+
     row.addComponents(
       new ButtonBuilder()
         .setCustomId("rpg_dungeon_action_skill")
@@ -844,6 +850,14 @@ const setupCollector = (channel, activeDungeon) => {
       pExist.potions -= 1;
       activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
 
+      // Decrement skill ban if they have any
+      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+        pExist.skillBanRounds -= 1;
+        if (pExist.skillBanRounds === 0) {
+          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+        }
+      }
+
       pExist.hasActedThisRound = true;
       activeDungeon.actionInProgress = false;
       await nextTurn(channel, activeDungeon);
@@ -855,6 +869,13 @@ const setupCollector = (channel, activeDungeon) => {
         pExist.healBanRounds -= 1;
         if (pExist.healBanRounds === 0) {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+        }
+      }
+      // Decrement skill ban if they have any
+      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+        pExist.skillBanRounds -= 1;
+        if (pExist.skillBanRounds === 0) {
+          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
         }
       }
 
@@ -879,6 +900,13 @@ const setupCollector = (channel, activeDungeon) => {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
         }
       }
+      // Decrement skill ban if they have any
+      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+        pExist.skillBanRounds -= 1;
+        if (pExist.skillBanRounds === 0) {
+          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+        }
+      }
 
       await executePlayerSkill(channel, activeDungeon, pExist);
     } else if (i.customId === "rpg_dungeon_action_crimson") {
@@ -889,6 +917,13 @@ const setupCollector = (channel, activeDungeon) => {
         pExist.healBanRounds -= 1;
         if (pExist.healBanRounds === 0) {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+        }
+      }
+      // Decrement skill ban if they have any
+      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+        pExist.skillBanRounds -= 1;
+        if (pExist.skillBanRounds === 0) {
+          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
         }
       }
 
@@ -987,6 +1022,11 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
 const executePlayerSkill = async (channel, activeDungeon, player) => {
   const enemy = activeDungeon.enemy;
 
+  if (player.skillBanRounds && player.skillBanRounds > 0) {
+    activeDungeon.actionInProgress = false;
+    return channel.send(`❌ **${player.name}** đang bị cấm sử dụng kỹ năng!`);
+  }
+
   if (player.classKey === "warrior") {
     activeDungeon.logs.push(`⚔️ **${player.name}** giải phóng kỹ năng **[Trọng Kiếm]**, chém một đòn cực mạnh vào **${enemy.name}**!`);
     player.rage = 0;
@@ -1029,6 +1069,10 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
           p.healBanRounds = 0;
           clearedDebuffs.push("Cấm Hồi Máu");
         }
+        if (p.skillBanRounds && p.skillBanRounds > 0) {
+          p.skillBanRounds = 0;
+          clearedDebuffs.push("Cấm Kỹ Năng");
+        }
         if (clearedDebuffs.length > 0) {
           activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
@@ -1046,7 +1090,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
       }
     });
 
-    player.rage = Math.max(0, (player.rage || 0) - 50);
+    player.rage = Math.max(0, (player.rage || 0) - 50) + 10;
     player.hasActedThisRound = true;
 
     activeDungeon.actionInProgress = false;
@@ -1148,9 +1192,9 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
       }
     }
 
-    // 1.5x damage multiplier if boss poise is broken
+    // 2.0x damage multiplier if boss poise is broken (takes +100% damage)
     if (enemy.poiseBroken) {
-      damage = Math.floor(damage * 1.5);
+      damage = Math.floor(damage * 2.0);
     }
   }
 
@@ -1160,13 +1204,13 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
 
-  // Deal poise damage to boss
+  // Deal poise damage to boss (slightly increased poise damage)
   if (enemy.isBoss && !enemy.poiseBroken) {
-    const poiseDmg = Math.max(5, Math.floor(damage * 0.0005));
+    const poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
     enemy.poise = Math.max(0, enemy.poise - poiseDmg);
     if (enemy.poise <= 0) {
       enemy.poiseBroken = true;
-      activeDungeon.logs.push(`🛡️ **[PHÁ VỠ POISE]** Sức tấn công của nhóm đã làm **${enemy.name}** bị quỵ ngã! Boss nhận thêm **50% sát thương** cho đến lượt đi tiếp theo!`);
+      activeDungeon.logs.push(`🛡️ **[PHÁ VỠ POISE]** Sức tấn công của nhóm đã làm **${enemy.name}** bị quỵ ngã! Boss nhận thêm **100% sát thương** cho đến lượt đi tiếp theo!`);
     }
   }
 
@@ -1196,6 +1240,8 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 // Proceed to the next actor in the turn queue
 const nextTurn = async (channel, activeDungeon) => {
   const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
+  // Sort by DEX descending so higher DEX goes first!
+  alivePlayers.sort((a, b) => (b.stats?.dex || 0) - (a.stats?.dex || 0));
   const nextPlayer = alivePlayers.find((p) => !p.hasActedThisRound);
 
   if (nextPlayer) {
@@ -1253,7 +1299,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   if (enemy.isBoss && enemy.poiseBroken) {
     activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
     enemy.poiseBroken = false;
-    enemy.poise = enemy.poiseMax || (100 + (activeDungeon.chapter || 1) * 25);
+    enemy.poise = enemy.poiseMax || (80 + (activeDungeon.chapter || 1) * 20);
     // Reset player turns for the next round of combat
     activeDungeon.players.forEach((p) => {
       p.hasActedThisRound = false;
@@ -1274,6 +1320,28 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       activeDungeon.actionInProgress = false;
       await handleEnemyDefeat(channel, activeDungeon);
       return;
+    }
+  }
+
+  // Chapter 3: Mourngait skill ban passive trigger
+  if (enemy.key === "mourngait" && Math.random() < 0.35) {
+    const targets = [];
+    const pool = [...alivePlayers];
+    const targetCount = alivePlayers.length >= 3 ? 2 : (alivePlayers.length === 2 ? 1 : 0);
+    
+    for (let i = 0; i < targetCount; i++) {
+      if (pool.length > 0) {
+        const idx = Math.floor(Math.random() * pool.length);
+        targets.push(pool.splice(idx, 1)[0]);
+      }
+    }
+    
+    if (targets.length > 0) {
+      activeDungeon.logs.push(`🔥 **${enemy.name}** kích hoạt tà thuật **[Hắc Hỏa Cấm Chú]** phong ấn kỹ năng của đối thủ!`);
+      targets.forEach((t) => {
+        t.skillBanRounds = 1;
+        activeDungeon.logs.push(`🚫 **${t.name}** bị cấm sử dụng kỹ năng trong **1** lượt!`);
+      });
     }
   }
 
@@ -1431,7 +1499,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       const leaderScaler = 1 + (leaderLevel * 0.01) + (leaderPower * 0.0002);
 
       const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
-      const poiseMax = 100 + chapter * 25;
+      const poiseMax = 80 + chapter * 20;
 
       enemy.name = bossCfg.name_phase2;
       enemy.hp = maxHp;
@@ -1451,6 +1519,17 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       activeDungeon.players.forEach((p) => {
         p.hasActedThisRound = false;
       });
+
+      // Reset timer to exactly 5 minutes for Phase 2 (like entering a new stage, no announcement)
+      if (activeDungeon.timeoutTimer) {
+        clearTimeout(activeDungeon.timeoutTimer);
+        activeDungeon.timeoutTimer = null;
+      }
+      const newTimeLimit = 5 * 60 * 1000; // 5 minutes
+      activeDungeon.roundEndTime = Date.now() + newTimeLimit;
+      activeDungeon.timeoutTimer = setTimeout(async () => {
+        await handleTimeout(channel, activeDungeon);
+      }, newTimeLimit);
 
       await nextTurn(channel, activeDungeon);
     } else {
@@ -1673,10 +1752,17 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
       activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${player.name}** đã được giải trừ.`);
     }
   }
+  if (player.skillBanRounds && player.skillBanRounds > 0) {
+    player.skillBanRounds -= 1;
+    if (player.skillBanRounds === 0) {
+      activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${player.name}** đã được giải trừ.`);
+    }
+  }
 
   // Check if skill is ready
   let useSkill = false;
-  if (player.classKey !== "wretch") {
+  const hasSkillBan = player.skillBanRounds && player.skillBanRounds > 0;
+  if (player.classKey !== "wretch" && !hasSkillBan) {
     if (player.classKey === "mage") {
       if ((player.mana ?? 100) >= 25) useSkill = true;
     } else if (player.classKey === "paladin") {
