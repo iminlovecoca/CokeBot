@@ -63,9 +63,15 @@ module.exports = {
       // Dungeon Weapon upgrade: max +10
       // Cost: 20k to 450k Coke (linear/progressive: 20000 + currentLvl * 47777)
       cokeCost = Math.floor(20000 + currentLvl * 47777);
-      // Stones: Somber Smithing Stone [1] to [9] (cristal-1 to cristal-9) + cristal-10 for +10
-      stoneId = `cristal-${nextLvl}`;
-      stoneQty = 1;
+      // Stones: Cristal Smithing Stone [1] to [8] (cristal-1 to cristal-8) + cristal-9 for +10
+      if (nextLvl === 10) {
+        stoneId = "cristal-9";
+        stoneQty = 1;
+      } else {
+        const tier = Math.min(8, nextLvl);
+        stoneId = `cristal-${tier}`;
+        stoneQty = 1;
+      }
     } else {
       // Normal Weapon upgrade: max +25
       // Cost: 10k to 200k Coke (linear/progressive: 10000 + currentLvl * 7916)

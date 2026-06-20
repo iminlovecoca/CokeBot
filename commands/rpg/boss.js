@@ -56,6 +56,7 @@ const sendRewardDm = async ({
   isLastHit,
   stones,
   keyDropped,
+  topBonus,
 }) => {
   const discordUser = await client.users.fetch(userId).catch(() => null);
   if (!discordUser) return;
@@ -72,7 +73,7 @@ const sendRewardDm = async ({
     : null;
 
   const embed = new EmbedBuilder()
-    .setColor(isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
+    .setColor(topBonus ? topBonus.color : isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
     .setTitle(`${boss.emoji} Thưởng đánh boss: ${boss.name}`)
     .setDescription(
       isLastHit
@@ -94,6 +95,16 @@ const sendRewardDm = async ({
         inline: true,
       },
     );
+
+  if (topBonus) {
+    let bonusValue = `+${topBonus.cokeBonus.toLocaleString()} <:cokecy:1509951335016173662>\n+${topBonus.expBonus.toLocaleString()} EXP`;
+    if (topBonus.wcBonus > 0) bonusValue += `\n<:crate:1512793698025603282> Lootbox x${topBonus.wcBonus}`;
+    embed.addFields({
+      name: `${topBonus.label} 🏆`,
+      value: bonusValue,
+      inline: true,
+    });
+  }
 
   if (stoneLines) {
     embed.addFields({
@@ -171,6 +182,53 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     return null;
   };
 
+  // --- Tính top 3 sát thương ---
+  const baseExp = activeBoss.boss.exp || 100;
+  const sortedByDamage = [...activeBoss.participants.entries()]
+    .sort(([, a], [, b]) => b.damage - a.damage);
+
+  const topDamageConfigs = rankReward.topDamageRewards || [
+    { rank: 1, cokeBonus: 3000, wcBonus: 5 },
+    { rank: 2, cokeBonus: 1500, wcBonus: 2 },
+    { rank: 3, cokeBonus: 800, wcBonus: 0 },
+  ];
+
+  const TOP3_BONUS = [
+    {
+      rank: 1,
+      label: "🥇 Top 1 Sát Thương",
+      expBonus: Math.floor(baseExp * 0.5),
+      cokeBonus: topDamageConfigs[0]?.cokeBonus ?? 3000,
+      wcBonus: topDamageConfigs[0]?.wcBonus ?? 5,
+      color: "#FFD700",
+    },
+    {
+      rank: 2,
+      label: "🥈 Top 2 Sát Thương",
+      expBonus: Math.floor(baseExp * 0.25),
+      cokeBonus: topDamageConfigs[1]?.cokeBonus ?? 1500,
+      wcBonus: topDamageConfigs[1]?.wcBonus ?? 2,
+      color: "#C0C0C0",
+    },
+    {
+      rank: 3,
+      label: "🥉 Top 3 Sát Thương",
+      expBonus: Math.floor(baseExp * 0.1),
+      cokeBonus: topDamageConfigs[2]?.cokeBonus ?? 800,
+      wcBonus: topDamageConfigs[2]?.wcBonus ?? 0,
+      color: "#CD7F32",
+    },
+  ];
+
+  // Map userId -> top3 bonus config (nếu có)
+  const topBonusMap = new Map();
+  for (let i = 0; i < Math.min(3, sortedByDamage.length); i++) {
+    const [uid] = sortedByDamage[i];
+    topBonusMap.set(uid, TOP3_BONUS[i]);
+  }
+
+  const top3Results = []; // Lưu kết quả để gửi channel
+
   for (const [userId, participant] of activeBoss.participants.entries()) {
     if (rewardedUserIds.includes(userId)) {
       console.log(`[RPG_BOSS] Skipping already rewarded user ${userId} for boss ${activeBoss.id}`);
@@ -220,7 +278,6 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       }
 
       // EXP — scales by rank multiplier
-      const baseExp = activeBoss.boss.exp || 100;
       const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
       const expGain = Math.floor(
         baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
@@ -267,16 +324,56 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         user.markModified("inventory");
       }
 
-      // Key drop for dungeon
+      // Key drop for dungeon - Chỉ dành cho Last Hit của boss Thượng Nhân với tỷ lệ 50%
       let keyDropped = false;
-      if (bossRankKey === "thuongnhan") {
-        if (!user.inventory) {
-          user.inventory = new Map();
+      if (bossRankKey === "thuongnhan" && isLastHit) {
+        if (Math.random() < 0.5) {
+          if (!user.inventory) {
+            user.inventory = new Map();
+          }
+          const currentQty = user.inventory.get("dungeonkey") || 0;
+          user.inventory.set("dungeonkey", currentQty + 1);
+          user.markModified("inventory");
+          keyDropped = true;
         }
-        const currentQty = user.inventory.get("dungeonkey") || 0;
-        user.inventory.set("dungeonkey", currentQty + 1);
-        user.markModified("inventory");
-        keyDropped = true;
+      }
+
+      // --- Bonus top 3 sát thương ---
+      let topBonus = null;
+      if (topBonusMap.has(userId)) {
+        topBonus = topBonusMap.get(userId);
+
+        // Thưởng bonus exp
+        if (topBonus.expBonus > 0) {
+          addRpgExp(user.rpg, topBonus.expBonus);
+        }
+
+        // Thưởng bonus coke
+        if (topBonus.cokeBonus > 0) {
+          user.coke += topBonus.cokeBonus;
+        }
+
+        // Thưởng wc (lootbox)
+        if (topBonus.wcBonus > 0) {
+          if (!user.inventory) user.inventory = new Map();
+          const currentWc = user.inventory.get("wc") || 0;
+          user.inventory.set("wc", currentWc + topBonus.wcBonus);
+          user.markModified("inventory");
+        }
+
+        // Lưu để gửi thông báo channel
+        const discordUser = await client.users.fetch(userId).catch(() => null);
+        top3Results.push({
+          rank: topBonus.rank,
+          label: topBonus.label,
+          color: topBonus.color,
+          userId,
+          displayName: discordUser?.displayName || discordUser?.username || `<@${userId}>`,
+          damage: participant.damage,
+          expBonus: topBonus.expBonus,
+          cokeBonus: topBonus.cokeBonus,
+          wcBonus: topBonus.wcBonus,
+        });
       }
 
       user.rpg.power = calculateRpgPower(user);
@@ -309,10 +406,33 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         cokeGain,
         isLastHit,
         stones: stonesDropped,
-        keyDropped
+        keyDropped,
+        topBonus,
       });
     } catch (error) {
       console.warn("[RPG_BOSS] Reward failed:", userId, error.message);
+    }
+  }
+
+  // --- Gửi thông báo top 3 sát thương lên channel ---
+  if (top3Results.length > 0) {
+    try {
+      top3Results.sort((a, b) => a.rank - b.rank);
+      const top3Lines = top3Results.map(t => {
+        let bonusText = `+${t.cokeBonus.toLocaleString()} <:cokecy:1509951335016173662>  +${t.expBonus.toLocaleString()} EXP`;
+        if (t.wcBonus > 0) bonusText += `  <:crate:1512793698025603282> x${t.wcBonus}`;
+        return `${t.label}: **${t.displayName}** — ${t.damage.toLocaleString()} ST\n┗ Thưởng thêm: ${bonusText}`;
+      }).join("\n\n");
+
+      const top3Embed = new EmbedBuilder()
+        .setColor("#FFD700")
+        .setTitle(`${activeBoss.boss.emoji} Bảng Xếp Hạng Sát Thương — ${activeBoss.boss.name}`)
+        .setDescription(top3Lines)
+        .setFooter({ text: "Phần thưởng đã được gửi qua DM. Chúc mừng top sát thương!" });
+
+      await channel.send({ embeds: [top3Embed] }).catch(() => null);
+    } catch (err) {
+      console.warn("[RPG_BOSS] Failed to send top3 ranking message:", err.message);
     }
   }
 
