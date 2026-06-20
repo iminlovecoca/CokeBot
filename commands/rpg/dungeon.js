@@ -1622,6 +1622,7 @@ const handleVictory = async (channel, activeDungeon) => {
         rarity: bossReward.rarity || "Ancient",
         imageKey: bossReward.image_path,
         forceDrop: true,
+        fromDungeon: true,
       });
 
       if (specialGear) {

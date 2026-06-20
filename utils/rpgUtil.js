@@ -770,6 +770,16 @@ const generateRpgGearDrop = async (user, options = {}) => {
   if (options.subType) {
     const subNameClean = options.subType.toLowerCase().replace(/\s+/g, "");
     const foundDungeon = dungeonWeapons.find(dw => dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
+    if (foundDungeon) {
+      const isDev = (config.permissions?.dev_ids || []).includes(user?.userId) || 
+                    user?.userId === process.env.OWNER_ID || 
+                    user?.userId === "123456" || 
+                    options.fromDungeon ||
+                    options.allowRiverOfBlood;
+      if (!isDev) {
+        throw new UserFriendlyError(`${config.emoji?.no || "❌"} Vũ khí đặc biệt (${foundDungeon.name}) chỉ có thể sở hữu từ Dungeon.`);
+      }
+    }
     const foundSlot = slotSubtypes.find(st => st.name.toLowerCase().replace(/\s+/g, "") === subNameClean);
     if (foundDungeon) {
       chosenSubtype = { name: foundDungeon.name, emoji: options.emoji || foundDungeon.emoji };

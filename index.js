@@ -34,6 +34,7 @@ const { initializeAutohuntReminders } = require("./features/autohuntReminder");
 const { initializeGodsetExpirations } = require("./features/godsetExpiryManager");
 const config = require("./data/config");
 const { syncTimeDrift } = require("./utils/timeSync");
+const { startNetworkMonitor } = require("./utils/networkMonitor");
 
 process.on("unhandledRejection", (error) => {
   console.error("❌ Unhandled rejection:", error);
@@ -163,6 +164,7 @@ loadFiles(path.join(__dirname, "events"), (filePath) => {
 
 client.once(Events.ClientReady, async () => {
   console.log(`🚀 Bot logged in as ${client.user.tag}`);
+  startNetworkMonitor(client);
   client.user.setPresence({
     activities: [{ name: "Coke 🎲", type: 1 }],
     status: "online",
