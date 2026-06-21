@@ -1400,6 +1400,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
 
       p.hp = Math.max(0, p.hp - damage);
+      if (p.hp > 0 && p.classKey !== "mage" && p.classKey !== "wretch") {
+        p.rage = Math.min(100, (p.rage || 0) + 10);
+      }
       activeDungeon.logs.push(`💥 Gây **${damage.toLocaleString()}** st lên **${p.name}**.`);
       if (p.hp <= 0) {
         activeDungeon.logs.push(`💀 **${p.name}** đã tử nạn!`);
@@ -1462,6 +1465,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       if (target.hp <= 0) {
         activeDungeon.logs.push(`💀 **${target.name}** đã tử nạn!`);
       }
+    }
+    if (target.hp > 0 && target.classKey !== "mage" && target.classKey !== "wretch") {
+      target.rage = Math.min(100, (target.rage || 0) + 10);
     }
   }
 

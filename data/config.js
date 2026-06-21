@@ -795,14 +795,14 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 150000,
-              base_atk: 250,
+              base_hp: 135000,
+              base_atk: 200,
               base_defense: 100,
             },
             phase2: {
               base_hp: 75000,
               base_atk_mult: 1.5,
-              base_defense: 100,
+              base_defense: 90,
             },
           },
           passive: {
@@ -835,13 +835,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 200000,
-              base_atk: 250,
+              base_atk: 220,
               base_defense: 100,
             },
             phase2: {
-              base_hp: 100000,
+              base_hp: 50000,
               base_atk_mult: 1.8,
-              base_defense: 100,
+              base_defense: 90,
             },
           },
           mechanics: {
@@ -868,13 +868,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 280000,
-              base_atk: 220,
-              base_defense: 120,
+              base_atk: 180,
+              base_defense: 90,
             },
             phase2: {
-              base_hp: 140000,
+              base_hp: 130000,
               base_atk_mult: 1.6,
-              base_defense: 120,
+              base_defense: 80,
             },
           },
           mechanics: {
@@ -901,13 +901,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 360000,
-              base_atk: 380,
+              base_atk: 340,
               base_defense: 150,
             },
             phase2: {
               base_hp: 180000,
               base_atk_mult: 1.7,
-              base_defense: 150,
+              base_defense: 120,
             },
           },
           mechanics: {
