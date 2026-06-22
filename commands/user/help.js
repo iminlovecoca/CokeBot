@@ -170,13 +170,41 @@ module.exports = {
             .filter((cmd) => !cmd.hidden);
 
           if (commandsInCategory.size > 0) {
-            commandsInCategory.forEach((cmd) => {
-              embed.addFields({
-                name: `\`${isNoituCategory ? `${config.prefix} noitu ${cmd.name}` : `${config.prefix}${cmd.name}`}\``,
-                value: cmd.description || "Không có mô tả.",
-                inline: true,
+            if (commandsInCategory.size <= 24) {
+              commandsInCategory.forEach((cmd) => {
+                embed.addFields({
+                  name: `\`${isNoituCategory ? `${config.prefix} noitu ${cmd.name}` : `${config.prefix}${cmd.name}`}\``,
+                  value: cmd.description || "Không có mô tả.",
+                  inline: true,
+                });
               });
-            });
+            } else {
+              let lines = [];
+              commandsInCategory.forEach((cmd) => {
+                const cmdName = isNoituCategory ? `noitu ${cmd.name}` : cmd.name;
+                lines.push(`• \`${config.prefix}${cmdName}\`: ${cmd.description || "Không có mô tả."}`);
+              });
+
+              let currentFieldVal = "";
+              let fieldIndex = 1;
+              for (const line of lines) {
+                if (currentFieldVal.length + line.length + 1 > 1000) {
+                  embed.addFields({
+                    name: `Danh sách lệnh (Phần ${fieldIndex})`,
+                    value: currentFieldVal,
+                  });
+                  currentFieldVal = "";
+                  fieldIndex++;
+                }
+                currentFieldVal += line + "\n";
+              }
+              if (currentFieldVal.length > 0) {
+                embed.addFields({
+                  name: fieldIndex > 1 ? `Danh sách lệnh (Phần ${fieldIndex})` : "Danh sách lệnh",
+                  value: currentFieldVal,
+                });
+              }
+            }
           } else {
             embed.setDescription("Không có lệnh nào trong danh mục này.");
           }
