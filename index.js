@@ -372,8 +372,8 @@ client.once(Events.ClientReady, async () => {
 async function connectWithRetry() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      maxPoolSize: 20,
-      minPoolSize: 2,
+      maxPoolSize: 100,
+      minPoolSize: 10,
       socketTimeoutMS: 45000,
       serverSelectionTimeoutMS: 20000,
       retryWrites: true,

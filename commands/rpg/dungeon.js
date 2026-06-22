@@ -719,35 +719,45 @@ const renderGameScreen = async (channel, activeDungeon) => {
       }
     }
   } else {
-    // Normal monster round: check for creep image under Creeps folder
-    if (chapter === 4 && round === 3) {
-      const filePath = path.join(__dirname, "../../assets/dungeons/Creeps/Draugor.png");
-      if (fs.existsSync(filePath)) {
-        const fileName = "Draugor.png";
-        files.push(new AttachmentBuilder(filePath, { name: fileName }));
-        embed.setImage(`attachment://${fileName}`);
+    // Normal monster round: determine creep image under Creeps folder
+    let filePath = null;
+    let fileName = null;
+
+    if (chapter === 4) {
+      if (round === 3) {
+        filePath = path.join(__dirname, "../../assets/dungeons/Creeps/Draugor.png");
+        fileName = "Draugor.png";
+      } else if (round === 1 || round === 2 || round === 4) {
+        filePath = path.join(__dirname, "../../assets/dungeons/Creeps/soilderDevil.png");
+        fileName = "soilderDevil.png";
       }
-    } else {
+    } else if (chapter === 5) {
+      // Chapter 5: Fallback to old behavior searching bossKey-creep${round}
       const bossCfg = getBossConfig(chapter);
       const bossKey = bossCfg?.key ? bossCfg.key.toUpperCase() : "";
       if (bossKey) {
         const extensions = ["jpg", "png", "webp"];
-        let filePath = null;
-        let foundExt = null;
         for (const ext of extensions) {
           const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/${bossKey}-creep${round}.${ext}`);
           if (fs.existsSync(testPath)) {
             filePath = testPath;
-            foundExt = ext;
+            fileName = `${bossKey}-creep${round}.${ext}`;
             break;
           }
         }
-        if (filePath) {
-          const fileName = `${bossKey}-creep${round}.${foundExt}`;
-          files.push(new AttachmentBuilder(filePath, { name: fileName }));
-          embed.setImage(`attachment://${fileName}`);
-        }
       }
+    } else {
+      // Other chapters: use Creep1.png to Creep4.png based on round
+      const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/Creep${round}.png`);
+      if (fs.existsSync(testPath)) {
+        filePath = testPath;
+        fileName = `Creep${round}.png`;
+      }
+    }
+
+    if (filePath && fs.existsSync(filePath)) {
+      files.push(new AttachmentBuilder(filePath, { name: fileName }));
+      embed.setImage(`attachment://${fileName}`);
     }
   }
 

@@ -1000,11 +1000,11 @@ const performBossAttack = async ({ client, channel, userId }) => {
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
 
-        // Special ability of boss_XI: heals 10% of its missing HP when killing a user
+        // Special ability of boss_XI: heals 20% of its missing HP when killing a user
         if (activeBoss.boss.key === "boss_XI") {
           const missingHp = activeBoss.maxHp - activeBoss.hp;
           if (missingHp > 0) {
-            let healFactor = 0.10;
+            let healFactor = 0.20;
             if (activeBoss.effects.healReduced) {
               healFactor *= 0.50;
             }

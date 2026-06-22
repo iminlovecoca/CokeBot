@@ -124,7 +124,7 @@ module.exports = {
       max_drop_rate: 0.2,
     },
     gear_slots: {
-      weapon: { rate: 35, stat_pool: [] },
+      weapon: { rate: 20, stat_pool: [] },
       armor: { rate: 18, stat_pool: ["vigor", "pr", "mr"] },
       helmet: { rate: 16, stat_pool: ["vigor", "pr", "mr"] },
       boots: { rate: 16, stat_pool: ["dex", "vigor", "pr", "mr", "arc"] },
