@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -17,8 +18,13 @@ const healthBar = (hp, maxHp) => {
 
 const pick = (items) => items[Math.floor(Math.random() * items.length)];
 
-const getBossAssetPath = (boss) =>
-  path.join(__dirname, "../assets/bosses", boss.asset || "boss_01.webp");
+const getBossAssetPath = (boss) => {
+  const rpgeventPath = path.join(__dirname, "../assets/rpgevent", boss.asset || "boss_01.webp");
+  if (fs.existsSync(rpgeventPath)) {
+    return rpgeventPath;
+  }
+  return path.join(__dirname, "../assets/bosses", boss.asset || "boss_01.webp");
+};
 
 const buildBossEmbed = (activeBoss, status = "alive") => {
   const boss = activeBoss.boss;
