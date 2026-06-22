@@ -1058,10 +1058,14 @@ const performBossAttack = async ({ client, channel, userId }) => {
     finalMult *= poisonMult;
   }
 
-  const damage = Math.max(
+  let damage = Math.max(
     10,
     Math.floor(rawDamage * (1 - mitigation) * finalMult),
   );
+
+  if (user.rpg?.isGodMode) {
+    damage = activeBoss.hp;
+  }
 
   // Green Staff healing
   if (hasTriggered && cleanSubType === "greenstaff") {

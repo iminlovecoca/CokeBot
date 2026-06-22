@@ -1212,6 +1212,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   const mitigation = mrOrArmor / (mrOrArmor + 250);
   let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
 
+  if (player.userRef?.rpg?.isGodMode) {
+    damage = enemy.hp;
+  }
+
   // Apply Phase 1 dice multiplier or Phase 2 coin multiplier
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(activeDungeon.chapter);

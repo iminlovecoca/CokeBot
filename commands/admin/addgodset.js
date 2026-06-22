@@ -81,14 +81,20 @@ module.exports = {
       dbUser = await User.findOne({ userId: mention.id });
     }
 
-    // Check for duration (last arg)
+    // Parse duration and check for god mode
     let durationMinutes = null;
-    const lastArg = args[args.length - 1];
-    if (args.length >= 2 && /^\d+$/.test(lastArg)) {
-      const parsedDuration = parseInt(lastArg, 10);
-      if (!isNaN(parsedDuration) && parsedDuration > 0) {
-        durationMinutes = parsedDuration;
-        args.pop(); // remove duration from weapon subtype parsing
+    let isGodMode = false;
+    const remainingArgs = [];
+
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i].trim();
+      const lowerArg = arg.toLowerCase();
+      if (/^\d+$/.test(arg)) {
+        durationMinutes = parseInt(arg, 10);
+      } else if (["god", "godmode", "onehit"].includes(lowerArg)) {
+        isGodMode = true;
+      } else {
+        remainingArgs.push(arg);
       }
     }
 
@@ -127,10 +133,11 @@ module.exports = {
       int: 99,
       arc: 99
     };
+    dbUser.rpg.isGodMode = isGodMode;
 
     // 2. Parse and match weapon subtype
-    const inputWeapon = args.slice(1).join(" ").trim();
-    let weaponSubtype = "Holy Sword"; // default
+    const inputWeapon = remainingArgs.join(" ").trim();
+    let weaponSubtype = isGodMode ? "God Sword" : "Holy Sword"; // default
 
     if (inputWeapon) {
       const cleanInput = inputWeapon.toLowerCase().replace(/\s+/g, "");
@@ -211,12 +218,13 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor("#FFFFFF")
-      .setTitle("🔱 Đã Cấp God Set & Đạt Cấp 120 Thành Công")
+      .setTitle(isGodMode ? "🔱 Đã Cấp God Set & Kích Hoạt Sức Mạnh Tối Cao" : "🔱 Đã Cấp God Set & Đạt Cấp 120 Thành Công")
       .setDescription(
         `Đã nâng cấp dữ liệu nhân vật RPG của <@${mention.id}> ${durationText}:\n\n` +
         `• **Cấp độ (Level)**: \`Level 120 (Transcendent)\`\n` +
         `• **Chỉ số gốc**: \`Vigor/PR/MR/STR/DEX/INT/ARC đều đạt 99 (MAX)\`\n` +
-        `• **Lực chiến tổng**: \`+${Math.floor(dbUser.rpg.power).toLocaleString()}\`\n\n` +
+        `• **Lực chiến tổng**: \`+${Math.floor(dbUser.rpg.power).toLocaleString()}\`\n` +
+        (isGodMode ? `• **Sức mạnh tối cao (God Mode)**: \`Kích hoạt (1 đòn đánh bất kỳ boss nào cũng sẽ chết)\`\n\n` : `\n`) +
         `**Các trang bị đã thêm & tự động mặc:**\n` +
         addedGears.map(g => `• ${getGearDisplayName(g)} (Lực chiến: \`+${g.power.toLocaleString()}\`, ID: \`G${String(g.id).padStart(3, "0")}\`)`).join("\n")
       )

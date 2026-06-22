@@ -1057,6 +1057,7 @@ const revokeRpgGodset = async (userId, client) => {
 
   // Remove godset items from user's inventory
   user.rpg.items = (user.rpg.items || []).filter(item => !item.isGodset);
+  user.rpg.isGodMode = false;
 
   // Recalculate power
   user.rpg.power = calculateRpgPower(user);
