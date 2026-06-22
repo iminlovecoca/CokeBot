@@ -107,7 +107,7 @@ module.exports = {
 
   rpg: {
     starting_level: 1,
-    hunt_cooldown_ms: 10 * 1000,
+    hunt_cooldown_ms: 15 * 1000,
     hunt_base_exp: 90,
     hunt_grounds: [
       { key: "rock_field", name: "Bãi Đá", emoji: "🗿" },
