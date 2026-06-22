@@ -161,14 +161,18 @@ module.exports = {
       let totalKOs = 0;
       let lastHitUser = null;
 
-      // 3 rounds of attacks per player
-      for (let round = 1; round <= 3; round++) {
-        if (bossHp <= 0) break;
+      let round = 0;
+      const maxRounds = 100000; // Run until boss dies (large safe limit)
+      let totalCokeSpent = 0;
+
+      while (bossHp > 0 && round < maxRounds) {
+        round++;
+        let activeAttackersThisRound = 0;
 
         for (const p of mockPlayers) {
           if (bossHp <= 0) break;
 
-          // Bleed tick check
+          // Bleed tick check at the start of player turn
           if (activeBossEffects.bleedRounds > 0) {
             const bleedDmg = activeBossEffects.bleedDamage;
             bossHp = Math.max(0, bossHp - bleedDmg);
@@ -179,17 +183,48 @@ module.exports = {
             }
           }
 
+          // Handle KO and revive
           if (p.hp <= 0) {
-            if (Math.random() < 0.40 && p.coke >= 1000) {
+            if (p.skipRound && p.skipRound > 0) {
+              p.skipRound -= 1;
+              continue; // Skip this round while dead
+            }
+
+            const hasGodset = p.isMock ? false : !!p.godset;
+            const canReviveFree = hasGodset;
+            const reviveCost = canReviveFree ? 0 : 1000;
+
+            if (canReviveFree) {
               p.hp = p.maxHp;
-              p.coke -= 1000;
+            } else if (p.coke >= reviveCost) {
+              p.hp = p.maxHp;
+              p.coke -= reviveCost;
+              totalCokeSpent += reviveCost;
             } else {
+              // Revive for free after 2 rounds (30s)
+              p.hp = p.maxHp;
+              p.skipRound = 2; // Will skip 2 rounds (30s)
               continue;
             }
           }
 
+          // Check paid attack cost
+          const isEventBoss = boss.key === "hexia" || boss.key === "godhexa";
+          const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
+          const hasGodset = p.isMock ? false : !!p.godset;
+          const hasFreeAttack = p.attacks < freeAttacks || hasGodset;
+          const paidAttackCost = hasGodset ? 0 : (isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000));
+
+          // In simulation, players keep attacking until the boss dies, even if they run out of Coke.
+          // We let their Coke go negative to track the total Coke spent.
+          if (!hasFreeAttack) {
+            p.coke -= paidAttackCost;
+            totalCokeSpent += paidAttackCost;
+          }
+
           p.attacks += 1;
           totalAttacks += 1;
+          activeAttackersThisRound++;
 
           // Damage calculation
           const isMagical = CLASS_ATTACK_TYPES[p.classKey] === "magical";
@@ -249,7 +284,10 @@ module.exports = {
 
           // Boss counterattack
           let bossDmg = boss.attackPower * (0.85 + Math.random() * 0.3);
-          const playerRes = isMagical ? p.stats.mr : p.stats.pr;
+          let playerRes = isMagical ? p.stats.mr : p.stats.pr;
+          if (subType === "sunbow") {
+            playerRes += 10;
+          }
           const playerMitigation = (playerRes * 3.0 + p.power * 0.10) / (playerRes * 3.0 + p.power * 0.10 + 1000);
           let counterDmg = Math.max(10, Math.floor(bossDmg * (1 - playerMitigation)));
 
@@ -281,17 +319,29 @@ module.exports = {
             }
           }
         }
+
+        // Avoid infinite loop if no players can attack
+        if (activeAttackersThisRound === 0 && round > 100000) {
+          break;
+        }
       }
 
       // Build Result Embed
       const victory = bossHp <= 0;
+      const totalSeconds = round * 15;
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      const timeStr = mins > 0 ? `${mins} phút ${secs} giây` : `${secs} giây`;
+
       const embed = new EmbedBuilder()
         .setColor(victory ? "#2ECC71" : "#E74C3C")
         .setTitle(`📊 GIẢ LẬP WORLD BOSS: ${boss.name}`)
         .setDescription(
           `• Kết quả: ${victory ? "🏆 **CHIẾN THẮNG**" : "💀 **THẤT BẠI**"}\n` +
           `• HP của Boss: **${bossHp.toLocaleString()} / ${bossMaxHp.toLocaleString()}** (${((bossHp / bossMaxHp) * 100).toFixed(2)}% còn lại)\n` +
+          `• Thời gian chiến đấu ước tính: **${timeStr}** (Tổng cộng **${round}** lượt đấu)\n` +
           `• Tổng số lượt đánh: **${totalAttacks}** | Số mạng ngã xuống: **${totalKOs}**\n` +
+          `• Tổng Coke đã tiêu thụ: **${totalCokeSpent.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
           `${victory && lastHitUser ? `• Đòn kết liễu (Last Hit): **${lastHitUser.name}**\n` : ""}`
         )
         .setTimestamp();
