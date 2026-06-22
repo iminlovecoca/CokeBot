@@ -1293,7 +1293,8 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
 
   collector.on("collect", async (i) => {
     await i.deferUpdate();
-    collector.stop(i.customId.replace("soul_invite_", ""));
+    const action = i.customId.replace("soul_invite_", "").split(":")[0];
+    collector.stop(action);
   });
 
   collector.on("end", async (collected, reason) => {
