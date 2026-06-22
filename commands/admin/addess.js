@@ -2,6 +2,8 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("
 const config = require("../../data/config");
 const User = require("../../models/User");
 
+const { isDev } = require("../../utils/userUtil");
+
 module.exports = {
   name: "addess",
   aliases: ["addessence"],
@@ -9,9 +11,9 @@ module.exports = {
 
   async execute(message, args) {
     const authorId = message.author.id;
-    const isDev = config.permissions?.dev_ids?.includes(authorId) || authorId === "745950731638407210";
+    const isAuthorDev = isDev(authorId);
     const isAdmin = message.member?.permissions?.has("Administrator");
-    if (!isDev && !isAdmin) {
+    if (!isAuthorDev && !isAdmin) {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
 

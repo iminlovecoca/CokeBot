@@ -29,9 +29,16 @@ const QUEST_TEMPLATES = {
   ],
 };
 
-const generateRandomQuest = (tier) => {
+const generateRandomQuest = (tier, excludeTexts = []) => {
   const templates = QUEST_TEMPLATES[tier];
-  const template = templates[Math.floor(Math.random() * templates.length)];
+  let filtered = templates;
+  if (Array.isArray(excludeTexts) && excludeTexts.length > 0) {
+    filtered = templates.filter(t => !excludeTexts.includes(t.text));
+    if (filtered.length === 0) {
+      filtered = templates;
+    }
+  }
+  const template = filtered[Math.floor(Math.random() * filtered.length)];
   
   let rewardType;
   let rewardValue;
@@ -104,7 +111,8 @@ const checkAndResetDailyQuests = async (user) => {
       if (randTier >= 0.5 && randTier < 0.85) tier = "intermediate";
       else if (randTier >= 0.85) tier = "advanced";
 
-      const newQuest = generateRandomQuest(tier);
+      const activeTexts = user.rpg.quests.active.map(q => q.text);
+      const newQuest = generateRandomQuest(tier, activeTexts);
       user.rpg.quests.active.push(newQuest);
     }
 

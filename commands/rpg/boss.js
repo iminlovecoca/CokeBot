@@ -3,12 +3,14 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  AttachmentBuilder,
 } = require("discord.js");
 const config = require("../../data/config");
 const {
   buildBossComponents,
   buildBossEmbed,
   getAttachment,
+  healthBar,
 } = require("../../features/rpgBossSpawner");
 const {
   addRpgExp,
@@ -247,7 +249,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
       });
       if (gear1) {
-        addRpgGearToUser(user, gear1);
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          addRpgGearToUser(user, gear1);
+        }
         gears.push(gear1);
       }
 
@@ -260,7 +264,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
         });
         if (gear2) {
-          addRpgGearToUser(user, gear2);
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+            addRpgGearToUser(user, gear2);
+          }
           gears.push(gear2);
         }
 
@@ -271,7 +277,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
             allowedRarities: rankReward.lastHitBonusRarities,
           });
           if (gear3) {
-            addRpgGearToUser(user, gear3);
+            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+              addRpgGearToUser(user, gear3);
+            }
             gears.push(gear3);
           }
         }
@@ -282,13 +290,17 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       const expGain = Math.floor(
         baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
       );
-      addRpgExp(user.rpg, expGain);
+      if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+        addRpgExp(user.rpg, expGain);
+      }
 
       // Coke — scales by rank range
       const cokeGain = isLastHit
         ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
         : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
-      user.coke += cokeGain;
+      if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+        user.coke += cokeGain;
+      }
 
       // Drops for hourly boss
       const stonesDropped = [];
@@ -304,8 +316,10 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
         for (let i = 0; i < dropCount; i++) {
           const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
-          const currentQty = user.inventory.get(stoneId) || 0;
-          user.inventory.set(stoneId, currentQty + 1);
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+            const currentQty = user.inventory.get(stoneId) || 0;
+            user.inventory.set(stoneId, currentQty + 1);
+          }
 
           // Track for displaying
           const found = stonesDropped.find(s => s.id === stoneId);
@@ -321,19 +335,23 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
             });
           }
         }
-        user.markModified("inventory");
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          user.markModified("inventory");
+        }
       }
 
       // Key drop for dungeon - Chỉ dành cho Last Hit của boss Thượng Nhân với tỷ lệ 50%
       let keyDropped = false;
       if (bossRankKey === "thuongnhan" && isLastHit) {
         if (Math.random() < 0.5) {
-          if (!user.inventory) {
-            user.inventory = new Map();
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+            if (!user.inventory) {
+              user.inventory = new Map();
+            }
+            const currentQty = user.inventory.get("dungeonkey") || 0;
+            user.inventory.set("dungeonkey", currentQty + 1);
+            user.markModified("inventory");
           }
-          const currentQty = user.inventory.get("dungeonkey") || 0;
-          user.inventory.set("dungeonkey", currentQty + 1);
-          user.markModified("inventory");
           keyDropped = true;
         }
       }
@@ -343,22 +361,24 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       if (topBonusMap.has(userId)) {
         topBonus = topBonusMap.get(userId);
 
-        // Thưởng bonus exp
-        if (topBonus.expBonus > 0) {
-          addRpgExp(user.rpg, topBonus.expBonus);
-        }
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          // Thưởng bonus exp
+          if (topBonus.expBonus > 0) {
+            addRpgExp(user.rpg, topBonus.expBonus);
+          }
 
-        // Thưởng bonus coke
-        if (topBonus.cokeBonus > 0) {
-          user.coke += topBonus.cokeBonus;
-        }
+          // Thưởng bonus coke
+          if (topBonus.cokeBonus > 0) {
+            user.coke += topBonus.cokeBonus;
+          }
 
-        // Thưởng wc (lootbox)
-        if (topBonus.wcBonus > 0) {
-          if (!user.inventory) user.inventory = new Map();
-          const currentWc = user.inventory.get("wc") || 0;
-          user.inventory.set("wc", currentWc + topBonus.wcBonus);
-          user.markModified("inventory");
+          // Thưởng wc (lootbox)
+          if (topBonus.wcBonus > 0) {
+            if (!user.inventory) user.inventory = new Map();
+            const currentWc = user.inventory.get("wc") || 0;
+            user.inventory.set("wc", currentWc + topBonus.wcBonus);
+            user.markModified("inventory");
+          }
         }
 
         // Lưu để gửi thông báo channel
@@ -374,6 +394,20 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           cokeBonus: topBonus.cokeBonus,
           wcBonus: topBonus.wcBonus,
         });
+      }
+
+      // Check if this is the escrowed Soul Realm case
+      if (activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit) {
+        activeBoss.lastHitEscrow = {
+          userId,
+          gears,
+          expGain,
+          cokeGain,
+          stonesDropped,
+          keyDropped,
+          topBonus
+        };
+        continue;
       }
 
       user.rpg.power = calculateRpgPower(user);
@@ -471,6 +505,13 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     }
   } catch (err) {
     console.error("[RPG_BOSS] Failed to save final finishBoss state to DB:", err);
+  }
+
+  if (activeBoss.lastHitEscrow) {
+    const escrow = activeBoss.lastHitEscrow;
+    setImmediate(async () => {
+      await startSoulRealmInvite(client, channel, activeBoss, escrow);
+    });
   }
 };
 
@@ -1211,6 +1252,561 @@ const handleReviveInteraction = async (interaction) => {
   return interaction.editReply({
     content: `✅ Bạn đã hồi sinh thành công bằng **1,000** <:cokecy:1509951335016173662>! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Fight!** để tiếp tục tấn công boss.`,
   });
+};
+
+const fs = require("fs");
+const path = require("path");
+
+const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
+  const userId = escrow.userId;
+  const userDiscord = await client.users.fetch(userId).catch(() => null);
+  const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
+
+  const inviteEmbed = new EmbedBuilder()
+    .setColor("#7C5CFF")
+    .setTitle("✨ CÕI LINH HỒN MỞ RA! ✨")
+    .setDescription(
+      `💀 Sát khí ngập trời! Linh hồn của **Malzareth** vẫn chưa tan biến hẳn...\n\n` +
+      `🚪 Một cánh cổng dẫn đến **Cõi Linh Hồn** đã xuất hiện trước mặt **${displayName}**!\n` +
+      `Ngươi có muốn bước vào cõi linh hồn để đối đầu trực diện với hắn và tìm kiếm thần khí **River of Blood** (Mythic)?\n\n` +
+      `⚠️ **Cảnh báo:**\n` +
+      `• Nếu chọn **Rút lui**, ngươi nhận phần thưởng Boss như bình thường.\n` +
+      `• Nếu chọn **Tiến vào**, ngươi từ bỏ phần thưởng Boss bình thường. Nếu chiến thắng, ngươi nhận **River of Blood**. Nếu thất bại, ngươi chỉ nhận được một ít Coke và EXP!`
+    )
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`soul_invite_enter:${userId}`)
+      .setLabel("Tiến vào 🚪")
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setCustomId(`soul_invite_retreat:${userId}`)
+      .setLabel("Rút lui 🏳️")
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  const inviteMsg = await channel.send({ content: `<@${userId}>`, embeds: [inviteEmbed], components: [row] });
+
+  const filter = (i) => i.user.id === userId && i.customId.startsWith("soul_invite_");
+  const collector = inviteMsg.createMessageComponentCollector({ filter, time: 60000 });
+
+  collector.on("collect", async (i) => {
+    await i.deferUpdate();
+    collector.stop(i.customId.replace("soul_invite_", ""));
+  });
+
+  collector.on("end", async (collected, reason) => {
+    // Disable buttons on the invite message
+    const disabledRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder().setCustomId("soul_invite_enter_dis").setLabel("Tiến vào 🚪").setStyle(ButtonStyle.Primary).setDisabled(true),
+      new ButtonBuilder().setCustomId("soul_invite_retreat_dis").setLabel("Rút lui 🏳️").setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+    await inviteMsg.edit({ components: [disabledRow] }).catch(() => null);
+
+    if (reason === "retreat" || reason === "time") {
+      // Give normal rewards
+      await giveNormalBossRewards(client, channel, activeBoss, escrow);
+      await channel.send(`🏳️ **${displayName}** đã quyết định rút lui an toàn và nhận phần thưởng Boss bình thường.`);
+    } else if (reason === "enter") {
+      await channel.send(`🚪 **${displayName}** đã dũng cảm bước qua cánh cổng để đối mặt với số phận!`);
+      // Start dialogue
+      await startSoulRealmDialogue(client, channel, userId);
+    }
+  });
+};
+
+const startSoulRealmDialogue = async (client, channel, userId) => {
+  const userDiscord = await client.users.fetch(userId).catch(() => null);
+  const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
+
+  // Message 1
+  await channel.send(`💬 **Malzareth**: *Xem ai bước vào kia 1 kẻ không sợ chết !*`);
+  
+  // Wait 10 seconds
+  await new Promise(resolve => setTimeout(resolve, 10000));
+  
+  // Message 2
+  await channel.send(`💬 **Malzareth**: *Muốn có được linh cửu của ta sao ?*`);
+  
+  // Wait 10 seconds
+  await new Promise(resolve => setTimeout(resolve, 10000));
+  
+  // Message 3
+  await channel.send(`💬 **Malzareth**: *Giỏi thì đến đây !*`);
+  
+  // Wait 10 seconds
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Start the soul realm battle!
+  await startSoulRealmBattle(client, channel, userId);
+};
+
+const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile) => {
+  const embed = new EmbedBuilder()
+    .setColor("#7C5CFF")
+    .setTitle("🌌 CHIẾN TRƯỜNG CÕI LINH HỒN 🌌")
+    .setDescription(
+      `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
+      `⚔️ **Trận Đấu Sinh Tử** | 👻 **Linh Hồn Malzareth**\n` +
+      `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`
+    )
+    .setTimestamp();
+
+  // Boss HP
+  embed.addFields({
+    name: `👹 Kẻ địch: ${bossState.name}`,
+    value: `${healthBar(bossState.hp, bossState.maxHp)}`
+  });
+
+  // Separator
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
+
+  // Player HP
+  let resourceText = "";
+  if (playerState.classKey === "mage") {
+    resourceText = `🔮 **MP:** **${playerState.mana}/100**`;
+  } else if (playerState.classKey !== "wretch") {
+    resourceText = `⚡ **Nộ:** **${playerState.rage}%**`;
+  }
+
+  const playerInfo = 
+    `❤️ **HP:** **${playerState.hp.toLocaleString()} / ${playerState.maxHp.toLocaleString()}**\n` +
+    `${resourceText}\n` +
+    `🧪 **Bình máu:** **${playerState.potions} / 3**\n` +
+    `💪 **Lớp:** **${playerState.classKey.toUpperCase()}**`;
+
+  embed.addFields({ name: `👤 ${playerState.name}`, value: playerInfo });
+
+  // Separator
+  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
+
+  // Recent logs
+  const recentLogs = logs.slice(-4).join("\n");
+  embed.addFields({ name: "📝 Nhật ký trận đấu", value: recentLogs || "*Chuẩn bị bắt đầu...*" });
+
+  if (currentTurn === "player") {
+    embed.setFooter({ text: "👉 Đến lượt của bạn! Chọn hành động bên dưới." });
+  } else {
+    embed.setFooter({ text: "👹 Lượt của boss..." });
+  }
+
+  const payload = { embeds: [embed] };
+  if (hasSoulImage) {
+    const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
+    payload.files = [new AttachmentBuilder(soulImagePath, { name: soulImageFile })];
+    embed.setImage(`attachment://${soulImageFile}`);
+  }
+
+  return payload;
+};
+
+const buildSoulBattleComponents = (playerState, currentTurn) => {
+  const disabled = currentTurn !== "player";
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("soul_combat_attack")
+      .setLabel("Tấn công 🗡️")
+      .setStyle(ButtonStyle.Danger)
+      .setDisabled(disabled),
+    new ButtonBuilder()
+      .setCustomId("soul_combat_heal")
+      .setLabel("Bình máu 🧪")
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(disabled || playerState.potions <= 0)
+  );
+
+  if (playerState.classKey !== "wretch") {
+    let skillLabel = "Kỹ Năng ✨";
+    let isSkillDisabled = disabled;
+
+    if (playerState.classKey === "mage") {
+      skillLabel = `Siêu Năng ✨ (${playerState.mana} MP)`;
+      if (playerState.mana < 25) isSkillDisabled = true;
+    } else if (playerState.classKey === "paladin") {
+      skillLabel = `Thiên Mệnh ✨ (${playerState.rage}% Nộ)`;
+      if (playerState.rage < 50) isSkillDisabled = true;
+    } else {
+      skillLabel = `Kỹ Năng ✨ (${playerState.rage}% Nộ)`;
+      if (playerState.rage < 100) isSkillDisabled = true;
+    }
+
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId("soul_combat_skill")
+        .setLabel(skillLabel)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(isSkillDisabled)
+    );
+  }
+
+  return [row];
+};
+
+const startSoulRealmBattle = async (client, channel, userId) => {
+  const { user, rpgClass } = await requireRpgCharacter(userId);
+  const effectiveStats = getEffectiveRpgStats(user);
+  const classKey = user.rpg.classKey;
+  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+
+  const playerState = {
+    id: userId,
+    name: user.rpg.nickname || rpgClass.name,
+    hp: maxHp,
+    maxHp: maxHp,
+    potions: 3,
+    rage: 0,
+    mana: 100,
+    classKey,
+    stats: effectiveStats,
+    power: calculateRpgPower(user),
+    weapon: getEquippedItems(user).weapon
+  };
+
+  const bossState = {
+    name: "Linh Hồn Malzareth",
+    hp: 100000,
+    maxHp: 100000,
+    armor: 2200,
+    magicResist: 2200,
+    attackPower: 500,
+    damageType: "physical",
+    emoji: "👻",
+    asset: "boss_XI.png",
+    bleedRounds: 0
+  };
+
+  const soulImageFile = classKey === "mage" ? "mage.png" :
+                        classKey === "archer" ? "archer.png" :
+                        classKey === "assassin" ? "assassin.png" :
+                        "warrior.png";
+  const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
+  const hasSoulImage = fs.existsSync(soulImagePath);
+
+  const logs = [`🌌 Cõi Linh Hồn đã sẵn sàng. Trận đấu bắt đầu!`];
+  let currentTurn = "player";
+
+  const payload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
+  payload.components = buildSoulBattleComponents(playerState, currentTurn);
+
+  const battleMsg = await channel.send(payload);
+
+  const runCombatLoop = async () => {
+    while (playerState.hp > 0 && bossState.hp > 0) {
+      if (currentTurn === "player") {
+        if (bossState.bleedRounds && bossState.bleedRounds > 0) {
+          const bleedDmg = Math.floor(bossState.maxHp * 0.02);
+          bossState.hp = Math.max(0, bossState.hp - bleedDmg);
+          bossState.bleedRounds -= 1;
+          logs.push(`🩸 Boss bị chảy máu và mất **${bleedDmg.toLocaleString()}** HP. (Còn lại: ${bossState.bleedRounds} lượt)`);
+          if (bossState.hp <= 0) break;
+        }
+
+        const editPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
+        editPayload.components = buildSoulBattleComponents(playerState, currentTurn);
+        await battleMsg.edit(editPayload).catch(() => null);
+
+        const filter = (i) => i.user.id === userId && i.customId.startsWith("soul_combat_");
+        const interaction = await battleMsg.awaitMessageComponent({ filter, time: 30000 }).catch(() => null);
+
+        if (!interaction) {
+          logs.push(`⏳ Quá thời gian suy nghĩ! Tự động tấn công.`);
+          await executePlayerSoulAttack(playerState, bossState, logs, 1.0);
+        } else {
+          await interaction.deferUpdate().catch(() => {});
+          if (interaction.customId === "soul_combat_attack") {
+            await executePlayerSoulAttack(playerState, bossState, logs, 1.0);
+          } else if (interaction.customId === "soul_combat_heal") {
+            playerState.hp = Math.min(playerState.maxHp, playerState.hp + Math.floor(playerState.maxHp * 0.3));
+            playerState.potions -= 1;
+            logs.push(`🧪 **${playerState.name}** uống bình máu, hồi phục **${Math.floor(playerState.maxHp * 0.3).toLocaleString()}** HP.`);
+          } else if (interaction.customId === "soul_combat_skill") {
+            await executePlayerSoulSkill(playerState, bossState, logs);
+          }
+        }
+
+        if (bossState.hp <= 0) break;
+        currentTurn = "boss";
+      } else {
+        const editPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
+        editPayload.components = buildSoulBattleComponents(playerState, currentTurn);
+        await battleMsg.edit(editPayload).catch(() => null);
+
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        await executeBossSoulAttack(playerState, bossState, logs);
+
+        if (playerState.hp <= 0) break;
+        currentTurn = "player";
+      }
+    }
+
+    if (bossState.hp <= 0) {
+      logs.push(`🎉 **${playerState.name}** đã tiêu diệt **Linh Hồn Malzareth**!`);
+      const finalPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
+      finalPayload.components = [];
+      await battleMsg.edit(finalPayload).catch(() => null);
+
+      await giveSoulRealmWinReward(client, channel, userId);
+    } else {
+      logs.push(`🥀 **${playerState.name}** đã gục ngã dưới tay **Linh Hồn Malzareth**.`);
+      const finalPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
+      finalPayload.components = [];
+      await battleMsg.edit(finalPayload).catch(() => null);
+
+      await giveSoulRealmDefeatReward(client, channel, userId);
+    }
+  };
+
+  runCombatLoop().catch(err => {
+    console.error("[SOUL_REALM_COMBAT] Error during loop:", err);
+  });
+};
+
+const executePlayerSoulAttack = async (playerState, bossState, logs, multiplier) => {
+  const isMagical = CLASS_ATTACK_TYPES[playerState.classKey] === "magical";
+  const baseAttack = isMagical
+    ? playerState.stats.int * 3.5 + playerState.stats.arc * 1.5
+    : playerState.stats.str * 2.5 + playerState.stats.dex * 1.5;
+
+  let rawDamage = (baseAttack + playerState.power) * multiplier * 2.0;
+  if (playerState.archerDoubleNext) {
+    rawDamage *= 2.0;
+    playerState.archerDoubleNext = false;
+    logs.push(`✨ Đại tiễn kích hoạt! Đòn đánh kế tiếp gây gấp đôi sát thương.`);
+  }
+  rawDamage *= 0.85 + Math.random() * 0.3;
+
+  const critRate = Math.min(
+    0.75,
+    (playerState.stats.arc * 0.2 + playerState.stats.dex * 0.1) / 100 + (playerState.stats.critRate || 0)
+  );
+  const isCrit = Math.random() < critRate;
+  const critMult = 1.5 + playerState.stats.dex * 0.002;
+  if (isCrit) {
+    rawDamage *= critMult;
+  }
+
+  const mrOrArmor = isMagical ? bossState.magicResist : bossState.armor;
+  const mitigation = mrOrArmor / (mrOrArmor + 250);
+  const damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+
+  bossState.hp = Math.max(0, bossState.hp - damage);
+  const critText = isCrit ? "💥 **Chí mạng!** " : "";
+  logs.push(`🗡️ **${playerState.name}** gây ${critText}**${damage.toLocaleString()}** sát thương lên boss.`);
+
+  if (playerState.classKey !== "mage" && playerState.classKey !== "wretch") {
+    playerState.rage = Math.min(100, (playerState.rage || 0) + 15);
+  }
+};
+
+const executePlayerSoulSkill = async (playerState, bossState, logs) => {
+  if (playerState.classKey === "warrior") {
+    logs.push(`⚔️ **${playerState.name}** dùng kỹ năng **[Trọng Kiếm]**!`);
+    await executePlayerSoulAttack(playerState, bossState, logs, 4.0);
+    playerState.rage = 0;
+  } else if (playerState.classKey === "assassin") {
+    logs.push(`🗡️ **${playerState.name}** dùng kỹ năng **[Đâm Lén]**!`);
+    bossState.bleedRounds = 3;
+    await executePlayerSoulAttack(playerState, bossState, logs, 2.0);
+    playerState.rage = 0;
+  } else if (playerState.classKey === "archer") {
+    logs.push(`🏹 **${playerState.name}** dùng kỹ năng **[Xuyên Táo]**!`);
+    playerState.archerDoubleNext = true;
+    await executePlayerSoulAttack(playerState, bossState, logs, 3.0);
+    playerState.rage = 0;
+  } else if (playerState.classKey === "paladin") {
+    logs.push(`🛡️ **${playerState.name}** dùng kỹ năng **[Thiên Mệnh]**!`);
+    const healAmt = Math.floor(playerState.maxHp * 0.35);
+    playerState.hp = Math.min(playerState.maxHp, playerState.hp + healAmt);
+    logs.push(`💚 Hồi phục **${healAmt.toLocaleString()}** HP.`);
+    playerState.rage = Math.max(0, playerState.rage - 50) + 10;
+  } else if (playerState.classKey === "mage") {
+    logs.push(`🔮 **${playerState.name}** dùng kỹ năng **[Siêu Năng]**!`);
+    const healAmt = Math.floor(playerState.maxHp * 0.15);
+    playerState.hp = Math.min(playerState.maxHp, playerState.hp + healAmt);
+    await executePlayerSoulAttack(playerState, bossState, logs, 2.5);
+    playerState.mana = Math.max(0, playerState.mana - 25);
+  }
+};
+
+const executeBossSoulAttack = async (playerState, bossState, logs) => {
+  const playerEvasion = Math.min(
+    0.35,
+    (playerState.stats.dex * 0.1 + playerState.stats.arc * 0.05) / 100
+  );
+  const bossMissed = Math.random() < playerEvasion;
+
+  if (bossMissed) {
+    logs.push(`💨 **NÉ TRÁNH!** Bạn đã nhanh nhẹn né được đòn tấn công của boss.`);
+    return;
+  }
+
+  const bossRaw = bossState.attackPower * (0.85 + Math.random() * 0.3);
+  let playerMitigation = 0;
+
+  if (bossState.damageType === "magical") {
+    const playerMR = playerState.stats.mr * 3.0;
+    playerMitigation = playerMR / (playerMR + 150);
+  } else {
+    const playerArmor = playerState.stats.pr * 3.0;
+    playerMitigation = playerArmor / (playerArmor + 150);
+  }
+
+  const bossDamage = Math.max(5, Math.floor(bossRaw * (1 - playerMitigation)));
+  playerState.hp = Math.max(0, playerState.hp - bossDamage);
+  logs.push(`💥 **Linh Hồn Malzareth** tấn công gây **${bossDamage.toLocaleString()}** sát thương lên bạn.`);
+
+  if (playerState.classKey !== "mage" && playerState.classKey !== "wretch") {
+    playerState.rage = Math.min(100, (playerState.rage || 0) + 10);
+  }
+};
+
+const giveSoulRealmWinReward = async (client, channel, userId) => {
+  try {
+    const { user } = await requireRpgCharacter(userId);
+    const gear = await generateRpgGearDrop(user, {
+      forceDrop: true,
+      slot: "weapon",
+      subType: "River of Blood",
+      rarity: "Mythic",
+      fromEvent: true
+    });
+
+    if (gear) {
+      addRpgGearToUser(user, gear);
+    }
+
+    user.rpg.power = calculateRpgPower(user);
+    await user.save();
+
+    const winEmbed = new EmbedBuilder()
+      .setColor("#FF007F")
+      .setTitle("🏆 CHIẾN THẮNG HUYỀN THOẠI! 🏆")
+      .setDescription(
+        `🎉 Chúc mừng <@${userId}> đã chiến thắng **Linh Hồn Malzareth** tại Cõi Linh Hồn!\n\n` +
+        `✨ Ngươi đã nhận được thần khí: **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`)\n` +
+        `• Phẩm chất: **Mythic** (Sức mạnh ngang Ancient)\n` +
+        `• Lực chiến: **+${gear.power.toLocaleString()}**`
+      )
+      .setTimestamp();
+
+    await channel.send({ content: `<@${userId}>`, embeds: [winEmbed] });
+
+    const discordUser = await client.users.fetch(userId).catch(() => null);
+    if (discordUser) {
+      await discordUser.send({ embeds: [winEmbed] }).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[SOUL_REALM] Win reward distribution failed:", err);
+  }
+};
+
+const giveSoulRealmDefeatReward = async (client, channel, userId) => {
+  try {
+    const { user } = await requireRpgCharacter(userId);
+    const expGain = 1500;
+    const cokeGain = 5000;
+
+    addRpgExp(user.rpg, expGain);
+    user.coke += cokeGain;
+    user.rpg.power = calculateRpgPower(user);
+    await user.save();
+
+    const loseEmbed = new EmbedBuilder()
+      .setColor("#747F8D")
+      .setTitle("🥀 THẤT BẠI TẠI CÕI LINH HỒN 🥀")
+      .setDescription(
+        `Ngươi đã gục ngã trước sức mạnh hắc ám của Malzareth.\n` +
+        `Ngươi không nhận được gì ngoài phần thưởng an ủi:\n` +
+        `• Coke: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
+        `• RPG EXP: **+${expGain.toLocaleString()}**`
+      )
+      .setTimestamp();
+
+    await channel.send({ content: `<@${userId}>`, embeds: [loseEmbed] });
+
+    const discordUser = await client.users.fetch(userId).catch(() => null);
+    if (discordUser) {
+      await discordUser.send({ embeds: [loseEmbed] }).catch(() => null);
+    }
+  } catch (err) {
+    console.error("[SOUL_REALM] Defeat reward distribution failed:", err);
+  }
+};
+
+const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
+  try {
+    const userId = escrow.userId;
+    const { user } = await requireRpgCharacter(userId);
+    
+    if (escrow.gears && escrow.gears.length > 0) {
+      escrow.gears.forEach(g => addRpgGearToUser(user, g));
+    }
+    
+    addRpgExp(user.rpg, escrow.expGain);
+    user.coke += escrow.cokeGain;
+
+    if (escrow.stonesDropped && escrow.stonesDropped.length > 0) {
+      if (!user.inventory) user.inventory = new Map();
+      escrow.stonesDropped.forEach(s => {
+        const currentQty = user.inventory.get(s.id) || 0;
+        user.inventory.set(s.id, currentQty + s.quantity);
+      });
+      user.markModified("inventory");
+    }
+
+    if (escrow.keyDropped) {
+      if (!user.inventory) user.inventory = new Map();
+      const currentQty = user.inventory.get("dungeonkey") || 0;
+      user.inventory.set("dungeonkey", currentQty + 1);
+      user.markModified("inventory");
+    }
+
+    if (escrow.topBonus) {
+      if (escrow.topBonus.expBonus > 0) {
+        addRpgExp(user.rpg, escrow.topBonus.expBonus);
+      }
+      if (escrow.topBonus.cokeBonus > 0) {
+        user.coke += escrow.topBonus.cokeBonus;
+      }
+      if (escrow.topBonus.wcBonus > 0) {
+        if (!user.inventory) user.inventory = new Map();
+        const currentWc = user.inventory.get("wc") || 0;
+        user.inventory.set("wc", currentWc + escrow.topBonus.wcBonus);
+        user.markModified("inventory");
+      }
+    }
+
+    user.rpg.power = calculateRpgPower(user);
+    await user.save();
+
+    const SpawnedBoss = require("../../models/SpawnedBoss");
+    if (activeBoss.dbId) {
+      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, {
+        $addToSet: { rewardedUserIds: userId }
+      }).catch(() => null);
+    }
+
+    await sendRewardDm({
+      client,
+      userId,
+      boss: activeBoss.boss,
+      rankLabel: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.label || "Cấp Thường",
+      rankEmoji: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.emoji || "⚔️",
+      rankColor: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.color || "#95A5A6",
+      damage: activeBoss.participants.get(userId)?.damage || 0,
+      gears: escrow.gears,
+      expGain: escrow.expGain,
+      cokeGain: escrow.cokeGain,
+      isLastHit: true,
+      stones: escrow.stonesDropped,
+      keyDropped: escrow.keyDropped,
+      topBonus: escrow.topBonus
+    });
+  } catch (error) {
+    console.error("[SOUL_REALM] Failed to give normal rewards:", error);
+  }
 };
 
 module.exports = {

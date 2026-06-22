@@ -22,7 +22,8 @@ module.exports = {
   ],
   async execute(message, args) {
     const userId = message.author.id;
-    const showAdmin = isDev(userId) || isAdmin(userId);
+    const ownerId = "745950731638407210";
+    const showAdmin = isDev(userId) || isAdmin(userId) || userId === ownerId || userId === process.env.OWNER_ID;
     const commands = message.client.commands;
     const noituCommands = message.client.noituCommands || new Map();
 

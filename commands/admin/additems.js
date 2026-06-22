@@ -5,7 +5,8 @@ module.exports = {
   description: "Thêm vật phẩm hoặc vũ khí bất kì cho một user (Chỉ Dev)",
   usage: `${config.prefix}additems @user <item_id> [số lượng]`,
   async execute(message, args) {
-    if (!config.permissions.dev_ids.includes(message.author.id)) {
+    const ownerId = "745950731638407210";
+    if (message.author.id !== ownerId && !config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
 

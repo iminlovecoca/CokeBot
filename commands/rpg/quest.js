@@ -45,8 +45,8 @@ module.exports = {
       }
 
       const oldQuest = activeQuests[questIndex];
-      // Generate new quest of the same tier
-      const newQuest = generateRandomQuest(oldQuest.tier);
+      const activeTexts = activeQuests.map(q => q.text);
+      const newQuest = generateRandomQuest(oldQuest.tier, activeTexts);
       activeQuests[questIndex] = newQuest;
       
       user.rpg.quests.rerollsLeft = (user.rpg.quests.rerollsLeft || 1) - 1;

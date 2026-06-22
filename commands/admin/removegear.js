@@ -10,7 +10,8 @@ module.exports = {
   usage: `${config.prefix}removegear @user <ID trang bị (ví dụ: 15 hoặc G015)>`,
 
   async execute(message, args) {
-    if (!config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
+    const ownerId = "745950731638407210";
+    if (message.author.id !== ownerId && !config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
 

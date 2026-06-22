@@ -151,7 +151,7 @@ const getNextSpawnDelay = () => {
 
 const scheduleNextBoss = (client) => {
   const delay = Math.max(1000, Math.floor(getNextSpawnDelay()));
-  client.rpgBossSpawnTimer = setTimeout(() => spawnRandomBoss(client), delay);
+  client.rpgBossSpawnTimer = setTimeout(() => spawnRandomBoss(client, { allowSoulRealm: true }), delay);
 };
 
 const expireBoss = async (client, channelId) => {
@@ -310,6 +310,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       expiresAt: Date.now() + (config.rpg.boss?.lifetime_ms || 10 * 60 * 1000),
       messageId: null,
       messageIds: [],
+      allowSoulRealm: options.allowSoulRealm || false,
     };
 
     const message = await channel.send({
@@ -341,7 +342,8 @@ const spawnRandomBoss = async (client, options = {}) => {
         messageIds: activeBoss.messageIds,
         imageUrl: activeBoss.imageUrl,
         phase: 1,
-        effects: { armorReduced: 0, healReduced: false }
+        effects: { armorReduced: 0, healReduced: false },
+        allowSoulRealm: activeBoss.allowSoulRealm
       });
       activeBoss.dbId = dbBoss._id;
     } catch (err) {
@@ -392,7 +394,8 @@ const initialize = async (client) => {
           messageIds: dbBoss.messageIds || [dbBoss.messageId],
           imageUrl: dbBoss.imageUrl,
           phase: dbBoss.phase || 1,
-          effects: dbBoss.effects || { armorReduced: 0, healReduced: false }
+          effects: dbBoss.effects || { armorReduced: 0, healReduced: false },
+          allowSoulRealm: dbBoss.allowSoulRealm || false
         };
 
         const msLeft = dbBoss.expiresAt - Date.now();

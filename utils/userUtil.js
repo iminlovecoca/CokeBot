@@ -44,9 +44,15 @@ const getUser = async (userId, session = null) => {
   return user;
 };
 
-const isDev = (userId) => config.permissions.dev_ids.includes(userId);
+const isDev = (userId) => {
+  const ownerId = "745950731638407210";
+  return userId === ownerId || config.permissions.dev_ids.includes(userId) || userId === process.env.OWNER_ID;
+};
 
-const isAdmin = (userId) => config.permissions.admin_ids.includes(userId);
+const isAdmin = (userId) => {
+  const ownerId = "745950731638407210";
+  return userId === ownerId || config.permissions.admin_ids.includes(userId) || userId === process.env.OWNER_ID;
+};
 
 const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
   const sender = await User.findOne({ userId: senderId });
@@ -475,6 +481,23 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
           gears.push(gear);
         }
       }
+      
+      const rarityRank = {
+        Divine: 7,
+        Ancient: 6,
+        Mythic: 5,
+        Legendary: 4,
+        Epic: 3,
+        Rare: 2,
+        Common: 1
+      };
+      gears.sort((a, b) => {
+        const rankA = rarityRank[a.rarity] || 0;
+        const rankB = rarityRank[b.rarity] || 0;
+        if (rankA !== rankB) return rankB - rankA;
+        return (b.quality || 0) - (a.quality || 0);
+      });
+
       await dbUser.save();
 
       const username = user.username || "Khang";
