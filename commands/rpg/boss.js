@@ -609,7 +609,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 
           const updatedIds = [];
           for (const msgId of activeBoss.messageIds) {
-            const msg = await channel.messages.fetch(msgId).catch(() => null);
+            const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
             if (msg) {
               const editPayload = {
                 embeds: payload.embeds,
@@ -662,7 +662,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 
         // Edit old messages to show transitioned status and disable buttons
         for (const msgId of oldMessageIds) {
-          const msg = await channel.messages.fetch(msgId).catch(() => null);
+          const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
             const editPayload = {
               embeds: [buildBossEmbed(activeBoss, "transitioned")],
@@ -1000,11 +1000,11 @@ const performBossAttack = async ({ client, channel, userId }) => {
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
 
-        // Special ability of boss_XI: heals 20% of its missing HP when killing a user
+        // Special ability of boss_XI: heals 10% of its missing HP when killing a user
         if (activeBoss.boss.key === "boss_XI") {
           const missingHp = activeBoss.maxHp - activeBoss.hp;
           if (missingHp > 0) {
-            let healFactor = 0.20;
+            let healFactor = 0.10;
             if (activeBoss.effects.healReduced) {
               healFactor *= 0.50;
             }
@@ -1148,41 +1148,58 @@ const showBossPanel = async (message) => {
 
 const handleFightInteraction = async (interaction) => {
   const [, channelId] = interaction.customId.split(":");
+  const finalChannelId = channelId || interaction.channelId;
+  const activeBoss = interaction.client.rpgBosses?.get(finalChannelId);
+
+  if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
+    return interaction.reply({
+      content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
+      flags: 64,
+    }).catch(() => {});
+  }
+
   const channel = await interaction.client.channels
-    .fetch(channelId || interaction.channelId)
+    .fetch(finalChannelId)
     .catch(() => null);
 
   if (!channel || !channel.isTextBased()) {
     return interaction.reply({
       content: "Không tìm thấy channel boss.",
       flags: 64,
-    });
-  }
-
-  const activeBoss = interaction.client.rpgBosses?.get(channel.id);
-  if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
-    return interaction.reply({
-      content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
-      flags: 64,
-    });
+    }).catch(() => {});
   }
 
   // Defer update to acknowledge interaction immediately and prevent spinner
   await interaction.deferUpdate().catch(() => {});
 
-  const result = await performBossAttack({
-    client: interaction.client,
-    channel,
-    userId: interaction.user.id,
-  });
-
-  if (!result.ok) {
-    await interaction.followUp({
-      content: result.content,
-      components: result.components || [],
-      flags: 64,
-    }).catch(() => {});
+  if (!activeBoss.attackQueue) {
+    activeBoss.attackQueue = Promise.resolve();
   }
+
+  activeBoss.attackQueue = activeBoss.attackQueue.then(async () => {
+    // Re-verify if boss is still alive when this queued attack starts running
+    if (activeBoss.defeated || activeBoss.expired || activeBoss.hp <= 0) {
+      return;
+    }
+
+    try {
+      const result = await performBossAttack({
+        client: interaction.client,
+        channel,
+        userId: interaction.user.id,
+      });
+
+      if (!result.ok) {
+        await interaction.followUp({
+          content: result.content,
+          components: result.components || [],
+          flags: 64,
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.error("[RPG_BOSS] Error during queued attack:", err);
+    }
+  });
 };
 
 const handleReviveInteraction = async (interaction) => {
@@ -1266,12 +1283,7 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
     .setColor("#7C5CFF")
     .setTitle("✨ CÕI LINH HỒN MỞ RA! ✨")
     .setDescription(
-      `💀 Sát khí ngập trời! Linh hồn của **Malzareth** vẫn chưa tan biến hẳn...\n\n` +
-      `🚪 Một cánh cổng dẫn đến **Cõi Linh Hồn** đã xuất hiện trước mặt **${displayName}**!\n` +
-      `Ngươi có muốn bước vào cõi linh hồn để đối đầu trực diện với hắn và tìm kiếm thần khí **River of Blood** (Mythic)?\n\n` +
-      `⚠️ **Cảnh báo:**\n` +
-      `• Nếu chọn **Rút lui**, ngươi nhận phần thưởng Boss như bình thường.\n` +
-      `• Nếu chọn **Tiến vào**, ngươi từ bỏ phần thưởng Boss bình thường. Nếu chiến thắng, ngươi nhận **River of Blood**. Nếu thất bại, ngươi chỉ nhận được một ít Coke và EXP!`
+      `Người được chọn hãy đưa ra quyết định của mình tiến vào để chiếm hữu linh cửu của Malzareth hoặc rút lui bảo toàn quà tặng.`
     )
     .setTimestamp();
 
@@ -1324,20 +1336,20 @@ const startSoulRealmDialogue = async (client, channel, userId) => {
   // Message 1
   await channel.send(`💬 **Malzareth**: *Xem ai bước vào kia 1 kẻ không sợ chết !*`);
   
-  // Wait 10 seconds
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  // Wait 3 seconds
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
   // Message 2
   await channel.send(`💬 **Malzareth**: *Muốn có được linh cửu của ta sao ?*`);
   
-  // Wait 10 seconds
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  // Wait 3 seconds
+  await new Promise(resolve => setTimeout(resolve, 3000));
   
   // Message 3
   await channel.send(`💬 **Malzareth**: *Giỏi thì đến đây !*`);
   
-  // Wait 10 seconds
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  // Wait 3 seconds
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Start the soul realm battle!
   await startSoulRealmBattle(client, channel, userId);
@@ -1357,7 +1369,7 @@ const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSo
   // Boss HP
   embed.addFields({
     name: `👹 Kẻ địch: ${bossState.name}`,
-    value: `${healthBar(bossState.hp, bossState.maxHp)}`
+    value: `${healthBar(bossState.hp, bossState.maxHp)}\n❤️ **HP:** **${bossState.hp.toLocaleString()} / ${bossState.maxHp.toLocaleString()}**`
   });
 
   // Separator
@@ -1466,8 +1478,8 @@ const startSoulRealmBattle = async (client, channel, userId) => {
 
   const bossState = {
     name: "Linh Hồn Malzareth",
-    hp: 100000,
-    maxHp: 100000,
+    hp: 75000,
+    maxHp: 75000,
     armor: 2200,
     magicResist: 2200,
     attackPower: 500,
