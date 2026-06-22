@@ -5,11 +5,23 @@ const config = require('../data/config')
 const runTransactionWithRetry = async (txnFunc) => {
     const MAX_RETRIES = 3
     for (let i = 0; i < MAX_RETRIES; i++) {
-        const session = await mongoose.startSession()
+        let session = null;
         try {
+            session = await mongoose.startSession()
             await session.withTransaction(txnFunc)
             return
         } catch (error) {
+            const isStandaloneError = 
+                error.message?.includes("replica set member") || 
+                error.errmsg?.includes("replica set member") ||
+                error.code === 20;
+
+            if (isStandaloneError) {
+                console.warn("[MONGO_TRANSACTION] Transactions are not supported on standalone MongoDB. Executing function without transaction...");
+                await txnFunc(null);
+                return;
+            }
+
             if (error.hasErrorLabel && error.hasErrorLabel('TransientTransactionError') && i < MAX_RETRIES - 1) {
                 console.log(`Write conflict detected. Retrying transaction... (Attempt ${i + 2})`)
                 continue
@@ -17,7 +29,9 @@ const runTransactionWithRetry = async (txnFunc) => {
                 throw error
             }
         } finally {
-            session.endSession()
+            if (session) {
+                session.endSession()
+            }
         }
     }
 }
