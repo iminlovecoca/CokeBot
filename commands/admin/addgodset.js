@@ -21,7 +21,12 @@ const dungeonWeapons = [
   { name: "Crimson Dagger", key: "crimsondagger" },
   { name: "Holy Sword", key: "holysword" },
   { name: "Dark Sword", key: "darksword" },
-  { name: "Dark Staff", key: "darkstaff" }
+  { name: "Dark Staff", key: "darkstaff" },
+  { name: "Axesnake", key: "axesnake" },
+  { name: "Sun Bow", key: "sunbow" },
+  { name: "Clawhex", key: "clawhex" },
+  { name: "Spearhex", key: "spearhex" },
+  { name: "Shieldhex", key: "shieldhex" }
 ];
 const normalWeapons = ["Longsword", "Staff", "Dagger"];
 

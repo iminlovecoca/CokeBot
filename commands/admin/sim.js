@@ -26,6 +26,309 @@ module.exports = {
     const client = message.client;
     const channel = message.channel;
 
+    if (args[0]?.toLowerCase() === 'boss') {
+      const bossKey = args[1];
+      let playerCount = parseInt(args[2]);
+      if (isNaN(playerCount) || playerCount <= 0) {
+        playerCount = 20; // Default to 20
+      }
+      playerCount = Math.min(100, Math.max(1, playerCount));
+
+      if (!bossKey) {
+        throw new UserFriendlyError(
+          `${config.emoji.no} Bạn cần nhập key boss để mô phỏng. Ví dụ: \`${config.prefix}sim boss boss_XI 30\` hoặc \`hexia\`, \`godhexa\`.`
+        );
+      }
+
+      const bossTiers = config.rpg.boss?.tiers || [];
+      const boss = bossTiers.find(t => t.key.toLowerCase() === bossKey.toLowerCase());
+      if (!boss) {
+        const availableKeys = bossTiers.map(t => `\`${t.key}\``).join(", ");
+        throw new UserFriendlyError(
+          `${config.emoji.no} Không tìm thấy boss với key \`${bossKey}\`.\nDanh sách boss khả dụng: ${availableKeys}`
+        );
+      }
+
+      await message.reply(`⚙️ Đang tải dữ liệu người chơi RPG và khởi tạo mô phỏng trận chiến với **${boss.name}**...`);
+
+      const User = require('../../models/User');
+      const { getRpgClass, getEffectiveRpgStats, calculateRpgPower, getEquippedItems, dungeonKeys } = require('../../utils/rpgUtil');
+
+      // Fetch active RPG characters
+      const realUsers = await User.find({ "rpg.classKey": { $ne: null } }).limit(playerCount).exec();
+      
+      const CLASS_ATTACK_TYPES = {
+        warrior: "physical",
+        assassin: "physical",
+        archer: "physical",
+        mage: "magical",
+        paladin: "physical",
+        wretch: "physical",
+      };
+
+      const classes = ["warrior", "assassin", "mage", "archer", "paladin"];
+
+      const mockPlayers = [];
+      
+      // Map real players
+      for (const u of realUsers) {
+        const stats = getEffectiveRpgStats(u);
+        const power = calculateRpgPower(u);
+        const equipped = getEquippedItems(u);
+        const weapon = equipped.weapon;
+        const maxHp = 150 + stats.vigor * 20 + u.rpg.level * 20;
+        
+        mockPlayers.push({
+          id: u.userId,
+          name: u.rpg.name || `Người chơi ${u.userId.slice(-4)}`,
+          level: u.rpg.level,
+          classKey: u.rpg.classKey,
+          stats: stats,
+          power: power,
+          weapon: weapon,
+          maxHp: maxHp,
+          hp: maxHp,
+          isMock: false,
+          coke: u.coke || 0,
+          attacks: 0,
+          damageDealt: 0,
+          koCount: 0,
+          shieldhexAbsorbed: 0,
+          shieldhexRounds: 0,
+        });
+      }
+
+      // Fill with mock players if needed
+      while (mockPlayers.length < playerCount) {
+        const randClass = classes[Math.floor(Math.random() * classes.length)];
+        const level = Math.floor(Math.random() * 50) + 30; // Level 30 - 80
+        
+        const bases = {
+          warrior: { vigor: 25, str: 20, dex: 12, int: 8, arc: 8, pr: 15, mr: 8 },
+          assassin: { vigor: 15, str: 18, dex: 25, int: 8, arc: 12, pr: 8, mr: 8 },
+          mage: { vigor: 12, str: 8, dex: 10, int: 25, arc: 15, pr: 8, mr: 18 },
+          archer: { vigor: 18, str: 12, dex: 22, int: 8, arc: 15, pr: 10, mr: 8 },
+          paladin: { vigor: 28, str: 15, dex: 10, int: 10, arc: 8, pr: 20, mr: 12 },
+        };
+        
+        const base = bases[randClass];
+        const statsScale = 1.0 + (level - 1) * 0.08;
+        const stats = {};
+        for (const [k, v] of Object.entries(base)) {
+          stats[k] = Math.floor(v * statsScale);
+        }
+        
+        const weaponPower = 800 + level * 20; // Epic-like weapon
+        const power = weaponPower * 2.5 + level * 50;
+        const maxHp = 150 + stats.vigor * 20 + level * 20;
+
+        mockPlayers.push({
+          id: `mock_${randClass}_${mockPlayers.length}`,
+          name: `Mock ${randClass.toUpperCase()} ${mockPlayers.length + 1}`,
+          level: level,
+          classKey: randClass,
+          stats: stats,
+          power: power,
+          weapon: {
+            name: "Giả Lập Kiếm",
+            subType: "longsword",
+            power: weaponPower
+          },
+          maxHp: maxHp,
+          hp: maxHp,
+          isMock: true,
+          coke: 50000,
+          attacks: 0,
+          damageDealt: 0,
+          koCount: 0,
+          shieldhexAbsorbed: 0,
+          shieldhexRounds: 0,
+        });
+      }
+
+      // Simulate the boss fight
+      let bossHp = boss.hp;
+      const bossMaxHp = boss.hp;
+      let activeBossEffects = {
+        armorReduced: 0,
+        healReduced: false,
+        clawhexBleed: false,
+        bleedRounds: 0,
+        bleedDamage: 0
+      };
+
+      let totalAttacks = 0;
+      let totalKOs = 0;
+      let lastHitUser = null;
+
+      // 3 rounds of attacks per player
+      for (let round = 1; round <= 3; round++) {
+        if (bossHp <= 0) break;
+
+        for (const p of mockPlayers) {
+          if (bossHp <= 0) break;
+
+          // Bleed tick check
+          if (activeBossEffects.bleedRounds > 0) {
+            const bleedDmg = activeBossEffects.bleedDamage;
+            bossHp = Math.max(0, bossHp - bleedDmg);
+            activeBossEffects.bleedRounds -= 1;
+            if (bossHp <= 0) {
+              lastHitUser = p;
+              break;
+            }
+          }
+
+          if (p.hp <= 0) {
+            if (Math.random() < 0.40 && p.coke >= 1000) {
+              p.hp = p.maxHp;
+              p.coke -= 1000;
+            } else {
+              continue;
+            }
+          }
+
+          p.attacks += 1;
+          totalAttacks += 1;
+
+          // Damage calculation
+          const isMagical = CLASS_ATTACK_TYPES[p.classKey] === "magical";
+          const baseAttack = isMagical
+            ? p.stats.int * 3.5 + p.stats.arc * 1.5
+            : p.stats.str * 2.5 + p.stats.dex * 1.5;
+
+          const weaponPower = p.weapon?.power || 0;
+          let rawDamage = (baseAttack + weaponPower);
+
+          // Apply event weapon passives
+          const subType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+          if (subType === "sunbow" && isMagical) {
+            rawDamage *= 1.036;
+          }
+          if (subType === "clawhex") {
+            activeBossEffects.bleedRounds = 3;
+            activeBossEffects.clawhexBleed = true;
+            activeBossEffects.bleedDamage = Math.floor(p.stats.str * 0.5 + p.stats.dex * 0.5);
+            rawDamage *= 1.15;
+          } else if (activeBossEffects.bleedRounds > 0 && activeBossEffects.clawhexBleed) {
+            rawDamage *= 1.15;
+          }
+
+          rawDamage *= 0.85 + Math.random() * 0.3; // variance
+
+          const critRate = Math.min(0.5, (p.stats.arc * 0.2 + p.stats.dex * 0.1) / 100);
+          const isCrit = Math.random() < critRate;
+          if (isCrit) {
+            rawDamage *= (1.5 + p.stats.dex * 0.002);
+          }
+
+          // Mitigation
+          let mrOrArmor = isMagical ? boss.magicResist : boss.armor;
+          
+          if (subType === "axesnake") {
+            activeBossEffects.armorReduced = Math.min(0.9, (activeBossEffects.armorReduced || 0) + 0.10);
+          }
+          if (activeBossEffects.armorReduced) {
+            mrOrArmor *= (1 - activeBossEffects.armorReduced);
+          }
+
+          if (!isMagical && subType === "spearhex") {
+            mrOrArmor *= 0.90;
+          }
+
+          const mitigation = mrOrArmor / (mrOrArmor + 1000);
+          let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+
+          bossHp = Math.max(0, bossHp - damage);
+          p.damageDealt += damage;
+
+          if (bossHp <= 0) {
+            lastHitUser = p;
+            break;
+          }
+
+          // Boss counterattack
+          let bossDmg = boss.attackPower * (0.85 + Math.random() * 0.3);
+          const playerRes = isMagical ? p.stats.mr : p.stats.pr;
+          const playerMitigation = (playerRes * 3.0 + p.power * 0.10) / (playerRes * 3.0 + p.power * 0.10 + 1000);
+          let counterDmg = Math.max(10, Math.floor(bossDmg * (1 - playerMitigation)));
+
+          if (subType.includes("shieldhex")) {
+            counterDmg = Math.floor(counterDmg * 0.80);
+            p.shieldhexAbsorbed = (p.shieldhexAbsorbed || 0) + counterDmg;
+            p.shieldhexRounds = (p.shieldhexRounds || 0) + 1;
+            
+            const reflectDmg = Math.floor(counterDmg * 0.90);
+            bossHp = Math.max(0, bossHp - reflectDmg);
+            p.damageDealt += reflectDmg;
+            p.shieldhexAbsorbed = 0;
+            p.shieldhexRounds = 0;
+            
+            if (bossHp <= 0) {
+              lastHitUser = p;
+              break;
+            }
+          }
+
+          p.hp = Math.max(0, p.hp - counterDmg);
+          if (p.hp <= 0) {
+            p.koCount += 1;
+            totalKOs += 1;
+
+            if (boss.key === "boss_XI") {
+              const healAmt = Math.floor((bossMaxHp - bossHp) * 0.20);
+              bossHp = Math.min(bossMaxHp, bossHp + healAmt);
+            }
+          }
+        }
+      }
+
+      // Build Result Embed
+      const victory = bossHp <= 0;
+      const embed = new EmbedBuilder()
+        .setColor(victory ? "#2ECC71" : "#E74C3C")
+        .setTitle(`📊 GIẢ LẬP WORLD BOSS: ${boss.name}`)
+        .setDescription(
+          `• Kết quả: ${victory ? "🏆 **CHIẾN THẮNG**" : "💀 **THẤT BẠI**"}\n` +
+          `• HP của Boss: **${bossHp.toLocaleString()} / ${bossMaxHp.toLocaleString()}** (${((bossHp / bossMaxHp) * 100).toFixed(2)}% còn lại)\n` +
+          `• Tổng số lượt đánh: **${totalAttacks}** | Số mạng ngã xuống: **${totalKOs}**\n` +
+          `${victory && lastHitUser ? `• Đòn kết liễu (Last Hit): **${lastHitUser.name}**\n` : ""}`
+        )
+        .setTimestamp();
+
+      const top5 = [...mockPlayers].sort((a, b) => b.damageDealt - a.damageDealt).slice(0, 5);
+      let topField = "";
+      top5.forEach((p, idx) => {
+        const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `\`#${idx + 1}\``;
+        const pct = ((p.damageDealt / bossMaxHp) * 100).toFixed(2);
+        topField += `${medal} **${p.name}** (${p.classKey.toUpperCase()} Lvl ${p.level})\n` +
+                   `└ Sát thương: **${p.damageDealt.toLocaleString()}** (${pct}% HP Boss) | Chết: **${p.koCount}** lần\n`;
+      });
+      
+      embed.addFields({
+        name: "🏆 Top 5 Sát Thương Gây Ra",
+        value: topField || "*Không có ai gây sát thương.*",
+        inline: false
+      });
+
+      let rewardText = `• **Last Hit:** ${victory && lastHitUser ? `Nhận thưởng Last Hit theo rank ${boss.rank}` : "Không có"}\n`;
+      if (boss.key === "hexia") {
+        rewardText += `• **Thưởng thêm (Hexia First Clear):** Vũ khí Mythic Axesnake + 80 Linh Hồn\n`;
+      } else if (boss.key === "godhexa") {
+        rewardText += `• **Thưởng thêm (Godhexa):** 360 Linh Hồn + 1 Mảnh Vũ Khí Hex\n`;
+      } else {
+        rewardText += `• **Thưởng theo Rank Boss:** ${boss.rank.toUpperCase()} (Coke, EXP, Gear drops)\n`;
+      }
+
+      embed.addFields({
+        name: "🎁 Phân Phối Phần Thưởng Dự Kiến",
+        value: rewardText,
+        inline: false
+      });
+
+      return message.reply({ embeds: [embed] });
+    }
+
     if (!client.rpgDungeons) {
       client.rpgDungeons = new Map();
     }

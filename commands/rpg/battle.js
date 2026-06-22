@@ -136,8 +136,21 @@ const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 20;
 
-  p1.effects = { armorReduced: 0, healReduced: false };
-  p2.effects = { armorReduced: 0, healReduced: false };
+  p1.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
+  p2.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
+
+  // Sunbow flat stats boost at start of PvP
+  const p1SubType = p1.weapon?.subType ? p1.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  const p2SubType = p2.weapon?.subType ? p2.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+
+  if (p1SubType.includes("sunbow")) {
+    p1.effectiveStats.pr = (p1.effectiveStats.pr || 0) + 10;
+    p1.effectiveStats.mr = (p1.effectiveStats.mr || 0) + 10;
+  }
+  if (p2SubType.includes("sunbow")) {
+    p2.effectiveStats.pr = (p2.effectiveStats.pr || 0) + 10;
+    p2.effectiveStats.mr = (p2.effectiveStats.mr || 0) + 10;
+  }
 
   // Determine who goes first based on DEX. Higher DEX goes first. If equal, random.
   let p1Dex = p1.effectiveStats.dex || 0;
@@ -155,6 +168,23 @@ const simulatePvP = (p1, p2) => {
     const attacker = turnOrder[0];
     const defender = turnOrder[1];
 
+    // Process bleed at start of attacker turn
+    if (attacker.effects.bleedRounds > 0) {
+      attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
+      attacker.effects.bleedRounds -= 1;
+      if (attacker.hp <= 0) break;
+    }
+
+    // Process Shieldhex reflect at start of attacker turn (in round 4, i.e., rounds >= 3)
+    const attackerSubType = attacker.weapon?.subType ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    if (attackerSubType.includes("shieldhex") && attacker.effects.shieldhexRounds >= 3) {
+      const reflectDmg = Math.floor((attacker.effects.shieldhexAbsorbed || 0) * 0.90);
+      defender.hp = Math.max(0, defender.hp - reflectDmg);
+      attacker.effects.shieldhexAbsorbed = 0;
+      attacker.effects.shieldhexRounds = 0;
+      if (defender.hp <= 0) break;
+    }
+
     const defenderEvasion = Math.min(
       0.15,
       (defender.effectiveStats.dex * 0.1 + defender.effectiveStats.arc * 0.05) /
@@ -168,7 +198,28 @@ const simulatePvP = (p1, p2) => {
       : "";
     const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
 
-    const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
+    let axesnakeTriggered = false;
+    let sunbowTriggered = false;
+    let clawhexTriggered = false;
+    let spearhexTriggered = false;
+    let shieldhexTriggered = false;
+
+    if (cleanSubType === "axesnake") {
+      axesnakeTriggered = true;
+      defender.effects.armorReduced = Math.min(0.9, (defender.effects.armorReduced || 0) + 0.10);
+    } else if (cleanSubType === "sunbow") {
+      sunbowTriggered = true;
+    } else if (cleanSubType === "clawhex") {
+      clawhexTriggered = true;
+      defender.effects.bleedRounds = 3;
+      defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str * 0.5 + attacker.effectiveStats.dex * 0.5));
+    } else if (cleanSubType === "spearhex") {
+      spearhexTriggered = true;
+    } else if (cleanSubType === "shieldhex") {
+      shieldhexTriggered = true;
+    }
+
+    const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && Math.random() < 0.45;
     let blueStaffPierce = false;
     let crimsonDaggerPierce = false;
     let holySwordDouble = false;
@@ -235,6 +286,13 @@ const simulatePvP = (p1, p2) => {
         : attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5;
 
       let rawDamage = baseAtk + attacker.gearPower;
+      if (sunbowTriggered && isMagical) {
+        rawDamage *= 1.036;
+      }
+      if (clawhexTriggered) {
+        rawDamage *= 1.15;
+      }
+
       rawDamage *= 0.85 + Math.random() * 0.3; // variance
       if (isCrit) {
         rawDamage *= critMult;
@@ -257,6 +315,9 @@ const simulatePvP = (p1, p2) => {
         if (crimsonDaggerPierce) {
           armor *= 0.5;
         }
+        if (spearhexTriggered) {
+          armor *= 0.90;
+        }
         defenderMitigation = armor / (armor + 1000);
       }
 
@@ -274,6 +335,12 @@ const simulatePvP = (p1, p2) => {
       }
 
       let damage = Math.max(5, Math.floor((rawDamage * finalMult) / 10));
+
+      if (defender.weapon?.subType?.toLowerCase().replace(/\s+/g, "").includes("shieldhex")) {
+        damage = Math.floor(damage * 0.80);
+        defender.effects.shieldhexAbsorbed = (defender.effects.shieldhexAbsorbed || 0) + damage;
+        defender.effects.shieldhexRounds = (defender.effects.shieldhexRounds || 0) + 1;
+      }
 
       defender.hp = Math.max(0, defender.hp - damage);
 

@@ -19,7 +19,8 @@ const SpawnedBossSchema = new mongoose.Schema({
   imageUrl: { type: String, default: null },
   phase: { type: Number, default: 1 },
   effects: { type: mongoose.Schema.Types.Mixed, default: {} },
-  allowSoulRealm: { type: Boolean, default: false }
+  allowSoulRealm: { type: Boolean, default: false },
+  triggerEventBoss: { type: String, default: null }
 }, { versionKey: false, timestamps: true });
 
 module.exports = mongoose.model('SpawnedBoss', SpawnedBossSchema);

@@ -109,8 +109,9 @@ const sendRewardDm = async ({
   }
 
   if (stoneLines) {
+    const fieldName = (boss.key === "hexia" || boss.key === "godhexa") ? "Vật phẩm Event nhận được" : "Đá nâng cấp nhận được";
     embed.addFields({
-      name: "Đá nâng cấp nhận được",
+      name: fieldName,
       value: stoneLines,
       inline: true,
     });
@@ -133,6 +134,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   activeBoss.defeated = true;
   if (activeBoss.expireTimer) clearTimeout(activeBoss.expireTimer);
   client.rpgBosses.delete(activeBoss.channelId);
+  client.emit("rpgBossDefeated", activeBoss);
 
   if (activeBoss.updateQueue) {
     await activeBoss.updateQueue.catch(() => null);
@@ -241,118 +243,195 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       const isLastHit = userId === activeBoss.lastHitUserId;
       const gears = [];
 
-      // Reward gear 1 — participant drop (scales by rank)
-      const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
-      const gear1 = await generateRpgGearDrop(user, {
-        forceDrop: true,
-        rarity: rolledRarity1 || undefined,
-        allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
-      });
-      if (gear1) {
-        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          addRpgGearToUser(user, gear1);
-        }
-        gears.push(gear1);
-      }
-
-      // Reward gear 2 — last hit bonus (scales by rank)
-      if (isLastHit) {
-        const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
-        const gear2 = await generateRpgGearDrop(user, {
-          forceDrop: true,
-          rarity: rolledRarity2 || undefined,
-          allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
-        });
-        if (gear2) {
-          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-            addRpgGearToUser(user, gear2);
-          }
-          gears.push(gear2);
-        }
-
-        // Cấp thượng nhân gets a third bonus gear
-        if (rankReward.lastHitBonusRarities) {
-          const gear3 = await generateRpgGearDrop(user, {
-            forceDrop: true,
-            allowedRarities: rankReward.lastHitBonusRarities,
-          });
-          if (gear3) {
-            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-              addRpgGearToUser(user, gear3);
-            }
-            gears.push(gear3);
-          }
-        }
-      }
-
-      // EXP — scales by rank multiplier
-      const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
-      const expGain = Math.floor(
-        baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
-      );
-      if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-        addRpgExp(user.rpg, expGain);
-      }
-
-      // Coke — scales by rank range
-      const cokeGain = isLastHit
-        ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
-        : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
-      if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-        user.coke += cokeGain;
-      }
-
-      // Drops for hourly boss
+      const isHexia = activeBoss.boss.key === "hexia";
+      const isGodhexa = activeBoss.boss.key === "godhexa";
       const stonesDropped = [];
-      if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
-        const dropCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 stones
-        const stoneOptions = bossRankKey === "rong"
-          ? ["somber-4", "somber-5", "somber-6"]
-          : ["somber-7", "somber-8", "somber-9"];
-
-        if (!user.inventory) {
-          user.inventory = new Map();
-        }
-
-        for (let i = 0; i < dropCount; i++) {
-          const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
-          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-            const currentQty = user.inventory.get(stoneId) || 0;
-            user.inventory.set(stoneId, currentQty + 1);
-          }
-
-          // Track for displaying
-          const found = stonesDropped.find(s => s.id === stoneId);
-          if (found) {
-            found.quantity += 1;
-          } else {
-            const stoneData = client.allItems.find(item => item.item_id === stoneId);
-            stonesDropped.push({
-              id: stoneId,
-              name: stoneData?.name || stoneId,
-              emoji: stoneData?.emoji || "💎",
-              quantity: 1
-            });
-          }
-        }
-        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          user.markModified("inventory");
-        }
-      }
-
-      // Key drop for dungeon - Chỉ dành cho Last Hit của boss Thượng Nhân với tỷ lệ 50%
       let keyDropped = false;
-      if (bossRankKey === "thuongnhan" && isLastHit) {
-        if (Math.random() < 0.5) {
+      let expGain = 0;
+      let cokeGain = 0;
+
+      if (isHexia) {
+        const claimed = user.rpg.claimedEvents || [];
+        if (!claimed.includes("hexia_first_clear")) {
+          // First clear: Mythic Axesnake + 80 souls + 5000 Coke + 2000 EXP
+          const axesnakeGear = await generateRpgGearDrop(user, {
+            forceDrop: true,
+            slot: "weapon",
+            subType: "Axesnake",
+            rarity: "Mythic",
+            fromEvent: true
+          });
+          if (axesnakeGear) {
+            axesnakeGear.power = 1450;
+            addRpgGearToUser(user, axesnakeGear);
+            gears.push(axesnakeGear);
+          }
+          if (!user.inventory) user.inventory = new Map();
+          const curSouls = user.inventory.get("souls") || 0;
+          user.inventory.set("souls", curSouls + 80);
+          user.markModified("inventory");
+
+          user.rpg.claimedEvents.push("hexia_first_clear");
+          user.markModified("rpg");
+
+          expGain = 2000;
+          cokeGain = 5000;
+          addRpgExp(user.rpg, expGain);
+          user.coke += cokeGain;
+
+          stonesDropped.push({
+            id: "souls",
+            name: "Linh Hồn",
+            emoji: "<:souls:1518749776538243082>",
+            quantity: 80
+          });
+        } else {
+          // Repeat clear: 5000 Coke + 2000 EXP
+          expGain = 2000;
+          cokeGain = 5000;
+          addRpgExp(user.rpg, expGain);
+          user.coke += cokeGain;
+        }
+      } else if (isGodhexa) {
+        // Godhexa rewards: 360 souls + 1 weapon piece (hexpiece) + 10000 Coke + 5000 EXP
+        if (!user.inventory) user.inventory = new Map();
+        const curSouls = user.inventory.get("souls") || 0;
+        user.inventory.set("souls", curSouls + 360);
+        const curPieces = user.inventory.get("hexpiece") || 0;
+        user.inventory.set("hexpiece", curPieces + 1);
+        user.markModified("inventory");
+
+        expGain = 5000;
+        cokeGain = 10000;
+        addRpgExp(user.rpg, expGain);
+        user.coke += cokeGain;
+
+        stonesDropped.push(
+          {
+            id: "souls",
+            name: "Linh Hồn",
+            emoji: "<:souls:1518749776538243082>",
+            quantity: 360
+          },
+          {
+            id: "hexpiece",
+            name: "Mảnh Vũ Khí Hex",
+            emoji: "<:piece:1518749774403338433>",
+            quantity: 1
+          }
+        );
+      } else {
+        // Reward gear 1 — participant drop (scales by rank)
+        const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
+        const gear1 = await generateRpgGearDrop(user, {
+          forceDrop: true,
+          rarity: rolledRarity1 || undefined,
+          allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
+        });
+        if (gear1) {
           if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-            if (!user.inventory) {
-              user.inventory = new Map();
+            addRpgGearToUser(user, gear1);
+          }
+          gears.push(gear1);
+        }
+
+        // Reward gear 2 — last hit bonus (scales by rank)
+        if (isLastHit) {
+          const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
+          const gear2 = await generateRpgGearDrop(user, {
+            forceDrop: true,
+            rarity: rolledRarity2 || undefined,
+            allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
+          });
+          if (gear2) {
+            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+              addRpgGearToUser(user, gear2);
             }
-            const currentQty = user.inventory.get("dungeonkey") || 0;
-            user.inventory.set("dungeonkey", currentQty + 1);
+            gears.push(gear2);
+          }
+
+          // Cấp thượng nhân gets a third bonus gear
+          if (rankReward.lastHitBonusRarities) {
+            const gear3 = await generateRpgGearDrop(user, {
+              forceDrop: true,
+              allowedRarities: rankReward.lastHitBonusRarities,
+            });
+            if (gear3) {
+              if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+                addRpgGearToUser(user, gear3);
+              }
+              gears.push(gear3);
+            }
+          }
+        }
+
+        // EXP — scales by rank multiplier
+        const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
+        expGain = Math.floor(
+          baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
+        );
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          addRpgExp(user.rpg, expGain);
+        }
+
+        // Coke — scales by rank range
+        cokeGain = isLastHit
+          ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
+          : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          user.coke += cokeGain;
+        }
+
+        // Drops for hourly boss
+        if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
+          const dropCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 stones
+          const stoneOptions = bossRankKey === "rong"
+            ? ["somber-4", "somber-5", "somber-6"]
+            : ["somber-7", "somber-8", "somber-9"];
+
+          if (!user.inventory) {
+            user.inventory = new Map();
+          }
+
+          for (let i = 0; i < dropCount; i++) {
+            const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
+            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+              const currentQty = user.inventory.get(stoneId) || 0;
+              user.inventory.set(stoneId, currentQty + 1);
+            }
+
+            // Track for displaying
+            const found = stonesDropped.find(s => s.id === stoneId);
+            if (found) {
+              found.quantity += 1;
+            } else {
+              const stoneData = client.allItems.find(item => item.item_id === stoneId);
+              stonesDropped.push({
+                id: stoneId,
+                name: stoneData?.name || stoneId,
+                emoji: stoneData?.emoji || "💎",
+                quantity: 1
+              });
+            }
+          }
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
             user.markModified("inventory");
           }
-          keyDropped = true;
+        }
+
+        // Key drop for dungeon - Chỉ dành cho Last Hit của boss Thượng Nhân với tỷ lệ 50%
+        if (bossRankKey === "thuongnhan" && isLastHit) {
+          if (Math.random() < 0.5) {
+            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+              if (!user.inventory) {
+                user.inventory = new Map();
+              }
+              const currentQty = user.inventory.get("dungeonkey") || 0;
+              user.inventory.set("dungeonkey", currentQty + 1);
+              user.markModified("inventory");
+            }
+            keyDropped = true;
+          }
         }
       }
 
@@ -801,9 +880,10 @@ const performBossAttack = async ({ client, channel, userId }) => {
     }
   }
 
-  const freeAttacks = config.rpg.boss?.free_attacks_per_user ?? 3;
+  const isEventBoss = activeBoss.boss.key === "hexia" || activeBoss.boss.key === "godhexa";
+  const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
   const hasGodset = !!user.rpg?.godsetBackup;
-  const paidAttackCost = hasGodset ? 0 : (config.rpg.boss?.paid_attack_cost ?? 10000);
+  const paidAttackCost = hasGodset ? 0 : (isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000));
   const isPaidAttack = participant.attacks >= freeAttacks && !hasGodset;
 
   if (isPaidAttack && user.coke < paidAttackCost) {
@@ -831,7 +911,33 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   const passiveTriggers = [];
 
-  const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
+  let axesnakeTriggered = false;
+  let sunbowTriggered = false;
+  let clawhexTriggered = false;
+  let spearhexTriggered = false;
+  let shieldhexTriggered = false;
+
+  if (cleanSubType === "axesnake") {
+    axesnakeTriggered = true;
+    activeBoss.effects.armorReduced = Math.min(0.9, (activeBoss.effects.armorReduced || 0) + 0.10);
+    passiveTriggers.push(`⚔️ **[Axesnake]** Phá 10% giáp của boss! Giáp boss giảm tổng cộng ${(activeBoss.effects.armorReduced * 100).toFixed(0)}% vĩnh viễn.`);
+  } else if (cleanSubType === "sunbow") {
+    sunbowTriggered = true;
+    effectiveStats.pr += 10;
+    effectiveStats.mr += 10;
+    passiveTriggers.push(`⚔️ **[Sun Bow]** Tăng 10 PR và 10 MR cho bản thân, đòn đánh nhận thêm 3.6% sát thương phép.`);
+  } else if (cleanSubType === "clawhex") {
+    clawhexTriggered = true;
+    passiveTriggers.push(`⚔️ **[Clawhex]** Sát thương kích hoạt hiệu ứng chảy máu, tăng 15% sát thương.`);
+  } else if (cleanSubType === "spearhex") {
+    spearhexTriggered = true;
+    passiveTriggers.push(`⚔️ **[Spearhex]** Đòn đánh xuyên qua phòng ngự, bỏ qua 10% giáp vật lý của boss.`);
+  } else if (cleanSubType === "shieldhex") {
+    shieldhexTriggered = true;
+    passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
+  }
+
+  const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && Math.random() < 0.45;
   let blueStaffPierce = false;
   let crimsonDaggerPierce = false;
   let holySwordDouble = false;
@@ -898,6 +1004,13 @@ const performBossAttack = async ({ client, channel, userId }) => {
   const gearPower = calculateRpgPower(user);
   let rawDamage = baseAttack + gearPower;
 
+  if (sunbowTriggered && isMagical) {
+    rawDamage *= 1.036;
+  }
+  if (clawhexTriggered) {
+    rawDamage *= 1.15;
+  }
+
   // Apply variance
   const attackVariance = 0.85 + Math.random() * 0.3;
   rawDamage *= attackVariance;
@@ -929,6 +1042,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
     }
     if (crimsonDaggerPierce) {
       armor *= 0.5;
+    }
+    if (spearhexTriggered) {
+      armor *= 0.90;
     }
     mitigation = armor / (armor + 250);
   }
@@ -995,7 +1111,17 @@ const performBossAttack = async ({ client, channel, userId }) => {
         delete participant.bossDamageReduced;
       }
 
+      if (shieldhexTriggered) {
+        bossDamage = Math.floor(bossDamage * 0.80);
+      }
+
       participant.hp = Math.max(0, participant.hp - bossDamage);
+
+      if (shieldhexTriggered && bossDamage > 0) {
+        const shieldhexReflect = Math.floor(bossDamage * 0.90);
+        activeBoss.hp = Math.max(0, activeBoss.hp - shieldhexReflect);
+        passiveTriggers.push(`🛡️ **[Shieldhex]** Phản lại **${shieldhexReflect.toLocaleString()}** sát thương (90% sát thương nhận vào) về phía Boss.`);
+      }
 
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;

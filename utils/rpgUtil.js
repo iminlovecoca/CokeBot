@@ -63,12 +63,17 @@ const dungeonWeapons = [
   { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" },
   { name: "Gravity Bow", key: "gravitybow", emoji: "<:GravityBow:1516389241347641415>" },
   { name: "Dusk and Dawn", key: "duskanddawn", emoji: "<:DuskandDawn:1517552769270153277>" },
-  { name: "River of Blood", key: "riverofblood", emoji: "<:RiverofBlood:1517552771824615424>" }
+  { name: "River of Blood", key: "riverofblood", emoji: "<:RiverofBlood:1517552771824615424>" },
+  { name: "Axesnake", key: "axesnake", emoji: "<:Axesnake:1518746343999406240>" },
+  { name: "Sun Bow", key: "sunbow", emoji: "<:Sunbow:1518746354728304720>" },
+  { name: "Clawhex", key: "clawhex", emoji: "<:Clawhex:1518746346352545792>" },
+  { name: "Spearhex", key: "spearhex", emoji: "<:Spearhex:1518746351784034366>" },
+  { name: "Shieldhex", key: "shieldhex", emoji: "<:Shieldhex:1518746348973850818>" }
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
 const NORMAL_WEAPONS = ["longsword", "dagger", "staff"];
-const EVENT_WEAPONS = ["duskanddawn", "riverofblood"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex"];
 
 const getWeaponCategory = (subType) => {
   if (!subType) return null;
@@ -327,7 +332,7 @@ const getWeaponScalingStats = (subType) => {
 
 const getWeaponScaling = (item) => {
   const isDungeon = isDungeonWeapon(item);
-  const subTypeClean = String(item.subType || "").toLowerCase();
+  const subTypeClean = String(item.subType || "").toLowerCase().replace(/\s+/g, "");
   const isStaff = subTypeClean.includes("staff") || subTypeClean.includes("trượng");
   const isDagger = subTypeClean.includes("dagger") || subTypeClean.includes("đao") || subTypeClean.includes("đoản đao");
   const isDuskAndDawn = subTypeClean.includes("dusk");
@@ -343,11 +348,28 @@ const getWeaponScaling = (item) => {
   if (item.scaling && !isDungeon && !hasScalingBug) return item.scaling;
   
   const scaling = { str: "-", dex: "-", int: "-", arc: "-" };
-  const subType = String(item.subType || "Longsword").toLowerCase();
+  const subType = String(item.subType || "Longsword").toLowerCase().replace(/\s+/g, "");
   const rarity = item.rarity || "Common";
   
   if (subType.includes("gravitybow") || subType.includes("gravity bow")) {
     return { str: "-", dex: "S", int: "A", arc: "S" };
+  }
+
+  // Hex weapons hardcoded scaling
+  if (subType.includes("axesnake")) {
+    return { str: "S", dex: "-", int: "-", arc: "-" };
+  }
+  if (subType.includes("sunbow")) {
+    return { str: "-", dex: "S", int: "A", arc: "-" };
+  }
+  if (subType.includes("clawhex")) {
+    return { str: "S", dex: "S", int: "-", arc: "-" };
+  }
+  if (subType.includes("spearhex")) {
+    return { str: "S", dex: "-", int: "-", arc: "S" };
+  }
+  if (subType.includes("shieldhex")) {
+    return { str: "-", dex: "-", int: "-", arc: "S", pr: "S", mr: "S" };
   }
   
   const { prim, sec } = getWeaponScalingStats(subType);
@@ -401,13 +423,17 @@ const getWeaponPower = (item, effectiveStats) => {
   const multDex = gradeMultipliers[scaling.dex] || 0;
   const multInt = gradeMultipliers[scaling.int] || 0;
   const multArc = gradeMultipliers[scaling.arc] || 0;
+  const multPr = gradeMultipliers[scaling.pr] || 0;
+  const multMr = gradeMultipliers[scaling.mr] || 0;
   
   const valStr = effectiveStats.str || 0;
   const valDex = effectiveStats.dex || 0;
   const valInt = effectiveStats.int || 0;
   const valArc = effectiveStats.arc || 0;
+  const valPr = effectiveStats.pr || 0;
+  const valMr = effectiveStats.mr || 0;
   
-  const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc) / 99;
+  const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
   const upgradedBase = base * (1 + (item.upgradeLevel || 0) * 0.10);
   return Math.floor(upgradedBase * (1 + bonusPercent));
 };

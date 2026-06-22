@@ -160,6 +160,7 @@ const expireBoss = async (client, channelId) => {
 
   activeBoss.expired = true;
   client.rpgBosses.delete(channelId);
+  client.emit("rpgBossExpired", activeBoss);
 
   try {
     const SpawnedBoss = require("../models/SpawnedBoss");
@@ -296,6 +297,34 @@ const spawnRandomBoss = async (client, options = {}) => {
           ? pick(bossesByRank[selectedRank])
           : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa"));
     }
+
+    // Check if Hex Event is active and calculate triggerEventBoss
+    let triggerEventBoss = null;
+    if (boss.key !== "hexia" && boss.key !== "godhexa") {
+      try {
+        const HexEventState = require("../models/HexEventState");
+        const eventState = await HexEventState.findById("hex_event");
+        if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
+          const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
+          const spawnTime = DateTime.now().setZone(timezone);
+          const dayOfWeek = spawnTime.weekday; // 1 (Mon) to 7 (Sun)
+          const hour = spawnTime.hour;
+          
+          if (dayOfWeek === 6) { // Saturday
+            if ([12, 15, 18, 21].includes(hour)) {
+              triggerEventBoss = "hexia";
+            }
+          } else if (dayOfWeek === 7) { // Sunday
+            if (hour === 12) {
+              triggerEventBoss = "godhexa";
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[RPG_BOSS] Error checking Hex Event state:", err);
+      }
+    }
+
     const activeBoss = {
       id: `${Date.now()}-${boss.key}`,
       channelId,
@@ -311,6 +340,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       messageId: null,
       messageIds: [],
       allowSoulRealm: options.allowSoulRealm || false,
+      triggerEventBoss: triggerEventBoss,
     };
 
     const message = await channel.send({
@@ -343,7 +373,8 @@ const spawnRandomBoss = async (client, options = {}) => {
         imageUrl: activeBoss.imageUrl,
         phase: 1,
         effects: { armorReduced: 0, healReduced: false },
-        allowSoulRealm: activeBoss.allowSoulRealm
+        allowSoulRealm: activeBoss.allowSoulRealm,
+        triggerEventBoss: activeBoss.triggerEventBoss
       });
       activeBoss.dbId = dbBoss._id;
     } catch (err) {
@@ -366,9 +397,52 @@ const spawnRandomBoss = async (client, options = {}) => {
 const spawnBossNow = (client, channelId = null, bossKey = null) =>
   spawnRandomBoss(client, { channelId, bossKey, scheduleNext: false });
 
+const spawnEventBoss = async (client, channelId, bossKey) => {
+  console.log(`[HEX_EVENT] Spawning event boss ${bossKey} in channel ${channelId} in 5s...`);
+  setTimeout(async () => {
+    // Make sure no other boss is active in this channel
+    if (client.rpgBosses.has(channelId)) {
+      console.log(`[HEX_EVENT] Channel ${channelId} already has a boss active, skipping event boss spawn.`);
+      return;
+    }
+    const channel = await client.channels.fetch(channelId).catch(() => null);
+    if (!channel) return;
+    
+    // Spawn the event boss using spawnRandomBoss
+    await spawnRandomBoss(client, {
+      channelId: channelId,
+      bossKey: bossKey,
+      scheduleNext: false, // Don't reschedule the normal cycle
+      allowSoulRealm: false // Event bosses do not have soul realm
+    });
+    
+    // Send entrance dialogue
+    if (bossKey === "hexia") {
+      channel.send("🟣 **[Cảnh Báo Sự Kiện Hex]** Bầu trời rách đôi! Ma lực cổ xưa trỗi dậy...\n🔥 **HEXIA** đã xuất hiện!");
+    } else if (bossKey === "godhexa") {
+      channel.send("🟣 **[Cảnh Báo Sự Kiện Hex]** Vạn vật run rẩy, ánh sáng bị nuốt chửng...\n👑 **GODHEXA** giáng lâm thế giới!");
+    }
+  }, 5000);
+};
+
 const initialize = async (client) => {
   client.rpgBosses = client.rpgBosses || new Map();
   if (client.rpgBossSpawnTimer) clearTimeout(client.rpgBossSpawnTimer);
+
+  // Setup event listeners for Hex Event transitions
+  if (!client.rpgBossListenersRegistered) {
+    client.rpgBossListenersRegistered = true;
+    client.on("rpgBossDefeated", (activeBoss) => {
+      if (activeBoss.triggerEventBoss) {
+        spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+      }
+    });
+    client.on("rpgBossExpired", (activeBoss) => {
+      if (activeBoss.triggerEventBoss) {
+        spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+      }
+    });
+  }
 
   // 1. Reload active bosses from Database
   try {
@@ -395,7 +469,8 @@ const initialize = async (client) => {
           imageUrl: dbBoss.imageUrl,
           phase: dbBoss.phase || 1,
           effects: dbBoss.effects || { armorReduced: 0, healReduced: false },
-          allowSoulRealm: dbBoss.allowSoulRealm || false
+          allowSoulRealm: dbBoss.allowSoulRealm || false,
+          triggerEventBoss: dbBoss.triggerEventBoss || null
         };
 
         const msLeft = dbBoss.expiresAt - Date.now();

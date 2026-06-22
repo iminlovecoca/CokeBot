@@ -291,6 +291,12 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
       const gearPower = calculateRpgPower(freshUserObject(user));
       const weapon = getEquippedItems(user).weapon;
       
+      const cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+      if (cleanSubType.includes("sunbow")) {
+        stats.pr = (stats.pr || 0) + 10;
+        stats.mr = (stats.mr || 0) + 10;
+      }
+      
       let maxHp = 150 + stats.vigor * 20 + user.rpg.level * 20;
       if (blessing === "active") {
         maxHp = Math.floor(maxHp * 1.1);
@@ -1153,6 +1159,21 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     rawDamage *= 1.2;
   }
 
+  // Event weapon passives: Sunbow and Clawhex damage modifications
+  const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  if (pWeaponSubType === "sunbow" && isMagical) {
+    rawDamage *= 1.036;
+  }
+  
+  if (pWeaponSubType === "clawhex") {
+    enemy.bleedRounds = 3;
+    enemy.clawhexBleed = true;
+    enemy.bleedDamage = Math.floor((player.stats.str * 0.5 + player.stats.dex * 0.5));
+    rawDamage *= 1.15;
+  } else if (enemy.bleedRounds && enemy.bleedRounds > 0 && enemy.clawhexBleed) {
+    rawDamage *= 1.15; // 15% extra damage from all sources while clawhex bleed is active
+  }
+
   // Archer next teammate attack boost
   if (activeDungeon.archerDoubleDmgNext && player.id !== activeDungeon.archerCasterId) {
     rawDamage *= 2.0;
@@ -1173,8 +1194,21 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     rawDamage *= critMult;
   }
 
+  // Axesnake armor/mr shredding on attack/skill
+  if (pWeaponSubType === "axesnake") {
+    enemy.armor = Math.max(0, Math.floor(enemy.armor * 0.90));
+    enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * 0.90));
+    activeDungeon.logs.push(`🐍 **[Axesnake]** Phá hủy 10% giáp vật lý và phép của đối thủ! Giáp còn: ${enemy.armor.toLocaleString()} PR / ${enemy.magicResist.toLocaleString()} MR.`);
+  }
+
   // Mitigation
   let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
+  
+  // Spearhex armor bypass (physical only)
+  if (!isMagical && pWeaponSubType === "spearhex") {
+    mrOrArmor = Math.floor(mrOrArmor * 0.90);
+  }
+
   const mitigation = mrOrArmor / (mrOrArmor + 250);
   let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
 
@@ -1271,6 +1305,23 @@ const nextTurn = async (channel, activeDungeon) => {
         nextPlayer.hp -= poisonDamage;
         activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + poisonDamage;
         activeDungeon.logs.push(`☣️ **${nextPlayer.name}** chịu **${poisonDamage.toLocaleString()}** sát thương độc bào mòn (Độc còn ${nextPlayer.poisonRounds} lượt).`);
+      }
+    }
+
+    // Process Shieldhex reflect at the start of player turn (in round 4, i.e., rounds >= 3)
+    const playerSubType = nextPlayer.weapon?.subType ? nextPlayer.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    if (playerSubType.includes("shieldhex") && nextPlayer.shieldhexRounds >= 3) {
+      const reflectDmg = Math.floor((nextPlayer.shieldhexAbsorbed || 0) * 0.90);
+      const enemy = activeDungeon.enemy;
+      enemy.hp = Math.max(0, enemy.hp - reflectDmg);
+      activeDungeon.logs.push(`🛡️ **[Shieldhex]** Giải phóng năng lượng tích tụ phản hồi lại **${reflectDmg.toLocaleString()}** sát thương lên **${enemy.name}**!`);
+      nextPlayer.shieldhexAbsorbed = 0;
+      nextPlayer.shieldhexRounds = 0;
+      if (enemy.hp <= 0) {
+        activeDungeon.logs.push(`💀 **${enemy.name}** đã bị tiêu diệt bởi phản đòn từ khiên thần!`);
+        activeDungeon.actionInProgress = false;
+        await handleEnemyDefeat(channel, activeDungeon);
+        return;
       }
     }
 
@@ -1406,6 +1457,14 @@ const runEnemyTurn = async (channel, activeDungeon) => {
         damage = Math.floor(damage * 0.95);
       }
 
+      // Shieldhex passive: reduce damage by 20% and accumulate
+      const playerSubType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+      if (playerSubType.includes("shieldhex")) {
+        damage = Math.floor(damage * 0.80);
+        p.shieldhexAbsorbed = (p.shieldhexAbsorbed || 0) + damage;
+        p.shieldhexRounds = (p.shieldhexRounds || 0) + 1;
+      }
+
       const actualDmg = Math.min(p.hp, damage);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
 
@@ -1461,6 +1520,14 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       // Paladin passive 5% damage reduction
       if (target.classKey === "paladin") {
         damage = Math.floor(damage * 0.95);
+      }
+
+      // Shieldhex passive: reduce damage by 20% and accumulate
+      const targetSubType = target.weapon?.subType ? target.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+      if (targetSubType.includes("shieldhex")) {
+        damage = Math.floor(damage * 0.80);
+        target.shieldhexAbsorbed = (target.shieldhexAbsorbed || 0) + damage;
+        target.shieldhexRounds = (target.shieldhexRounds || 0) + 1;
       }
 
       if (enemy.key === "draugor" && Math.random() < 0.35) {

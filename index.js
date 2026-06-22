@@ -292,6 +292,46 @@ client.once(Events.ClientReady, async () => {
       client.allItems.push(hornItem.toObject ? hornItem.toObject() : hornItem);
     }
 
+    // Seed or update souls to ensure correct emoji and metadata
+    let soulsItem = await Item.findOne({ item_id: "souls" });
+    if (!soulsItem) {
+      soulsItem = await Item.create({
+        item_id: "souls",
+        name: "Linh Hồn",
+        description: "Linh hồn thu được từ Hexia và Godhexa. Dùng làm tiền tệ để mua vũ khí tại Cửa Hàng Sự Kiện Hex.",
+        item_type: "key_item",
+        price: null,
+        emoji: "<:souls:1518749776538243082>"
+      });
+      console.log("🟣 Seeded souls item in DB.");
+    }
+    const soulsIndex = client.allItems.findIndex((i) => i.item_id === "souls");
+    if (soulsIndex > -1) {
+      client.allItems[soulsIndex] = soulsItem.toObject ? soulsItem.toObject() : soulsItem;
+    } else {
+      client.allItems.push(soulsItem.toObject ? soulsItem.toObject() : soulsItem);
+    }
+
+    // Seed or update hexpiece to ensure correct emoji and metadata
+    let pieceItem = await Item.findOne({ item_id: "hexpiece" });
+    if (!pieceItem) {
+      pieceItem = await Item.create({
+        item_id: "hexpiece",
+        name: "Mảnh Vũ Khí Hex",
+        description: "Mảnh vỡ vũ khí cổ xưa rơi từ Godhexa. Dùng để đổi trang bị Hex tại Cửa Hàng Sự Kiện Hex.",
+        item_type: "key_item",
+        price: null,
+        emoji: "<:piece:1518749774403338433>"
+      });
+      console.log("🟣 Seeded hexpiece item in DB.");
+    }
+    const pieceIndex = client.allItems.findIndex((i) => i.item_id === "hexpiece");
+    if (pieceIndex > -1) {
+      client.allItems[pieceIndex] = pieceItem.toObject ? pieceItem.toObject() : pieceItem;
+    } else {
+      client.allItems.push(pieceItem.toObject ? pieceItem.toObject() : pieceItem);
+    }
+
     const { seedUpgradeStones } = require("./utils/rpgUtil");
     await seedUpgradeStones(client);
 

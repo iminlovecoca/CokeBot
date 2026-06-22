@@ -410,6 +410,11 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         quantityToUse = levelsToMax;
         resultMessage = `${config.emoji.warning} **${getCokemonName(cokemon)}** chỉ cần ${levelsToMax} cấp nữa để đạt cấp độ tối đa. Chỉ sử dụng **${quantityToUse} ${item.name} ${item.emoji}**.\n`;
       }
+    } else if (itemId === "souls" || itemId === "hexpiece") {
+      throw new UserFriendlyError(
+        `🟣 **Linh Hồn** và **Mảnh Vũ Khí Hex** không thể sử dụng trực tiếp.\n` +
+        `Hãy dùng chúng để mua vũ khí Hex cực phẩm tại **Cửa Hàng Sự Kiện Hex** (gõ \`xshop\` và chuyển sang trang 3)!`
+      );
     } else {
       throw new UserFriendlyError(
         `${config.emoji.no} Vật phẩm này không thể sử dụng được.`,

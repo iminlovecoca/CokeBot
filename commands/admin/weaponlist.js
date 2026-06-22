@@ -26,15 +26,21 @@ module.exports = {
       else if (dw.key === "darksword") desc = "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó";
       else if (dw.key === "darkstaff") desc = "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce";
       else if (dw.key === "gravitybow") desc = "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (S) | INT (A) (Không có nội tại kích hoạt)";
+      else if (dw.key === "axesnake") desc = "Phá 10% giáp vật lý của đối thủ mỗi khi tấn công hoặc dùng kỹ năng (Cộng dồn)";
+      else if (dw.key === "sunbow") desc = "Gây thêm 3.6% sát thương phép và tăng 10 PR và 10 MR cho bản thân";
+      else if (dw.key === "clawhex") desc = "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt";
+      else if (dw.key === "spearhex") desc = "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ";
+      else if (dw.key === "shieldhex") desc = "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4";
       
       if (dw.key === "gravitybow") {
         return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
       }
-      return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại (Tỉ lệ 45%): ${desc}*`;
+      return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
     };
 
-    const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 5).map(getDungeonWeaponLine).join("\n");
-    const dungeonWeaponsPart2 = dungeonWeapons.slice(5).map(getDungeonWeaponLine).join("\n");
+    const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 6).map(getDungeonWeaponLine).join("\n");
+    const dungeonWeaponsPart2 = dungeonWeapons.slice(6, 12).map(getDungeonWeaponLine).join("\n");
+    const eventWeaponsPart = dungeonWeapons.slice(12).map(getDungeonWeaponLine).join("\n");
 
     const embed = new EmbedBuilder()
       .setColor("#3498DB")
@@ -57,6 +63,11 @@ module.exports = {
         {
           name: "3. Vũ Khí Phụ Bản (Dungeon Weapons) - Phần 2",
           value: dungeonWeaponsPart2,
+          inline: false,
+        },
+        {
+          name: "4. Vũ Khí Sự Kiện Đặc Biệt (Event Weapons)",
+          value: eventWeaponsPart,
           inline: false,
         },
         {
