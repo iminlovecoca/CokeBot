@@ -9,6 +9,7 @@ const {
   Events,
   Partials,
   Options,
+  ActivityType,
 } = require("discord.js");
 
 const originalSetTimeout = global.setTimeout;
@@ -166,7 +167,11 @@ client.once(Events.ClientReady, async () => {
   console.log(`🚀 Bot logged in as ${client.user.tag}`);
   startNetworkMonitor(client);
   client.user.setPresence({
-    activities: [{ name: "Coke 🎲", type: 1 }],
+    activities: [{ 
+      name: "Coke 🎲", 
+      type: ActivityType.Streaming, 
+      url: "https://www.twitch.tv/cokebot" 
+    }],
     status: "online",
   });
 

@@ -33,6 +33,7 @@ const CLASS_ATTACK_TYPES = {
 };
 
 const imageCache = new Map();
+const usernameCache = new Map();
 
 const getCachedImage = async (imagePath) => {
   if (imageCache.has(imagePath)) {
@@ -552,29 +553,41 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const maxHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
 
   // Retrieve actual user names from the client, checking RPG database/cache first to avoid slow API fetch
-  let p1Name = user1.rpg.name;
-  let p2Name = user2.rpg.name;
+  let p1Name = user1.rpg.name || usernameCache.get(p1Id);
+  let p2Name = user2.rpg.name || usernameCache.get(p2Id);
 
   if (!p1Name || !p2Name) {
     const u1Cached = message.client.users.cache.get(p1Id);
     const u2Cached = message.client.users.cache.get(p2Id);
 
-    if (!p1Name && u1Cached) p1Name = u1Cached.username;
-    if (!p2Name && u2Cached) p2Name = u2Cached.username;
+    if (!p1Name && u1Cached) {
+      p1Name = u1Cached.username;
+      usernameCache.set(p1Id, p1Name);
+    }
+    if (!p2Name && u2Cached) {
+      p2Name = u2Cached.username;
+      usernameCache.set(p2Id, p2Name);
+    }
 
     if (!p1Name || !p2Name) {
       const fetchPromises = [];
       if (!p1Name) {
         fetchPromises.push(
           message.client.users.fetch(p1Id)
-            .then((u) => { p1Name = u.username; })
+            .then((u) => { 
+              p1Name = u.username; 
+              usernameCache.set(p1Id, u.username);
+            })
             .catch(() => { p1Name = `Người chơi #${p1Id.slice(-4)}`; })
         );
       }
       if (!p2Name) {
         fetchPromises.push(
           message.client.users.fetch(p2Id)
-            .then((u) => { p2Name = u.username; })
+            .then((u) => { 
+              p2Name = u.username; 
+              usernameCache.set(p2Id, u.username);
+            })
             .catch(() => { p2Name = `Người chơi #${p2Id.slice(-4)}`; })
         );
       }
@@ -655,8 +668,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     winUser = result.winner.dbUser;
     loseUser = result.loser.dbUser;
 
-    winUser.rpg.pvpStreak = (winUser.rpg.pvpStreak || 0) + 1;
-    loseUser.rpg.pvpStreak = 0;
+    const isTargeted = !!promptMessage;
+    if (!isTargeted) {
+      if (result.winner.id === p1Id) {
+        user1.rpg.pvpStreak = (user1.rpg.pvpStreak || 0) + 1;
+      } else {
+        user1.rpg.pvpStreak = 0;
+      }
+      user1.markModified("rpg");
+    }
 
     cokeWinner = 50 + Math.floor(Math.random() * 125);
     winUser.coke += cokeWinner;
@@ -748,9 +768,16 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   } else {
     const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
     const xpGained = isP1Winner ? 200 : 50;
-    const streak = isP1Winner ? winUser.rpg.pvpStreak : 0;
+    const isTargeted = !!promptMessage;
+    let streakText = "";
+    if (isTargeted) {
+      streakText = "Không tính chuỗi";
+    } else {
+      const streak = isP1Winner ? user1.rpg.pvpStreak : 0;
+      streakText = `🔥 Chuỗi thắng: ${streak}`;
+    }
     finalEmbed.setDescription(
-      `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | 🔥 Chuỗi thắng: ${streak}**`,
+      `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}**`,
     );
   }
 

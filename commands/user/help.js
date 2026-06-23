@@ -108,7 +108,10 @@ module.exports = {
     } else {
       let commandFolders = fs.readdirSync(
         path.join(__dirname, "../../commands"),
-      ).filter((folder) => folder !== "noitu");
+      ).filter((item) => {
+        const fullPath = path.join(__dirname, "../../commands", item);
+        return fs.statSync(fullPath).isDirectory() && item !== "noitu";
+      });
       if (!showAdmin) {
         commandFolders = commandFolders.filter((folder) => folder !== "admin");
       }
