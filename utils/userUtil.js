@@ -107,60 +107,56 @@ const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
 };
 
 const giveCmd = async (senderId, receiverId, amount, vnNow, dateKey) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const sender = await User.findOne({ userId: senderId }).session(session);
-    const receiver = await User.findOne({ userId: receiverId }).session(
-      session,
-    );
+    const giveTransaction = async (session) => {
+      const sender = await User.findOne({ userId: senderId }).session(session);
+      const receiver = await User.findOne({ userId: receiverId }).session(session);
 
-    if (!sender.vipLevel) {
-      await User.updateOne(
-        { userId: receiverId },
-        { $inc: { [`dailyReceive.${dateKey}`]: amount } },
-      ).session(session);
-    }
-    if (!receiver.vipLevel) {
+      if (!sender.vipLevel) {
+        await User.updateOne(
+          { userId: receiverId },
+          { $inc: { [`dailyReceive.${dateKey}`]: amount } },
+        ).session(session);
+      }
+      if (!receiver.vipLevel) {
+        await User.updateOne(
+          { userId: senderId },
+          { $inc: { [`dailyGive.${dateKey}`]: amount } },
+        ).session(session);
+      }
       await User.updateOne(
         { userId: senderId },
-        { $inc: { [`dailyGive.${dateKey}`]: amount } },
+        {
+          $inc: { coke: -amount },
+          $push: {
+            transferHistory: {
+              to: receiverId,
+              amount,
+              date: vnNow,
+            },
+          },
+        },
       ).session(session);
-    }
-    await User.updateOne(
-      { userId: senderId },
-      {
-        $inc: { coke: -amount },
-        $push: {
-          transferHistory: {
-            to: receiverId,
-            amount,
-            date: vnNow,
+      await User.updateOne(
+        { userId: receiverId },
+        {
+          $inc: { coke: amount },
+          $push: {
+            receiveHistory: {
+              from: senderId,
+              amount,
+              date: vnNow,
+            },
           },
         },
-      },
-    ).session(session);
-    await User.updateOne(
-      { userId: receiverId },
-      {
-        $inc: { coke: amount },
-        $push: {
-          receiveHistory: {
-            from: senderId,
-            amount,
-            date: vnNow,
-          },
-        },
-      },
-    ).session(session);
-    await session.commitTransaction();
+      ).session(session);
+    };
+
+    await runTransactionWithRetry(giveTransaction);
     return true;
   } catch (error) {
-    await session.abortTransaction();
+    console.error("[giveCmd] Transaction failed:", error);
     return false;
-  } finally {
-    session.endSession();
   }
 };
 

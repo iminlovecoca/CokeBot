@@ -6,7 +6,7 @@ const config = require("../../data/config");
 
 module.exports = {
   name: "reload",
-  aliases: ["rl"],
+  aliases: ["rld", "reld"],
   description: "Tải lại (Hot-reload) một lệnh hoặc tệp cấu hình mà không cần khởi động lại bot.",
   usage: `${config.prefix}reload <tên_lệnh|config>`,
   examples: [
