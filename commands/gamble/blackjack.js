@@ -11,6 +11,7 @@ const {
   isBust,
   isBlackJack,
   isDoubleAce,
+  isNguLinh,
   isDealerStay
 } = require('../../utils/blackJackUtil.js')
 const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
@@ -133,7 +134,7 @@ const generateEmbed = (author, playerHand, dealerHand, bet, hide = true, result,
 const handleHit = async (message, author, playerHand, dealerHand, deck, bet, collector) => {
   const card = drawNewCard(deck)
   playerHand.push(card)
-  if (isBust(playerHand)) {
+  if (isBust(playerHand) || playerHand.length === 5) {
     collector.stop()
     await handleStand(message, author, playerHand, dealerHand, deck, bet, collector)
   } else {
@@ -188,11 +189,15 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
     ? 'Xì bàng'
     : isBlackJack(playerHand)
       ? 'Xì dách'
+      : isNguLinh(playerHand)
+        ? 'Ngũ linh'
         : null
   const dealerSpecial = isDoubleAce(dealerHand)
     ? 'Xì bàng'
     : isBlackJack(dealerHand)
       ? 'Xì dách'
+      : isNguLinh(dealerHand)
+        ? 'Ngũ linh'
         : null
 
   let reward = 0;
@@ -208,7 +213,7 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
     net = -bet;
     result = `Dealer thắng với ${dealerSpecial}! Bạn mất ${bet.toLocaleString()} coke.`;
   } else if (playerSpecial && dealerSpecial) {
-    const rank = { 'Xì bàng': 2, 'Xì dách': 1 };
+    const rank = { 'Xì bàng': 3, 'Xì dách': 2, 'Ngũ linh': 1 };
     if (rank[playerSpecial] > rank[dealerSpecial]) {
       reward = bet * 2;
       net = reward - bet;
@@ -218,9 +223,25 @@ const handleStand = async (message, author, playerHand, dealerHand, deck, bet, c
       net = -bet;
       result = `Dealer thắng với ${dealerSpecial}! Bạn mất ${bet.toLocaleString()} coke.`;
     } else {
-      reward = bet;
-      net = 0;
-      result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại ${bet.toLocaleString()} coke.`;
+      if (playerSpecial === 'Ngũ linh') {
+        if (playerValue < dealerValue) {
+          reward = bet * 2;
+          net = reward - bet;
+          result = `Cả hai cùng có Ngũ linh! Bạn ít điểm hơn (${playerValue} < ${dealerValue}) nên thắng ${net.toLocaleString()} coke!`;
+        } else if (playerValue > dealerValue) {
+          reward = 0;
+          net = -bet;
+          result = `Cả hai cùng có Ngũ linh! Dealer ít điểm hơn (${dealerValue} < ${playerValue}) nên bạn mất ${bet.toLocaleString()} coke.`;
+        } else {
+          reward = bet;
+          net = 0;
+          result = `Hoà! Cả hai cùng có Ngũ linh với ${playerValue} điểm, bạn nhận lại ${bet.toLocaleString()} coke.`;
+        }
+      } else {
+        reward = bet;
+        net = 0;
+        result = `Hoà! cả hai cùng có ${playerSpecial}, bạn nhận lại ${bet.toLocaleString()} coke.`;
+      }
     }
   } else if (isBust(playerHand) && isBust(dealerHand)) {
     reward = bet;

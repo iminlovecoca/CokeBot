@@ -104,7 +104,10 @@ const isBlackJack = cards => getBestHandValue(cards) === 21 && cards.length == 2
 
 const isDoubleAce = cards => cards.length === 2 && cards.every((c) => c.startsWith('A'))
 
+const isNguLinh = cards => cards.length === 5 && getBestHandValue(cards) <= 21
+
 const isDealerStay = cards => {
+  if (cards.length >= 5) return true
   if (isDoubleAce(cards)) return true
   return getBestHandValue(cards) >= 17
 }
@@ -122,5 +125,6 @@ module.exports = {
   isBust,
   isBlackJack,
   isDoubleAce,
+  isNguLinh,
   isDealerStay
 };

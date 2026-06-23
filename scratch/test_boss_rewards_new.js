@@ -144,6 +144,7 @@ const runTest = async () => {
 
     const mockClient = {
       rpgBosses: new Map([[activeBoss.channelId, activeBoss]]),
+      emit: () => {},
       users: {
         fetch: async (id) => {
           const names = {

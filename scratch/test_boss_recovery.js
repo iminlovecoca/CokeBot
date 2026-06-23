@@ -102,6 +102,7 @@ const runTest = async () => {
 
     const mockClient = {
       rpgBosses: new Map(),
+      emit: () => {},
       users: {
         fetch: async () => ({
           send: async () => {}
