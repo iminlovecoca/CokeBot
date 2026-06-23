@@ -226,10 +226,10 @@ const spawnRandomBoss = async (client, options = {}) => {
       return;
     }
 
-    // Group bosses by rank (skip phase 2 bosses from direct spawning)
+    // Group bosses by rank (skip phase 2 and event bosses from direct spawning)
     const bossesByRank = {};
     for (const b of bossTiers) {
-      if (b.key === "boss_012" || b.key === "boss_XIIa") continue;
+      if (b.key === "boss_012" || b.key === "boss_XIIa" || b.key === "hexia" || b.key === "godhexa") continue;
       if (!bossesByRank[b.rank]) {
         bossesByRank[b.rank] = [];
       }
@@ -301,7 +301,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       boss =
         selectedRank && bossesByRank[selectedRank]?.length
           ? pick(bossesByRank[selectedRank])
-          : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa"));
+          : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa" && t.key !== "hexia" && t.key !== "godhexa"));
     }
 
     // Check if Hex Event is active and calculate triggerEventBoss
