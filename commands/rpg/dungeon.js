@@ -1607,6 +1607,18 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
 
   if (enemy.isBoss) {
     if (enemy.phase === 1) {
+      if (chapter === 3 || enemy.key === "mourngait") {
+        activeDungeon.logs.push(`💬 **${enemy.name}** gầm lên đau đớn trước khi tan rã: *"Sẽ có ngày ta trở lại tìm các ngươi... Hãy tận hưởng những giây phút yên bình ngắn ngủi này đi!"*`);
+        await renderGameScreen(channel, activeDungeon);
+
+        activeDungeon.actionInProgress = true;
+        setTimeout(async () => {
+          activeDungeon.actionInProgress = false;
+          await handleVictory(channel, activeDungeon);
+        }, getDelay(activeDungeon, 2500));
+        return;
+      }
+
       // Transition to Phase 2
       const bossCfg = getBossConfig(chapter);
       const b2Cfg = bossCfg.stats.phase2;
