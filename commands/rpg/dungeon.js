@@ -58,6 +58,37 @@ const getDelay = (activeDungeon, baseDelay) => {
   return Math.max(100, Math.floor(baseDelay / speed));
 };
 
+// Select boss target based on class threat priority: Paladin (30%) > Warrior (25%) > Wretch (18%) > Assassin (12%) > Mage / Archer (7.5% each)
+const selectBossTarget = (alivePlayers) => {
+  if (!alivePlayers || alivePlayers.length === 0) return null;
+
+  const classWeights = {
+    paladin: 300,
+    warrior: 250,
+    wretch: 180,
+    assassin: 120,
+    mage: 75,
+    archer: 75,
+  };
+
+  let totalWeight = 0;
+  const weightedPlayers = alivePlayers.map((p) => {
+    const classKey = (p.classKey || "wretch").toLowerCase();
+    const weight = classWeights[classKey] !== undefined ? classWeights[classKey] : 10;
+    totalWeight += weight;
+    return { player: p, weight };
+  });
+
+  let roll = Math.random() * totalWeight;
+  for (const wp of weightedPlayers) {
+    roll -= wp.weight;
+    if (roll <= 0) {
+      return wp.player;
+    }
+  }
+  return alivePlayers[0];
+};
+
 const getChapterRarities = (chapter) => {
   if (chapter === 1) return ["Rare"];
   if (chapter === 2) return ["Rare", "Epic"];
@@ -1425,7 +1456,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     const bossCfg = getBossConfig(activeDungeon.chapter);
     const passive = bossCfg.passive;
     if (passive && passive.type === "heal_ban" && Math.random() < passive.chance) {
-      const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+      const target = selectBossTarget(alivePlayers);
       target.healBanRounds = passive.duration;
       activeDungeon.logs.push(`💀 **${enemy.name}** sử dụng [${passive.name}] lên **${target.name}**: Cấm sử dụng bình hồi máu trong ${passive.duration} lượt!`);
     }
@@ -1482,11 +1513,12 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       }
     });
 
-    // Increase madness for next turn
-    activeDungeon.phase2Madness += 0.2;
+    // Increase madness for next turn (scaled dynamically so early chapters are easier)
+    const madnessIncrement = 0.05 + (activeDungeon.chapter - 1) * 0.03;
+    activeDungeon.phase2Madness += madnessIncrement;
   } else {
-    // Phase 1 / Regular monsters: Single target attack on a random alive player
-    const target = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+    // Phase 1 / Regular monsters: Single target attack on a prioritized alive player
+    const target = selectBossTarget(alivePlayers);
     const armor = target.stats.pr * 3.0;
     const mitigation = armor / (armor + 1000);
     
