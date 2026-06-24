@@ -1477,7 +1477,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     }
 
     alivePlayers.forEach((p) => {
-      const armor = p.stats.pr * 3.0;
+      const armor = p.stats.pr * 12.0;
       const mitigation = armor / (armor + 1000);
       const rawDmg = enemy.atk * mult * (0.85 + Math.random() * 0.3);
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
@@ -1519,7 +1519,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   } else {
     // Phase 1 / Regular monsters: Single target attack on a prioritized alive player
     const target = selectBossTarget(alivePlayers);
-    const armor = target.stats.pr * 3.0;
+    const armor = target.stats.pr * 12.0;
     const mitigation = armor / (armor + 1000);
     
     let isCustomSkillUsed = false;

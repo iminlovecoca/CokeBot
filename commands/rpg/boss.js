@@ -1098,10 +1098,10 @@ const performBossAttack = async ({ client, channel, userId }) => {
       let playerMitigation = 0;
 
       if (activeBoss.boss.damageType === "magical") {
-        const playerMR = effectiveStats.mr * 3.0;
+        const playerMR = effectiveStats.mr * 12.0;
         playerMitigation = playerMR / (playerMR + 150);
       } else {
-        const playerArmor = effectiveStats.pr * 3.0;
+        const playerArmor = effectiveStats.pr * 12.0;
         playerMitigation = playerArmor / (playerArmor + 150);
       }
 
@@ -1789,10 +1789,10 @@ const executeBossSoulAttack = async (playerState, bossState, logs) => {
   let playerMitigation = 0;
 
   if (bossState.damageType === "magical") {
-    const playerMR = playerState.stats.mr * 3.0;
+    const playerMR = playerState.stats.mr * 12.0;
     playerMitigation = playerMR / (playerMR + 150);
   } else {
-    const playerArmor = playerState.stats.pr * 3.0;
+    const playerArmor = playerState.stats.pr * 12.0;
     playerMitigation = playerArmor / (playerArmor + 150);
   }
 

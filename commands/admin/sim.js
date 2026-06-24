@@ -288,7 +288,7 @@ module.exports = {
           if (subType === "sunbow") {
             playerRes += 10;
           }
-          const playerMitigation = (playerRes * 3.0 + p.power * 0.10) / (playerRes * 3.0 + p.power * 0.10 + 1000);
+          const playerMitigation = (playerRes * 12.0 + p.power * 0.10) / (playerRes * 12.0 + p.power * 0.10 + 1000);
           let counterDmg = Math.max(10, Math.floor(bossDmg * (1 - playerMitigation)));
 
           if (subType.includes("shieldhex")) {

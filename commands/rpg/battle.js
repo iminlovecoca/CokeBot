@@ -302,14 +302,14 @@ const simulatePvP = (p1, p2) => {
       let defenderMitigation = 0;
       if (isMagical) {
         let mr =
-          defender.effectiveStats.mr * 3.0 + (defender.defensePower || 0);
+          defender.effectiveStats.mr * 12.0 + (defender.defensePower || 0);
         if (blueStaffPierce) {
           mr *= 0.5;
         }
         defenderMitigation = mr / (mr + 1000);
       } else {
         let armor =
-          defender.effectiveStats.pr * 3.0 + (defender.defensePower || 0);
+          defender.effectiveStats.pr * 12.0 + (defender.defensePower || 0);
         if (defender.effects.armorReduced) {
           armor *= 1 - defender.effects.armorReduced;
         }
