@@ -470,8 +470,8 @@ const setupRound = (activeDungeon, channel) => {
       maxHp: maxHp,
       hp: maxHp,
       atk: Math.floor(b1Cfg.base_atk * chapter * leaderScaler),
-      armor: Math.floor(b1Cfg.base_defense * chapter * leaderScaler),
-      magicResist: Math.floor(b1Cfg.base_defense * chapter * leaderScaler),
+      armor: Math.floor(b1Cfg.base_defense * leaderScaler),
+      magicResist: Math.floor(b1Cfg.base_defense * leaderScaler),
       isBoss: true,
       phase: 1,
       poiseMax: poiseMax,
@@ -1624,6 +1624,8 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       enemy.hp = maxHp;
       enemy.maxHp = maxHp;
       enemy.atk = Math.floor(enemy.atk * b2Cfg.base_atk_mult);
+      enemy.armor = Math.floor(b2Cfg.base_defense * leaderScaler);
+      enemy.magicResist = Math.floor(b2Cfg.base_defense * leaderScaler);
       enemy.phase = 2;
       enemy.bleedRounds = 0; // Clear bleed when entering phase 2
       enemy.poiseMax = poiseMax;
