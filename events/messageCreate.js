@@ -60,14 +60,21 @@ module.exports = {
       return;
     }
 
-    // 2. Check if we need to load user from DB
+    // 2. Run anti-cheat burst/rhythm checks in-memory
     const cachedVerifying = client.verificationCache.get(userId);
+    const anticheatCheck = cachedVerifying ? null : checkMessage(message);
+
     const xpCooldown = client.xpCooldowns.get(userId) || 0;
     const friendshipCooldown = client.friendshipCooldowns.get(userId) || 0;
     const needsXpCheck = now > xpCooldown;
     const needsFriendshipCheck = now > friendshipCooldown;
 
-    const shouldLoadUser = isCommand || cachedVerifying || needsXpCheck || needsFriendshipCheck;
+    const shouldLoadUser =
+      isCommand ||
+      cachedVerifying ||
+      needsXpCheck ||
+      needsFriendshipCheck ||
+      anticheatCheck?.status === "TRIGGER_VERIFICATION";
 
     if (!shouldLoadUser) {
       // Normal chat message and cooldowns are active - skip all DB lookups!
@@ -130,7 +137,7 @@ module.exports = {
       }
 
       // Anti-cheat detection
-      const check = checkMessage(message);
+      const check = anticheatCheck || checkMessage(message);
       if (check.status === "TRIGGER_VERIFICATION") {
         const code = generateVerificationCode();
         user.anticheat.verification_code = code;
