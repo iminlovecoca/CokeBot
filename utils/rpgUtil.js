@@ -434,7 +434,9 @@ const getWeaponPower = (item, effectiveStats) => {
   const valMr = effectiveStats.mr || 0;
   
   const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
-  const upgradedBase = base * (1 + (item.upgradeLevel || 0) * 0.10);
+  const isDungeon = isDungeonWeapon(item);
+  const upgradeScale = isDungeon ? 0.60 : 0.10;
+  const upgradedBase = base * (1 + (item.upgradeLevel || 0) * upgradeScale);
   return Math.floor(upgradedBase * (1 + bonusPercent));
 };
 
