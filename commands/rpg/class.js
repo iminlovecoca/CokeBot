@@ -290,9 +290,9 @@ module.exports = {
           .setEmoji("📝"),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_skins")
-          .setLabel(isUserAdmin ? "Skins" : "Skins (🔒)")
+          .setLabel("Skins")
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(!isUserAdmin)
+          .setDisabled(false)
       );
 
       const prompt = await message.reply({
@@ -309,11 +309,6 @@ module.exports = {
       collector.on("collect", async (interaction) => {
         if (interaction.customId === "rpg_class_action_skins") {
           const user = await getUser(message.author.id);
-          const isAllowed = isDev(message.author.id) || isAdmin(message.author.id);
-          if (!isAllowed) {
-            return interaction.reply({ content: "❌ Bạn không có quyền truy cập tính năng này!", flags: 64 });
-          }
-
           const classKey = user.rpg.classKey;
           const skinsDir = path.join(__dirname, "../../assets/skins");
           if (!fs.existsSync(skinsDir)) {
@@ -327,14 +322,30 @@ module.exports = {
             return interaction.reply({ content: `❌ Không tìm thấy skin nào cho class **${classKey}** trong thư mục skins!`, flags: 64 });
           }
 
+          const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId("rpg_class_select_skin")
             .setPlaceholder("Chọn một skin để áp dụng...")
             .addOptions(
-              skinFiles.map(file => ({
-                label: file.replace(".png", ""),
-                value: file,
-              }))
+              skinFiles.map(file => {
+                const label = file.replace(".png", "");
+                let isLocked = false;
+                let suffix = "";
+
+                if (file === "AssassinVoid.png") {
+                  const hasClearedCh2 = user.rpg.claimedBossWeapons && user.rpg.claimedBossWeapons.includes("greenstaff");
+                  if (!hasClearedCh2) {
+                    isLocked = true;
+                    suffix = " (🔒 Cần thắng Boss Chương 2)";
+                  }
+                }
+
+                return {
+                  label: label + suffix,
+                  value: file,
+                  description: isLocked ? "Bị khóa - Cần hoàn thành điều kiện" : "Sẵn sàng sử dụng",
+                };
+              })
             );
 
           const row = new ActionRowBuilder().addComponents(selectMenu);
@@ -346,7 +357,7 @@ module.exports = {
           );
 
           await interaction.update({
-            content: `✨ **Chọn Skin cho Class ${classKey.toUpperCase()}** (Chỉ dành cho Admin)`,
+            content: `✨ **Chọn Skin cho Class ${classKey.toUpperCase()}**`,
             embeds: [],
             files: [],
             components: [row, btnRow]
@@ -354,6 +365,18 @@ module.exports = {
         } else if (interaction.customId === "rpg_class_select_skin") {
           const selectedSkin = interaction.values[0];
           const user = await getUser(message.author.id);
+
+          const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
+          if (selectedSkin === "AssassinVoid.png" && !isUserAdmin) {
+            const hasClearedCh2 = user.rpg.claimedBossWeapons && user.rpg.claimedBossWeapons.includes("greenstaff");
+            if (!hasClearedCh2) {
+              return interaction.reply({
+                content: "❌ Skin **AssassinVoid** chưa được mở khóa! Bạn cần chiến thắng Boss Vaelmor tại Dungeon Chương 2.",
+                flags: 64
+              });
+            }
+          }
+
           user.rpg.characterAsset = selectedSkin;
           user.markModified("rpg");
           await user.save();
