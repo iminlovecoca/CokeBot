@@ -14,16 +14,6 @@ const { getUser, isDev, isAdmin } = require("../../utils/userUtil");
 const path = require("path");
 const fs = require("fs");
 
-const getCharacterAssetPath = (avatarFile) => {
-  let assetPath = path.join(__dirname, "../../assets/characters", avatarFile);
-  if (!fs.existsSync(assetPath)) {
-    const skinPath = path.join(__dirname, "../../assets/skins", avatarFile);
-    if (fs.existsSync(skinPath)) {
-      assetPath = skinPath;
-    }
-  }
-  return assetPath;
-};
 const {
   classEntries,
   calculateRpgPower,
@@ -36,6 +26,7 @@ const {
   getAvailablePoints,
   getWeaponPower,
   getStartingStats,
+  getCharacterAssetPath,
 } = require("../../utils/rpgUtil");
 
 const statLabels = {

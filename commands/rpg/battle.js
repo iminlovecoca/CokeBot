@@ -18,6 +18,7 @@ const {
   getRpgXpNeeded,
   getEquippedItems,
   dungeonKeys,
+  getCharacterAssetPath,
 } = require("../../utils/rpgUtil");
 const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs");
@@ -54,14 +55,9 @@ const getTransparentCharacter = async (pAsset) => {
     return transparentCharCache.get(pAsset);
   }
 
-  let pImgPath = path.join(__dirname, "../../assets/characters", pAsset);
+  const pImgPath = getCharacterAssetPath(pAsset);
   if (!fs.existsSync(pImgPath)) {
-    const skinPath = path.join(__dirname, "../../assets/skins", pAsset);
-    if (fs.existsSync(skinPath)) {
-      pImgPath = skinPath;
-    } else {
-      return null;
-    }
+    return null;
   }
 
   const img = await loadImage(pImgPath);

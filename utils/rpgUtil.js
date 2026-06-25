@@ -132,6 +132,18 @@ const isDungeonWeapon = (item) => {
   return isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
 };
 
+const getCharacterAssetPath = (avatarFile) => {
+  const root = path.join(__dirname, "..");
+  let assetPath = path.join(root, "assets/characters", avatarFile);
+  if (!fs.existsSync(assetPath)) {
+    const skinPath = path.join(root, "assets/skins", avatarFile);
+    if (fs.existsSync(skinPath)) {
+      assetPath = skinPath;
+    }
+  }
+  return assetPath;
+};
+
 const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
@@ -1206,5 +1218,6 @@ module.exports = {
   isDungeonWeapon,
   isDungeonWeaponHelper,
   getDungeonWeaponKey,
+  getCharacterAssetPath,
   subTypes,
 };
