@@ -290,9 +290,9 @@ module.exports = {
           .setEmoji("📝"),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_skins")
-          .setLabel("Skins")
+          .setLabel(isUserAdmin ? "Skins" : "Skins (🔒)")
           .setStyle(ButtonStyle.Secondary)
-          .setDisabled(false)
+          .setDisabled(!isUserAdmin)
       );
 
       const prompt = await message.reply({
@@ -309,6 +309,11 @@ module.exports = {
       collector.on("collect", async (interaction) => {
         if (interaction.customId === "rpg_class_action_skins") {
           const user = await getUser(message.author.id);
+          const isAllowed = isDev(message.author.id) || isAdmin(message.author.id);
+          if (!isAllowed) {
+            return interaction.reply({ content: "❌ Bạn không có quyền truy cập tính năng này!", flags: 64 });
+          }
+
           const classKey = user.rpg.classKey;
           const skinsDir = path.join(__dirname, "../../assets/skins");
           if (!fs.existsSync(skinsDir)) {
