@@ -19,6 +19,11 @@ module.exports = {
   usage: `${config.prefix}gacha wp <1 hoặc 10> [coke/souls]`,
 
   async execute(message, args) {
+    const { isDev, isAdmin } = require("../../utils/userUtil");
+    if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
+      return message.reply("❌ Tính năng Gacha hiện đang được bảo trì / khóa tạm thời và chỉ dành cho Admin.");
+    }
+
     const subcommand = args[0]?.toLowerCase();
 
     // Route subcommand 'banner'

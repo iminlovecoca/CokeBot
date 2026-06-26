@@ -10,6 +10,11 @@ module.exports = {
   usage: `${config.prefix}banner`,
 
   async execute(message, args) {
+    const { isDev, isAdmin } = require("../../utils/userUtil");
+    if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
+      return message.reply("❌ Tính năng Gacha hiện đang được bảo trì / khóa tạm thời và chỉ dành cho Admin.");
+    }
+
     // Load banner configuration
     const banner = gachaBanner;
     if (!banner || !banner.bannerName) {
