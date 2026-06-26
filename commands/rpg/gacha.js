@@ -306,6 +306,6 @@ module.exports = {
       }
 
       await message.reply(payload);
-    }, 8500);
+    }, 7500);
   },
 };
