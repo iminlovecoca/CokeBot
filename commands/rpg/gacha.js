@@ -239,7 +239,7 @@ module.exports = {
       files: [gifAttachment],
     });
 
-    // Wait 4.5 seconds for animation to complete
+    // Wait 8 seconds for animation to complete
     setTimeout(async () => {
       // Delete the reveal GIF message
       await revealMsg.delete().catch(() => null);
@@ -253,10 +253,6 @@ module.exports = {
           `💰 Tiêu hao: **${pulls === 1 ? (usedCoke ? "100k" : "10 souls") : (usedCoke ? "1m coke" : "100 souls")}**\n\n` +
           rollsLog.join("\n")
         )
-        .addFields({
-          name: "📊 Trạng thái bảo hiểm:",
-          value: `• Số lượt tích luỹ: **${pity}/90**\n• Trạng thái nổ tiếp theo: **${guaranteed ? "Chắc chắn giới hạn (100%)" : "Tỷ lệ 50/50"}**`,
-        })
         .setTimestamp();
 
       const files = [];
@@ -295,6 +291,6 @@ module.exports = {
       }
 
       await message.reply(payload);
-    }, 4500);
+    }, 8000);
   },
 };
