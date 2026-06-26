@@ -238,9 +238,15 @@ module.exports = {
     const currencyName = usedCoke ? "coke" : "souls";
     const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
 
+    // Create reveal embed
+    const revealEmbed = new EmbedBuilder()
+      .setColor(hasGold ? "#FFD700" : "#99AAB5")
+      .setDescription(textAbove)
+      .setImage(`attachment://${gifName}`);
+
     // Send the GIF message
     const revealMsg = await message.reply({
-      content: textAbove,
+      embeds: [revealEmbed],
       files: [gifAttachment],
     });
 
