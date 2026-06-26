@@ -227,27 +227,31 @@ module.exports = {
     user.markModified("rpg");
     await user.save();
 
-    // Prepare Animation GIF
-    const successGif = path.join(__dirname, "../../assets/events/Success.gif");
-    const missGif = path.join(__dirname, "../../assets/events/Miss.gif");
-    const gifFile = hasGold ? successGif : missGif;
-    const gifName = hasGold ? "Success.gif" : "Miss.gif";
+    // Check if we won the limited weapon or any Ancient+ rarity weapon
+    const gotSuccess = itemsGained.some(gear => {
+      const isLimited = (gear.subType === banner.weaponName && gear.rarity === banner.rarity);
+      const isAncientPlus = (gear.rarity === "Ancient" || gear.rarity === "Divine");
+      return isLimited || isAncientPlus;
+    });
 
-    const gifAttachment = new AttachmentBuilder(gifFile, { name: gifName });
+    // Prepare Animation GIF URLs directly from Tenor
+    const successGifUrl = "https://media1.tenor.com/m/GekirnE73xEAAAAC/gacha-pass.gif";
+    const missGifUrl = "https://media1.tenor.com/m/6L7dsi-kFzAAAAAC/gacha-miss.gif";
+    const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
+
     const displayName = message.member?.displayName || message.author.username;
     const currencyName = usedCoke ? "coke" : "souls";
     const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
 
     // Create reveal embed
     const revealEmbed = new EmbedBuilder()
-      .setColor(hasGold ? "#FFD700" : "#99AAB5")
+      .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
       .setDescription(textAbove)
-      .setImage(`attachment://${gifName}`);
+      .setImage(gifUrl);
 
     // Send the GIF message
     const revealMsg = await message.reply({
       embeds: [revealEmbed],
-      files: [gifAttachment],
     });
 
     // Wait 8 seconds for animation to complete
@@ -257,8 +261,8 @@ module.exports = {
 
       // Build the final result embed
       const resultEmbed = new EmbedBuilder()
-        .setColor(hasGold ? "#FFD700" : "#99AAB5")
-        .setTitle(hasGold ? "✨ KẾT QUẢ GACHA CỰC MAY MẮN! ✨" : " kết quả gacha vũ khí ")
+        .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
+        .setTitle(gotSuccess ? "✨ KẾT QUẢ GACHA CỰC MAY MẮN! ✨" : " kết quả gacha vũ khí ")
         .setDescription(
           `👤 Người chơi: **${displayName}**\n` +
           `💰 Tiêu hao: **${pulls === 1 ? (usedCoke ? "100k" : "10 souls") : (usedCoke ? "1m coke" : "100 souls")}**\n\n` +
