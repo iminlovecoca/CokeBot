@@ -234,9 +234,9 @@ module.exports = {
       return isLimited || isAncientPlus;
     });
 
-    // Prepare Animation GIF URLs directly from Tenor
-    const successGifUrl = "https://media1.tenor.com/m/GekirnE73xEAAAAC/gacha-pass.gif";
-    const missGifUrl = "https://media1.tenor.com/m/6L7dsi-kFzAAAAAC/gacha-miss.gif";
+    // Prepare Animation GIF URLs directly from Tenor (using standard media.tenor.com CDN format for Discord compatibility)
+    const successGifUrl = "https://media.tenor.com/GekirnE73xEAAAAC/gacha-pass.gif";
+    const missGifUrl = "https://media.tenor.com/6L7dsi-kFzAAAAC/gacha-miss.gif";
     const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
 
     const displayName = message.member?.displayName || message.author.username;
