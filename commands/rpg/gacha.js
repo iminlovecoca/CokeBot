@@ -254,7 +254,7 @@ module.exports = {
       embeds: [revealEmbed],
     });
 
-    // Wait 8 seconds for animation to complete
+    // Wait 14 seconds for animation to complete
     setTimeout(async () => {
       // Delete the reveal GIF message
       await revealMsg.delete().catch(() => null);
@@ -306,6 +306,6 @@ module.exports = {
       }
 
       await message.reply(payload);
-    }, 8000);
+    }, 14000);
   },
 };
