@@ -147,6 +147,8 @@ const userSchema = new mongoose.Schema({
       battleSpeed: { type: String, default: "instant" },
       battleLogs: { type: String, default: "false" },
     },
+    gachaWpPity: { type: Number, default: 0 },
+    gachaWpGuaranteed: { type: Boolean, default: false },
   },
 });
 
