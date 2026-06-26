@@ -387,7 +387,6 @@ module.exports = {
           user.markModified("rpg");
           await user.save();
 
-          const rpgClass = getRpgClass(user.rpg.classKey);
           const assetPath = getCharacterAssetPath(selectedSkin);
           const attachment = new AttachmentBuilder(assetPath, { name: selectedSkin });
 
