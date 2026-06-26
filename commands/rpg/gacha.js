@@ -32,10 +32,10 @@ module.exports = {
       return bannerCmd.execute(message, args.slice(1));
     }
 
-    // Must be 'wp'
-    if (subcommand !== "wp") {
+    // Must be 'wp' or 'skin'
+    if (subcommand !== "wp" && subcommand !== "skin") {
       throw new UserFriendlyError(
-        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
+        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha vũ khí.\n• \`${config.prefix}gacha skin <1 hoặc 10> [coke/souls]\` để quay gacha skin.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
       );
     }
 
@@ -108,6 +108,13 @@ module.exports = {
       throw new UserFriendlyError("❌ Hiện không có banner gacha nào đang diễn ra.");
     }
 
+    if (subcommand === "wp" && banner.weaponType === "skin") {
+      throw new UserFriendlyError(`❌ Banner hiện tại là Gacha Skin. Vui lòng dùng lệnh \`${config.prefix}gacha skin <1 hoặc 10> [coke/souls]\` để quay!`);
+    }
+    if (subcommand === "skin" && banner.weaponType === "weapon") {
+      throw new UserFriendlyError(`❌ Banner hiện tại là Gacha Vũ Khí. Vui lòng dùng lệnh \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay!`);
+    }
+
     // Check banner expiration
     const { DateTime } = require("luxon");
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
@@ -165,20 +172,33 @@ module.exports = {
 
         let gear;
         if (won5050) {
-          // Get featured banner weapon
-          gear = await generateRpgGearDrop(user, {
-            forceDrop: true,
-            slot: "weapon",
-            subType: banner.weaponName,
-            rarity: banner.rarity,
-            fromEvent: true,
-          });
+          if (banner.weaponType === "skin") {
+            const { resolveGachaSkinName } = require("../../data/rpg/skins");
+            const skinFileName = resolveGachaSkinName(user, banner);
+            if (!user.ownedSkins) {
+              user.ownedSkins = [];
+            }
+            if (!user.ownedSkins.includes(skinFileName)) {
+              user.ownedSkins.push(skinFileName);
+            }
+            user.markModified("ownedSkins");
+            rollsLog.push(`✨ **Skin: ${banner.weaponName}** (Đã thêm vào tủ đồ skin) **[HỮU HẠN]** 🎉`);
+          } else {
+            // Get featured banner weapon
+            gear = await generateRpgGearDrop(user, {
+              forceDrop: true,
+              slot: "weapon",
+              subType: banner.weaponName,
+              rarity: banner.rarity,
+              fromEvent: true,
+            });
 
-          if (gear) {
-            addRpgGearToUser(user, gear);
-            user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
-            itemsGained.push(gear);
-            rollsLog.push(`✨ **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[LIMITED]** 🎉`);
+            if (gear) {
+              addRpgGearToUser(user, gear);
+              user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
+              itemsGained.push(gear);
+              rollsLog.push(`✨ **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[LIMITED]** 🎉`);
+            }
           }
         } else {
           // Lose 50/50: get standard Legendary or Mythic weapon
@@ -232,7 +252,7 @@ module.exports = {
       const isLimited = (gear.subType === banner.weaponName && gear.rarity === banner.rarity);
       const isAncientPlus = (gear.rarity === "Ancient" || gear.rarity === "Divine");
       return isLimited || isAncientPlus;
-    });
+    }) || (banner.weaponType === "skin" && rollsLog.some(log => log.includes(banner.weaponName)));
 
     // Prepare Animation GIF URLs (using direct Catbox links for guaranteed Discord embed rendering)
     const successGifUrl = "https://files.catbox.moe/xxznmt.gif";
@@ -288,7 +308,22 @@ module.exports = {
       );
       const bestGear = sortedGears[0];
 
-      if (bestGear) {
+      let gotSkin = false;
+      if (banner.weaponType === "skin" && rollsLog.some(log => log.includes(banner.weaponName))) {
+        gotSkin = true;
+      }
+
+      if (gotSkin) {
+        const { resolveGachaSkinName } = require("../../data/rpg/skins");
+        const { getCharacterAssetPath } = require("../../utils/rpgUtil");
+        const skinFileName = resolveGachaSkinName(user, banner);
+        const skinPath = getCharacterAssetPath(skinFileName);
+        if (fs.existsSync(skinPath)) {
+          const skinAttachment = new AttachmentBuilder(skinPath, { name: "skin.png" });
+          files.push(skinAttachment);
+          resultEmbed.setImage("attachment://skin.png");
+        }
+      } else if (bestGear) {
         const imgKey = bestGear.imageKey || getItemImageFile(bestGear);
         if (imgKey) {
           const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);

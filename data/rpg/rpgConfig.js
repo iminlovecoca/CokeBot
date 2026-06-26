@@ -1,0 +1,43 @@
+module.exports = {
+  starting_level: 1,
+  hunt_cooldown_ms: 15 * 1000,
+  hunt_base_exp: 90,
+  hunt_grounds: [
+    { key: "rock_field", name: "Bãi Đá", emoji: "🗿" },
+    { key: "wolf_den", name: "Hang Sói", emoji: "🐺" },
+    { key: "goblin_camp", name: "Trại Goblin", emoji: "🧌" },
+    { key: "skeleton_ruins", name: "Tàn Tích Xương", emoji: "💀" },
+    { key: "shadow_forest", name: "Rừng Bóng Tối", emoji: "🌲" },
+    { key: "dragon_pass", name: "Đèo Rồng", emoji: "🐉" },
+  ],
+  gear_drop: {
+    drop_rate: 0.08,
+    luck_rate_per_point: 0.0005,
+    max_drop_rate: 0.2,
+  },
+  gear_slots: {
+    weapon: { rate: 20, stat_pool: [] },
+    armor: { rate: 18, stat_pool: ["vigor", "pr", "mr"] },
+    helmet: { rate: 16, stat_pool: ["vigor", "pr", "mr"] },
+    boots: { rate: 16, stat_pool: ["dex", "vigor", "pr", "mr", "arc"] },
+    ring: { rate: 15, stat_pool: ["int", "arc", "dex", "str", "vigor"] },
+    necklace: { rate: 15, stat_pool: ["int", "arc", "dex", "str", "vigor"] },
+  },
+  gear_slot_names: {
+    weapon: "Weapon",
+    armor: "Armor",
+    helmet: "Helmet",
+    boots: "Boots",
+    ring: "Ring",
+    necklace: "Necklace",
+  },
+  gear_rarities: {
+    Common: { rate: 70, power: 45, sell: 120, stat: 1 },
+    Rare: { rate: 22, power: 90, sell: 350, stat: 2 },
+    Epic: { rate: 6.4, power: 180, sell: 1100, stat: 4 },
+    Legendary: { rate: 0.1, power: 380, sell: 4200, stat: 7 },
+    Mythic: { rate: 0.01, power: 780, sell: 15000, stat: 11 },
+    Ancient: { rate: 0.0054, power: 1450, sell: 65000, stat: 16 },
+    Divine: { rate: 0.0005, power: 2800, sell: 250000, stat: 24 },
+  },
+};

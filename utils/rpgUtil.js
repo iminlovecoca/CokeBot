@@ -136,9 +136,19 @@ const getCharacterAssetPath = (avatarFile) => {
   const root = path.join(__dirname, "..");
   let assetPath = path.join(root, "assets/characters", avatarFile);
   if (!fs.existsSync(assetPath)) {
-    const skinPath = path.join(root, "assets/skins", avatarFile);
-    if (fs.existsSync(skinPath)) {
-      assetPath = skinPath;
+    const skinsDir = path.join(root, "assets/skins");
+    if (fs.existsSync(skinsDir)) {
+      const subdirs = fs.readdirSync(skinsDir);
+      for (const subdir of subdirs) {
+        const fullSubdir = path.join(skinsDir, subdir);
+        if (fs.statSync(fullSubdir).isDirectory()) {
+          const checkPath = path.join(fullSubdir, avatarFile);
+          if (fs.existsSync(checkPath)) {
+            assetPath = checkPath;
+            break;
+          }
+        }
+      }
     }
   }
   return assetPath;
