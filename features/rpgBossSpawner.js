@@ -331,6 +331,13 @@ const spawnRandomBoss = async (client, options = {}) => {
       }
     }
 
+    let lifetime = config.rpg.boss?.lifetime_ms || 10 * 60 * 1000;
+    if (boss.key === "hexia") {
+      lifetime = 1 * 60 * 60 * 1000; // 1 hour
+    } else if (boss.key === "godhexa") {
+      lifetime = 3 * 60 * 60 * 1000; // 3 hours
+    }
+
     const activeBoss = {
       id: `${Date.now()}-${boss.key}`,
       channelId,
@@ -342,7 +349,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       defeated: false,
       expired: false,
       spawnedAt: Date.now(),
-      expiresAt: Date.now() + (config.rpg.boss?.lifetime_ms || 10 * 60 * 1000),
+      expiresAt: Date.now() + lifetime,
       messageId: null,
       messageIds: [],
       allowSoulRealm: options.allowSoulRealm || false,
@@ -389,7 +396,7 @@ const spawnRandomBoss = async (client, options = {}) => {
 
     activeBoss.expireTimer = setTimeout(
       () => expireBoss(client, channelId),
-      config.rpg.boss?.lifetime_ms || 10 * 60 * 1000,
+      lifetime,
     );
     client.rpgBosses.set(channelId, activeBoss);
     return activeBoss;
@@ -438,14 +445,30 @@ const initialize = async (client) => {
   // Setup event listeners for Hex Event transitions
   if (!client.rpgBossListenersRegistered) {
     client.rpgBossListenersRegistered = true;
-    client.on("rpgBossDefeated", (activeBoss) => {
+    client.on("rpgBossDefeated", async (activeBoss) => {
       if (activeBoss.triggerEventBoss) {
-        spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+        try {
+          const HexEventState = require("../models/HexEventState");
+          const eventState = await HexEventState.findById("hex_event");
+          if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
+            spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+          }
+        } catch (err) {
+          console.error("[RPG_BOSS] Error checking Hex Event state on defeat:", err);
+        }
       }
     });
-    client.on("rpgBossExpired", (activeBoss) => {
+    client.on("rpgBossExpired", async (activeBoss) => {
       if (activeBoss.triggerEventBoss) {
-        spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+        try {
+          const HexEventState = require("../models/HexEventState");
+          const eventState = await HexEventState.findById("hex_event");
+          if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
+            spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
+          }
+        } catch (err) {
+          console.error("[RPG_BOSS] Error checking Hex Event state on expire:", err);
+        }
       }
     });
   }

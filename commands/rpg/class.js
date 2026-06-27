@@ -334,7 +334,7 @@ module.exports = {
             const isUX = file.toLowerCase().includes("ux");
 
             if (!isUserAdmin) {
-              const owned = user.ownedSkins && user.ownedSkins.includes(file);
+              const owned = user.rpg.ownedSkins && user.rpg.ownedSkins.includes(file);
               if (!owned) {
                 isLocked = true;
                 suffix = isUX ? " (🔒 Hữu hạn)" : " (🔒 Chưa mua)";
@@ -372,7 +372,7 @@ module.exports = {
           const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
           if (selectedSkin !== rpgClass.asset) {
             const isUX = selectedSkin.toLowerCase().includes("ux");
-            const owned = user.ownedSkins && user.ownedSkins.includes(selectedSkin);
+            const owned = user.rpg.ownedSkins && user.rpg.ownedSkins.includes(selectedSkin);
             if (!isUserAdmin && !owned) {
               return interaction.reply({
                 content: isUX

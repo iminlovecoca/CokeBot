@@ -175,13 +175,13 @@ module.exports = {
           if (banner.weaponType === "skin") {
             const { resolveGachaSkinName } = require("../../data/rpg/skins");
             const skinFileName = resolveGachaSkinName(user, banner);
-            if (!user.ownedSkins) {
-              user.ownedSkins = [];
+            if (!user.rpg.ownedSkins) {
+              user.rpg.ownedSkins = [];
             }
-            if (!user.ownedSkins.includes(skinFileName)) {
-              user.ownedSkins.push(skinFileName);
+            if (!user.rpg.ownedSkins.includes(skinFileName)) {
+              user.rpg.ownedSkins.push(skinFileName);
             }
-            user.markModified("ownedSkins");
+            user.markModified("rpg");
             rollsLog.push(`✨ **Skin: ${banner.weaponName}** (Đã thêm vào tủ đồ skin) **[HỮU HẠN]** 🎉`);
           } else {
             // Get featured banner weapon

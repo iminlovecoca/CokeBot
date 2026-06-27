@@ -47,7 +47,7 @@ module.exports = {
             const skinName = file.replace(".png", "");
             const isUX = file.toLowerCase().includes("ux");
             const price = getSkinPrice(file);
-            const isOwned = currentUser.ownedSkins && currentUser.ownedSkins.includes(file);
+            const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
 
             let statusStr = "";
             if (isOwned) {
@@ -72,7 +72,7 @@ module.exports = {
         const skinName = file.replace(".png", "");
         const isUX = file.toLowerCase().includes("ux");
         const price = getSkinPrice(file);
-        const isOwned = currentUser.ownedSkins && currentUser.ownedSkins.includes(file);
+        const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
 
         let desc = "";
         if (isOwned) {
@@ -113,7 +113,7 @@ module.exports = {
         const skinName = selectedFile.replace(".png", "");
         const isUX = selectedFile.toLowerCase().includes("ux");
         const price = getSkinPrice(selectedFile);
-        const isOwned = u.ownedSkins && u.ownedSkins.includes(selectedFile);
+        const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
 
         const assetPath = getCharacterAssetPath(selectedFile);
         const attachment = new AttachmentBuilder(assetPath, { name: selectedFile });
@@ -162,7 +162,7 @@ module.exports = {
 
         const price = getSkinPrice(selectedFile);
         const isUX = selectedFile.toLowerCase().includes("ux");
-        const isOwned = u.ownedSkins && u.ownedSkins.includes(selectedFile);
+        const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
 
         if (isOwned) {
           return interaction.reply({ content: "❌ Bạn đã sở hữu skin này rồi!", flags: 64 });
@@ -178,11 +178,11 @@ module.exports = {
 
         // Process transaction
         u.coke -= price;
-        if (!u.ownedSkins) {
-          u.ownedSkins = [];
+        if (!u.rpg.ownedSkins) {
+          u.rpg.ownedSkins = [];
         }
-        u.ownedSkins.push(selectedFile);
-        u.markModified("ownedSkins");
+        u.rpg.ownedSkins.push(selectedFile);
+        u.markModified("rpg");
         await u.save();
 
         const skinName = selectedFile.replace(".png", "");
