@@ -20,8 +20,8 @@ const symbols = [
 class SlotsCommand extends BaseCommand {
   constructor() {
     super({
-      name: 's',
-      aliases: ['slot', 'slots'],
+      name: 'slot',
+      aliases: ['s', 'slots'],
       description: 'Chơi slot để kiếm coke!',
       usage: `${config.prefix}s [tiền cược|all]`,
       examples: [

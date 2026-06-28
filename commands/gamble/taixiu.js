@@ -19,8 +19,8 @@ const moving = emoji.dice_rolling;
 class TaiXiuCommand extends BaseCommand {
   constructor() {
     super({
-      name: "tx",
-      aliases: ["taixiu", "doden"],
+      name: "taixiu",
+      aliases: ["tx", "doden"],
       description: "🎲 Chơi tài xỉu bằng coke!",
       usage: `${config.prefix}tx <t/x> [tiền cược|all]`,
       examples: [

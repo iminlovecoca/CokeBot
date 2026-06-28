@@ -11,8 +11,8 @@ const settings = config.gamble_settings;
 class CoinflipCommand extends BaseCommand {
   constructor() {
     super({
-      name: "cf",
-      aliases: ["coinflip", "flip"],
+      name: "coinflip",
+      aliases: ["cf", "flip"],
       description: "Chơi tung đồng xu!",
       usage: `${config.prefix}cf <h/t> [tiền cược|all]`,
       examples: [

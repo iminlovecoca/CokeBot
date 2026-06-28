@@ -4,17 +4,17 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/p8y_fm-CAuUAAAAC/anime-haruhi-fujioka.gif",
-  "https://media1.tenor.com/m/SYsRdiK-T7gAAAAC/hug-anime.gif",
-  "https://media1.tenor.com/m/J7eGDvGeP9IAAAAC/enage-kiss-anime-hug.gif",
-  "https://media1.tenor.com/m/YVSiUKjAvsMAAAAC/anime-nuzzle-k-on.gif",
-  "https://media1.tenor.com/m/YapsPDvVKIAAAAAC/rikekoi-anime-nuzzle.gif",
-  "https://media1.tenor.com/m/w5TTA_fLV6UAAAAC/anime-hug-hug.gif",
-  "https://media1.tenor.com/m/oJydVqWFDUQAAAAC/natsu-lucy.gif",
-  "https://media1.tenor.com/m/PlenvFTbCcAAAAAC/animehug.gif",
+  "https://media1.tenor.com/m/p8y_fm-CAuUAAAAM/anime-haruhi-fujioka.gif",
+  "https://media1.tenor.com/m/SYsRdiK-T7gAAAAM/hug-anime.gif",
+  "https://media1.tenor.com/m/J7eGDvGeP9IAAAAM/enage-kiss-anime-hug.gif",
+  "https://media1.tenor.com/m/YVSiUKjAvsMAAAAM/anime-nuzzle-k-on.gif",
+  "https://media1.tenor.com/m/YapsPDvVKIAAAAAM/rikekoi-anime-nuzzle.gif",
+  "https://media1.tenor.com/m/w5TTA_fLV6UAAAAM/anime-hug-hug.gif",
+  "https://media1.tenor.com/m/oJydVqWFDUQAAAAM/natsu-lucy.gif",
+  "https://media1.tenor.com/m/PlenvFTbCcAAAAAM/animehug.gif",
   "https://media1.tenor.com/m/FCBl9L-SO9QAAAAC/anime-lycoris-recoil.gif",
-  "https://media1.tenor.com/m/omM3N60gsFcAAAAC/yakuzas-way-to-babysitting-anime-hug.gif",
-  "https://media1.tenor.com/m/8Jk1ueYnyYUAAAAC/hug.gif"
+  "https://media1.tenor.com/m/omM3N60gsFcAAAAM/yakuzas-way-to-babysitting-anime-hug.gif",
+  "https://media1.tenor.com/m/8Jk1ueYnyYUAAAAM/hug.gif"
 ];
 
 class HugCommand extends BaseCommand {

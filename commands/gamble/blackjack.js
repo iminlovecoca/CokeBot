@@ -23,8 +23,8 @@ const standEmoji = "🛑";
 class BlackjackCommand extends BaseCommand {
   constructor() {
     super({
-      name: "bj",
-      aliases: ["blackjack"],
+      name: "blackjack",
+      aliases: ["bj", "xidach"],
       description: "Chơi bài xì dách (blackjack).",
       usage: `${config.prefix}bj [tiền cược|all]`,
       examples: [

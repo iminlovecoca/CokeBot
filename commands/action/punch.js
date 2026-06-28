@@ -4,20 +4,20 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/lWmjgII6fcgAAAAd/saki-saki-mukai-naoya.gif",
-  "https://media1.tenor.com/m/qDDsivB4UEkAAAAC/anime-fight.gif",
-  "https://media1.tenor.com/m/FAEF_H8BFC8AAAAC/punch.gif",
-  "https://media1.tenor.com/m/ZJpW9TXNlCIAAAAC/ora-oraora.gif",
+  "https://media1.tenor.com/m/lWmjgII6fcgAAAAM/saki-saki-mukai-naoya.gif",
+  "https://media1.tenor.com/m/qDDsivB4UEkAAAAM/anime-fight.gif",
+  "https://media1.tenor.com/m/FAEF_H8BFC8AAAAM/punch.gif",
+  "https://media1.tenor.com/m/ZJpW9TXNlCIAAAAM/ora-oraora.gif",
   "https://media.tenor.com/yA_KtmPI1EMAAAAM/hxh-hunter-x-hunter.gif",
-  "https://media1.tenor.com/m/i3hP7zju5JYAAAAd/higurashi-sotsu.gif",
+  "https://media1.tenor.com/m/i3hP7zju5JYAAAAM/higurashi-sotsu.gif",
   "https://i.imgur.com/e4bi40y.gif",
   "https://i.imgur.com/Op0Pu0J.gif",
   "https://i.imgur.com/FCXJydZ.gif",
   "https://i.imgur.com/jznCcr2.gif",
   "https://i.imgur.com/y8dqJmY.gif",
   "https://i.imgur.com/BYAHeVB.gif",
-  "https://media1.tenor.com/m/rf95MNM-96MAAAAd/luffy-one-piece.gif",
-  "https://media1.tenor.com/m/UK-nHsdngT0AAAAd/sakura-punch-naruto.gif"
+  "https://media1.tenor.com/m/rf95MNM-96MAAAAM/luffy-one-piece.gif",
+  "https://media1.tenor.com/m/UK-nHsdngT0AAAAM/sakura-punch-naruto.gif"
 ];
 
 class PunchCommand extends BaseCommand {

@@ -4,14 +4,14 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/X2WGK2fbenEAAAAC/peak.gif",
-  "https://media1.tenor.com/m/XiYuU9h44-AAAAAC/anime-slap-mad.gif",
-  "https://media1.tenor.com/m/cfobWWgjG8wAAAAC/anime-kaguya-sama.gif",
-  "https://media1.tenor.com/m/cpWuWnOU64MAAAAC/bofetada.gif",
-  "https://media1.tenor.com/m/68_5cN3wpJcAAAAC/slap-anime-girl.gif",
-  "https://media1.tenor.com/m/VlSXTbFcvDQAAAAC/naruto-anime.gif",
-  "https://media1.tenor.com/m/Sv8LQZAoQmgAAAAC/chainsaw-man-csm.gif",
-  "https://media1.tenor.com/m/TcBb6YDeidkAAAAd/bulma-vs-bils-slap.gif"
+  "https://media1.tenor.com/m/X2WGK2fbenEAAAAM/peak.gif",
+  "https://media1.tenor.com/m/XiYuU9h44-AAAAAM/anime-slap-mad.gif",
+  "https://media1.tenor.com/m/cfobWWgjG8wAAAAM/anime-kaguya-sama.gif",
+  "https://media1.tenor.com/m/cpWuWnOU64MAAAAM/bofetada.gif",
+  "https://media1.tenor.com/m/68_5cN3wpJcAAAAM/slap-anime-girl.gif",
+  "https://media1.tenor.com/m/VlSXTbFcvDQAAAAM/naruto-anime.gif",
+  "https://media1.tenor.com/m/Sv8LQZAoQmgAAAAM/chainsaw-man-csm.gif",
+  "https://media1.tenor.com/m/TcBb6YDeidkAAAAM/bulma-vs-bils-slap.gif"
 ];
 
 class SlapCommand extends BaseCommand {

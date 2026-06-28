@@ -8,8 +8,8 @@ const activeGames = new Map();
 class GuessWordCommand extends BaseCommand {
   constructor() {
     super({
-      name: 'gw',
-      aliases: ['guessword', 'gheptu'],
+      name: 'guessword',
+      aliases: ['gw', 'gheptu'],
       description: 'Trò chơi ghép chữ từ chữ bị đảo',
       usage: `${config.prefix}gw`,
       examples: [
