@@ -35,7 +35,10 @@ module.exports = {
       const expiresAt = DateTime.fromJSDate(state.expiresAt).setZone(timezone);
 
       if (now > expiresAt) {
-        return message.reply("🟣 **[Sự Kiện Hex]** Sự kiện đã hết hạn vào lúc " + expiresAt.toFormat("dd/MM/yyyy HH:mm:ss") + ".");
+        state.active = false;
+        state.expiresAt = null;
+        await state.save();
+        return message.reply("🟣 **[Sự Kiện Hex]** Sự kiện đã hết hạn vào lúc " + expiresAt.toFormat("dd/MM/yyyy HH:mm:ss") + " và đã được tự động tắt.");
       }
 
       const diff = expiresAt.diff(now, ["days", "hours", "minutes"]);

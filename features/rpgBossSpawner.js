@@ -26,6 +26,26 @@ const getBossAssetPath = (boss) => {
   return path.join(__dirname, "../assets/bosses", boss.asset || "boss_01.webp");
 };
 
+const checkAndGetEventState = async () => {
+  try {
+    const HexEventState = require("../models/HexEventState");
+    const eventState = await HexEventState.findById("hex_event");
+    if (eventState && eventState.active) {
+      if (eventState.expiresAt && eventState.expiresAt <= Date.now()) {
+        eventState.active = false;
+        eventState.expiresAt = null;
+        await eventState.save().catch(() => {});
+        console.log("🟣 [HEX_EVENT] Event has expired. Auto-disabled.");
+        return null;
+      }
+      return eventState;
+    }
+  } catch (err) {
+    console.error("[RPG_BOSS] Error checking Hex Event state:", err);
+  }
+  return null;
+};
+
 const buildBossEmbed = (activeBoss, status = "alive") => {
   const boss = activeBoss.boss;
   const defeated = status === "defeated";
@@ -85,10 +105,14 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
         value: (() => {
           const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank] || null;
           const rankLine = bossRank ? `${bossRank.emoji} **${bossRank.label}**\n` : "";
+          const durationMinutes = Math.round((activeBoss.expiresAt - activeBoss.spawnedAt) / 60000);
+          const timeStr = durationMinutes >= 60
+            ? `${Math.round(durationMinutes / 60)} giờ`
+            : `${durationMinutes} phút`;
           return (
             rankLine +
             `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
-            `Tồn tại: **10 phút**\n` +
+            `Tồn tại: **${timeStr}**\n` +
             `Người tham gia: **${activeBoss.participants.size}**`
           );
         })(),
@@ -307,27 +331,22 @@ const spawnRandomBoss = async (client, options = {}) => {
     // Check if Hex Event is active and calculate triggerEventBoss
     let triggerEventBoss = null;
     if (boss.key !== "hexia" && boss.key !== "godhexa") {
-      try {
-        const HexEventState = require("../models/HexEventState");
-        const eventState = await HexEventState.findById("hex_event");
-        if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
-          const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
-          const spawnTime = DateTime.now().setZone(timezone);
-          const dayOfWeek = spawnTime.weekday; // 1 (Mon) to 7 (Sun)
-          const hour = spawnTime.hour;
-          
-          if (dayOfWeek === 6) { // Saturday
-            if ([12, 15, 18, 21].includes(hour)) {
-              triggerEventBoss = "hexia";
-            }
-          } else if (dayOfWeek === 7) { // Sunday
-            if (hour === 12) {
-              triggerEventBoss = "godhexa";
-            }
+      const eventState = await checkAndGetEventState();
+      if (eventState) {
+        const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
+        const spawnTime = DateTime.now().setZone(timezone);
+        const dayOfWeek = spawnTime.weekday; // 1 (Mon) to 7 (Sun)
+        const hour = spawnTime.hour;
+        
+        if (dayOfWeek === 6) { // Saturday
+          if ([12, 15, 18, 21].includes(hour)) {
+            triggerEventBoss = "hexia";
+          }
+        } else if (dayOfWeek === 7) { // Sunday
+          if (hour === 12) {
+            triggerEventBoss = "godhexa";
           }
         }
-      } catch (err) {
-        console.error("[RPG_BOSS] Error checking Hex Event state:", err);
       }
     }
 
@@ -447,27 +466,17 @@ const initialize = async (client) => {
     client.rpgBossListenersRegistered = true;
     client.on("rpgBossDefeated", async (activeBoss) => {
       if (activeBoss.triggerEventBoss) {
-        try {
-          const HexEventState = require("../models/HexEventState");
-          const eventState = await HexEventState.findById("hex_event");
-          if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
-            spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
-          }
-        } catch (err) {
-          console.error("[RPG_BOSS] Error checking Hex Event state on defeat:", err);
+        const eventState = await checkAndGetEventState();
+        if (eventState) {
+          spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
         }
       }
     });
     client.on("rpgBossExpired", async (activeBoss) => {
       if (activeBoss.triggerEventBoss) {
-        try {
-          const HexEventState = require("../models/HexEventState");
-          const eventState = await HexEventState.findById("hex_event");
-          if (eventState && eventState.active && (!eventState.expiresAt || eventState.expiresAt > Date.now())) {
-            spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
-          }
-        } catch (err) {
-          console.error("[RPG_BOSS] Error checking Hex Event state on expire:", err);
+        const eventState = await checkAndGetEventState();
+        if (eventState) {
+          spawnEventBoss(client, activeBoss.channelId, activeBoss.triggerEventBoss);
         }
       }
     });
