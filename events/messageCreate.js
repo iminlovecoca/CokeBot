@@ -308,7 +308,9 @@ module.exports = {
               return message.reply(`🚫 Tính năng/lệnh này đã bị chủ bot khóa tạm thời.`);
             }
           }
-          await command.execute(message, parsedArgs);
+          // OOP Commands accept (message, args, client, services)
+          // Legacy Commands accept (message, args) and ignore the rest
+          await command.execute(message, parsedArgs, client, client.services);
         }
       }
     } catch (error) {

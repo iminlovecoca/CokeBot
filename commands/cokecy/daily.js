@@ -1,19 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
 const { DateTime } = require('luxon');
-const { getUser } = require('../../utils/userUtil');
 const config = require('../../data/config');
 
-module.exports = {
-  name: 'daily',
-  description: 'Nhận phần thưởng coke hàng ngày.',
-  usage: `${config.prefix}daily`,
-  examples: [
-    { intent: 'Nhận phần thưởng hàng ngày', command: `${config.prefix}daily` }
-  ],
-  async execute(message) {
+class DailyCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'daily',
+      description: 'Nhận phần thưởng coke hàng ngày.',
+      usage: `${config.prefix}daily`,
+      examples: [
+        { intent: 'Nhận phần thưởng hàng ngày', command: `${config.prefix}daily` }
+      ],
+      cooldown: 0 // handled manually via Luxon logic inside
+    });
+  }
+
+  async execute(message, args) {
     const userId = message.author.id;
-    const member = await message.guild.members.fetch(userId);
-    const name = member.displayName;
-    let user = await getUser(userId)
+    const member = message.member || await message.guild.members.fetch(userId);
+    const name = member.displayName || message.author.username;
+    
+    const userRepository = message.client.services.get('userRepository');
+    const userService = message.client.services.get('userService');
+    const user = await userRepository.getOrCreate(userId);
 
     const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
     const today = now.startOf('day');
@@ -36,7 +45,7 @@ module.exports = {
     if (lastClaim) {
       const daysDiff = today.diff(lastClaim, 'days').days;
       if (daysDiff === 1) {
-        streak = user.dailyStreak + 1;
+        streak = (user.dailyStreak || 0) + 1;
       } else if (daysDiff > 1) {
         brokeStreak = true;
         streak = 1;
@@ -48,12 +57,12 @@ module.exports = {
 
     user.coke += reward;
     user.dailyStreak = streak;
-    user.lastDaily = new Date();
+    user.lastDaily = now.toJSDate();
 
+    // Give some XP
     user.xp += 500;
-    const getXpNeeded = level => 2000 + (level - 1) * 1000;
-    while (user.xp >= getXpNeeded(user.level)) {
-      user.xp -= getXpNeeded(user.level);
+    while (user.xp >= userService.getUserXpNeeded(user.level)) {
+      user.xp -= userService.getUserXpNeeded(user.level);
       user.level++;
       user.coke += 2000;
     }
@@ -66,7 +75,7 @@ module.exports = {
     user.inventory.set("wc", currentWc + 1);
     user.markModified("inventory");
 
-    const milestones = Object.keys(config.emoji.streakMilestones)
+    const milestones = Object.keys(config.emoji.streakMilestones || {})
       .map(Number)
       .sort((a, b) => a - b);
 
@@ -99,6 +108,8 @@ module.exports = {
       responseText += `\n\n${milestoneMessage}`;
     }
 
-    return message.reply(responseText);
+    await message.reply(responseText);
   }
-};
+}
+
+module.exports = new DailyCommand();

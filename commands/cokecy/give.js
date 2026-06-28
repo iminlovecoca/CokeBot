@@ -1,11 +1,10 @@
-﻿const {
+const BaseCommand = require('../../core/BaseCommand');
+const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
 } = require("discord.js");
-const mongoose = require("mongoose");
-const User = require("../../models/User");
 const {
   giveCmd,
   removeTransferalOlderThanNDays,
@@ -15,17 +14,23 @@ const {
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
-  name: "give",
-  aliases: ["send"],
-  description: "Chuyển coke cho người khác (ghi lại lịch sử chuyển nhận)",
-  usage: `${config.prefix}give @user <số tiền>`,
-  examples: [
-    {
-      intent: "Chuyển 1,000,000 coke cho người khác",
-      command: `${config.prefix}give @PlayerName 1000000`,
-    },
-  ],
+class GiveCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "give",
+      aliases: ["send"],
+      description: "Chuyển coke cho người khác (ghi lại lịch sử chuyển nhận)",
+      usage: `${config.prefix}give @user <số tiền>`,
+      examples: [
+        {
+          intent: "Chuyển 1,000,000 coke cho người khác",
+          command: `${config.prefix}give @PlayerName 1000000`,
+        },
+      ],
+      cooldown: 5 // Anti-spam
+    });
+  }
+
   async execute(message, args) {
     const mention = message.mentions.users.first();
     const amount = parseInt(args[1]);
@@ -54,7 +59,7 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setColor(0x00ff99)
       .setAuthor({
-        name: `${message.member.displayName}, bạn sắp chuyển coke cho ${mention.displayName || mention.username}`,
+        name: `${message.member?.displayName || message.author.username}, bạn sắp chuyển coke cho ${mention.displayName || mention.username}`,
         iconURL: message.author.displayAvatarURL({ dynamic: true }),
       })
       .setDescription(
@@ -105,7 +110,7 @@ module.exports = {
           embed
             .setColor(0x00cc66)
             .setDescription(
-              `✅ **${message.member.displayName}** đã chuyển **${amount.toLocaleString()} coke** cho **${mention.displayName || mention.username}** lúc **${vnNow.toLocaleTimeString("vi-VN")}**`,
+              `✅ **${message.member?.displayName || message.author.username}** đã chuyển **${amount.toLocaleString()} coke** cho **${mention.displayName || mention.username}** lúc **${vnNow.toLocaleTimeString("vi-VN")}**`,
             );
         } else {
           embed
@@ -132,5 +137,7 @@ module.exports = {
         confirmMsg.edit({ embeds: [embed], components: [row] });
       }
     });
-  },
-};
+  }
+}
+
+module.exports = new GiveCommand();

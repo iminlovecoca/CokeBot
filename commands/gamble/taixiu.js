@@ -1,11 +1,10 @@
+const BaseCommand = require("../../core/BaseCommand");
 const random = require("random-number-csprng");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const { incBalance } = require("../../utils/userUtil");
 const { getBetAmount } = require("../../utils/gameUtil");
-const { getDebuffPercentage } = require("../../utils/miscUtil");
 const config = require("../../data/config");
 const emoji = config.emoji;
-const settings = config.gamble_settings;
 
 const diceEmojis = [
   emoji.dice_1,
@@ -17,22 +16,29 @@ const diceEmojis = [
 ];
 const moving = emoji.dice_rolling;
 
-module.exports = {
-  name: "tx",
-  aliases: ["taixiu", "doden"],
-  description: "🎲 Chơi tài xỉu bằng coke!",
-  usage: `${config.prefix}tx <t/x> [tiền cược|all]`,
-  examples: [
-    {
-      intent: "Cược tài (t) với tất cả tiền",
-      command: `${config.prefix}tx t all`,
-    },
-    {
-      intent: "Cược xỉu (x) với 100,000 coke",
-      command: `${config.prefix}tx x 100000`,
-    },
-  ],
-  async execute(message, args) {
+class TaiXiuCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "tx",
+      aliases: ["taixiu", "doden"],
+      description: "🎲 Chơi tài xỉu bằng coke!",
+      usage: `${config.prefix}tx <t/x> [tiền cược|all]`,
+      examples: [
+        {
+          intent: "Cược tài (t) với tất cả tiền",
+          command: `${config.prefix}tx t all`,
+        },
+        {
+          intent: "Cược xỉu (x) với 100,000 coke",
+          command: `${config.prefix}tx x 100000`,
+        },
+      ],
+      category: "gamble"
+    });
+  }
+
+  async execute(message, args, client, locator) {
+    const settings = config.gamble_settings;
     const userId = message.author.id;
     const remainingCooldown = checkAndSetCooldown(
       userId,
@@ -76,30 +82,35 @@ module.exports = {
       settings.min_bet,
     );
 
-    const debuffPercentage = await getDebuffPercentage(userId);
-    const winProbability = 0.5 * (1 - debuffPercentage);
-    const playerWins = Math.random() < winProbability;
-    const finalOutcome = playerWins ? choice : choice === "tai" ? "xiu" : "tai";
+    // Using GambleService from DI Container!
+    const gambleService = locator.get("gambleService");
+    const debuffPercentage = await gambleService.getDebuffPercentage(userId);
 
-    const generateDiceRolls = async (targetOutcome) => {
-      let rolls, sum, isTriple;
-      while (true) {
-        const r1 = await random(1, 6);
-        const r2 = await random(1, 6);
-        const r3 = await random(1, 6);
-        sum = r1 + r2 + r3;
-        isTriple = r1 === r2 && r2 === r3;
-        const currentOutcome = sum >= 11 ? "tai" : "xiu";
-
-        if (!isTriple && currentOutcome === targetOutcome) {
-          rolls = [r1, r2, r3];
-          return { rolls, sum };
-        }
-      }
+    const rollDice = async () => {
+      const r1 = await random(1, 6);
+      const r2 = await random(1, 6);
+      const r3 = await random(1, 6);
+      const sum = r1 + r2 + r3;
+      const isTriple = r1 === r2 && r2 === r3;
+      const outcome = sum >= 11 ? "tai" : "xiu";
+      return { rolls: [r1, r2, r3], sum, isTriple, outcome };
     };
 
-    const { rolls, sum } = await generateDiceRolls(finalOutcome);
-    const [roll1, roll2, roll3] = rolls;
+    let result = await rollDice();
+    let playerWins = !result.isTriple && (result.outcome === choice);
+
+    // Apply debuff if player won naturally
+    if (playerWins && debuffPercentage > 0) {
+      if (Math.random() < debuffPercentage) {
+        // Force lose: roll again until player loses
+        while (playerWins) {
+          result = await rollDice();
+          playerWins = !result.isTriple && (result.outcome === choice);
+        }
+      }
+    }
+
+    const { rolls, sum, isTriple, outcome } = result;
     const rollEmoji = rolls.map((i) => diceEmojis[i - 1]);
 
     let win = 0;
@@ -134,7 +145,9 @@ module.exports = {
 
     await wait(1000);
 
-    display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${finalOutcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? "thắng" : "thua"} ${winText}`;
+    display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${isTriple ? `BÃO (${rolls[0]}-${rolls[1]}-${rolls[2]})` : outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? "thắng" : "thua"} ${winText}`;
     await msg.edit(display);
-  },
-};
+  }
+}
+
+module.exports = new TaiXiuCommand();

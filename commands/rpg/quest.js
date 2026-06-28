@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
@@ -5,15 +6,20 @@ const { checkAndResetDailyQuests, generateRandomQuest } = require("../../utils/q
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
 const { DateTime } = require("luxon");
 
-module.exports = {
-  name: "quest",
-  aliases: ["q", "dailyquest", "quests", "questlog"],
-  description: "Xem danh sách nhiệm vụ hàng ngày của bạn và thực hiện đổi nhiệm vụ.",
-  usage: `${config.prefix}quest [rr <1|2|3>]`,
-  examples: [
-    { intent: "Xem danh sách nhiệm vụ hàng ngày", command: `${config.prefix}quest` },
-    { intent: "Đổi (reroll) nhiệm vụ số 2", command: `${config.prefix}quest rr 2` },
-  ],
+class QuestCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "quest",
+      aliases: ["q", "dailyquest", "quests", "questlog"],
+      description: "Xem danh sách nhiệm vụ hàng ngày của bạn và thực hiện đổi nhiệm vụ.",
+      usage: `${config.prefix}quest [rr <1|2|3>]`,
+      examples: [
+        { intent: "Xem danh sách nhiệm vụ hàng ngày", command: `${config.prefix}quest` },
+        { intent: "Đổi (reroll) nhiệm vụ số 2", command: `${config.prefix}quest rr 2` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
@@ -103,5 +109,7 @@ module.exports = {
       .setDescription(description);
 
     return message.reply({ embeds: [embed] });
-  },
-};
+  }
+}
+
+module.exports = new QuestCommand();

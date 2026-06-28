@@ -86,6 +86,25 @@ client.noituGames = new Map();
 client.noituModerationRequests = new Map();
 client.rpgBosses = new Map();
 
+const ServerData = require("./database/server");
+client.db = new ServerData();
+
+// Initialize OOP Core
+const ServiceLocator = require("./core/ServiceLocator");
+const GambleService = require("./services/GambleService");
+const GameRepository = require("./repositories/GameRepository");
+const UserRepository = require("./repositories/UserRepository");
+const UserService = require("./services/UserService");
+const RpgService = require("./services/RpgService");
+
+const locator = new ServiceLocator();
+locator.register("gameRepository", new GameRepository());
+locator.register("gambleService", new GambleService(locator));
+locator.register("userRepository", new UserRepository());
+locator.register("userService", new UserService(locator));
+locator.register("rpgService", new RpgService(locator));
+client.services = locator;
+
 const loadFiles = (dir, callback) => {
   const files = fs.readdirSync(dir, { withFileTypes: true });
   for (const file of files) {

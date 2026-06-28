@@ -1,17 +1,23 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "battlesetting",
-  aliases: ["bs"],
-  description: "Cài đặt hiển thị ảnh trận đấu và cấu hình PvP (battle).",
-  usage: `${config.prefix}battlesetting display=image/text/compact`,
-  examples: [
-    { intent: "Bật hiển thị hình ảnh trận đấu", command: `${config.prefix}bs display=image` },
-    { intent: "Tắt hiển thị hình ảnh trận đấu (chỉ hiện chữ)", command: `${config.prefix}bs display=text` },
-    { intent: "Cài đặt tốc độ trận đấu tức thì", command: `${config.prefix}bs speed=instant` },
-  ],
+class BattlesettingCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "battlesetting",
+      aliases: ["bs"],
+      description: "Cài đặt hiển thị ảnh trận đấu và cấu hình PvP (battle).",
+      usage: `${config.prefix}battlesetting display=image/text/compact`,
+      examples: [
+        { intent: "Bật hiển thị hình ảnh trận đấu", command: `${config.prefix}bs display=image` },
+        { intent: "Tắt hiển thị hình ảnh trận đấu (chỉ hiện chữ)", command: `${config.prefix}bs display=text` },
+        { intent: "Cài đặt tốc độ trận đấu tức thì", command: `${config.prefix}bs speed=instant` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     let user;
@@ -130,5 +136,7 @@ module.exports = {
       );
 
     return message.reply({ embeds: [embed] });
-  },
-};
+  }
+}
+
+module.exports = new BattlesettingCommand();

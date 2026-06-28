@@ -1,21 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
 const { buyItem } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
-  name: "buy",
-  description: "Mua một vật phẩm từ cửa hàng.",
-  usage: `${config.prefix}buy <id> [số lượng]`,
-  examples: [
-    {
-      intent: "Mua 1 vật phẩm (ví dụ: sun-stone)",
-      command: `${config.prefix}buy sun-stone`,
-    },
-    {
-      intent: "Mua 3 vật phẩm cùng lúc",
-      command: `${config.prefix}buy sun-stone 3`,
-    },
-  ],
+class BuyCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "buy",
+      description: "Mua một vật phẩm từ cửa hàng.",
+      usage: `${config.prefix}buy <id> [số lượng]`,
+      examples: [
+        {
+          intent: "Mua 1 vật phẩm (ví dụ: sun-stone)",
+          command: `${config.prefix}buy sun-stone`,
+        },
+        {
+          intent: "Mua 3 vật phẩm cùng lúc",
+          command: `${config.prefix}buy sun-stone 3`,
+        },
+      ],
+      cooldown: 3
+    });
+  }
+
   async execute(message, args) {
     const itemId = args[0];
     let quantity = 1; // Default quantity is 1
@@ -102,14 +109,22 @@ module.exports = {
       }
     }
 
-    const { item, cost } = await buyItem(
-      message.client,
-      message.author.id,
-      itemId,
-      quantity,
-    );
-    await message.reply(
-      `${config.emoji.yes} **${message.author.username}** đã mua thành công **${quantity} x ${item.name}** ${item.emoji} với giá ${config.emoji.money} **${cost}**!`,
-    );
-  },
-};
+    const { msg, item } = await buyItem(message.author.id, cleanId, quantity);
+
+    if (msg) {
+      return message.reply(msg);
+    }
+
+    if (item) {
+      await message.reply(
+        `${config.emoji.yes} Đã mua thành công **${quantity}x ${item.name}** với giá **${(item.price * quantity).toLocaleString()} coke**!`,
+      );
+    } else {
+      await message.reply(
+        `${config.emoji.no} Không tìm thấy vật phẩm với ID \`${cleanId}\`.`,
+      );
+    }
+  }
+}
+
+module.exports = new BuyCommand();

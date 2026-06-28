@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -8,15 +9,20 @@ const config = require("../../data/config");
 const { getUser } = require("../../utils/userUtil");
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "tradestone",
-  aliases: ["ts", "trade-stone"],
-  description: "Giao dịch đá cường hóa (Somber / Cristal) của bạn với người chơi khác.",
-  usage: `${config.prefix}tradestone @mention <loại_đá> [số_lượng]`,
-  examples: [
-    { intent: "Tặng 5 viên Somber Smithing Stone [1] cho người khác", command: `${config.prefix}tradestone @Khang somber-1 5` },
-    { intent: "Tặng 1 viên Somber Ancient Dragon Smithing Stone cho người khác", command: `${config.prefix}tradestone @Khang Cristal 10` },
-  ],
+class TradestoneCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "tradestone",
+      aliases: ["ts", "trade-stone"],
+      description: "Giao dịch đá cường hóa (Somber / Cristal) của bạn với người chơi khác.",
+      usage: `${config.prefix}tradestone @mention <loại_đá> [số_lượng]`,
+      examples: [
+        { intent: "Tặng 5 viên Somber Smithing Stone [1] cho người khác", command: `${config.prefix}tradestone @Khang somber-1 5` },
+        { intent: "Tặng 1 viên Somber Ancient Dragon Smithing Stone cho người khác", command: `${config.prefix}tradestone @Khang Cristal 10` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const senderId = message.author.id;
@@ -240,5 +246,7 @@ module.exports = {
         components: [],
       }).catch(() => {});
     }
-  },
-};
+  }
+}
+
+module.exports = new TradestoneCommand();

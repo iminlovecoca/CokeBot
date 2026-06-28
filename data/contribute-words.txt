@@ -371,7 +371,7 @@ cổ trang
 trang bị
 muội than
 thuật thức
-lính gác 
+lính gác
 lính canh
 vụ mùa
 đạt giải
@@ -397,7 +397,7 @@ vít ga
 bầu bì
 heo nái
 nực cười
-phích cắm 
+phích cắm
 phích nước
 bang hội
 bang phái
@@ -569,7 +569,7 @@ cụ tổ
 đong đầy
 vẻ đẹp
 đẹp đẽ
-mạc chược 
+mạc chược
 lực khực
 lá phổi
 nguồn nước
@@ -577,3 +577,5 @@ tươm tướp
 hũ đựng
 khóa học
 khóa cửa
+cúi chào
+vụn vỡ

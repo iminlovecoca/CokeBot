@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -43,14 +44,19 @@ const rarityColor = {
   Divine: "#FFFFFF",
 };
 
-module.exports = {
-  name: "tradegear",
-  aliases: ["tg", "trade", "tradeitem"],
-  description: "Trade trang bị (vũ khí) RPG của bạn với người chơi khác.",
-  usage: `${config.prefix}tradegear @mention <itemId>`,
-  examples: [
-    { intent: "Trade trang bị ID 3 cho người khác", command: `${config.prefix}tradegear @Khang 3` },
-  ],
+class TradegearCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "tradegear",
+      aliases: ["tg", "trade", "tradeitem"],
+      description: "Trade trang bị (vũ khí) RPG của bạn với người chơi khác.",
+      usage: `${config.prefix}tradegear @mention <itemId>`,
+      examples: [
+        { intent: "Trade trang bị ID 3 cho người khác", command: `${config.prefix}tradegear @Khang 3` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const senderId = message.author.id;
@@ -262,5 +268,7 @@ module.exports = {
         components: [],
       }).catch(() => {});
     });
-  },
-};
+  }
+}
+
+module.exports = new TradegearCommand();

@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -98,11 +99,17 @@ const getChapterRarities = (chapter) => {
   return ["Epic", "Legendary", "Mythic"];
 };
 
-module.exports = {
-  name: "dungeon",
-  aliases: ["pb", "phoban"],
-  description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Party)",
-  usage: `${config.prefix}dungeon`,
+class DungeonCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "dungeon",
+      aliases: ["pb", "phoban"],
+      description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Party)",
+      usage: `${config.prefix}dungeon`,
+      cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const userId = message.author.id;
     const client = message.client;
@@ -232,8 +239,10 @@ module.exports = {
         }).catch(() => {});
       }
     });
-  },
-};
+  }
+}
+
+module.exports = new DungeonCommand();
 
 const askBlessing = async (message, selectMsg, guild, chapter) => {
   const userId = message.author.id;

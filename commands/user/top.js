@@ -1,22 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
 const User = require('../../models/User');
-const { getUser, getRankEmoji } = require('../../utils/userUtil')
-const config = require('../../data/config')
+const config = require('../../data/config');
 
-module.exports = {
-  name: 'top',
-  description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea hoặc gw',
-  usage: `${config.prefix}top [cash|level|rank|luck|tea] [số lượng]`,
-  examples: [
-    { intent: 'Xem top đại gia coke', command: `${config.prefix}top cash` },
-    { intent: 'Xem top level (10 người)', command: `${config.prefix}top level 10` }
-  ],
+class TopCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'top',
+      description: 'Xem bảng xếp hạng theo cash, level, rank, luck, tea hoặc gw',
+      usage: `${config.prefix}top [cash|level|rank|luck|tea] [số lượng]`,
+      examples: [
+        { intent: 'Xem top đại gia coke', command: `${config.prefix}top cash` },
+        { intent: 'Xem top level (10 người)', command: `${config.prefix}top level 10` }
+      ],
+      category: 'user'
+    });
+  }
 
-  async execute(message, args) {
+  async execute(message, args, client, locator) {
+    const userService = locator.get('userService');
     const type = args[0]?.toLowerCase() || 'cash';
     const inputLimit = parseInt(args[1]);
     const limit = (!inputLimit || inputLimit <= 0) ? 5 : Math.min(inputLimit, 50);
     const authorId = message.author.id;
-    const authorData = await getUser(authorId);
+    const authorData = await userService.getUser(authorId);
 
     let topUsers = [], unit = '', getValue;
     let title = `Bảng Xếp Hạng`;
@@ -24,8 +30,6 @@ module.exports = {
     const guild = message.guild;
 
     switch (type) {
-
-
       case 'lvl':
       case 'level':
         title = `Top Level - ${guildName}`;
@@ -101,7 +105,7 @@ module.exports = {
       const value = getValue(u).toLocaleString();
 
       if (type === 'rank') {
-        const icon = getRankEmoji(u.level);
+        const icon = userService.getRankEmoji(u.level);
         text += `#${i + 1}\t${username}\n\t\t${icon} ${unit}: ${value}\n`;
       } else {
         text += `#${i + 1}\t${username}\n\t\t${unit}: ${value}\n`;
@@ -122,4 +126,6 @@ module.exports = {
     text += `\n${dateStr}\n\`\`\``;
     return message.channel.send(text);
   }
-};
+}
+
+module.exports = new TopCommand();

@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { getUser } = require("../../utils/userUtil");
@@ -15,15 +16,20 @@ const {
   getItemImageFile,
 } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "hunt",
-  aliases: ["h"],
-  description: "Đi săn để tăng EXP RPG và có tỉ lệ rớt trang bị.",
-  usage: `${config.prefix}hunt`,
-  examples: [
-    { intent: "Đi săn", command: `${config.prefix}hunt` },
-    { intent: "Đi săn bằng alias", command: `${config.prefix}h` },
-  ],
+class HuntCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "hunt",
+      aliases: ["h"],
+      description: "Đi săn để tăng EXP RPG và có tỉ lệ rớt trang bị.",
+      usage: `${config.prefix}hunt`,
+      examples: [
+        { intent: "Đi săn", command: `${config.prefix}hunt` },
+        { intent: "Đi săn bằng alias", command: `${config.prefix}h` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message) {
     const user = await getUser(message.author.id);
@@ -143,5 +149,7 @@ module.exports = {
       payload.files = [itemAttachment];
     }
     return message.reply(payload);
-  },
-};
+  }
+}
+
+module.exports = new HuntCommand();

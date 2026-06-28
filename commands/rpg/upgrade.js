@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
@@ -89,15 +90,20 @@ const traitMapping = {
   rad: "radar",
 };
 
-module.exports = {
-  name: "upgrade",
-  aliases: ["up", "xup"],
-  description: "Nâng cấp chỉ số HuntBot bằng Essence.",
-  usage: `${config.prefix}upgrade <chỉ số> [lượng essence]`,
-  examples: [
-    { intent: "Nạp toàn bộ Essence vào efficiency", command: `${config.prefix}upgrade eff` },
-    { intent: "Nạp tối đa 5000 Essence vào efficiency", command: `${config.prefix}upgrade eff 5000` },
-  ],
+class UpgradeCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "upgrade",
+      aliases: ["up", "xup"],
+      description: "Nâng cấp chỉ số HuntBot bằng Essence.",
+      usage: `${config.prefix}upgrade <chỉ số> [lượng essence]`,
+      examples: [
+        { intent: "Nạp toàn bộ Essence vào efficiency", command: `${config.prefix}upgrade eff` },
+        { intent: "Nạp tối đa 5000 Essence vào efficiency", command: `${config.prefix}upgrade eff 5000` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
@@ -210,5 +216,7 @@ module.exports = {
           `Tiêu hao: **${essenceToSpend.toLocaleString()} Essence** | Essence còn lại: **${user.rpg.autohunt.essence.toLocaleString()}**`
       );
     }
-  },
-};
+  }
+}
+
+module.exports = new UpgradeCommand();

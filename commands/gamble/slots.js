@@ -1,8 +1,8 @@
+const BaseCommand = require("../../core/BaseCommand");
 const random = require('random-number-csprng');
 const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
 const { incBalance } = require('../../utils/userUtil')
 const { getBetAmount } = require('../../utils/gameUtil')
-const { getDebuffPercentage } = require('../../utils/miscUtil')
 const config = require('../../data/config')
 const emoji = config.emoji
 const settings = config.gamble_settings
@@ -17,16 +17,22 @@ const symbols = [
   emoji.slots_W
 ]
 
-module.exports = {
-  name: 's',
-  aliases: ['slot', 'slots'],
-  description: 'Chơi slot để kiếm coke!',
-  usage: `${config.prefix}s [tiền cược|all]`,
-  examples: [
-    { intent: 'Chơi slot với mức cược tối thiểu', command: `${config.prefix}s` },
-    { intent: 'Chơi slot với tất cả tiền đang có', command: `${config.prefix}s all` }
-  ],
-  async execute(message, args) {
+class SlotsCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 's',
+      aliases: ['slot', 'slots'],
+      description: 'Chơi slot để kiếm coke!',
+      usage: `${config.prefix}s [tiền cược|all]`,
+      examples: [
+        { intent: 'Chơi slot với mức cược tối thiểu', command: `${config.prefix}s` },
+        { intent: 'Chơi slot với tất cả tiền đang có', command: `${config.prefix}s all` }
+      ],
+      category: "gamble"
+    });
+  }
+
+  async execute(message, args, client, locator) {
     const userId = message.author.id
     const remainingCooldown = checkAndSetCooldown(userId, 's', settings.cooldown_second)
     if (remainingCooldown > 0) {
@@ -40,7 +46,9 @@ module.exports = {
     const rand = (await random(1, 1000)) / 10;
     let win = 0;
 
-    const debuffPercentage = await getDebuffPercentage(userId)
+    const gambleService = locator.get("gambleService");
+    const debuffPercentage = await gambleService.getDebuffPercentage(userId);
+
     if (rand <= 20 * (1 - debuffPercentage)) {
       win = amount;
       rslots.push(symbols[0], symbols[0], symbols[0]);
@@ -61,9 +69,6 @@ module.exports = {
       let slot1 = Math.floor(Math.random() * (symbols.length - 1));
       let slot2 = Math.floor(Math.random() * (symbols.length - 1));
       let slot3 = Math.floor(Math.random() * (symbols.length - 1));
-      // if (slot3 === slot1) 
-      //   slot2 = (slot1 + Math.ceil(Math.random() * (len - 1))) % (symbols.length - 1);
-      // if (slot2 === len - 1) slot2++;
       if (slot3 == slot1)
         slot2 = (slot1 + Math.ceil(Math.random() * (symbols.length - 2))) % (symbols.length - 1);
       if (slot2 == symbols.length - 2) slot2++;
@@ -112,3 +117,5 @@ module.exports = {
     await msg.edit(machine);
   }
 }
+
+module.exports = new SlotsCommand();

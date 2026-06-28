@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const config = require("../../data/config");
 const {
@@ -7,15 +8,20 @@ const {
   isDungeonWeapon,
 } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "enhance",
-  aliases: ["eh", "ch", "cuonghoa"],
-  description: "Cường hóa vũ khí của bạn sử dụng Đá rèn và Coke.",
-  usage: `${config.prefix}enhance [ID vũ khí]`,
-  examples: [
-    { intent: "Cường hóa vũ khí đang trang bị", command: `${config.prefix}enhance` },
-    { intent: "Cường hóa vũ khí có ID 15", command: `${config.prefix}enhance 15` },
-  ],
+class EnhanceCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "enhance",
+      aliases: ["eh", "ch", "cuonghoa"],
+      description: "Cường hóa vũ khí của bạn sử dụng Đá rèn và Coke.",
+      usage: `${config.prefix}enhance [ID vũ khí]`,
+      examples: [
+        { intent: "Cường hóa vũ khí đang trang bị", command: `${config.prefix}enhance` },
+        { intent: "Cường hóa vũ khí có ID 15", command: `${config.prefix}enhance 15` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const { user } = await requireRpgCharacter(message.author.id);
@@ -263,5 +269,7 @@ module.exports = {
         components: [],
       }).catch(() => {});
     }
-  },
-};
+  }
+}
+
+module.exports = new EnhanceCommand();

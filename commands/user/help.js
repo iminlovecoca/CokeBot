@@ -1,3 +1,4 @@
+const BaseCommand = require('../../core/BaseCommand');
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -6,24 +7,44 @@ const {
 const fs = require("fs");
 const path = require("path");
 const config = require("../../data/config");
-const { isDev, isAdmin } = require("../../utils/userUtil");
 
-module.exports = {
-  name: "help",
-  aliases: ["h", "commands"],
-  description: "Hiển thị danh sách tất cả các lệnh có sẵn.",
-  usage: `${config.prefix}help [lệnh]`,
-  examples: [
-    { intent: "Xem danh sách các lệnh", command: `${config.prefix}help` },
-    {
-      intent: "Xem hướng dẫn chi tiết cho lệnh cokemon",
-      command: `${config.prefix}help cokemon`,
-    },
-  ],
-  async execute(message, args) {
+const categoryTranslations = {
+  action: "Hành động",
+  admin: "Quản trị viên",
+  cokecy: "Kinh tế",
+  cokemon: "Cokemon (Thú cưng)",
+  config: "Cấu hình",
+  gamble: "Trò chơi may rủi",
+  general: "Thông tin chung",
+  noitu: "Nối từ",
+  rpg: "RPG (Nhập vai)",
+  shop: "Cửa hàng",
+  user: "Cá nhân"
+};
+
+class HelpCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "help",
+      aliases: ["h", "commands"],
+      description: "Hiển thị danh sách tất cả các lệnh có sẵn.",
+      usage: `${config.prefix}help [lệnh]`,
+      examples: [
+        { intent: "Xem danh sách các lệnh", command: `${config.prefix}help` },
+        {
+          intent: "Xem hướng dẫn chi tiết cho lệnh cokemon",
+          command: `${config.prefix}help cokemon`,
+        },
+      ],
+      category: 'user'
+    });
+  }
+
+  async execute(message, args, client, locator) {
+    const userService = locator.get('userService');
     const userId = message.author.id;
     const ownerId = "745950731638407210";
-    const showAdmin = isDev(userId) || isAdmin(userId) || userId === ownerId || userId === process.env.OWNER_ID;
+    const showAdmin = userService.isDev(userId) || userService.isAdmin(userId) || userId === ownerId || userId === process.env.OWNER_ID;
     const commands = message.client.commands;
     const noituCommands = message.client.noituCommands || new Map();
 
@@ -126,14 +147,14 @@ module.exports = {
           });
 
         if (category === "main") {
-          // Main Menu View: Show all categories
           let desc = commandFolders
             .map((folder) => {
               const emoji =
                 config.category_emojis[folder] ||
                 config.category_emojis["default"];
               const categoryName =
-                folder.charAt(0).toUpperCase() + folder.slice(1);
+                categoryTranslations[folder.toLowerCase()] ||
+                (folder.charAt(0).toUpperCase() + folder.slice(1));
               return `- ${emoji} **${categoryName}**`;
             })
             .join("\n");
@@ -151,12 +172,12 @@ module.exports = {
               .setTitle("⚠️ Lỗi")
               .setDescription("Bạn không có quyền truy cập danh mục này.");
           }
-          // Category View: Show commands in the selected category
           const emoji =
             config.category_emojis[category] ||
             config.category_emojis["default"];
           const categoryName =
-            category.charAt(0).toUpperCase() + category.slice(1);
+            categoryTranslations[category.toLowerCase()] ||
+            (category.charAt(0).toUpperCase() + category.slice(1));
           const isNoituCategory = category === "noitu";
           embed
             .setTitle(`${emoji} Lệnh trong danh mục: ${categoryName}`)
@@ -216,13 +237,17 @@ module.exports = {
       };
 
       const generateSelectMenu = () => {
-        const options = commandFolders.map((folder) => ({
-          label: folder.charAt(0).toUpperCase() + folder.slice(1),
-          value: folder.toLowerCase(),
-          description: `Xem các lệnh trong mục ${folder}.`,
-        }));
+        const options = commandFolders.map((folder) => {
+          const categoryName =
+            categoryTranslations[folder.toLowerCase()] ||
+            (folder.charAt(0).toUpperCase() + folder.slice(1));
+          return {
+            label: categoryName,
+            value: folder.toLowerCase(),
+            description: `Xem các lệnh trong mục ${categoryName}.`,
+          };
+        });
 
-        // Add an option to go back to the main menu
         options.unshift({
           label: "Trang Chính",
           value: "main",
@@ -250,19 +275,32 @@ module.exports = {
       });
 
       collector.on("collect", async (i) => {
-        if (!i.isStringSelectMenu()) return;
-        await i.deferUpdate();
-
-        currentCategory = i.values[0];
-        const newEmbed = generateEmbed(currentCategory);
-        await i.editReply({ embeds: [newEmbed] });
+        if (i.customId === "help_category_select") {
+          currentCategory = i.values[0];
+          const newEmbed = generateEmbed(currentCategory);
+          await i.update({ embeds: [newEmbed] });
+        }
       });
 
-      collector.on("end", () => {
-        const finalComponents = generateSelectMenu();
-        finalComponents.components.forEach((c) => c.setDisabled(true));
-        replyMessage.edit({ components: [finalComponents] });
+      collector.on("end", async () => {
+        const disabledRow = new ActionRowBuilder().addComponents(
+          new StringSelectMenuBuilder()
+            .setCustomId("help_category_select_disabled")
+            .setPlaceholder("Chọn một danh mục...")
+            .addOptions([
+              {
+                label: "Hết hạn",
+                value: "expired",
+                description: "Menu trợ giúp đã hết hạn tương tác.",
+              },
+            ])
+            .setDisabled(true),
+        );
+
+        await replyMessage.edit({ components: [disabledRow] }).catch(() => {});
       });
     }
-  },
-};
+  }
+}
+
+module.exports = new HelpCommand();

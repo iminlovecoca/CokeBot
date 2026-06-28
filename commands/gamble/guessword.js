@@ -1,23 +1,29 @@
-const User = require('../../models/User');
+const BaseCommand = require('../../core/BaseCommand');
 const { getRandomWord, shuffleWord } = require('../../utils/dictionary');
-const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown')
-const config = require('../../data/config')
+const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown');
+const config = require('../../data/config');
+
 const activeGames = new Map();
 
-module.exports = {
-  name: 'gw',
-  aliases: ['guessword', 'gheptu'],
-  description: 'Trò chơi ghép chữ từ chữ bị đảo',
-  usage: `${config.prefix}gw`,
-  examples: [
-    { intent: 'Chơi ghép chữ', command: `${config.prefix}gw` }
-  ],
+class GuessWordCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'gw',
+      aliases: ['guessword', 'gheptu'],
+      description: 'Trò chơi ghép chữ từ chữ bị đảo',
+      usage: `${config.prefix}gw`,
+      examples: [
+        { intent: 'Chơi ghép chữ', command: `${config.prefix}gw` }
+      ],
+      cooldown: 0 // handled manually on channelId
+    });
+  }
 
-  async execute(message) {
+  async execute(message, args) {
     const channelId = message.channel.id;
-    const remainingCooldown = checkAndSetCooldown(channelId, 'guessword', config.gamble_settings.cooldown_second)
+    const remainingCooldown = checkAndSetCooldown(channelId, 'guessword', config.gamble_settings.cooldown_second);
     if (remainingCooldown > 0) {
-      return notifyCooldown(message, remainingCooldown)
+      return notifyCooldown(message, remainingCooldown);
     }
 
     if (activeGames.has(channelId)) {
@@ -34,6 +40,8 @@ module.exports = {
     const filter = m => !m.author.bot;
     const collector = message.channel.createMessageCollector({ filter, time: 45000 });
 
+    const userRepository = message.client.services.get('userRepository');
+
     collector.on('collect', async m => {
       const game = activeGames.get(channelId);
       if (!game || game.ended) return;
@@ -42,10 +50,11 @@ module.exports = {
         game.ended = true;
 
         const reward = 250;
-        await User.updateOne(
-          { userId: m.author.id },
-          { $inc: { coke: reward, guesswordWins: 1 } }
-        );
+        
+        let targetUser = await userRepository.getOrCreate(m.author.id);
+        targetUser.coke += reward;
+        targetUser.guesswordWins = (targetUser.guesswordWins || 0) + 1;
+        await targetUser.save();
 
         await m.react('✅').catch(() => { });
         await m.channel.send(
@@ -71,4 +80,6 @@ module.exports = {
       }
     });
   }
-};
+}
+
+module.exports = new GuessWordCommand();

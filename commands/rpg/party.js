@@ -1,19 +1,25 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const RpgGuild = require("../../models/RpgGuild");
 const { hasRpgCharacter, requireRpgCharacter } = require("../../utils/rpgUtil");
 const { getUser } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
-module.exports = {
-  name: "party",
-  aliases: ["pt", "guild", "g", "todoi", "tổđội"],
-  description: "Quản lý tổ đội RPG (tối đa 3 người)",
-  usage: `${config.prefix}party [@mention | leave | info]`,
-  examples: [
-    { intent: "Mời bạn bè vào party/tạo party", command: `${config.prefix}party @User` },
-    { intent: "Xem thông tin party hiện tại", command: `${config.prefix}party info` },
-    { intent: "Rời khỏi party hiện tại", command: `${config.prefix}party leave` },
-  ],
+class PartyCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "party",
+      aliases: ["pt", "guild", "g", "todoi", "tổđội"],
+      description: "Quản lý tổ đội RPG (tối đa 3 người)",
+      usage: `${config.prefix}party [@mention | leave | info]`,
+      examples: [
+        { intent: "Mời bạn bè vào party/tạo party", command: `${config.prefix}party @User` },
+        { intent: "Xem thông tin party hiện tại", command: `${config.prefix}party info` },
+        { intent: "Rời khỏi party hiện tại", command: `${config.prefix}party leave` },
+      ],
+      cooldown: 0
+    });
+  }
   async execute(message, args) {
     const userId = message.author.id;
     const arg = (args[0] || "").toLowerCase();
@@ -175,5 +181,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  },
-};
+  }
+}
+
+module.exports = new PartyCommand();

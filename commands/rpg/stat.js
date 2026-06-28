@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -37,16 +38,21 @@ const statLabels = {
   arc: "Arcane (ARC)"
 };
 
-module.exports = {
-  name: "stat",
-  aliases: ["addstat", "upstat", "cộng", "cong"],
-  description: "Cộng điểm chỉ số nhân vật RPG của bạn.",
-  usage: `${config.prefix}stat [chỉ số] [số lượng/all]`,
-  examples: [
-    { intent: "Xem giao diện cộng điểm", command: `${config.prefix}stat` },
-    { intent: "Cộng 5 điểm vào Vigor", command: `${config.prefix}stat vigor 5` },
-    { intent: "Cộng toàn bộ điểm vào Strength", command: `${config.prefix}stat str all` }
-  ],
+class StatCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "stat",
+      aliases: ["addstat", "upstat", "cộng", "cong"],
+      description: "Cộng điểm chỉ số nhân vật RPG của bạn.",
+      usage: `${config.prefix}stat [chỉ số] [số lượng/all]`,
+      examples: [
+        { intent: "Xem giao diện cộng điểm", command: `${config.prefix}stat` },
+        { intent: "Cộng 5 điểm vào Vigor", command: `${config.prefix}stat vigor 5` },
+        { intent: "Cộng toàn bộ điểm vào Strength", command: `${config.prefix}stat str all` }
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
@@ -270,5 +276,7 @@ module.exports = {
     collector.on("end", async () => {
       await sentMessage.edit({ components: [] }).catch(() => {});
     });
-  },
-};
+  }
+}
+
+module.exports = new StatCommand();

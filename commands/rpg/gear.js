@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -115,15 +116,20 @@ const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterT
     );
 };
 
-module.exports = {
-  name: "gear",
-  aliases: ["equipment", "power", "tui", "ruong", "ruongdo", "g"],
-  description: "Xem trang bị nhân vật RPG đang mặc và Lực chiến hiện tại.",
-  usage: `${config.prefix}gear [itemId]`,
-  examples: [
-    { intent: "Xem danh sách trang bị", command: `${config.prefix}gear` },
-    { intent: "Xem chi tiết một món", command: `${config.prefix}gear 3` },
-  ],
+class GearCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "gear",
+      aliases: ["equipment", "power", "tui", "ruong", "ruongdo", "g"],
+      description: "Xem trang bị nhân vật RPG đang mặc và Lực chiến hiện tại.",
+      usage: `${config.prefix}gear [itemId]`,
+      examples: [
+        { intent: "Xem danh sách trang bị", command: `${config.prefix}gear` },
+        { intent: "Xem chi tiết một món", command: `${config.prefix}gear 3` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
@@ -422,5 +428,7 @@ module.exports = {
     });
 
     return sentMessage;
-  },
-};
+  }
+}
+
+module.exports = new GearCommand();

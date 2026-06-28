@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, StringSelectMenuBuilder } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -6,11 +7,16 @@ const { getUser } = require("../../utils/userUtil");
 const { getRpgClass, getCharacterAssetPath, requireRpgCharacter } = require("../../utils/rpgUtil");
 const { getSkinPrice } = require("../../data/rpg/skins");
 
-module.exports = {
-  name: "skin",
-  aliases: ["skins", "skinshop"],
-  description: "Cửa hàng skin nhân vật RPG của bạn.",
-  usage: `${config.prefix}skin`,
+class SkinCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "skin",
+      aliases: ["skins", "skinshop"],
+      description: "Cửa hàng skin nhân vật RPG của bạn.",
+      usage: `${config.prefix}skin`,
+      cooldown: 0
+    });
+  }
 
   async execute(message) {
     // Ensure the user has an RPG character
@@ -230,4 +236,6 @@ module.exports = {
       await shopMsg.edit({ components: [disabledRow] }).catch(() => null);
     });
   }
-};
+}
+
+module.exports = new SkinCommand();

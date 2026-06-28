@@ -21,14 +21,23 @@ const initializeAutohuntReminders = async (client) => {
         try {
           const discordUser = await client.users.fetch(u.userId).catch(() => null);
           if (discordUser) {
-            const dmChannel = await discordUser.createDM();
-            await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
+            try {
+              const dmChannel = await discordUser.createDM();
+              await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
+            } catch (sendErr) {
+              if (sendErr.code === 50278 || sendErr.code === 50007) {
+                console.log(`ℹ️ Could not DM offline autohunt reminder to ${u.userId} (No mutual guilds or DMs blocked).`);
+              } else {
+                console.error(`Failed to send offline DM to ${u.userId}:`, sendErr);
+              }
+            }
           }
+        } catch (err) {
+          console.error(`Failed to fetch user or handle offline autohunt reminder for ${u.userId}:`, err);
+        } finally {
           u.rpg.autohunt.dmReminder = false;
           u.markModified("rpg");
           await u.save();
-        } catch (err) {
-          console.error(`Failed to send offline autohunt reminder to ${u.userId}:`, err);
         }
       } else {
         // Schedule reminder for the remaining duration
@@ -38,15 +47,23 @@ const initializeAutohuntReminders = async (client) => {
             if (refreshed?.rpg?.autohunt?.isActive && refreshed?.rpg?.autohunt?.dmReminder) {
               const discordUser = await client.users.fetch(u.userId).catch(() => null);
               if (discordUser) {
-                const dmChannel = await discordUser.createDM();
-                await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
+                try {
+                  const dmChannel = await discordUser.createDM();
+                  await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
+                } catch (sendErr) {
+                  if (sendErr.code === 50278 || sendErr.code === 50007) {
+                    console.log(`ℹ️ Could not DM autohunt reminder to ${u.userId} (No mutual guilds or DMs blocked).`);
+                  } else {
+                    console.error(`Failed to send DM to ${u.userId}:`, sendErr);
+                  }
+                }
               }
               refreshed.rpg.autohunt.dmReminder = false;
               refreshed.markModified("rpg");
               await refreshed.save();
             }
           } catch (err) {
-            console.error(`Failed to send autohunt reminder to ${u.userId}:`, err);
+            console.error(`Failed to handle autohunt reminder for ${u.userId}:`, err);
           }
         }, remainingMs);
       }

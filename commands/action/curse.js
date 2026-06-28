@@ -1,30 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
+const { checkAndSetCooldown } = require('../../utils/cooldown');
+const { updateQuestProgress } = require("../../utils/questUtil");
 const config = require('../../data/config');
-const User = require('../../models/User');
-const { checkAndSetCooldown } = require('../../utils/cooldown')
 const COOLDOWN = 5 * 60;
 
-async function getUserLuck(userId) {
-  let user = await User.findOne({ userId });
-  if (!user) {
-    user = new User({ userId, luck: 0 });
-    await user.save();
+class CurseCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'curse',
+      aliases: ['unluck'],
+      description: 'Nguyền rủa người khác hoặc chính mình, giảm điểm Luck',
+      usage: `${config.prefix}curse [@user]`,
+      examples: [
+        { intent: 'Tự nguyền rủa mình', command: `${config.prefix}curse` },
+        { intent: 'Nguyền rủa người khác', command: `${config.prefix}curse @PlayerName` }
+      ],
+      cooldown: 0 // Handled manually for detailed message
+    });
   }
-  return user;
-}
 
-module.exports = {
-  name: 'curse',
-  aliases: ['unluck'],
-  description: 'Nguyền rủa người khác hoặc chính mình, giảm điểm Luck',
-  usage: `${config.prefix}curse [@user]`,
-  examples: [
-    { intent: 'Tự nguyền rủa mình', command: `${config.prefix}curse` },
-    { intent: 'Nguyền rủa người khác', command: `${config.prefix}curse @PlayerName` }
-  ],
   async execute(message, args) {
     const authorId = message.author.id;
 
-    const cd = checkAndSetCooldown(authorId, 'curse', COOLDOWN)
+    const cd = checkAndSetCooldown(authorId, 'curse', COOLDOWN);
     if (cd > 0) {
       const minutes = Math.floor(cd / 60);
       const seconds = cd % 60;
@@ -37,9 +35,13 @@ module.exports = {
     }
 
     let target = message.mentions.users.first() || message.author;
+    const userRepository = message.client.services.get('userRepository');
 
-    let authorUser = await getUserLuck(authorId);
-    let targetUser = await getUserLuck(target.id);
+    let authorUser = await userRepository.getOrCreate(authorId);
+    if (authorUser.luck === undefined) authorUser.luck = 0;
+
+    let targetUser = await userRepository.getOrCreate(target.id);
+    if (targetUser.luck === undefined) targetUser.luck = 0;
 
     let reply;
 
@@ -58,7 +60,6 @@ module.exports = {
       await targetUser.save();
       await authorUser.save();
 
-      const { updateQuestProgress } = require("../../utils/questUtil");
       await updateQuestProgress(target.id, "curse", 1, message.channel);
 
       const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
@@ -70,4 +71,6 @@ module.exports = {
 
     message.channel.send(reply);
   }
-};
+}
+
+module.exports = new CurseCommand();

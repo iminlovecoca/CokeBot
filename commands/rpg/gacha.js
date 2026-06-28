@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -12,11 +13,16 @@ const {
 } = require("../../utils/rpgUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 
-module.exports = {
-  name: "gacha",
-  aliases: ["qc"],
-  description: "Hệ thống Gacha vũ khí RPG với bảo hiểm.",
-  usage: `${config.prefix}gacha wp <1 hoặc 10> [coke/souls]`,
+class GachaCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "gacha",
+      aliases: ["qc"],
+      description: "Hệ thống Gacha vũ khí RPG với bảo hiểm.",
+      usage: `${config.prefix}gacha wp <1 hoặc 10> [coke/souls]`,
+      cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const { isDev, isAdmin } = require("../../utils/userUtil");
@@ -342,5 +348,7 @@ module.exports = {
 
       await message.reply(payload);
     }, 5500);
-  },
-};
+  }
+}
+
+module.exports = new GachaCommand();

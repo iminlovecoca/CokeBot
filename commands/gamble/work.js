@@ -1,20 +1,26 @@
-const { getUser } = require('../../utils/userUtil');
-const { UserFriendlyError } = require('../../utils/errors')
+const BaseCommand = require('../../core/BaseCommand');
+const { UserFriendlyError } = require('../../utils/errors');
 const jobs = require('../../data/jobs.json');
-const config = require('../../data/config')
+const config = require('../../data/config');
 
-module.exports = {
-  name: 'work',
-  aliases: ['job', 'working', 'wk'],
-  description: 'Làm việc mỗi 3 giờ để nhận coke',
-  usage: `${config.prefix}work`,
-  examples: [
-    { intent: 'Làm việc kiếm coke', command: `${config.prefix}work` }
-  ],
+class WorkCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'work',
+      aliases: ['job', 'working', 'wk'],
+      description: 'Làm việc mỗi 3 giờ để nhận coke',
+      usage: `${config.prefix}work`,
+      examples: [
+        { intent: 'Làm việc kiếm coke', command: `${config.prefix}work` }
+      ],
+      cooldown: 0 // Handled manually for detailed time format
+    });
+  }
 
-  async execute(message) {
+  async execute(message, args) {
     const userId = message.author.id;
-    const user = await getUser(userId)
+    const userRepository = message.client.services.get('userRepository');
+    const user = await userRepository.getOrCreate(userId);
 
     const now = Date.now();
     const cooldown = 3 * 60 * 60 * 1000;
@@ -38,4 +44,6 @@ module.exports = {
 
     return message.reply(`💼 **|** Bạn vừa **${job}** và nhận được **${reward.toLocaleString()} coke**!`);
   }
-};
+}
+
+module.exports = new WorkCommand();

@@ -1,35 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
 const { AttachmentBuilder } = require('discord.js');
-const { createCanvas, loadImage, registerFont } = require('canvas');
-const { getUser } = require('../../utils/userUtil')
-const config = require('../../data/config')
+const { createCanvas, loadImage } = require('canvas');
+const config = require('../../data/config');
 const path = require('path');
 
-function getXpNeeded(level) {
-  return 2000 + (level - 1) * 1000;
-}
+class ProfileCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'profile',
+      description: 'Hiển thị hồ sơ người chơi bằng hình ảnh',
+      usage: `${config.prefix}profile`,
+      examples: [
+        { intent: 'Xem hồ sơ của bạn', command: `${config.prefix}profile` }
+      ],
+      category: 'user'
+    });
+  }
 
-function getRankEmoji(level) {
-  if (level <= 10) return 'Common';
-  if (level <= 20) return 'Uncommon';
-  if (level <= 30) return 'Rare';
-  if (level <= 40) return 'Epic';
-  if (level <= 50) return 'Mythic';
-  if (level <= 60) return 'Legendary';
-  return 'Ancient';
-}
-
-module.exports = {
-  name: 'profile',
-  description: 'Hiển thị hồ sơ người chơi bằng hình ảnh',
-  usage: `${config.prefix}profile`,
-  examples: [
-    { intent: 'Xem hồ sơ của bạn', command: `${config.prefix}profile` }
-  ],
-
-  async execute(message) {
+  async execute(message, args, client, locator) {
+    const userService = locator.get('userService');
     const user = message.author;
-    let userData = await getUser(user.id);
+    let userData = await userService.getUser(user.id);
     const today = new Date().toISOString().split('T')[0];
+    
     if (userData.lastXpDate !== today) {
       userData.dailyXp = 0;
       userData.lastXpDate = today;
@@ -40,8 +33,8 @@ module.exports = {
       userData.xp += gain;
       userData.dailyXp += gain;
 
-      while (userData.xp >= getXpNeeded(userData.level)) {
-        userData.xp -= getXpNeeded(userData.level);
+      while (userData.xp >= userService.getUserXpNeeded(userData.level)) {
+        userData.xp -= userService.getUserXpNeeded(userData.level);
         userData.level++;
         userData.coke += 10000 + (userData.level - 1) * 5000;
       }
@@ -49,7 +42,7 @@ module.exports = {
       await userData.save();
     }
 
-    const xpNeed = getXpNeeded(userData.level);
+    const xpNeed = userService.getUserXpNeeded(userData.level);
     const xpPercent = userData.xp / xpNeed;
 
     const canvas = createCanvas(700, 250);
@@ -94,7 +87,6 @@ module.exports = {
     ctx.font = 'bold 26px Arial';
     ctx.fillText(message.member?.displayName || user.username, textStartX, currentY);
 
-
     const barY = currentY + 10;
     const barLength = 300;
     ctx.fillStyle = '#888';
@@ -104,7 +96,6 @@ module.exports = {
 
     const xpText = `${userData.xp}/${xpNeed} XP`;
     ctx.font = 'bold 14px Arial';
-    const xpTextWidth = ctx.measureText(xpText).width;
     ctx.fillStyle = '#ffffff';
     ctx.fillText(xpText, textStartX + barLength + 10, barY + 9);
 
@@ -113,7 +104,8 @@ module.exports = {
     ctx.fillText(`🏆 Level: ${userData.level}`, textStartX, currentY);
 
     currentY += 25;
-    ctx.fillText(`🔰 Rank: ${getRankEmoji(userData.level)}`, textStartX, currentY);
+    const rawRankName = this.getRawRankName(userData.level);
+    ctx.fillText(`🔰 Rank: ${rawRankName}`, textStartX, currentY);
 
     currentY += 25;
     ctx.fillText(`💰 Coke: ${userData.coke.toLocaleString()}`, textStartX, currentY);
@@ -121,4 +113,16 @@ module.exports = {
     const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'profile.png' });
     return message.reply({ files: [attachment] });
   }
-};
+
+  getRawRankName(level) {
+    if (level <= 10) return 'Common';
+    if (level <= 20) return 'Uncommon';
+    if (level <= 30) return 'Rare';
+    if (level <= 40) return 'Epic';
+    if (level <= 50) return 'Mythic';
+    if (level <= 60) return 'Legendary';
+    return 'Ancient';
+  }
+}
+
+module.exports = new ProfileCommand();

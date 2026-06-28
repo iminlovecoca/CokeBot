@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -380,21 +381,26 @@ const simulatePvP = (p1, p2) => {
   return { winner, loser, isDraw, turns: turn - 1 };
 };
 
-module.exports = {
-  name: "battle",
-  aliases: ["b", "pvp", "arena"],
-  description: "Khiêu chiến PvP với người chơi khác hoặc ngẫu nhiên.",
-  usage: `${config.prefix}battle [@mention]`,
-  examples: [
-    {
-      intent: "PVP ngẫu nhiên với người đã tạo class",
-      command: `${config.prefix}battle`,
-    },
-    {
-      intent: "Khiêu chiến một người chơi cụ thể",
-      command: `${config.prefix}battle @Khang`,
-    },
-  ],
+class BattleCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "battle",
+      aliases: ["b", "pvp", "arena"],
+      description: "Khiêu chiến PvP với người chơi khác hoặc ngẫu nhiên.",
+      usage: `${config.prefix}battle [@mention]`,
+      examples: [
+        {
+          intent: "PVP ngẫu nhiên với người đã tạo class",
+          command: `${config.prefix}battle`,
+        },
+        {
+          intent: "Khiêu chiến một người chơi cụ thể",
+          command: `${config.prefix}battle @Khang`,
+        },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const senderId = message.author.id;
@@ -530,8 +536,10 @@ module.exports = {
 
       await runPvPBattle(message, null, senderUser, randomOpponent);
     }
-  },
-};
+  }
+}
+
+module.exports = new BattleCommand();
 
 const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const user1 = typeof user1OrId === "object" && user1OrId.save ? user1OrId : await User.findOne({ userId: user1OrId });

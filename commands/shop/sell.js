@@ -1,21 +1,28 @@
+const BaseCommand = require('../../core/BaseCommand');
 const { sellItem } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
-  name: "sell",
-  description: "Bán một vật phẩm từ túi đồ của bạn.",
-  usage: `${config.prefix}sell <id> [số lượng]`,
-  examples: [
-    {
-      intent: "Bán 1 vật phẩm (ví dụ: sun-stone)",
-      command: `${config.prefix}sell sun-stone`,
-    },
-    {
-      intent: "Bán 3 vật phẩm cùng lúc",
-      command: `${config.prefix}sell sun-stone 3`,
-    },
-  ],
+class SellCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "sell",
+      description: "Bán một vật phẩm từ túi đồ của bạn.",
+      usage: `${config.prefix}sell <id> [số lượng]`,
+      examples: [
+        {
+          intent: "Bán 1 vật phẩm (ví dụ: sun-stone)",
+          command: `${config.prefix}sell sun-stone`,
+        },
+        {
+          intent: "Bán 3 vật phẩm cùng lúc",
+          command: `${config.prefix}sell sun-stone 3`,
+        },
+      ],
+      cooldown: 3
+    });
+  }
+
   async execute(message, args) {
     const itemId = args[0];
     let quantity = 1; // Default quantity is 1
@@ -43,5 +50,7 @@ module.exports = {
     await message.reply(
       `${config.emoji.yes} Bạn đã bán thành công **${quantity} x ${item.name}** ${item.emoji} và nhận được ${config.emoji.money} **${gain}**!`,
     );
-  },
-};
+  }
+}
+
+module.exports = new SellCommand();

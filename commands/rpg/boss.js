@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -1952,15 +1953,27 @@ const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
   }
 };
 
-module.exports = {
-  name: "boss",
-  aliases: ["worldboss", "wb", "xboss"],
-  description: "Xem World Boss đang xuất hiện trong channel.",
-  usage: `${config.prefix}boss`,
-  examples: [{ intent: "Xem boss", command: `${config.prefix}boss` }],
-  execute: showBossPanel,
-  handleFightInteraction,
-  handleReviveInteraction,
-  performBossAttack,
-  finishBoss,
-};
+class BossCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "boss",
+      aliases: ["worldboss", "wb", "xboss"],
+      description: "Xem World Boss đang xuất hiện trong channel.",
+      usage: `${config.prefix}boss`,
+      examples: [{ intent: "Xem boss", command: `${config.prefix}boss` }],
+      cooldown: 0
+    });
+  }
+
+  async execute(message) {
+    return showBossPanel(message);
+  }
+}
+
+const bossCommand = new BossCommand();
+bossCommand.handleFightInteraction = handleFightInteraction;
+bossCommand.handleReviveInteraction = handleReviveInteraction;
+bossCommand.performBossAttack = performBossAttack;
+bossCommand.finishBoss = finishBoss;
+
+module.exports = bossCommand;

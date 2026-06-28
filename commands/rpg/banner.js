@@ -1,13 +1,19 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const gachaBanner = require("../../data/gachaBanner");
 const { DateTime } = require("luxon");
 
-module.exports = {
-  name: "banner",
-  aliases: ["xbanner", "gachabanner"],
-  description: "Xem thông tin banner gacha hiện tại và thời gian kết thúc.",
-  usage: `${config.prefix}banner`,
+class BannerCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "banner",
+      aliases: ["xbanner", "gachabanner"],
+      description: "Xem thông tin banner gacha hiện tại và thời gian kết thúc.",
+      usage: `${config.prefix}banner`,
+      cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const { isDev, isAdmin } = require("../../utils/userUtil");
@@ -47,5 +53,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  },
-};
+  }
+}
+
+module.exports = new BannerCommand();

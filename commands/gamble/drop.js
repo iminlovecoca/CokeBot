@@ -1,14 +1,23 @@
-const { getUser, decBalance } = require("../../utils/userUtil");
+const BaseCommand = require('../../core/BaseCommand');
+const { decBalance } = require("../../utils/userUtil");
 const { getDrop, addDrop, delDrop } = require("../../utils/dropUtil");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
-  name: "drop",
-  description: "Thả coke xuống kênh để người khác nhặt",
-  usage: `${config.prefix}drop <số tiền>`,
-  examples: `${config.prefix}drop 7777777`,
+class DropCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "drop",
+      description: "Thả coke xuống kênh để người khác nhặt",
+      usage: `${config.prefix}drop <số tiền>`,
+      examples: [
+        { intent: "Thả 7,777,777 coke", command: `${config.prefix}drop 7777777` }
+      ],
+      cooldown: 0 // handled manually for special message
+    });
+  }
+
   async execute(message, args) {
     const amount = parseInt(args[0]);
     const userId = message.author.id;
@@ -35,8 +44,10 @@ module.exports = {
       );
     }
 
-    const user = await getUser(userId);
-    if (user.coke < amount) {
+    const userRepository = message.client.services.get('userRepository');
+    const user = await userRepository.getOrCreate(userId);
+    
+    if ((user.coke || 0) < amount) {
       throw new UserFriendlyError(
         `${config.emoji.no} **|** Bạn không đủ coke để thả!`,
       );
@@ -45,7 +56,7 @@ module.exports = {
     await decBalance(userId, amount);
     await addDrop(channelId, amount, duration * 1000);
     const dropMsg = await message.channel.send(
-      `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${amount.toLocaleString()} coke** xuống!\n` +
+      `:credit_card: **|** Đại gia **${message.member?.displayName || message.author.username}** vừa thả **${amount.toLocaleString()} coke** xuống!\n` +
         `⏱  **|** Dùng \`${config.prefix}pickup\` để nhặt trong **${duration} giây**!`,
     );
 
@@ -62,11 +73,13 @@ module.exports = {
       } else {
         dropMsg
           .edit(
-            `:credit_card: **|** Đại gia **${message.member.displayName}** vừa thả **${amount.toLocaleString()} coke**!\n` +
+            `:credit_card: **|** Đại gia **${message.member?.displayName || message.author.username}** vừa thả **${amount.toLocaleString()} coke**!\n` +
               `⏱  **|** Dùng \`${config.prefix}pickup\` để nhặt. Còn lại: **${remainingSec}s**`,
           )
           .catch(() => {});
       }
     }, 1000);
-  },
-};
+  }
+}
+
+module.exports = new DropCommand();

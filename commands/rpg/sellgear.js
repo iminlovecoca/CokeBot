@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const {
@@ -6,14 +7,19 @@ const {
   getGearDisplayName,
 } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "sellgear",
-  aliases: ["sg", "rpgsell"],
-  description: "Bán trang bị RPG để nhận Coke.",
-  usage: `${config.prefix}sellgear <itemId>`,
-  examples: [
-    { intent: "Bán trang bị RPG ID 5", command: `${config.prefix}sellgear 5` },
-  ],
+class SellgearCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "sellgear",
+      aliases: ["sg", "rpgsell"],
+      description: "Bán trang bị RPG để nhận Coke.",
+      usage: `${config.prefix}sellgear <itemId>`,
+      examples: [
+        { intent: "Bán trang bị RPG ID 5", command: `${config.prefix}sellgear 5` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const { user } = await requireRpgCharacter(message.author.id);
@@ -133,5 +139,7 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     }
-  },
-};
+  }
+}
+
+module.exports = new SellgearCommand();

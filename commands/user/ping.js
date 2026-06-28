@@ -1,16 +1,22 @@
+const BaseCommand = require('../../core/BaseCommand');
 const config = require('../../data/config');
 const { EmbedBuilder } = require('discord.js');
 const os = require('os');
 const mongoose = require('mongoose');
-const User = require('../../models/User');
 
-module.exports = {
-  name: 'ping',
-  description: 'Kiểm tra độ trễ và tình trạng kết nối của bot',
-  usage: `${config.prefix}ping`,
-  examples: [
-    { intent: 'Kiểm tra độ trễ của bot', command: `${config.prefix}ping` }
-  ],
+class PingCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'ping',
+      description: 'Kiểm tra độ trễ và tình trạng kết nối của bot',
+      usage: `${config.prefix}ping`,
+      examples: [
+        { intent: 'Kiểm tra độ trễ của bot', command: `${config.prefix}ping` }
+      ],
+      category: 'user'
+    });
+  }
+
   async execute(message) {
     const sent = await message.channel.send('🏓 Đang đo ping...');
 
@@ -33,29 +39,31 @@ module.exports = {
     const usedMem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
     const totalMem = (os.totalmem() / 1024 / 1024).toFixed(1);
 
-    const uptime = formatUptime(process.uptime());
+    const uptime = this.formatUptime(process.uptime());
 
     const embed = new EmbedBuilder()
       .setColor('Blue')
       .setTitle('📡 Tình trạng kết nối')
       .addFields(
         { name: 'Discord API', value: `\`${apiLatency}ms\``, inline: true },
-        { name: 'Bot Delay', value: `\`${latency}ms\``, inline: true },
+        { name: 'Độ trễ của Bot', value: `\`${latency}ms\``, inline: true },
         { name: 'MongoDB', value: `\`${mongoStateText}\``, inline: true },
-        { name: 'MongoDB Ping', value: `\`${dbPing}\``, inline: true },
+        { name: 'Độ trễ MongoDB', value: `\`${dbPing}\``, inline: true },
         { name: 'RAM', value: `\`${usedMem} / ${totalMem} MB\``, inline: true },
-        { name: 'Uptime', value: `\`${uptime}\``, inline: true }
+        { name: 'Thời gian chạy', value: `\`${uptime}\``, inline: true }
       )
       .setTimestamp()
       .setFooter({ text: `Yêu cầu bởi ${message.author.tag}`, iconURL: message.author.displayAvatarURL() });
 
     await sent.edit({ content: null, embeds: [embed] });
   }
-};
 
-function formatUptime(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  return `${h}h ${m}m ${s}s`;
+  formatUptime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h}h ${m}m ${s}s`;
+  }
 }
+
+module.exports = new PingCommand();

@@ -1,24 +1,31 @@
+const BaseCommand = require('../../core/BaseCommand');
+const { checkAndSetCooldown } = require('../../utils/cooldown');
+const { UserFriendlyError } = require('../../utils/errors');
+const config = require('../../data/config');
+
 const danisaEmoji = '<:danisa:1404057793920635043>';
 const ownerId = process.env.OWNER_ID;
-const User = require('../../models/User');
-const { checkAndSetCooldown } = require('../../utils/cooldown')
-const { UserFriendlyError } = require('../../utils/errors')
-const config = require('../../data/config')
 const COOLDOWN = 300;
 
-module.exports = {
-  name: 'cookie',
-  description: 'Tặng hoặc tự thưởng bánh Danisa',
-  usage: `${config.prefix}cookie [@user]`,
-  examples: [
-    { intent: 'Tự tặng bánh cho mình', command: `${config.prefix}cookie` },
-    { intent: 'Tặng bánh cho người khác', command: `${config.prefix}cookie @PlayerName` }
-  ],
+class CookieCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'cookie',
+      description: 'Tặng hoặc tự thưởng bánh Danisa',
+      usage: `${config.prefix}cookie [@user]`,
+      examples: [
+        { intent: 'Tự tặng bánh cho mình', command: `${config.prefix}cookie` },
+        { intent: 'Tặng bánh cho người khác', command: `${config.prefix}cookie @PlayerName` }
+      ],
+      cooldown: 0 // handled manually to allow owner bypass
+    });
+  }
+
   async execute(message, args) {
     const authorId = message.author.id;
 
     if (authorId !== ownerId) {
-      const cd = checkAndSetCooldown(authorId, 'cookie', COOLDOWN)
+      const cd = checkAndSetCooldown(authorId, 'cookie', COOLDOWN);
       if (cd > 0) {
         const minutes = Math.floor(cd / 60);
         const seconds = cd % 60;
@@ -30,17 +37,17 @@ module.exports = {
       }
     }
 
-    let authorUser = await User.findOne({ userId: authorId });
-    if (!authorUser) {
-      authorUser = new User({ userId: authorId, cookie: 0 });
-      await authorUser.save();
+    const userRepository = message.client.services.get('userRepository');
+    let authorUser = await userRepository.getOrCreate(authorId);
+    
+    // Ensure cookie field exists
+    if (authorUser.cookie === undefined) {
+      authorUser.cookie = 0;
     }
 
     if (!args.length) {
       authorUser.cookie += 1;
       await authorUser.save();
-
-      if (authorId !== ownerId) checkAndSetCooldown(authorId, 'cookie', COOLDOWN);
 
       return message.reply(
         `${danisaEmoji} **|** Bạn vừa tự thưởng cho mình 1 hộp bánh **Danisa**! Giờ bạn có **${authorUser.cookie} hộp.**`
@@ -64,10 +71,9 @@ module.exports = {
       await authorUser.save();
     }
 
-    let targetUser = await User.findOne({ userId: userMention.id });
-    if (!targetUser) {
-      targetUser = new User({ userId: userMention.id, luck: 0, cookie: 0 });
-      await targetUser.save();
+    let targetUser = await userRepository.getOrCreate(userMention.id);
+    if (targetUser.cookie === undefined) {
+      targetUser.cookie = 0;
     }
 
     targetUser.cookie += 1;
@@ -75,9 +81,12 @@ module.exports = {
 
     const authorDisplayName = message.guild.members.cache.get(authorId)?.displayName || message.author.username;
     const targetDisplayName = message.guild.members.cache.get(userMention.id)?.displayName || userMention.username;
+    
     await message.channel.send(
       `${danisaEmoji} **| ${authorDisplayName}** vừa tặng 1 hộp **Danisa** cho **${targetDisplayName}**!\n` +
       `📦 Bạn còn lại **${authorUser.cookie} hộp**.`
     );
   }
-};
+}
+
+module.exports = new CookieCommand();

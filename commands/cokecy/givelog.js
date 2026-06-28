@@ -1,17 +1,28 @@
-const { getUser, isDev } = require('../../utils/userUtil')
-const { UserFriendlyError } = require('../../utils/errors')
-const config = require('../../data/config')
+const BaseCommand = require('../../core/BaseCommand');
+const { UserFriendlyError } = require('../../utils/errors');
+const config = require('../../data/config');
 
-module.exports = {
-  name: 'givelog',
-  description: '📜 Xem lịch sử chuyển và nhận coke trong 30 ngày gần nhất',
+class GiveLogCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: 'givelog',
+      description: '📜 Xem lịch sử chuyển và nhận coke trong 30 ngày gần nhất',
+      usage: `${config.prefix}givelog [@user]`,
+      cooldown: 5
+    });
+  }
+
   async execute(message, args) {
     const target = message.mentions.users.first() || message.author;
-    if (target.id !== message.author.id && !isDev(message.author.id)) {
+    const userService = message.client.services.get('userService');
+    
+    if (target.id !== message.author.id && !userService.isDev(message.author.id) && !userService.isAdmin(message.author.id)) {
       throw new UserFriendlyError(`${config.emoji.no} Bạn chỉ có thể xem lịch sử của chính mình.`);
     }
 
-    const user = await getUser(target.id);
+    const userRepository = message.client.services.get('userRepository');
+    const user = await userRepository.getOrCreate(target.id);
+    
     const transferLog = (user.transferHistory || []).filter(t => {
       const date = new Date(t.date);
       return Date.now() - date.getTime() <= 30 * 24 * 60 * 60 * 1000;
@@ -49,4 +60,6 @@ module.exports = {
 
     return message.channel.send(text);
   }
-};
+}
+
+module.exports = new GiveLogCommand();

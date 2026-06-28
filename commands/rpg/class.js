@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   ActionRowBuilder,
   AttachmentBuilder,
@@ -236,15 +237,20 @@ const buildConfirmationRow = (disabled = false) => {
   return new ActionRowBuilder().addComponents(acceptBtn, cancelBtn);
 };
 
-module.exports = {
-  name: "class",
-  aliases: ["hero", "char", "character", "xclass"],
-  description: "Chọn hoặc xem class nhân vật RPG của bạn.",
-  usage: `${config.prefix}class`,
-  examples: [
-    { intent: "Chọn nhân vật lần đầu", command: `${config.prefix}class` },
-    { intent: "Xem nhân vật hiện tại", command: `${config.prefix}class` },
-  ],
+class ClassCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "class",
+      aliases: ["hero", "char", "character", "xclass"],
+      description: "Chọn hoặc xem class nhân vật RPG của bạn.",
+      usage: `${config.prefix}class`,
+      examples: [
+        { intent: "Chọn nhân vật lần đầu", command: `${config.prefix}class` },
+        { intent: "Xem nhân vật hiện tại", command: `${config.prefix}class` },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message) {
     const userData = await getUser(message.author.id);
@@ -817,5 +823,7 @@ module.exports = {
         ],
       }).catch(() => {});
     });
-  },
-};
+  }
+}
+
+module.exports = new ClassCommand();

@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
@@ -36,21 +37,26 @@ const sacrificeEssenceYield = {
   Divine: 150000,
 };
 
-module.exports = {
-  name: "sacrifice",
-  aliases: ["sac", "xsac", "xsacrifice"],
-  description: "Hiến tế trang bị RPG chưa mặc để đổi lấy Coke Essence.",
-  usage: `${config.prefix}xsacrifice <độ hiếm> [số lượng/all]`,
-  examples: [
-    {
-      intent: "Hiến tế 1 trang bị Common",
-      command: `${config.prefix}xsacrifice common`,
-    },
-    {
-      intent: "Hiến tế toàn bộ trang bị Common",
-      command: `${config.prefix}xsac common all`,
-    },
-  ],
+class SacrificeCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "sacrifice",
+      aliases: ["sac", "xsac", "xsacrifice"],
+      description: "Hiến tế trang bị RPG chưa mặc để đổi lấy Coke Essence.",
+      usage: `${config.prefix}xsacrifice <độ hiếm> [số lượng/all]`,
+      examples: [
+        {
+          intent: "Hiến tế 1 trang bị Common",
+          command: `${config.prefix}xsacrifice common`,
+        },
+        {
+          intent: "Hiến tế toàn bộ trang bị Common",
+          command: `${config.prefix}xsac common all`,
+        },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const remaining = checkAndSetCooldown(message.author.id, "autohunt", 3);
@@ -143,4 +149,6 @@ module.exports = {
         `Bạn đã hiến tế **${itemsToSacrifice.length}** trang bị **${targetRarity}** và nhận được **+${totalEssenceGain.toLocaleString()} Essence**!`,
     );
   }
-};
+}
+
+module.exports = new SacrificeCommand();

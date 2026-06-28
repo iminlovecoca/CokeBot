@@ -1,6 +1,6 @@
+const BaseCommand = require("../../core/BaseCommand");
 const random = require("random-number-csprng");
 const { decBalance, incBalance } = require("../../utils/userUtil");
-const { getDebuffPercentage } = require("../../utils/miscUtil");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const { getBetAmount } = require("../../utils/gameUtil");
 const { UserFriendlyError } = require("../../utils/errors");
@@ -8,22 +8,28 @@ const config = require("../../data/config");
 const emoji = config.emoji;
 const settings = config.gamble_settings;
 
-module.exports = {
-  name: "cf",
-  aliases: ["coinflip", "flip"],
-  description: "Chơi tung đồng xu!",
-  usage: `${config.prefix}cf <h/t> [tiền cược|all]`,
-  examples: [
-    {
-      intent: "Chọn mặt sấp (tails) và cược mức tối thiểu",
-      command: `${config.prefix}cf t`,
-    },
-    {
-      intent: "Chọn mặt ngửa (heads) và cược tất cả tiền",
-      command: `${config.prefix}cf h all`,
-    },
-  ],
-  async execute(message, args) {
+class CoinflipCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "cf",
+      aliases: ["coinflip", "flip"],
+      description: "Chơi tung đồng xu!",
+      usage: `${config.prefix}cf <h/t> [tiền cược|all]`,
+      examples: [
+        {
+          intent: "Chọn mặt sấp (tails) và cược mức tối thiểu",
+          command: `${config.prefix}cf t`,
+        },
+        {
+          intent: "Chọn mặt ngửa (heads) và cược tất cả tiền",
+          command: `${config.prefix}cf h all`,
+        },
+      ],
+      category: "gamble"
+    });
+  }
+
+  async execute(message, args, client, locator) {
     const userId = message.author.id;
     const isSide = (str) => {
       if (!str) return false;
@@ -67,12 +73,14 @@ module.exports = {
       return notifyCooldown(message, remainingCooldown);
     }
 
-    let text = `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === "h" ? "**heads**" : "**tails**"}\n`;
+    let text = `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === "h" ? "**Ngửa (heads)**" : "**Sấp (tails)**"}\n`;
     text += `Đồng xu quay... ${emoji.coinflip}`;
     const msg = await message.reply(text);
 
-    const debuffPercentage = await getDebuffPercentage(userId);
+    const gambleService = locator.get("gambleService");
+    const debuffPercentage = await gambleService.getDebuffPercentage(userId);
     const winProbability = 0.5 * (1 - debuffPercentage);
+    
     const rand = await random(0, 100);
     const result =
       rand < winProbability * 100 ? choice : choice === "h" ? "t" : "h";
@@ -90,8 +98,10 @@ module.exports = {
         resultText += "thua hết... :c";
       }
       await msg.edit(
-        `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === "h" ? "**heads**" : "**tails**"}\n${resultText}`,
+        `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === "h" ? "**Ngửa (heads)**" : "**Sấp (tails)**"}\n${resultText}`,
       );
     }, 2000);
-  },
-};
+  }
+}
+
+module.exports = new CoinflipCommand();

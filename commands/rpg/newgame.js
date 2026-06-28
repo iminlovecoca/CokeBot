@@ -1,3 +1,4 @@
+const BaseCommand = require('../../core/BaseCommand');
 const {
   ActionRowBuilder,
   ButtonBuilder,
@@ -5,21 +6,25 @@ const {
   EmbedBuilder,
 } = require("discord.js");
 const config = require("../../data/config");
-const { getUser } = require("../../utils/userUtil");
 const {
   requireRpgCharacter,
   calculateRpgPower,
   getRpgClass,
 } = require("../../utils/rpgUtil");
 
-module.exports = {
-  name: "newgame",
-  aliases: ["resetrpg"],
-  description: "Bắt đầu lại cuộc hành trình RPG từ Cấp 1, giữ nguyên toàn bộ trang bị hiện có.",
-  usage: `${config.prefix}newgame`,
-  examples: [
-    { intent: "Chơi lại từ đầu", command: `${config.prefix}newgame` },
-  ],
+class NewGameCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "newgame",
+      aliases: ["resetrpg"],
+      description: "Bắt đầu lại cuộc hành trình RPG từ Cấp 1, giữ nguyên toàn bộ trang bị hiện có.",
+      usage: `${config.prefix}newgame`,
+      examples: [
+        { intent: "Chơi lại từ đầu", command: `${config.prefix}newgame` },
+      ],
+      cooldown: 5
+    });
+  }
 
   async execute(message, args = []) {
     let { user } = await requireRpgCharacter(message.author.id);
@@ -59,9 +64,11 @@ module.exports = {
       max: 1
     });
 
+    const userRepository = message.client.services.get('userRepository');
+
     collector.on("collect", async (interaction) => {
       if (interaction.customId === "newgame_confirm") {
-        const u = await getUser(message.author.id);
+        const u = await userRepository.getOrCreate(message.author.id);
         const rpgClass = getRpgClass(u.rpg.classKey);
 
         u.rpg.level = 1;
@@ -96,5 +103,7 @@ module.exports = {
         }).catch(() => {});
       }
     });
-  },
-};
+  }
+}
+
+module.exports = new NewGameCommand();

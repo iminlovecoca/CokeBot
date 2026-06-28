@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
@@ -20,11 +21,16 @@ const getRequirementLabel = (req) => {
   return labels[req.type] || req.type;
 };
 
-module.exports = {
-  name: "event",
-  aliases: ["events", "suhien", "sựkiện"],
-  description: "Xem danh sách sự kiện đang diễn ra và nhận phần thưởng.",
-  usage: `${config.prefix}event`,
+class EventCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "event",
+      aliases: ["events", "suhien"],
+      description: "Xem danh sách sự kiện đang diễn ra và nhận phần thưởng.",
+      usage: `${config.prefix}event`,
+      cooldown: 0
+    });
+  }
   async execute(message, args = []) {
     const dbUser = await getUser(message.author.id);
     const memberName = message.member?.displayName || message.author.username;
@@ -232,4 +238,6 @@ module.exports = {
       replyMsg.edit({ components: [] }).catch(() => null);
     });
   }
-};
+}
+
+module.exports = new EventCommand();

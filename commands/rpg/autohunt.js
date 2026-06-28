@@ -1,3 +1,4 @@
+const BaseCommand = require("../../core/BaseCommand");
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -306,33 +307,38 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
   return embed;
 };
 
-module.exports = {
-  name: "xautohunt",
-  aliases: ["autohunt", "hb", "ah", "xah", "xhb"],
-  description: "Hệ thống đi săn tự động bằng robot HuntBot.",
-  usage: `${config.prefix}xautohunt [duration_hours | upgrade | claim]`,
-  examples: [
-    {
-      intent: "Xem bảng nâng cấp HuntBot",
-      command: `${config.prefix}xautohunt`,
-    },
-    {
-      intent: "Bắt đầu tự động săn 24h",
-      command: `${config.prefix}xautohunt 24`,
-    },
-    {
-      intent: "Nạp 5000 essence để nâng cấp Efficiency",
-      command: `${config.prefix}xautohunt upgrade eff 5000`,
-    },
-    {
-      intent: "Hiến tế trang bị Common",
-      command: `${config.prefix}xsacrifice common all`,
-    },
-    {
-      intent: "Nhận phần thưởng autohunt",
-      command: `${config.prefix}xautohunt claim`,
-    },
-  ],
+class XautohuntCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "xautohunt",
+      aliases: ["autohunt", "hb", "ah", "xah", "xhb"],
+      description: "Hệ thống đi săn tự động bằng robot HuntBot.",
+      usage: `${config.prefix}xautohunt [duration_hours | upgrade | claim]`,
+      examples: [
+        {
+          intent: "Xem bảng nâng cấp HuntBot",
+          command: `${config.prefix}xautohunt`,
+        },
+        {
+          intent: "Bắt đầu tự động săn 24h",
+          command: `${config.prefix}xautohunt 24`,
+        },
+        {
+          intent: "Nạp 5000 essence để nâng cấp Efficiency",
+          command: `${config.prefix}xautohunt upgrade eff 5000`,
+        },
+        {
+          intent: "Hiến tế trang bị Common",
+          command: `${config.prefix}xsacrifice common all`,
+        },
+        {
+          intent: "Nhận phần thưởng autohunt",
+          command: `${config.prefix}xautohunt claim`,
+        },
+      ],
+      cooldown: 0
+    });
+  }
 
   async execute(message, args = []) {
     const remaining = checkAndSetCooldown(message.author.id, "autohunt", 3);
@@ -878,5 +884,7 @@ module.exports = {
 
     // 5. STATUS / VIEW PANEL (No args)
     return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)] });
-  },
-};
+  }
+}
+
+module.exports = new XautohuntCommand();
