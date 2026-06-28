@@ -118,7 +118,7 @@ const createRandomCokemonByTheme = async (lure, theme) => {
 
 	const spawnPool = await Species.find(query).populate('available_abilities')
 	if (spawnPool.length === 0) {
-		// console.error('No possible spawns found at all.')
+		
 		return null
 	}
 
@@ -142,7 +142,7 @@ const createRandomCokemonByTheme = async (lure, theme) => {
 	const ivs = generateRandomIVs()
 	const iv_percent = calculateIVPercentage(ivs)
 	const ability = getRandomAbility(selectedSpecies)
-	const level = Math.floor(Math.random() * 10) + 1 // level 1-10
+	const level = Math.floor(Math.random() * 10) + 1 
 	return {
 		species_id: selectedSpecies._id,
 		name: selectedSpecies.name,

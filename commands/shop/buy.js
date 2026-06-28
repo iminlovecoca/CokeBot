@@ -25,7 +25,7 @@ class BuyCommand extends BaseCommand {
 
   async execute(message, args) {
     const itemId = args[0];
-    let quantity = 1; // Default quantity is 1
+    let quantity = 1; 
 
     if (!itemId) {
       throw new UserFriendlyError(
@@ -35,8 +35,8 @@ class BuyCommand extends BaseCommand {
 
     const cleanId = String(itemId).toLowerCase().replace(/\s+/g, "");
     if (["spearhex", "shieldhex", "clawhex"].includes(cleanId)) {
-      // Hex event weapon buying logic
-      // Load event state
+      
+      
       const HexEventState = require("../../models/HexEventState");
       const eventState = await HexEventState.findById("hex_event");
       if (!eventState || !eventState.active || (eventState.expiresAt && eventState.expiresAt < Date.now())) {
@@ -46,7 +46,7 @@ class BuyCommand extends BaseCommand {
       const { DateTime } = require("luxon");
       const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
       const now = DateTime.now().setZone(timezone);
-      const day = now.weekday; // 1: Monday, ..., 6: Saturday, 7: Sunday
+      const day = now.weekday; 
       if (day !== 6 && day !== 7 && day !== 1) {
         throw new UserFriendlyError("🟣 Cửa hàng sự kiện Hex chỉ mở từ thứ Bảy đến hết thứ Hai hàng tuần!");
       }
@@ -109,11 +109,7 @@ class BuyCommand extends BaseCommand {
       }
     }
 
-    const { msg, item } = await buyItem(message.author.id, cleanId, quantity);
-
-    if (msg) {
-      return message.reply(msg);
-    }
+    const { item } = await buyItem(message.client, message.author.id, cleanId, quantity);
 
     if (item) {
       await message.reply(

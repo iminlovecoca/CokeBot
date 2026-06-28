@@ -8,9 +8,17 @@ const User = require("../../models/User");
 
 const ALLOWED_IDS = [process.env.OWNER_ID];
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class ResetLvlCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "resetlvl",
   description: "Reset level (và xp) của 1 người hoặc tất cả user về level 1",
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const authorId = message.author.id;
     if (!ALLOWED_IDS.includes(authorId)) {
@@ -127,5 +135,7 @@ module.exports = {
         });
       }
     });
-  },
-};
+    }
+}
+
+module.exports = new ResetLvlCommand();

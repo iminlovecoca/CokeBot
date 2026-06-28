@@ -187,7 +187,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     return null;
   };
 
-  // --- Tính top 3 sát thương ---
+  
   const baseExp = activeBoss.boss.exp || 100;
   const sortedByDamage = [...activeBoss.participants.entries()]
     .sort(([, a], [, b]) => b.damage - a.damage);
@@ -225,14 +225,14 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     },
   ];
 
-  // Map userId -> top3 bonus config (nếu có)
+  
   const topBonusMap = new Map();
   for (let i = 0; i < Math.min(3, sortedByDamage.length); i++) {
     const [uid] = sortedByDamage[i];
     topBonusMap.set(uid, TOP3_BONUS[i]);
   }
 
-  const top3Results = []; // Lưu kết quả để gửi channel
+  const top3Results = []; 
 
   for (const [userId, participant] of activeBoss.participants.entries()) {
     if (rewardedUserIds.includes(userId)) {
@@ -254,7 +254,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       if (isHexia) {
         const claimed = user.rpg.claimedEvents || [];
         if (!claimed.includes("hexia_first_clear")) {
-          // First clear: Mythic Axesnake + 80 souls + 5000 Coke + 2000 EXP
+          
           const axesnakeGear = await generateRpgGearDrop(user, {
             forceDrop: true,
             slot: "weapon",
@@ -287,14 +287,14 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
             quantity: 80
           });
         } else {
-          // Repeat clear: 5000 Coke + 2000 EXP
+          
           expGain = 2000;
           cokeGain = 5000;
           addRpgExp(user.rpg, expGain);
           user.coke += cokeGain;
         }
       } else if (isGodhexa) {
-        // Godhexa rewards: 360 souls + 1 weapon piece (hexpiece) + 10000 Coke + 5000 EXP
+        
         if (!user.inventory) user.inventory = new Map();
         const curSouls = user.inventory.get("souls") || 0;
         user.inventory.set("souls", curSouls + 360);
@@ -322,7 +322,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           }
         );
       } else {
-        // Reward gear 1 — participant drop (scales by rank)
+        
         const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
         const gear1 = await generateRpgGearDrop(user, {
           forceDrop: true,
@@ -336,7 +336,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           gears.push(gear1);
         }
 
-        // Reward gear 2 — last hit bonus (scales by rank)
+        
         if (isLastHit) {
           const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
           const gear2 = await generateRpgGearDrop(user, {
@@ -351,7 +351,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
             gears.push(gear2);
           }
 
-          // Cấp thượng nhân gets a third bonus gear
+          
           if (rankReward.lastHitBonusRarities) {
             const gear3 = await generateRpgGearDrop(user, {
               forceDrop: true,
@@ -366,7 +366,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           }
         }
 
-        // EXP — scales by rank multiplier
+        
         const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
         expGain = Math.floor(
           baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
@@ -375,7 +375,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           addRpgExp(user.rpg, expGain);
         }
 
-        // Coke — scales by rank range
+        
         cokeGain = isLastHit
           ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
           : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
@@ -383,9 +383,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           user.coke += cokeGain;
         }
 
-        // Drops for hourly boss
+        
         if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
-          const dropCount = Math.floor(Math.random() * 2) + 1; // 1 to 2 stones
+          const dropCount = Math.floor(Math.random() * 2) + 1; 
           const stoneOptions = bossRankKey === "rong"
             ? ["somber-4", "somber-5", "somber-6"]
             : ["somber-7", "somber-8", "somber-9"];
@@ -401,7 +401,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
               user.inventory.set(stoneId, currentQty + 1);
             }
 
-            // Track for displaying
+            
             const found = stonesDropped.find(s => s.id === stoneId);
             if (found) {
               found.quantity += 1;
@@ -420,7 +420,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           }
         }
 
-        // Key drop for dungeon - Chỉ dành cho Last Hit của boss Thượng Nhân với tỷ lệ 50%
+        
         if (bossRankKey === "thuongnhan" && isLastHit) {
           if (Math.random() < 0.5) {
             if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
@@ -436,23 +436,23 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         }
       }
 
-      // --- Bonus top 3 sát thương ---
+      
       let topBonus = null;
       if (topBonusMap.has(userId)) {
         topBonus = topBonusMap.get(userId);
 
         if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          // Thưởng bonus exp
+          
           if (topBonus.expBonus > 0) {
             addRpgExp(user.rpg, topBonus.expBonus);
           }
 
-          // Thưởng bonus coke
+          
           if (topBonus.cokeBonus > 0) {
             user.coke += topBonus.cokeBonus;
           }
 
-          // Thưởng wc (lootbox)
+          
           if (topBonus.wcBonus > 0) {
             if (!user.inventory) user.inventory = new Map();
             const currentWc = user.inventory.get("wc") || 0;
@@ -461,7 +461,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
           }
         }
 
-        // Lưu để gửi thông báo channel
+        
         const discordUser = await client.users.fetch(userId).catch(() => null);
         top3Results.push({
           rank: topBonus.rank,
@@ -476,7 +476,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         });
       }
 
-      // Check if this is the escrowed Soul Realm case
+      
       if (activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit) {
         activeBoss.lastHitEscrow = {
           userId,
@@ -499,7 +499,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         }).catch(() => null);
       }
 
-      // Quest progress updates
+      
       const { updateQuestProgress } = require("../../utils/questUtil");
       await updateQuestProgress(userId, "boss_fight", 1, channel);
       await updateQuestProgress(userId, "exp_gain", expGain, channel);
@@ -528,7 +528,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     }
   }
 
-  // --- Gửi thông báo top 3 sát thương lên channel ---
+  
   if (top3Results.length > 0) {
     try {
       top3Results.sort((a, b) => a.rank - b.rank);
@@ -726,7 +726,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 
   const isDefeated = activeBoss.hp <= 0 || activeBoss.defeated;
   const now = Date.now();
-  const throttleDuration = 3500; // 3.5 seconds
+  const throttleDuration = 3500; 
 
   if (forceNewMessage) {
     if (activeBoss.editTimeout) {
@@ -740,7 +740,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
         const oldMessageIds = [...(activeBoss.messageIds || [])];
         activeBoss.messageIds = [];
 
-        // Edit old messages to show transitioned status and disable buttons
+        
         for (const msgId of oldMessageIds) {
           const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
@@ -822,7 +822,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   const { user, rpgClass } = await requireRpgCharacter(userId);
 
-  // Prevent race conditions where boss is defeated during the async character load
+  
   if (activeBoss.defeated || activeBoss.expired) {
     return {
       ok: false,
@@ -831,7 +831,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   }
 
   if (activeBoss.hp <= 0) {
-    // Tự động hồi phục: nếu boss hết HP nhưng chưa kết toán, gọi finishBoss để xử lý phần thưởng
+    
     await finishBoss({ client, channel, activeBoss }).catch((err) => {
       console.error("[RPG_BOSS] Tự động kết toán thất bại:", err);
     });
@@ -852,14 +852,14 @@ const performBossAttack = async ({ client, channel, userId }) => {
   const effectiveStats = getEffectiveRpgStats(user);
   const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
 
-  // Initialize player HP if needed
+  
   if (participant.hp === null) {
     participant.hp = maxHp;
   }
 
   const now = Date.now();
 
-  // Check if player is KO'd
+  
   if (participant.hp <= 0) {
     if (now >= participant.koUntil) {
       participant.hp = maxHp;
@@ -996,7 +996,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     delete participant.nextAttackMult;
   }
 
-  // Player Damage Calculation
+  
   const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
   const baseAttack = isMagical
     ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
@@ -1012,11 +1012,11 @@ const performBossAttack = async ({ client, channel, userId }) => {
     rawDamage *= 1.15;
   }
 
-  // Apply variance
+  
   const attackVariance = 0.85 + Math.random() * 0.3;
   rawDamage *= attackVariance;
 
-  // Crit roll
+  
   const classCritBonus = rpgClass.bonuses?.critRate || 0;
   const critRate = Math.min(
     0.75,
@@ -1028,7 +1028,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     rawDamage *= critMult;
   }
 
-  // Boss defense mitigation
+  
   let mitigation = 0;
   if (isMagical) {
     let mr = activeBoss.boss.magicResist || 0;
@@ -1068,25 +1068,25 @@ const performBossAttack = async ({ client, channel, userId }) => {
     damage = activeBoss.hp;
   }
 
-  // Green Staff healing
+  
   if (hasTriggered && cleanSubType === "greenstaff") {
     const healAmt = Math.floor(damage * 0.25);
     participant.hp = Math.min(maxHp, participant.hp + healAmt);
     passiveTriggers.push(`💚 **[Green Staff]** Đòn đánh hồi phục cho bạn **${healAmt.toLocaleString()}** HP.`);
   }
 
-  // Charge coke fee if paid
+  
   if (isPaidAttack) {
     user.coke -= paidAttackCost;
   }
 
-  // Boss Counterattack Calculation
+  
   let bossDamage = 0;
   let bossMissed = false;
   let bossHealedAmount = 0;
 
   if (activeBoss.hp - damage > 0) {
-    // Player Evasion
+    
     const playerEvasion = Math.min(
       0.35,
       (effectiveStats.dex * 0.1 + effectiveStats.arc * 0.05) / 100,
@@ -1131,7 +1131,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
 
-        // Special ability of boss_XI: heals 20% of its missing HP when killing a user
+        
         if (activeBoss.boss.key === "boss_XI") {
           const missingHp = activeBoss.maxHp - activeBoss.hp;
           if (missingHp > 0) {
@@ -1150,7 +1150,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     }
   }
 
-  // Update participant data
+  
   participant.damage += damage;
   participant.attacks += 1;
   participant.lastAttackAt = now;
@@ -1168,7 +1168,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         activeBoss.maxHp = bossConfig.hp;
         activeBoss.hp = bossConfig.hp;
         activeBoss.phase = 2;
-        activeBoss.imageUrl = null; // Reset image to reload phase 2 asset
+        activeBoss.imageUrl = null; 
         killedPhase1 = true;
 
         await channel.send(`🎄🔥 **[PHASE 2 - TIẾN HÓA]** **Erdtree Avatar** gầm lên giận dữ, rũ bỏ lớp vỏ gỗ khô héo và tiến hóa sang **Phase 2: ${bossConfig.name}**! Sức mạnh của nó đã gia tăng vượt trội!`);
@@ -1181,7 +1181,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         activeBoss.maxHp = bossConfig.hp;
         activeBoss.hp = bossConfig.hp;
         activeBoss.phase = 2;
-        activeBoss.imageUrl = null; // Reset image to reload phase 2 asset
+        activeBoss.imageUrl = null; 
         killedPhase1 = true;
 
         await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **${bossConfig.name}**!`);
@@ -1300,7 +1300,7 @@ const handleFightInteraction = async (interaction) => {
     }).catch(() => {});
   }
 
-  // Defer update to acknowledge interaction immediately and prevent spinner
+  
   await interaction.deferUpdate().catch(() => {});
 
   if (!activeBoss.attackQueue) {
@@ -1308,7 +1308,7 @@ const handleFightInteraction = async (interaction) => {
   }
 
   activeBoss.attackQueue = activeBoss.attackQueue.then(async () => {
-    // Re-verify if boss is still alive when this queued attack starts running
+    
     if (activeBoss.defeated || activeBoss.expired || activeBoss.hp <= 0) {
       return;
     }
@@ -1441,7 +1441,7 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   });
 
   collector.on("end", async (collected, reason) => {
-    // Disable buttons on the invite message
+    
     const disabledRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("soul_invite_enter_dis").setLabel("Tiến vào 🚪").setStyle(ButtonStyle.Primary).setDisabled(true),
       new ButtonBuilder().setCustomId("soul_invite_retreat_dis").setLabel("Rút lui 🏳️").setStyle(ButtonStyle.Secondary).setDisabled(true)
@@ -1449,12 +1449,12 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
     await inviteMsg.edit({ components: [disabledRow] }).catch(() => null);
 
     if (reason === "retreat" || reason === "time") {
-      // Give normal rewards
+      
       await giveNormalBossRewards(client, channel, activeBoss, escrow);
       await channel.send(`🏳️ **${displayName}** đã quyết định rút lui an toàn và nhận phần thưởng Boss bình thường.`);
     } else if (reason === "enter") {
       await channel.send(`🚪 **${displayName}** đã dũng cảm bước qua cánh cổng để đối mặt với số phận!`);
-      // Start dialogue
+      
       await startSoulRealmDialogue(client, channel, userId);
     }
   });
@@ -1464,25 +1464,25 @@ const startSoulRealmDialogue = async (client, channel, userId) => {
   const userDiscord = await client.users.fetch(userId).catch(() => null);
   const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
 
-  // Message 1
+  
   await channel.send(`💬 **Malzareth**: *Xem ai bước vào kia 1 kẻ không sợ chết !*`);
   
-  // Wait 3 seconds
+  
   await new Promise(resolve => setTimeout(resolve, 3000));
   
-  // Message 2
+  
   await channel.send(`💬 **Malzareth**: *Muốn có được linh cửu của ta sao ?*`);
   
-  // Wait 3 seconds
+  
   await new Promise(resolve => setTimeout(resolve, 3000));
   
-  // Message 3
+  
   await channel.send(`💬 **Malzareth**: *Giỏi thì đến đây !*`);
   
-  // Wait 3 seconds
+  
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  // Start the soul realm battle!
+  
   await startSoulRealmBattle(client, channel, userId);
 };
 
@@ -1497,16 +1497,16 @@ const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSo
     )
     .setTimestamp();
 
-  // Boss HP
+  
   embed.addFields({
     name: `👹 Kẻ địch: ${bossState.name}`,
     value: `${healthBar(bossState.hp, bossState.maxHp)}\n❤️ **HP:** **${bossState.hp.toLocaleString()} / ${bossState.maxHp.toLocaleString()}**`
   });
 
-  // Separator
+  
   embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
-  // Player HP
+  
   let resourceText = "";
   if (playerState.classKey === "mage") {
     resourceText = `🔮 **MP:** **${playerState.mana}/100**`;
@@ -1522,10 +1522,10 @@ const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSo
 
   embed.addFields({ name: `👤 ${playerState.name}`, value: playerInfo });
 
-  // Separator
+  
   embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
-  // Recent logs
+  
   const recentLogs = logs.slice(-4).join("\n");
   embed.addFields({ name: "📝 Nhật ký trận đấu", value: recentLogs || "*Chuẩn bị bắt đầu...*" });
 

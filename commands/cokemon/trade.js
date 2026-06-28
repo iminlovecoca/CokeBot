@@ -94,7 +94,7 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 					const { p1CokemonEvolvedTo, p2CokemonEvolvedTo } = await swapCokemonOwnership(p1Cokemon, p2Cokemon)
 					let resultMessage = `${config.emoji.yes} Trao đổi giữa **${message.author.username}** và **${p2.username}** đã thành công!`
 					if (p1CokemonEvolvedTo) {
-						// Belongs to P1
+						
 						const oldEmoji = getCokemonEmoji(p2Cokemon)
 						const newEmoji = p1CokemonEvolvedTo.emoji
 						resultMessage += `\n🎉 **${getCokemonName(p2Cokemon)}** ${oldEmoji} của **${message.author.username}** đã tiến hóa thành **${p1CokemonEvolvedTo.name}** ${newEmoji}!`
@@ -132,14 +132,22 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 	})
 }
 
-module.exports = {
-	name: 'trade',
-	description: 'Trao đổi hoặc tặng Cokemon cho người chơi khác.',
-	usage: `${config.prefix}trade <@user> <your_cokemon_id> [their_cokemon_id]`,
-	examples: [
-		{ intent: 'Trao đổi Cokemon lấy Cokemon của người khác', command: `${config.prefix}trade @PlayerName 123 456` },
-		{ intent: 'Tặng Cokemon cho người khác (không lấy lại)', command: `${config.prefix}trade @PlayerName 123` }
-	],
+const BaseCommand = require('../../core/BaseCommand');
+
+class TradeCommand extends BaseCommand {
+	constructor() {
+		super({
+			name: 'trade',
+			description: 'Trao đổi hoặc tặng Cokemon cho người chơi khác.',
+			usage: `${config.prefix}trade <@user> <your_cokemon_id> [their_cokemon_id]`,
+			examples: [
+				{ intent: 'Trao đổi Cokemon lấy Cokemon của người khác', command: `${config.prefix}trade @PlayerName 123 456` },
+				{ intent: 'Tặng Cokemon cho người khác (không lấy lại)', command: `${config.prefix}trade @PlayerName 123` }
+			],
+			cooldown: 0
+		});
+	}
+
 	async execute(message, args) {
 		const p2 = message.mentions.users.first()
 		const p1CokemonId = parseInt(args[1])
@@ -160,10 +168,10 @@ module.exports = {
 		}
 
 		if (p2CokemonId === null) {
-			// Gifting
+			
 			await startTradeInteraction(message, 'gift', message.author, p2, p1Cokemon)
 		} else {
-			// Trading
+			
 			const p2Cokemon = await getCokemon(p2Id, p2CokemonId)
 			if (p2Cokemon.is_favorite) {
 				throw new UserFriendlyError(`${config.emoji.no} Bạn không thể yêu cầu trao đổi Cokemon yêu thích của người khác.`)
@@ -172,3 +180,5 @@ module.exports = {
 		}
 	}
 }
+
+module.exports = new TradeCommand();

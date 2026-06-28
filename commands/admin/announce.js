@@ -5,12 +5,20 @@ const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 const DISCORD_CHAR_LIMIT = 2000;
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AnnounceCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "announce",
   aliases: ["notice"],
   description: "Gửi một thông báo đến một kênh cụ thể.",
   usage: `${config.prefix}announce <#channel|channelId> [nội dung] (đính kèm file .md hoặc .txt để gửi nội dung từ file)`,
   examples: `${config.prefix}announce #general Hello World!`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(
@@ -74,5 +82,7 @@ module.exports = {
     await message.channel.send(
       `${config.emoji.yes} Thông báo đã được gửi thành công đến <#${targetChannel.id}>!`,
     );
-  },
-};
+    }
+}
+
+module.exports = new AnnounceCommand();

@@ -17,7 +17,7 @@ class CookieCommand extends BaseCommand {
         { intent: 'Tự tặng bánh cho mình', command: `${config.prefix}cookie` },
         { intent: 'Tặng bánh cho người khác', command: `${config.prefix}cookie @PlayerName` }
       ],
-      cooldown: 0 // handled manually to allow owner bypass
+      cooldown: 0 
     });
   }
 
@@ -40,7 +40,7 @@ class CookieCommand extends BaseCommand {
     const userRepository = message.client.services.get('userRepository');
     let authorUser = await userRepository.getOrCreate(authorId);
     
-    // Ensure cookie field exists
+    
     if (authorUser.cookie === undefined) {
       authorUser.cookie = 0;
     }

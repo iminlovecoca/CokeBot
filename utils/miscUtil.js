@@ -45,8 +45,8 @@ const getDebuffPercentage = async userId => {
             debuffPercentage = 0.35
         } else if (totalCoke > 5000000) {
             debuffPercentage = 0.25
-        // } else if (totalCoke > 2000000) {
-        //     debuffPercentage = 0.15
+        
+        
         }
     }
     return debuffPercentage
@@ -122,8 +122,8 @@ const splitMessage = (text, maxLength = 2000) => {
 
 const cleanString = str => {
     return str.toLowerCase()
-        .replace(/[.,\/#!$%\^&*;:{}=\-_`~()?!]/g, " ") // remove punctuation
-        .replace(/\s{2,}/g, " ") // remove extra spaces
+        .replace(/[.,\/#!$%\^&*;:{}=\-_`~()?!]/g, " ") 
+        .replace(/\s{2,}/g, " ") 
         .trim()
 }
 

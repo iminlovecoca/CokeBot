@@ -90,7 +90,7 @@ const checkAndResetDailyQuests = async (user) => {
   const todayStr = nowVn.toFormat("yyyy-MM-dd");
 
   if (user.rpg.quests.lastDailyAt !== todayStr) {
-    // Reset daily status
+    
     user.rpg.quests.rerollsLeft = 1;
 
     let daysPassed = 1;
@@ -140,7 +140,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
 
   let modified = false;
 
-  // Update event requirements progress
+  
   const activeEvents = await Event.find({
     expiresAt: { $gt: new Date() },
     active: true,

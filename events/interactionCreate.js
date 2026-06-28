@@ -6,13 +6,13 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
-      // Ban check
+      
       const user = await getOrCreateUser(interaction.user.id);
       if (user.bannedUntil && user.bannedUntil > new Date()) {
         const remainingMs = new Date(user.bannedUntil).getTime() - Date.now();
         const replyOptions = {
           content: `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
-          flags: 64, // Ephemeral
+          flags: 64, 
         };
         if (interaction.deferred || interaction.replied) {
           return interaction.followUp(replyOptions).catch(() => {});

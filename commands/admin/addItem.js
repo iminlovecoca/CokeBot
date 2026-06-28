@@ -2,9 +2,17 @@ const User = require('../../models/User');
 const stoneUtil = require('../../utils/stoneUtil');
 const boxUtil = require('../../utils/boxUtil');
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddItemCommand extends BaseCommand {
+  constructor() {
+    super({
   name: 'additem',
   description: 'Thêm đồ vào kho để thử nghiệm',
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!args[0] || !args[1]) return message.reply('Vui lòng nhập !additem <itemId> <số lượng>!');
 
@@ -25,5 +33,7 @@ module.exports = {
     } else {
       return message.reply('Item ID không hợp lệ! Chỉ hỗ trợ đá hoặc hộp.');
     }
-  }
-};
+    }
+}
+
+module.exports = new AddItemCommand();

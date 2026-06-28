@@ -11,18 +11,18 @@ module.exports = {
   paid_attack_cost: 10000,
   reward_rarities: ["Epic"],
   last_hit_bonus_gear: 2,
-  // Boss rank tiers:
-  //   thuong    = Cấp Thường   (recommended_power < 1000)
-  //   than      = Cấp Thần     (1000 <= recommended_power < 5000)
-  //   rong      = Cấp Rồng     (5000 <= recommended_power < 15000)
-  //   thuongnhan= Cấp Thượng Nhân (recommended_power >= 15000)
+  
+  
+  
+  
+  
   bossRankRewards: {
     thuong: {
       label: "Cấp Thường",
       emoji: "⚔️",
       color: "#95A5A6",
       spawnWeight: 50,
-      // Participant: 1 gear drop (Epic). Last hit: +1 gear (Epic).
+      
       participantRarities: ["Epic"],
       lastHitRarities: ["Epic"],
       cokeMin: 300,
@@ -42,7 +42,7 @@ module.exports = {
       emoji: "✨",
       color: "#3498DB",
       spawnWeight: 30,
-      // Participant: 1 gear (Epic). Last hit: +1 gear (Epic).
+      
       participantRarities: ["Epic"],
       lastHitRarities: ["Epic"],
       cokeMin: 1500,
@@ -62,7 +62,7 @@ module.exports = {
       emoji: "🐉",
       color: "#9B59B6",
       spawnWeight: 15,
-      // Participant: 1 gear (Epic/Legendary). Last hit: +1 gear (Legendary).
+      
       participantRarities: ["Epic", "Legendary"],
       lastHitRarities: ["Epic", "Legendary"],
       cokeMin: 5000,
@@ -82,7 +82,7 @@ module.exports = {
       emoji: "👑",
       color: "#F1C40F",
       spawnWeight: 5,
-      // Participant: 1 gear (Legendary/Mythic). Last hit: +1 gear (Mythic/Ancient) + 1 more Legendary.
+      
       participantRarities: ["Legendary", "Mythic"],
       lastHitRarities: ["Legendary", "Mythic", "Ancient"],
       lastHitBonusRarities: ["Epic", "Legendary"],

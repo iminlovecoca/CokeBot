@@ -2,7 +2,11 @@ const { useItem } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class UseCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "use",
   description: "Sử dụng một vật phẩm từ túi đồ của bạn.",
   usage: `${config.prefix}use <item-id> [số lượng] [target_id]`,
@@ -16,6 +20,10 @@ module.exports = {
       command: `${config.prefix}use rare-candy 1 12`,
     },
   ],
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const itemId = args[0]?.toLowerCase();
     if (!itemId) {
@@ -59,5 +67,7 @@ module.exports = {
         await message.reply(resultMessage);
       }
     }
-  },
-};
+    }
+}
+
+module.exports = new UseCommand();

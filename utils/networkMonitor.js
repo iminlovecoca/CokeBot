@@ -9,19 +9,19 @@ function checkInternet(timeout = 5000) {
       resolved = true;
       resolve(status);
     };
-    // Thử ping discord.com
+    
     dns.resolve("discord.com", (err) => { if (!err) done(true); });
-    // Thử ping google.com để dự phòng
+    
     dns.resolve("google.com", (err) => { if (!err) done(true); });
-    // Timeout nếu cả 2 đều thất bại
+    
     setTimeout(() => done(false), timeout);
   });
 }
 
 function startNetworkMonitor(client) {
   let consecutiveFailures = 0;
-  const CHECK_INTERVAL = 30_000;  // Kiểm tra mỗi 30 giây
-  const MAX_FAILURES = 3;         // Thoát sau 3 lần thất bại liên tiếp (~90 giây)
+  const CHECK_INTERVAL = 30_000;  
+  const MAX_FAILURES = 3;         
 
   console.log("🔍 Network Monitor khởi động (kiểm tra mạng mỗi 30 giây).");
 
@@ -40,13 +40,13 @@ function startNetworkMonitor(client) {
       if (consecutiveFailures >= MAX_FAILURES) {
         console.error("❌ Mất mạng quá lâu. Khởi động lại process để PM2 reconnect...");
         clearInterval(intervalId);
-        // Thoát để PM2 tự restart lại bot
+        
         process.exit(1);
       }
     }
   }, CHECK_INTERVAL);
 
-  // Ngay khi Discord gateway bị disconnect, kiểm tra mạng ngay lập tức
+  
   client.on(Events.ShardDisconnect, async (event, shardId) => {
     console.warn(`⚠️ Shard ${shardId} mất kết nối gateway (code: ${event?.code}).`);
     const isOnline = await checkInternet();

@@ -32,13 +32,13 @@ class GachaCommand extends BaseCommand {
 
     const subcommand = args[0]?.toLowerCase();
 
-    // Route subcommand 'banner'
+    
     if (subcommand === "banner") {
       const bannerCmd = require("./banner");
       return bannerCmd.execute(message, args.slice(1));
     }
 
-    // Must be 'wp' or 'skin'
+    
     if (subcommand !== "wp" && subcommand !== "skin") {
       throw new UserFriendlyError(
         `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha vũ khí.\n• \`${config.prefix}gacha skin <1 hoặc 10> [coke/souls]\` để quay gacha skin.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
@@ -51,10 +51,10 @@ class GachaCommand extends BaseCommand {
     }
     const pulls = parseInt(pullsInput);
 
-    // Require RPG Character
+    
     const { user } = await requireRpgCharacter(message.author.id);
 
-    // Ensure inventory is initialized
+    
     if (!user.inventory) {
       user.inventory = new Map();
     }
@@ -66,7 +66,7 @@ class GachaCommand extends BaseCommand {
     const costSouls = pulls === 1 ? 10 : 100;
     const costCoke = 1000000;
 
-    // Check payment method input
+    
     const currencyPref = args[2]?.toLowerCase();
     if (currencyPref === "coke") {
       if (pulls !== 10) {
@@ -86,7 +86,7 @@ class GachaCommand extends BaseCommand {
       }
       usedCoke = false;
     } else {
-      // Auto-detect
+      
       if (pulls === 1) {
         if (currentSouls < 10) {
           throw new UserFriendlyError(
@@ -95,9 +95,9 @@ class GachaCommand extends BaseCommand {
         }
         usedCoke = false;
       } else {
-        // pulls === 10
+        
         if (currentSouls >= 100) {
-          usedCoke = false; // prioritize souls
+          usedCoke = false; 
         } else if (currentCoke >= costCoke) {
           usedCoke = true;
         } else {
@@ -108,7 +108,7 @@ class GachaCommand extends BaseCommand {
       }
     }
 
-    // Load active banner
+    
     const banner = gachaBanner;
     if (!banner || !banner.bannerName) {
       throw new UserFriendlyError("❌ Hiện không có banner gacha nào đang diễn ra.");
@@ -121,7 +121,7 @@ class GachaCommand extends BaseCommand {
       throw new UserFriendlyError(`❌ Banner hiện tại là Gacha Vũ Khí. Vui lòng dùng lệnh \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay!`);
     }
 
-    // Check banner expiration
+    
     const { DateTime } = require("luxon");
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
     const expireDate = DateTime.fromISO(banner.expiresAt).setZone(timezone);
@@ -130,7 +130,7 @@ class GachaCommand extends BaseCommand {
       throw new UserFriendlyError("❌ Banner gacha hiện tại đã kết thúc.");
     }
 
-    // Deduct currency
+    
     if (usedCoke) {
       user.coke -= costCoke;
     } else {
@@ -138,7 +138,7 @@ class GachaCommand extends BaseCommand {
       user.markModified("inventory");
     }
 
-    // Run Gacha Pull logic
+    
     let pity = user.rpg.gachaWpPity || 0;
     let guaranteed = user.rpg.gachaWpGuaranteed || false;
     let hasGold = false;
@@ -148,19 +148,19 @@ class GachaCommand extends BaseCommand {
     for (let i = 0; i < pulls; i++) {
       pity += 1;
 
-      // Probability calculations
-      let rate = 0.006; // 0.6% base
+      
+      let rate = 0.006; 
       if (pity >= 74 && pity < 90) {
         rate = 0.006 + (pity - 73) * 0.06;
       } else if (pity >= 90) {
-        rate = 1.0; // Hard pity at 90
+        rate = 1.0; 
       }
 
       const roll = Math.random();
       if (roll < rate) {
-        // GOLD DROP (Ô VÀNG)
+        
         hasGold = true;
-        pity = 0; // reset pity
+        pity = 0; 
 
         let won5050 = false;
         if (guaranteed) {
@@ -190,7 +190,7 @@ class GachaCommand extends BaseCommand {
             user.markModified("rpg");
             rollsLog.push(`✨ **Skin: ${banner.weaponName}** (Đã thêm vào tủ đồ skin) **[HỮU HẠN]** 🎉`);
           } else {
-            // Get featured banner weapon
+            
             gear = await generateRpgGearDrop(user, {
               forceDrop: true,
               slot: "weapon",
@@ -207,7 +207,7 @@ class GachaCommand extends BaseCommand {
             }
           }
         } else {
-          // Lose 50/50: get standard Legendary or Mythic weapon
+          
           const standardWeapons = [
             { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
             { name: "Staff", emoji: "<:staff:1514231936581898240>" },
@@ -231,7 +231,7 @@ class GachaCommand extends BaseCommand {
           }
         }
       } else {
-        // STANDARD DROP (Common/Rare/Epic)
+        
         const gear = await generateRpgGearDrop(user, {
           forceDrop: true,
           slot: "weapon",
@@ -247,20 +247,20 @@ class GachaCommand extends BaseCommand {
       }
     }
 
-    // Save final stats to DB
+    
     user.rpg.gachaWpPity = pity;
     user.rpg.gachaWpGuaranteed = guaranteed;
     user.markModified("rpg");
     await user.save();
 
-    // Check if we won the limited weapon or any Ancient+ rarity weapon
+    
     const gotSuccess = itemsGained.some(gear => {
       const isLimited = (gear.subType === banner.weaponName && gear.rarity === banner.rarity);
       const isAncientPlus = (gear.rarity === "Ancient" || gear.rarity === "Divine");
       return isLimited || isAncientPlus;
     }) || (banner.weaponType === "skin" && rollsLog.some(log => log.includes(banner.weaponName)));
 
-    // Prepare Animation GIF URLs (using direct Catbox links for guaranteed Discord embed rendering)
+    
     const successGifUrl = "https://files.catbox.moe/xxznmt.gif";
     const missGifUrl = "https://files.catbox.moe/4ax8ij.gif";
     const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
@@ -269,23 +269,23 @@ class GachaCommand extends BaseCommand {
     const currencyName = usedCoke ? "coke" : "souls";
     const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
 
-    // Create reveal embed
+    
     const revealEmbed = new EmbedBuilder()
       .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
       .setDescription(textAbove)
       .setImage(gifUrl);
 
-    // Send the GIF message
+    
     const revealMsg = await message.reply({
       embeds: [revealEmbed],
     });
 
-    // Wait 5.5 seconds for animation to complete
+    
     setTimeout(async () => {
-      // Delete the reveal GIF message
+      
       await revealMsg.delete().catch(() => null);
 
-      // Build the final result embed
+      
       const resultEmbed = new EmbedBuilder()
         .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
         .setTitle(gotSuccess ? "✨ KẾT QUẢ GACHA CỰC MAY MẮN! ✨" : " kết quả gacha vũ khí ")
@@ -298,7 +298,7 @@ class GachaCommand extends BaseCommand {
 
       const files = [];
 
-      // Find the best weapon pulled to display its image
+      
       const rarityWeights = {
         Common: 1,
         Rare: 2,

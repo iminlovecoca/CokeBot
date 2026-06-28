@@ -90,7 +90,7 @@ class SellgearCommand extends BaseCommand {
       const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
       const userItems = user.rpg.items || [];
 
-      // Filter items that match the rarity and are NOT equipped and are NOT godset
+      
       const itemsToSell = userItems.filter(
         (item) => raritiesToSell.includes(item.rarity) && !equippedIds.has(item.id) && !item.isGodset
       );
@@ -101,21 +101,21 @@ class SellgearCommand extends BaseCommand {
         );
       }
 
-      // Calculate totals
+      
       const totalCoke = itemsToSell.reduce((sum, item) => sum + (item.sellPrice || 0), 0);
 
-      // Update inventory and user's coke
+      
       const sellIds = new Set(itemsToSell.map((item) => item.id));
       user.rpg.items = userItems.filter((item) => !sellIds.has(item.id));
       user.coke += totalCoke;
 
-      // Recalculate power
+      
       const { calculateRpgPower } = require("../../utils/rpgUtil");
       user.rpg.power = calculateRpgPower(user);
       user.markModified("rpg");
       await user.save();
 
-      // Group sold items by rarity for stats
+      
       const countsByRarity = {};
       for (const item of itemsToSell) {
         countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;

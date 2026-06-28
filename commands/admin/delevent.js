@@ -3,17 +3,25 @@ const Event = require("../../models/Event");
 const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class DeleventCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "delevent",
   aliases: ["deleteevent", "xoachuhien", "xóasựkiện"],
   description: "Xóa sự kiện đang diễn ra bằng giao diện nút bấm (Chỉ Admin)",
   usage: `${config.prefix}delevent`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args = []) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
     }
 
-    // Fetch active unexpired events
+    
     const activeEvents = await Event.find({
       expiresAt: { $gt: new Date() },
       active: true
@@ -61,7 +69,7 @@ module.exports = {
 
     const collector = replyMsg.createMessageComponentCollector({
       filter: (i) => i.user.id === message.author.id,
-      time: 60000 // 1 minute
+      time: 60000 
     });
 
     collector.on("collect", async (interaction) => {
@@ -75,16 +83,16 @@ module.exports = {
 
       await interaction.deferUpdate();
 
-      // Delete from DB
+      
       await Event.deleteOne({ _id: eventId });
 
-      // Remove from memory list
+      
       const index = activeEvents.indexOf(event);
       if (index > -1) {
         activeEvents.splice(index, 1);
       }
 
-      // Re-render
+      
       if (activeEvents.length === 0) {
         await replyMsg.edit({
           content: "❌ Tất cả sự kiện đã bị xóa.",
@@ -107,5 +115,7 @@ module.exports = {
     collector.on("end", () => {
       replyMsg.edit({ components: [] }).catch(() => null);
     });
-  }
-};
+    }
+}
+
+module.exports = new DeleventCommand();

@@ -1,9 +1,17 @@
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AdditemsCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "additems",
   description: "Thêm vật phẩm hoặc vũ khí bất kì cho một user (Chỉ Dev)",
   usage: `${config.prefix}additems @user <item_id> [số lượng]`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const ownerId = "745950731638407210";
     if (message.author.id !== ownerId && !config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
@@ -77,5 +85,7 @@ module.exports = {
 
       return message.reply(`✅ Đã thêm **${quantity}x** vật phẩm **${itemData.name}** (${itemData.emoji || ""}) cho ${mention}.`);
     }
-  },
-};
+    }
+}
+
+module.exports = new AdditemsCommand();

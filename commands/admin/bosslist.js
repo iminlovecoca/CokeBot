@@ -3,11 +3,19 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { EmbedBuilder } = require("discord.js");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class BosslistCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "bosslist",
   aliases: ["listboss", "listbosses", "bosskeys"],
   description: "Xem danh sách tên boss và key để spawn.",
   hidden: true,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -32,5 +40,7 @@ module.exports = {
       .setDescription(listLines.join("\n\n"));
 
     return message.reply({ embeds: [embed] });
-  },
-};
+    }
+}
+
+module.exports = new BosslistCommand();

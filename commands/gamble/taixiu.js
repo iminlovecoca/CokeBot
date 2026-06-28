@@ -82,7 +82,7 @@ class TaiXiuCommand extends BaseCommand {
       settings.min_bet,
     );
 
-    // Using GambleService from DI Container!
+    
     const gambleService = locator.get("gambleService");
     const debuffPercentage = await gambleService.getDebuffPercentage(userId);
 
@@ -99,10 +99,10 @@ class TaiXiuCommand extends BaseCommand {
     let result = await rollDice();
     let playerWins = !result.isTriple && (result.outcome === choice);
 
-    // Apply debuff if player won naturally
+    
     if (playerWins && debuffPercentage > 0) {
       if (Math.random() < debuffPercentage) {
-        // Force lose: roll again until player loses
+        
         while (playerWins) {
           result = await rollDice();
           playerWins = !result.isTriple && (result.outcome === choice);

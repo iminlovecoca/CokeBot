@@ -3,11 +3,19 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { finishBoss } = require("../rpg/boss");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class RewardbossCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "rewardboss",
   aliases: ["xbossreward", "wbep", "bossreward"],
   description: "Phát thưởng thủ công cho World Boss dựa trên tin nhắn hiển thị.",
   usage: `${config.prefix}rewardboss [messageId]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -22,7 +30,7 @@ module.exports = {
     if (targetMsgId) {
       bossMsg = await message.channel.messages.fetch(targetMsgId).catch(() => null);
     } else {
-      // Find the last boss message in the current channel
+      
       const messages = await message.channel.messages.fetch({ limit: 50 });
       bossMsg = messages.find(
         (m) =>
@@ -42,7 +50,7 @@ module.exports = {
     const embed = bossMsg.embeds[0];
     const title = embed.title || "";
 
-    // 1. Find corresponding boss key from config
+    
     const tiers = config.rpg.boss?.tiers || [];
     const bossConfig = tiers.find(t => title.includes(t.name)) || tiers.find(t => title.toLowerCase().includes(t.name.toLowerCase()));
     if (!bossConfig) {
@@ -51,7 +59,7 @@ module.exports = {
       );
     }
 
-    // 2. Parse top damage participants from embed
+    
     const topField = embed.fields.find(f => f.name && f.name.includes("Top 10 Sát Thương"));
     if (!topField) {
       throw new UserFriendlyError(
@@ -76,7 +84,7 @@ module.exports = {
       );
     }
 
-    // 3. Parse Last Hit User ID
+    
     const lastHitField = embed.fields.find(f => f.name === "Last Hit");
     let lastHitUserId = null;
     if (lastHitField) {
@@ -87,12 +95,12 @@ module.exports = {
     }
 
     if (!lastHitUserId) {
-      // Fallback: use top damage dealer as last hit
+      
       const topDealer = Array.from(participants.keys())[0];
       lastHitUserId = topDealer;
     }
 
-    // 4. Create reconstruction of activeBoss object
+    
     const activeBoss = {
       id: `${Date.now()}-${bossConfig.key}`,
       channelId: message.channel.id,
@@ -111,7 +119,7 @@ module.exports = {
       rewarded: false,
     };
 
-    // Remove if exists in current active list to prevent conflict, then finish it
+    
     message.client.rpgBosses?.delete(message.channel.id);
 
     await message.channel.send(`⚙️ **Đang tiến hành phát thưởng thủ công cho Boss: ${bossConfig.name}**...`);
@@ -127,5 +135,7 @@ module.exports = {
       console.error("[REWARD_BOSS] Failed:", err);
       return message.reply(`❌ **Thất bại khi phát thưởng:** ${err.message}`);
     }
-  },
-};
+    }
+}
+
+module.exports = new RewardbossCommand();

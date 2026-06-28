@@ -180,7 +180,7 @@ class GearCommand extends BaseCommand {
         const scaling = getWeaponScaling(item);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
 
-        // Auto-correct scaling in DB if it is incorrect
+        
         const currentScaling = item.scaling || {};
         if (JSON.stringify(currentScaling) !== JSON.stringify(scaling)) {
           item.scaling = scaling;

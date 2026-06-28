@@ -7,11 +7,19 @@ const {
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class BlacklistCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "blacklist",
   description: "Thêm hoặc xóa người dùng khỏi danh sách đen đặc biệt.",
   usage: `${config.prefix}blacklist <add|remove> <@user>`,
   hidden: true,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(
@@ -43,5 +51,7 @@ module.exports = {
         `${config.emoji.yes} **${targetUser.tag}** đã được xóa khỏi danh sách đen.`,
       );
     }
-  },
-};
+    }
+}
+
+module.exports = new BlacklistCommand();

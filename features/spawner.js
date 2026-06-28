@@ -43,7 +43,7 @@ const initializeSpawner = (client) => {
 
   const spawnLoop = async () => {
     try {
-      // Despawn
+      
       for (const [channelId, spawnState] of client.activeSpawns.entries()) {
         if (Date.now() > spawnState.despawn_at) {
           client.activeSpawns.delete(channelId);
@@ -60,7 +60,7 @@ const initializeSpawner = (client) => {
         }
       }
 
-      // Auto catch using catch-net
+      
       for (const [channelId, spawnState] of client.activeSpawns.entries()) {
         if (client.botLocked) continue;
 
@@ -71,7 +71,7 @@ const initializeSpawner = (client) => {
           spawnState.autoCatchProcessed = true;
           const activeNets = await ActiveNet.find({});
           for (const net of activeNets) {
-            // Check if this user has acted manually in this encounter
+            
             if (spawnState.userStates.has(net.userId)) {
               continue;
             }
@@ -190,7 +190,7 @@ const initializeSpawner = (client) => {
         let finalImagePath = null;
         try {
           if (spawningInProgress.has(channelId)) {
-            continue; // Skip this channel if a spawn is already in progress for it
+            continue; 
           }
           const lure = client.activeLures.get(channelId);
           const theme = config.channel_themes[channelId];
@@ -207,9 +207,9 @@ const initializeSpawner = (client) => {
               continue;
             }
 
-            // Check if a cokemon is already active in this channel
+            
             if (client.activeSpawns.has(channelId)) {
-              // If so, delete the old one before spawning a new one
+              
               const oldSpawn = client.activeSpawns.get(channelId);
               client.activeSpawns.delete(channelId);
               await channel
@@ -221,7 +221,7 @@ const initializeSpawner = (client) => {
 
             const newCokemon = await createRandomCokemonByTheme(lure, theme);
             if (!newCokemon) {
-              // console.log(`Could not select a cokemon to spawn in channel ${channel.name}. Skipping.`)
+              
               spawningInProgress.delete(channelId);
               continue;
             }
@@ -263,7 +263,7 @@ const initializeSpawner = (client) => {
                 .setImage(`attachment://${finalImageFile}`);
               const spawnState = {
                 cokemon: newCokemon,
-                // [[userId, { catchRateModifier, fleeRateModifier, hasFled, hasCaught } ]]
+                
                 userStates: new Map(),
                 despawn_at: Date.now() + settings.despawn_duration_ms,
                 spawn_at: Date.now(),
@@ -284,7 +284,7 @@ const initializeSpawner = (client) => {
             }
           }
 
-          // Check for lure expiration
+          
           if (lure && Date.now() > lure.expires_at) {
             const channel = await fetchTrackedChannel(channelId);
             if (!channel) {

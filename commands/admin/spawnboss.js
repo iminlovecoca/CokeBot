@@ -3,11 +3,19 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { spawnBossNow } = require("../../features/rpgBossSpawner");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SpawnbossCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "spawnboss",
   aliases: ["rboss", "forceboss"],
   description: "Gọi boss RPG xuất hiện ngay lập tức để test.",
   usage: `${config.prefix}spawnboss [boss_key] [#channel|channelId]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -24,7 +32,7 @@ module.exports = {
     for (const arg of args) {
       const cleanArg = arg.trim();
 
-      // Check if this arg is a channel mention or numeric ID
+      
       if (cleanArg.startsWith("<#") && cleanArg.endsWith(">")) {
         const channelId = cleanArg.replace(/[<#>]/g, "");
         const chan = await message.client.channels.fetch(channelId).catch(() => null);
@@ -41,7 +49,7 @@ module.exports = {
         }
       }
 
-      // Check if this arg is a valid boss key
+      
       const foundBoss = bossTiers.find(
         (t) => t.key.toLowerCase() === cleanArg.toLowerCase()
       );
@@ -66,5 +74,7 @@ module.exports = {
     return message.reply(
       `🏴‍☠️ Boss **${activeBoss.boss.name}** (${activeBoss.boss.key}) đã được gọi ngay tại <#${targetChannel.id}>.`,
     );
-  },
-};
+    }
+}
+
+module.exports = new SpawnbossCommand();

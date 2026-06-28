@@ -3,10 +3,18 @@ const { UserFriendlyError } = require("../../utils/errors");
 const { formatVNCurrency } = require("../../utils/format");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class TakeCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "take",
   description: "Rút coke hoặc thu hồi vật phẩm từ người dùng.",
   usage: `${config.prefix}take @user <coke> hoặc ${config.prefix}take item @user <itemId> [số lượng]`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       throw new UserFriendlyError(
@@ -87,5 +95,7 @@ module.exports = {
         `💸 Đã thu hồi **${formatVNCurrency(taken)} coke** từ **<@${targetUser.id}>**.`,
       );
     }
-  },
-};
+    }
+}
+
+module.exports = new TakeCommand();

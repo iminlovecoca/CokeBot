@@ -1,8 +1,16 @@
 const User = require('../../models/User');
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class ResetFarmerCommand extends BaseCommand {
+  constructor() {
+    super({
   name: 'rmzoo',
   description: 'Xoá toàn bộ dữ liệu hunt và animal (farmer) của 1 người chơi (owner only)',
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const ownerId = '745950731638407210'; 
     if (message.author.id !== ownerId) {
@@ -26,5 +34,7 @@ module.exports = {
     await user.save();
 
     return message.reply(`✅ | Đã xoá dữ liệu farmer (hunt, animal) cho user có ID **${targetUserId}**.`);
-  },
-};
+    }
+}
+
+module.exports = new ResetFarmerCommand();

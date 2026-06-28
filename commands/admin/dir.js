@@ -5,7 +5,7 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const { initPage } = require("../../utils/pageUtil");
 
 const entries = [
-  // --- BOSSES ---
+  
   {
     type: "boss",
     name: "Skulgod (Chương 1)",
@@ -55,7 +55,7 @@ const entries = [
     tips: "Ưu tiên sử dụng các class cận chiến để gây sát thương tối đa. Cố gắng phá vỡ Poise thật nhanh để ngắt lượt và dồn sát thương x2."
   },
 
-  // --- WEAPONS ---
+  
   {
     type: "weapon",
     name: "Hỏa Long Thần Kiếm",
@@ -130,7 +130,11 @@ const entries = [
   }
 ];
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class DirCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "dir",
   aliases: ["tudien", "wiki", "dictionary"],
   description: "Tra cứu từ điển về Boss Dungeon và các Vũ khí Đặc biệt (Chỉ dành cho Admin).",
@@ -139,8 +143,12 @@ module.exports = {
     { intent: "Tra cứu từ điển", command: `${config.prefix}dir` }
   ],
 
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
-    // Admin check
+    
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Lệnh này chỉ dành cho Admin / Developer!");
     }
@@ -180,5 +188,7 @@ module.exports = {
     };
 
     await initPage(message, generateDisplay, totalPages, `${config.prefix}dir`);
-  }
-};
+    }
+}
+
+module.exports = new DirCommand();

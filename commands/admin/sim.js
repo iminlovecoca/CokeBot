@@ -13,11 +13,19 @@ const {
 } = require('discord.js');
 const dungeonCmd = require('../rpg/dungeon');
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SimCommand extends BaseCommand {
+  constructor() {
+    super({
   name: 'sim',
   aliases: ['simdungeon', 'simpb'],
   description: 'Mô phỏng tự động chơi thử phó bản Dungeon dành cho Admin',
   usage: `${config.prefix}sim [chapter c1-c6] [speed 1x-4x]`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args = []) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(`${config.emoji.no} Bạn không có quyền dùng lệnh này!`);
@@ -30,7 +38,7 @@ module.exports = {
       const bossKey = args[1];
       let playerCount = parseInt(args[2]);
       if (isNaN(playerCount) || playerCount <= 0) {
-        playerCount = 20; // Default to 20
+        playerCount = 20; 
       }
       playerCount = Math.min(100, Math.max(1, playerCount));
 
@@ -54,7 +62,7 @@ module.exports = {
       const User = require('../../models/User');
       const { getRpgClass, getEffectiveRpgStats, calculateRpgPower, getEquippedItems, dungeonKeys } = require('../../utils/rpgUtil');
 
-      // Fetch active RPG characters
+      
       const realUsers = await User.find({ "rpg.classKey": { $ne: null } }).limit(playerCount).exec();
       
       const CLASS_ATTACK_TYPES = {
@@ -70,7 +78,7 @@ module.exports = {
 
       const mockPlayers = [];
       
-      // Map real players
+      
       for (const u of realUsers) {
         const stats = getEffectiveRpgStats(u);
         const power = calculateRpgPower(u);
@@ -98,10 +106,10 @@ module.exports = {
         });
       }
 
-      // Fill with mock players if needed
+      
       while (mockPlayers.length < playerCount) {
         const randClass = classes[Math.floor(Math.random() * classes.length)];
-        const level = Math.floor(Math.random() * 50) + 30; // Level 30 - 80
+        const level = Math.floor(Math.random() * 50) + 30; 
         
         const bases = {
           warrior: { vigor: 25, str: 20, dex: 12, int: 8, arc: 8, pr: 15, mr: 8 },
@@ -118,7 +126,7 @@ module.exports = {
           stats[k] = Math.floor(v * statsScale);
         }
         
-        const weaponPower = 800 + level * 20; // Epic-like weapon
+        const weaponPower = 800 + level * 20; 
         const power = weaponPower * 2.5 + level * 50;
         const maxHp = 150 + stats.vigor * 20 + level * 20;
 
@@ -146,7 +154,7 @@ module.exports = {
         });
       }
 
-      // Simulate the boss fight
+      
       let bossHp = boss.hp;
       const bossMaxHp = boss.hp;
       let activeBossEffects = {
@@ -162,7 +170,7 @@ module.exports = {
       let lastHitUser = null;
 
       let round = 0;
-      const maxRounds = 100000; // Run until boss dies (large safe limit)
+      const maxRounds = 100000; 
       let totalCokeSpent = 0;
 
       while (bossHp > 0 && round < maxRounds) {
@@ -172,7 +180,7 @@ module.exports = {
         for (const p of mockPlayers) {
           if (bossHp <= 0) break;
 
-          // Bleed tick check at the start of player turn
+          
           if (activeBossEffects.bleedRounds > 0) {
             const bleedDmg = activeBossEffects.bleedDamage;
             bossHp = Math.max(0, bossHp - bleedDmg);
@@ -183,11 +191,11 @@ module.exports = {
             }
           }
 
-          // Handle KO and revive
+          
           if (p.hp <= 0) {
             if (p.skipRound && p.skipRound > 0) {
               p.skipRound -= 1;
-              continue; // Skip this round while dead
+              continue; 
             }
 
             const hasGodset = p.isMock ? false : !!p.godset;
@@ -201,22 +209,22 @@ module.exports = {
               p.coke -= reviveCost;
               totalCokeSpent += reviveCost;
             } else {
-              // Revive for free after 2 rounds (30s)
+              
               p.hp = p.maxHp;
-              p.skipRound = 2; // Will skip 2 rounds (30s)
+              p.skipRound = 2; 
               continue;
             }
           }
 
-          // Check paid attack cost
+          
           const isEventBoss = boss.key === "hexia" || boss.key === "godhexa";
           const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
           const hasGodset = p.isMock ? false : !!p.godset;
           const hasFreeAttack = p.attacks < freeAttacks || hasGodset;
           const paidAttackCost = hasGodset ? 0 : (isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000));
 
-          // In simulation, players keep attacking until the boss dies, even if they run out of Coke.
-          // We let their Coke go negative to track the total Coke spent.
+          
+          
           if (!hasFreeAttack) {
             p.coke -= paidAttackCost;
             totalCokeSpent += paidAttackCost;
@@ -226,7 +234,7 @@ module.exports = {
           totalAttacks += 1;
           activeAttackersThisRound++;
 
-          // Damage calculation
+          
           const isMagical = CLASS_ATTACK_TYPES[p.classKey] === "magical";
           const baseAttack = isMagical
             ? p.stats.int * 3.5 + p.stats.arc * 1.5
@@ -235,7 +243,7 @@ module.exports = {
           const weaponPower = p.weapon?.power || 0;
           let rawDamage = (baseAttack + weaponPower);
 
-          // Apply event weapon passives
+          
           const subType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
           if (subType === "sunbow" && isMagical) {
             rawDamage *= 1.036;
@@ -249,7 +257,7 @@ module.exports = {
             rawDamage *= 1.15;
           }
 
-          rawDamage *= 0.85 + Math.random() * 0.3; // variance
+          rawDamage *= 0.85 + Math.random() * 0.3; 
 
           const critRate = Math.min(0.5, (p.stats.arc * 0.2 + p.stats.dex * 0.1) / 100);
           const isCrit = Math.random() < critRate;
@@ -257,7 +265,7 @@ module.exports = {
             rawDamage *= (1.5 + p.stats.dex * 0.002);
           }
 
-          // Mitigation
+          
           let mrOrArmor = isMagical ? boss.magicResist : boss.armor;
           
           if (subType === "axesnake") {
@@ -282,7 +290,7 @@ module.exports = {
             break;
           }
 
-          // Boss counterattack
+          
           let bossDmg = boss.attackPower * (0.85 + Math.random() * 0.3);
           let playerRes = isMagical ? p.stats.mr : p.stats.pr;
           if (subType === "sunbow") {
@@ -320,13 +328,13 @@ module.exports = {
           }
         }
 
-        // Avoid infinite loop if no players can attack
+        
         if (activeAttackersThisRound === 0 && round > 100000) {
           break;
         }
       }
 
-      // Build Result Embed
+      
       const victory = bossHp <= 0;
       const totalSeconds = round * 15;
       const mins = Math.floor(totalSeconds / 60);
@@ -387,10 +395,10 @@ module.exports = {
       return message.reply("❌ Đang có một phó bản hoặc mô phỏng diễn ra tại kênh này. Vui lòng đợi kết thúc!");
     }
 
-    // Parse arguments
+    
     const argStr = args.join(' ').toLowerCase();
 
-    // 1. Chapter parsing
+    
     let chapter = 1;
     const chapterMatch = argStr.match(/(?:chapter\s+c?|c|ch)?([1-6])/);
     if (chapterMatch) {
@@ -399,7 +407,7 @@ module.exports = {
       return message.reply(`💡 Hãy nhập chương cần mô phỏng (ví dụ: \`${config.prefix}sim chapter c4\` hoặc \`${config.prefix}sim c4\` hoặc \`${config.prefix}sim 4\`). Mặc định đang chọn chương 1.`);
     }
 
-    // 2. Speed parsing (e.g. 2x, 0.5x, 4x, fast, slow)
+    
     let speed = 1.0;
     const speedMatch = argStr.match(/(\d+(?:\.\d+)?)\s*x/);
     if (speedMatch) {
@@ -412,10 +420,10 @@ module.exports = {
       speed = 0.5;
     }
 
-    // Limit speed to a reasonable range
+    
     speed = Math.max(0.1, Math.min(10.0, speed));
 
-    // Initialize mock players with default settings scaled by chapter
+    
     const defaultLevel = 10 + chapter * 10;
     const simPlayers = [
       {
@@ -500,7 +508,7 @@ module.exports = {
 
     const collector = panelMsg.createMessageComponentCollector({
       filter: (i) => i.user.id === message.author.id,
-      time: 300000, // 5 minutes
+      time: 300000, 
     });
 
     collector.on("collect", async (interaction) => {
@@ -563,7 +571,7 @@ module.exports = {
 
         await interaction.showModal(modal);
 
-        // Await Modal submission
+        
         const modalSubmit = await interaction.awaitModalSubmit({
           filter: (i) => i.customId === `sim_edit_modal_${idx}` && i.user.id === message.author.id,
           time: 120000,
@@ -573,7 +581,7 @@ module.exports = {
 
         await modalSubmit.deferUpdate();
 
-        // Parse & validate values
+        
         const classKey = modalSubmit.fields.getTextInputValue("sim_class").trim().toLowerCase();
         const level = parseInt(modalSubmit.fields.getTextInputValue("sim_level").trim());
         const weaponName = modalSubmit.fields.getTextInputValue("sim_weapon_name").trim();
@@ -598,10 +606,10 @@ module.exports = {
           return modalSubmit.followUp({ content: "❌ Cấp độ cường hóa phải là số từ 0 đến 20.", ephemeral: true });
         }
 
-        // Format weapon rank correctly
+        
         const weaponRank = weaponRankRaw.charAt(0).toUpperCase() + weaponRankRaw.slice(1).toLowerCase();
 
-        // Update player info
+        
         simPlayers[idx] = {
           name: classKey.charAt(0).toUpperCase() + classKey.slice(1),
           classKey,
@@ -611,7 +619,7 @@ module.exports = {
           enhance,
         };
 
-        // Update setup panel
+        
         await panelMsg.edit({
           embeds: [generateSetupEmbed()],
           components: generateSetupComponents(),
@@ -638,7 +646,7 @@ module.exports = {
       await panelMsg.delete().catch(() => null);
       channel.send(`⚙️ Bắt đầu khởi tạo phó bản giả lập **Chương ${chapter}** với tốc độ **${speed}x**...`);
 
-      // 3. Compute player effective stats and weapon properties
+      
       const { getRpgClass } = require('../../utils/rpgUtil');
 
       const getClassBaseStats = (classKey) => {
@@ -706,7 +714,7 @@ module.exports = {
         };
       });
 
-      // Create simulated dungeon state
+      
       const activeDungeon = {
         guildId: "simulation_guild",
         chapter: chapter,
@@ -734,8 +742,10 @@ module.exports = {
 
       client.rpgDungeons.set(channel.id, activeDungeon);
 
-      // Start simulated dungeon
+      
       dungeonCmd.setupRound(activeDungeon, channel);
     });
-  }
-};
+    }
+}
+
+module.exports = new SimCommand();

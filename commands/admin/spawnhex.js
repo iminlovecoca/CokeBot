@@ -3,11 +3,19 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { spawnRandomBoss } = require("../../features/rpgBossSpawner");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SpawnhexCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "spawnhex",
   aliases: ["shex"],
   description: "Triệu hồi Boss sự kiện Hex (hexia hoặc godhexa) ngay lập tức.",
   usage: `${config.prefix}spawnhex <hexia|godhexa>`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -23,7 +31,7 @@ module.exports = {
       );
     }
 
-    // Call spawnRandomBoss with allowSoulRealm: false
+    
     const activeBoss = await spawnRandomBoss(message.client, {
       channelId: message.channel.id,
       bossKey: bossKey,
@@ -37,7 +45,7 @@ module.exports = {
       );
     }
 
-    // Send entrance dialogue
+    
     if (bossKey === "hexia") {
       await message.channel.send("🟣 **[Cảnh Báo Sự Kiện Hex]** Bầu trời rách đôi! Ma lực cổ xưa trỗi dậy...\n🔥 **HEXIA** đã xuất hiện!");
     } else if (bossKey === "godhexa") {
@@ -47,5 +55,7 @@ module.exports = {
     return message.reply(
       `🟣 Boss sự kiện **${activeBoss.boss.name}** (${activeBoss.boss.key}) đã được triệu hồi thành công!`
     );
-  },
-};
+    }
+}
+
+module.exports = new SpawnhexCommand();

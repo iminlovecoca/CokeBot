@@ -3,11 +3,19 @@ const User = require("../../models/User");
 const config = require("../../data/config");
 const { getRpgItems, getGearDisplayName, calculateRpgPower } = require("../../utils/rpgUtil");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class RemovegearCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "removegear",
   aliases: ["deletegear", "removeitem", "deleteitem"],
   description: "Xoá một trang bị RPG của người chơi bằng ID (Chỉ Dev/Owner)",
   usage: `${config.prefix}removegear @user <ID trang bị (ví dụ: 15 hoặc G015)>`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -47,7 +55,7 @@ module.exports = {
     const item = items[itemIndex];
     const displayName = getGearDisplayName(item);
 
-    // Unequip item if currently equipped
+    
     let unequipped = false;
     if (dbUser.rpg.equipped) {
       for (const [slot, equippedId] of Object.entries(dbUser.rpg.equipped)) {
@@ -59,11 +67,11 @@ module.exports = {
       }
     }
 
-    // Remove item from inventory list
+    
     dbUser.rpg.items = items.filter((it) => it.id !== itemId);
     dbUser.markModified("rpg");
 
-    // Recalculate power
+    
     dbUser.rpg.power = calculateRpgPower(dbUser);
     await dbUser.save();
 
@@ -80,5 +88,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new RemovegearCommand();

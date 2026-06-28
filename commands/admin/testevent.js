@@ -3,16 +3,24 @@ const Event = require("../../models/Event");
 const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class TesteventCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "testevent",
   description: "Tạo nhanh một sự kiện thử nghiệm có thời hạn 10 phút để kiểm tra tính năng sự kiện (Chỉ Admin)",
   usage: `${config.prefix}testevent`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args = []) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
     }
 
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); 
 
     const event = await Event.create({
       name: "Sự Kiện Thử Nghiệm 🧪",
@@ -54,5 +62,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new TesteventCommand();

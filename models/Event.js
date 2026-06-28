@@ -7,9 +7,9 @@ const EventSchema = new mongoose.Schema({
   rewards: {
     coke: { type: Number, required: true, default: 0 },
     gear: {
-      rank: { type: String, default: null }, // e.g. Epic, Legendary, Ancient
-      type: { type: String, default: null }, // e.g. helmet, boot, weapon
-      name: { type: String, default: null } // e.g. Crimson Dagger
+      rank: { type: String, default: null }, 
+      type: { type: String, default: null }, 
+      name: { type: String, default: null } 
     },
     other: {
       name: { type: String, default: null },

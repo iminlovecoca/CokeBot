@@ -1,5 +1,5 @@
 module.exports = {
-  prefix: "x",
+  prefix: "q",
   emoji: {
     blank: "<:blank:1403928807395819671>",
     money: "<:cokecy:1509951335016173662>",
@@ -120,39 +120,39 @@ module.exports = {
   },
 
   channel_themes: {
-    // Safari - no theme filter
+    
     "1511282084260352091": null,
-    // Đại Dương
+    
     "1511274018655698975": {
       main_types: ["Water", "Ice"],
       weight: 0.9,
     },
-    // Nham Thạch
+    
     "1511281435607044126": {
       main_types: ["Rock", "Ground", "Dragon"],
       weight: 0.9,
     },
-    // Hang Động
+    
     "1511281627941306430": {
       main_types: ["Dark", "Ghost"],
       weight: 0.9,
     },
-    // Nhà Máy Điện
+    
     "1511281757339779192": {
       main_types: ["Electric", "Psychic", "Fairy"],
       weight: 0.9,
     },
-    // Rừng Nhiệt Đới
+    
     "1511281892526395532": {
       main_types: ["Grass", "Bug", "Flying", "Poison"],
       weight: 0.9,
     },
-    // Võ Đường
+    
     "1511282007726882926": {
       main_types: ["Fighting", "Steel", "Normal"],
       weight: 0.9,
     },
-    // Nghĩa Địa
+    
     "1511294474469511309": {
       main_types: ["Dark", "Ghost", "Psychic"],
       weight: 0.9,
@@ -160,10 +160,10 @@ module.exports = {
   },
 
   cokemon_settings: {
-    // Economy
+    
     sell_percentage: 0.75,
 
-    // Timers (in milliseconds)
+    
     spawn_interval_ms: 15 * 1000,
     lure_duration_ms: 30 * 60 * 1000,
     lure_user_cooldown_ms: 30 * 60 * 1000,
@@ -175,19 +175,19 @@ module.exports = {
     friendship_cooldown_ms: 30 * 60 * 1000,
     cuddle_cooldown_ms: 60 * 60 * 1000,
 
-    // Item stats
+    
     catch_net_uses: 20,
     max_stacked_nets: 5,
 
-    // Stats
+    
     max_iv: 31,
     max_level: 100,
     base_friendship: 70,
     max_friendship: 255,
     max_nickname_len: 20,
 
-    // Others
-    shiny_rate: 4096, // represent 1/4096
+    
+    shiny_rate: 4096, 
     tier_weights: {
       Common: 100,
       Rare: 25,
@@ -208,38 +208,38 @@ module.exports = {
   },
 
   natures: {
-    // Neutral natures (no effect)
+    
     Hardy: { plus: null, minus: null },
     Docile: { plus: null, minus: null },
     Serious: { plus: null, minus: null },
     Bashful: { plus: null, minus: null },
     Quirky: { plus: null, minus: null },
 
-    // Natures that boost atk
+    
     Lonely: { plus: "atk", minus: "def" },
     Brave: { plus: "atk", minus: "spd" },
     Adamant: { plus: "atk", minus: "spatk" },
     Naughty: { plus: "atk", minus: "spdef" },
 
-    // Natures that boost def
+    
     Bold: { plus: "def", minus: "atk" },
     Relaxed: { plus: "def", minus: "spd" },
     Impish: { plus: "def", minus: "spatk" },
     Lax: { plus: "def", minus: "spdef" },
 
-    // Natures that boost spatk
+    
     Modest: { plus: "spatk", minus: "atk" },
     Mild: { plus: "spatk", minus: "def" },
     Quiet: { plus: "spatk", minus: "spd" },
     Rash: { plus: "spatk", minus: "spdef" },
 
-    // Natures that boost spdef
+    
     Calm: { plus: "spdef", minus: "atk" },
     Gentle: { plus: "spdef", minus: "def" },
     Sassy: { plus: "spdef", minus: "spd" },
     Careful: { plus: "spdef", minus: "spatk" },
 
-    // Natures that boost spd
+    
     Timid: { plus: "spd", minus: "atk" },
     Hasty: { plus: "spd", minus: "def" },
     Jolly: { plus: "spd", minus: "spatk" },
@@ -319,28 +319,28 @@ module.exports = {
   anticheat: {
     mute_duration_ms: 60 * 60 * 1000,
 
-    // Burst Spam
+    
     burst_enabled: true,
     burst_bucket_capacity: 12,
     burst_refill_rate_ms: 1000,
 
     bot_detection_enabled: true,
 
-    // Rhythm
+    
     rhythm_history_length: 15,
     rhythm_min_messages: 15,
     rhythm_std_dev_threshold_ms: 100,
 
-    // Monotony (consecutive commands)
+    
     monotony_threshold: 60,
 
-    // Focus (command ratio)
+    
     focus_history_length: 50,
     focus_min_commands: 25,
     focus_high_value_commands: ["c", "catch", "hunt", "h", "autohunt", "ah", "dungeon", "dg", "battle", "b", "boss", "bs"],
     focus_ratio_threshold: 0.85,
 
-    // Verification
+    
     verification_enabled: true,
     verification_timeout_ms: 30 * 1000,
     verification_code_length: 6,
@@ -354,7 +354,7 @@ module.exports = {
     ask_history_limit: 6,
     thread_name_prefix: "🤖 Tổng đài hỗ trợ CokeBot:",
     thread_archive_minutes: 60,
-    // Timeout after which thread messages are treated as normal chat/commands
+    
     thread_expiry_ms: 60 * 60 * 1000,
     knowledge_base_version: "1.0.0",
   },
@@ -368,7 +368,7 @@ module.exports = {
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],
-      multiplier: 0.6, // take 60% of damage (40% reduction)
+      multiplier: 0.6, 
     },
     rewards: {
       base_coke: 100000,

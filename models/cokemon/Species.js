@@ -29,7 +29,7 @@ const evolutionConditionSchema = new mongoose.Schema({
 
 
 const evolutionDetailSchema = new mongoose.Schema({
-	species_id: { // ID of the species it evolves into
+	species_id: { 
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Species',
 		required: true
@@ -92,8 +92,8 @@ const speciesSchema = new mongoose.Schema({
 		enum: ['Male', 'Female', 'Genderless']
 	},
 	appearance: {
-		height: Number,   // in meters
-		weight: Number    // in kilograms
+		height: Number,   
+		weight: Number    
 	},
 	description: {
 		type: String,
@@ -104,7 +104,7 @@ const speciesSchema = new mongoose.Schema({
 	emoji: String,
 	shiny_emoji: String,
 
-	preevolution_species_id: { // What it evolved from
+	preevolution_species_id: { 
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Species',
 		default: null

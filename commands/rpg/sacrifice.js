@@ -8,7 +8,7 @@ const {
 } = require("../../utils/rpgUtil");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 
-// Rarity mapping for sacrifice command
+
 const rarityMapping = {
   c: "Common",
   r: "Rare",
@@ -26,7 +26,7 @@ const rarityMapping = {
   divine: "Divine",
 };
 
-// Essence yield when sacrificing RPG gear
+
 const sacrificeEssenceYield = {
   Common: 10,
   Rare: 40,
@@ -66,7 +66,7 @@ class SacrificeCommand extends BaseCommand {
 
     const { user } = await requireRpgCharacter(message.author.id);
 
-    // Initialize/migrate autohunt states if not present
+    
     if (!user.rpg.autohunt) {
       user.rpg.autohunt = {
         isActive: false,
@@ -135,7 +135,7 @@ class SacrificeCommand extends BaseCommand {
     const essencePerItem = sacrificeEssenceYield[targetRarity] || 10;
     const totalEssenceGain = itemsToSacrifice.length * essencePerItem;
 
-    // Update user inventory and essence
+    
     const sacIds = new Set(itemsToSacrifice.map((it) => it.id));
     user.rpg.items = userItems.filter((it) => !sacIds.has(it.id));
     user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + totalEssenceGain;

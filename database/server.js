@@ -5,7 +5,7 @@ class ServerData {
     this.stays = new Map();
     this.djs = new Map();
     this.roles = new Map();
-    this.playlists = new Map(); // key: `${userId}:${name}` -> { tracks }
+    this.playlists = new Map(); 
   }
   async get(guildId) {
     if (!this.guilds.has(guildId)) {

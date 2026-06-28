@@ -13,10 +13,18 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { DateTime } = require("luxon");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SeteventCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "setevent",
   description: "Thiết lập một sự kiện RPG mới bằng giao diện Dialog/Modal (Chỉ Admin)",
   usage: `${config.prefix}setevent`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args = []) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
@@ -137,7 +145,7 @@ module.exports = {
 
     const collector = panelMsg.createMessageComponentCollector({
       filter: (i) => i.user.id === message.author.id,
-      time: 300000 // 5 minutes
+      time: 300000 
     });
 
     collector.on("collect", async (interaction) => {
@@ -221,7 +229,7 @@ module.exports = {
 
         await interaction.showModal(modal);
 
-        // Await modal submission
+        
         const modalSubmit = await interaction.awaitModalSubmit({
           filter: (i) => i.customId === "setevent_input_modal" && i.user.id === message.author.id,
           time: 120000
@@ -237,10 +245,10 @@ module.exports = {
         const reqRaw = modalSubmit.fields.getTextInputValue("event_req").trim();
         const rewardsRaw = modalSubmit.fields.getTextInputValue("event_rewards").trim();
 
-        // Validate Expiration Date
+        
         let expiresAt = DateTime.fromFormat(expireRaw, "dd/MM/yyyy HH:mm", { zone: "Asia/Ho_Chi_Minh" }).toJSDate();
         if (isNaN(expiresAt.getTime())) {
-          // Fallback to end of day format
+          
           const fallbackDate = DateTime.fromFormat(expireRaw, "dd/MM/yyyy", { zone: "Asia/Ho_Chi_Minh" });
           if (fallbackDate.isValid) {
             expiresAt = fallbackDate.endOf("day").toJSDate();
@@ -253,7 +261,7 @@ module.exports = {
           return modalSubmit.followUp({ content: "❌ Thời gian hết hạn phải ở tương lai.", ephemeral: true });
         }
 
-        // Validate Requirement
+        
         let requirementType = null;
         let requirementTarget = 0;
         let requirementChapter = null;
@@ -279,7 +287,7 @@ module.exports = {
           }
         }
 
-        // Validate Rewards
+        
         const rewardsParts = rewardsRaw.split(",").map(s => s.trim());
         const coke = parseInt(rewardsParts[0]) || 0;
         const otherItem = rewardsParts[1] || null;
@@ -290,7 +298,7 @@ module.exports = {
           return modalSubmit.followUp({ content: "❌ Số Coke không thể là số âm.", ephemeral: true });
         }
 
-        // Update active eventInfo settings
+        
         eventInfo = {
           name,
           description,
@@ -307,7 +315,7 @@ module.exports = {
           weaponRank
         };
 
-        // Re-render setup panel
+        
         await panelMsg.edit({
           embeds: [generatePanelEmbed()],
           components: generatePanelComponents()
@@ -334,7 +342,7 @@ module.exports = {
 
       await panelMsg.delete().catch(() => null);
 
-      // Create event in database
+      
       const event = await Event.create({
         name: eventInfo.name,
         description: eventInfo.description,
@@ -392,5 +400,7 @@ module.exports = {
 
       return message.channel.send({ embeds: [embed] });
     });
-  }
-};
+    }
+}
+
+module.exports = new SeteventCommand();

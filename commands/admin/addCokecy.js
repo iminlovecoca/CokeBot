@@ -8,9 +8,17 @@ const User = require("../../models/User");
 
 const ALLOWED_IDS = [process.env.OWNER_ID];
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddCokecyCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addcoke",
   description: "Thêm coke cho người dùng hoặc tất cả (chỉ chủ bot)",
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const authorId = message.author.id;
@@ -129,5 +137,7 @@ module.exports = {
         });
       }
     });
-  },
-};
+    }
+}
+
+module.exports = new AddCokecyCommand();

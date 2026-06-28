@@ -1,7 +1,7 @@
 const Item = require('../models/cokemon/Item')
 
 const itemsData = [
-	// Tools
+	
 	{
 		item_id: 'catch-net',
 		name: 'Lưới Bắt Tự Động',
@@ -12,7 +12,7 @@ const itemsData = [
 		effects: {}
 	},
 
-	// Lures
+	
 	{
 		item_id: 'lure-standard',
 		name: 'Bả Cơ Bản',
@@ -86,7 +86,7 @@ const itemsData = [
 		effects: { 'boosts_type': ['Dark', 'Ghost'] }
 	},
 
-	// Evolution Stones
+	
 	{
 		item_id: 'thunder-stone',
 		name: 'Lôi Thạch',
@@ -187,7 +187,7 @@ const itemsData = [
 		effects: {}
 	},
 
-	// Held Stems
+	
 	{
 		item_id: 'kings-rock',
 		name: 'Vương Thạch',
@@ -315,7 +315,7 @@ const itemsData = [
 		effects: {}
 	},
 
-	// Others
+	
 	{
 		item_id: 'rare-candy',
 		name: 'Kẹo Hiếm',

@@ -25,7 +25,7 @@ const Species = require("./models/cokemon/Species");
 const Item = require("./models/cokemon/Item");
 const Knowledge = require("./models/Knowledge");
 const { syncNoituData } = require("./utils/noituBootstrap");
-// Music/lavalink removed
+
 
 const spawner = require("./features/spawner");
 const rpgBossSpawner = require("./features/rpgBossSpawner");
@@ -61,12 +61,12 @@ const client = new Client({
   sweepers: {
     ...Options.DefaultSweeperSettings,
     messages: {
-      interval: 3600, // Every hour
-      lifetime: 1800, // Remove messages older than 30 minutes
+      interval: 3600, 
+      lifetime: 1800, 
     },
     users: {
-      interval: 3600, // Every hour
-      filter: () => (user) => user.id !== client.user.id, // Sweep all users except the bot itself
+      interval: 3600, 
+      filter: () => (user) => user.id !== client.user.id, 
     }
   }
 });
@@ -89,7 +89,7 @@ client.rpgBosses = new Map();
 const ServerData = require("./database/server");
 client.db = new ServerData();
 
-// Initialize OOP Core
+
 const ServiceLocator = require("./core/ServiceLocator");
 const GambleService = require("./services/GambleService");
 const GameRepository = require("./repositories/GameRepository");
@@ -153,7 +153,7 @@ const buildSlashCommandsForRegistration = () => {
   return commands.map((command) => command.data);
 };
 
-// Cokemusic building/integration removed
+
 
 loadFiles(path.join(__dirname, "commands"), (filePath) => {
   const cmd = require(filePath);
@@ -221,7 +221,7 @@ client.once(Events.ClientReady, async () => {
       .lean();
     client.allItems = await Item.find({}).lean();
     
-    // Seed or update required items in parallel (Senior Refactoring)
+    
     const requiredItems = [
       {
         item_id: "wc",
@@ -314,13 +314,13 @@ client.once(Events.ClientReady, async () => {
     await loadBotLock(client);
     spawner.initializeSpawner(client);
     await rpgBossSpawner.initialize(client);
-    // Music & Lavalink initialization removed
+    
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);
 
     await performStartupCleanup(client);
 
-    // RPG Class Migration
+    
     try {
       const User = require("./models/User");
       const { calculateRpgPower } = require("./utils/rpgUtil");
@@ -347,7 +347,7 @@ client.once(Events.ClientReady, async () => {
       console.error("❌ RPG Class migration error:", migError);
     }
 
-    // Load active noitu games from MongoDB
+    
     try {
       const NoituGuild = require("./models/NoituGuild");
       const activeGuilds = await NoituGuild.find({ "gameState.running": true }).lean();
@@ -402,8 +402,8 @@ mongoose.connection.on("disconnected", () =>
   console.warn("⚠️ MongoDB disconnected"),
 );
 
-// Start Lavalink before connecting to DB and logging in.
-// Connect to DB and login.
+
+
 (async () => {
   await syncTimeDrift().catch(() => null);
   await connectWithRetry();

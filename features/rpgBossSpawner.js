@@ -67,7 +67,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
         ? "Boss đã tiến hóa/hồi sinh sang Phase 2. Xem tin nhắn mới nhất để tiếp tục chiến đấu."
         : `Gõ \`${config.prefix}boss\` để tấn công boss trong channel này.`;
 
-  // Get top 10 participants sorted by damage descending
+  
   const top10 = Array.from(activeBoss.participants.entries())
     .sort((a, b) => b[1].damage - a[1].damage)
     .slice(0, 10);
@@ -250,7 +250,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       return;
     }
 
-    // Group bosses by rank (skip phase 2 and event bosses from direct spawning)
+    
     const bossesByRank = {};
     for (const b of bossTiers) {
       if (b.key === "boss_012" || b.key === "boss_XIIa" || b.key === "hexia" || b.key === "godhexa") continue;
@@ -269,9 +269,9 @@ const spawnRandomBoss = async (client, options = {}) => {
     const now = DateTime.now().setZone(timezone);
     const currentHour = now.hour;
 
-    // Tinh chỉnh tỉ lệ boss thượng nhân xuất hiện:
-    // - Từ 9h sáng đến 15h là 10% (thuong=50, than=25, rong=15, thuongnhan=10)
-    // - Từ 18h đến 00h là 30% (rong=70, thuongnhan=30 khi isNightBoss lọc)
+    
+    
+    
     if ((currentHour >= 9 && currentHour < 15) || currentHour === 3 || currentHour === 6) {
       if (rankWeights.thuong) rankWeights.thuong.spawnWeight = 50;
       if (rankWeights.than) rankWeights.than.spawnWeight = 25;
@@ -328,21 +328,21 @@ const spawnRandomBoss = async (client, options = {}) => {
           : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa" && t.key !== "hexia" && t.key !== "godhexa"));
     }
 
-    // Check if Hex Event is active and calculate triggerEventBoss
+    
     let triggerEventBoss = null;
     if (boss.key !== "hexia" && boss.key !== "godhexa") {
       const eventState = await checkAndGetEventState();
       if (eventState) {
         const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
         const spawnTime = DateTime.now().setZone(timezone);
-        const dayOfWeek = spawnTime.weekday; // 1 (Mon) to 7 (Sun)
+        const dayOfWeek = spawnTime.weekday; 
         const hour = spawnTime.hour;
         
-        if (dayOfWeek === 6) { // Saturday
+        if (dayOfWeek === 6) { 
           if ([12, 15, 18, 21].includes(hour)) {
             triggerEventBoss = "hexia";
           }
-        } else if (dayOfWeek === 7) { // Sunday
+        } else if (dayOfWeek === 7) { 
           if (hour === 12) {
             triggerEventBoss = "godhexa";
           }
@@ -352,9 +352,9 @@ const spawnRandomBoss = async (client, options = {}) => {
 
     let lifetime = config.rpg.boss?.lifetime_ms || 10 * 60 * 1000;
     if (boss.key === "hexia") {
-      lifetime = 1 * 60 * 60 * 1000; // 1 hour
+      lifetime = 1 * 60 * 60 * 1000; 
     } else if (boss.key === "godhexa") {
-      lifetime = 3 * 60 * 60 * 1000; // 3 hours
+      lifetime = 3 * 60 * 60 * 1000; 
     }
 
     const activeBoss = {
@@ -432,7 +432,7 @@ const spawnBossNow = (client, channelId = null, bossKey = null) =>
 const spawnEventBoss = async (client, channelId, bossKey) => {
   console.log(`[HEX_EVENT] Spawning event boss ${bossKey} in channel ${channelId} in 5s...`);
   setTimeout(async () => {
-    // Make sure no other boss is active in this channel
+    
     if (client.rpgBosses.has(channelId)) {
       console.log(`[HEX_EVENT] Channel ${channelId} already has a boss active, skipping event boss spawn.`);
       return;
@@ -440,15 +440,15 @@ const spawnEventBoss = async (client, channelId, bossKey) => {
     const channel = await client.channels.fetch(channelId).catch(() => null);
     if (!channel) return;
     
-    // Spawn the event boss using spawnRandomBoss
+    
     await spawnRandomBoss(client, {
       channelId: channelId,
       bossKey: bossKey,
-      scheduleNext: false, // Don't reschedule the normal cycle
-      allowSoulRealm: false // Event bosses do not have soul realm
+      scheduleNext: false, 
+      allowSoulRealm: false 
     });
     
-    // Send entrance dialogue
+    
     if (bossKey === "hexia") {
       channel.send("🟣 **[Cảnh Báo Sự Kiện Hex]** Bầu trời rách đôi! Ma lực cổ xưa trỗi dậy...\n🔥 **HEXIA** đã xuất hiện!");
     } else if (bossKey === "godhexa") {
@@ -461,7 +461,7 @@ const initialize = async (client) => {
   client.rpgBosses = client.rpgBosses || new Map();
   if (client.rpgBossSpawnTimer) clearTimeout(client.rpgBossSpawnTimer);
 
-  // Setup event listeners for Hex Event transitions
+  
   if (!client.rpgBossListenersRegistered) {
     client.rpgBossListenersRegistered = true;
     client.on("rpgBossDefeated", async (activeBoss) => {
@@ -482,7 +482,7 @@ const initialize = async (client) => {
     });
   }
 
-  // 1. Reload active bosses from Database
+  
   try {
     const SpawnedBoss = require("../models/SpawnedBoss");
     const activeDbBosses = await SpawnedBoss.find({ defeated: false, expired: false, rewarded: false }).exec();
@@ -526,7 +526,7 @@ const initialize = async (client) => {
     console.error("[RPG_BOSS] Error reloading active bosses from DB:", err);
   }
 
-  // 2. Recover unrewarded defeated bosses
+  
   try {
     const SpawnedBoss = require("../models/SpawnedBoss");
     const unrewarded = await SpawnedBoss.find({ defeated: true, rewarded: false }).exec();

@@ -9,7 +9,11 @@ const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 const MONS_PER_PAGE = 20;
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class CokemonCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "cokemon",
   description: "Hiển thị danh sách những cokemon bạn đã bắt.",
   usage: `${config.prefix}cokemon [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav] [--sort <recent|iv|level|dex>]`,
@@ -42,14 +46,18 @@ module.exports = {
       command: `${config.prefix}cokemon --shiny --nofav`,
     },
   ],
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const validSorts = ["recent", "iv", "level", "dex"];
-    let sortBy = validSorts[0]; // sort by most recent by default
+    let sortBy = validSorts[0]; 
 
     const orderIndex = args.findIndex((arg) => arg.toLowerCase() === "--sort");
     if (orderIndex !== -1 && args[orderIndex + 1]) {
       sortBy = args[orderIndex + 1].toLowerCase();
-      // Remove --sort and its value from the arguments array
+      
       args.splice(orderIndex, 2);
     }
 
@@ -153,5 +161,7 @@ module.exports = {
       totalPages,
       `${config.prefix}cokemon`,
     );
-  },
-};
+    }
+}
+
+module.exports = new CokemonCommand();

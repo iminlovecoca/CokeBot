@@ -1,14 +1,22 @@
 const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 
-module.exports = {
-	name: 'bait',
-	aliases: ['ba'],
-	description: 'Ném mồi dụ cokemon. Giảm tỉ lệ bỏ chạy nhưng cũng giảm tỉ lệ bắt.',
-	usage: `${config.prefix}bait`,
-	examples: [
-		{ intent: 'Ném mồi dụ Cokemon', command: `${config.prefix}bait` }
-	],
+const BaseCommand = require('../../core/BaseCommand')
+
+class BaitCommand extends BaseCommand {
+	constructor() {
+		super({
+			name: 'bait',
+			aliases: ['ba'],
+			description: 'Ném mồi dụ cokemon. Giảm tỉ lệ bỏ chạy nhưng cũng giảm tỉ lệ bắt.',
+			usage: `${config.prefix}bait`,
+			examples: [
+				{ intent: 'Ném mồi dụ Cokemon', command: `${config.prefix}bait` }
+			],
+			cooldown: 0
+		});
+	}
+
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {
@@ -41,3 +49,5 @@ module.exports = {
 		}
 	}
 }
+
+module.exports = new BaitCommand();

@@ -25,7 +25,7 @@ class SellCommand extends BaseCommand {
 
   async execute(message, args) {
     const itemId = args[0];
-    let quantity = 1; // Default quantity is 1
+    let quantity = 1; 
 
     if (!itemId) {
       throw new UserFriendlyError(

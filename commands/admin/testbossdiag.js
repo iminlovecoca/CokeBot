@@ -4,10 +4,18 @@ const { AttachmentBuilder, EmbedBuilder } = require("discord.js");
 const { isDev } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class TestbossdiagCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "testbossdiag",
   description: "Kiểm thử hiệu ứng hội thoại của Boss Chương 6",
   usage: `${config.prefix}testbossdiag`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
@@ -75,5 +83,7 @@ module.exports = {
     setTimeout(() => {
       playDialogue(0);
     }, 1500);
-  }
-};
+    }
+}
+
+module.exports = new TestbossdiagCommand();

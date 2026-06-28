@@ -9,12 +9,20 @@ const {
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddCokemonCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addcokemon",
   description: "Tặng một cokemon cụ thể cho người dùng.",
   usage: `${config.prefix}addcokemon <@user> <tên_cokemon|random> [level|số_lượng] [--shiny]`,
   examples: `${config.prefix}addcokemon @user Snorlax 25 --shiny\n${config.prefix}addcokemon @user random 100`,
   hidden: true,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       return message.reply(
@@ -79,5 +87,7 @@ module.exports = {
         `${config.emoji.yes} Đã tặng thành công một **${cokemon.name}**${shinyText} (Cấp ${level}) cho **${targetUser.username}**.`,
       );
     }
-  },
-};
+    }
+}
+
+module.exports = new AddCokemonCommand();

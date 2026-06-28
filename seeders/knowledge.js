@@ -9,7 +9,7 @@ const path = require('path')
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 const embedModel = genAI.getGenerativeModel({ model: config.ai.embedding_model })
 
-// Vectorize text and save to DB
+
 const vectorizeAndSave = async (text, metadata) => {
     try {
         const result = await embedModel.embedContent({
@@ -36,7 +36,7 @@ const seedKnowledge = async () => {
         console.log('Seeding metadata...')
         await Knowledge.create({
             content: '__METADATA__',
-            embedding: new Array(config.ai.embedding_dimensions).fill(0), // dummy vector
+            embedding: new Array(config.ai.embedding_dimensions).fill(0), 
             metadata: {
                 source_id: 'metadata',
                 model_used: config.ai.embedding_model,

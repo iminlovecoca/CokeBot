@@ -59,15 +59,23 @@ const formatConditions = (client, conditions) => {
     return parts.join(', ')
 }
 
-module.exports = {
-    name: 'dex',
-    aliases: ['d'],
-    description: 'Hiển thị Cokedex của bạn.',
-    usage: `${config.prefix}dex [tên cokemon]`,
-    examples: [
-        { intent: 'Xem danh sách Cokedex tổng quát', command: `${config.prefix}dex` },
-        { intent: 'Xem thông tin chi tiết của một loài (ví dụ: Bulbasaur)', command: `${config.prefix}dex bulbasaur` }
-    ],
+const BaseCommand = require('../../core/BaseCommand');
+
+class DexCommand extends BaseCommand {
+    constructor() {
+        super({
+            name: 'dex',
+            aliases: ['d'],
+            description: 'Hiển thị Cokedex của bạn.',
+            usage: `${config.prefix}dex [tên cokemon]`,
+            examples: [
+                { intent: 'Xem danh sách Cokedex tổng quát', command: `${config.prefix}dex` },
+                { intent: 'Xem thông tin chi tiết của một loài (ví dụ: Bulbasaur)', command: `${config.prefix}dex bulbasaur` }
+            ],
+            cooldown: 0
+        });
+    }
+
     async execute(message, args) {
         const allSpecies = message.client.allSpecies
         if (!allSpecies || allSpecies.length === 0) {
@@ -99,7 +107,7 @@ module.exports = {
                     .setImage(`attachment://${imageFile}`)
                     .setFooter({ text: footerText })
 
-                // Evolution line
+                
                 let baseForm = species
                 while (baseForm.preevolution_species_id) {
                     baseForm = allSpecies.find(s => s._id.equals(baseForm.preevolution_species_id))
@@ -147,7 +155,7 @@ module.exports = {
                     embed.addFields({ name: 'Chuỗi Tiến Hóa', value: evoLineParts.join('\n') })
                 }
 
-                // Other info
+                
                 const types = species.type.map(t => `${config.type_emojis[t]} ${getTypeText(t)}`)
                 const genders = species.available_genders.map(g => `${getGenderEmojiByText(g)} ${getGenderText(g)}`)
                 const abilities = species.available_abilities.map(abilityData => {
@@ -190,7 +198,7 @@ module.exports = {
                 const entry = userDex.get(species._id.toString())
 
                 if (entry && entry.owned) {
-                    // user has caught this species
+                    
                     return {
                         isCaught: true,
                         dex_id: species.dex_id,
@@ -199,12 +207,12 @@ module.exports = {
                         count: entry.caught
                     }
                 } else {
-                    // user hasn't caught this species
+                    
                     return {
                         isCaught: false,
                         dex_id: species.dex_id,
-                        // emoji: '❓',
-                        // name: '?????',
+                        
+                        
                         emoji: species.emoji,
                         name: species.name,
                         count: 0
@@ -236,3 +244,5 @@ module.exports = {
         }
     }
 }
+
+module.exports = new DexCommand();

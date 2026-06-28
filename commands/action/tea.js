@@ -17,7 +17,7 @@ class TeaCommand extends BaseCommand {
         { intent: 'Tự thưởng trà cho mình', command: `${config.prefix}tea` },
         { intent: 'Thưởng trà cho người khác', command: `${config.prefix}tea @PlayerName` }
       ],
-      cooldown: 0 // handled manually to allow owner bypass
+      cooldown: 0 
     });
   }
 

@@ -3,7 +3,11 @@ const { getCokemon, getActiveCokemon } = require('../../utils/userUtil')
 const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class InteractCommand extends BaseCommand {
+  constructor() {
+    super({
 	name: 'interact',
 	aliases: ['int'],
 	description: 'Tương tác với Cokemon của bạn.',
@@ -15,7 +19,11 @@ module.exports = {
 		{ intent: 'Lấy lại vật phẩm Cokemon đang giữ', command: `${config.prefix}interact take 12` },
 		{ intent: 'Âu yếm (cuddle) để tăng tình bạn', command: `${config.prefix}interact cuddle` }
 	],
-	async execute(message, args) {
+	      cooldown: 0
+    });
+  }
+
+  async execute(message, args) {
 		const action = args[0]?.toLowerCase()
 		if (!action) {
 			throw new UserFriendlyError(`${config.emoji.no} Bạn phải chỉ định một hành động (ví dụ: \`give\`, \`take\`, \`cuddle\`).`)
@@ -58,5 +66,7 @@ module.exports = {
 				throw new UserFriendlyError(`${config.emoji.no} Hành động không hợp lệ. Hãy thử \`nickname\`, \`rm_nickname\`, \`give\`, \`take\`, hoặc \`cuddle\`.`)
 		}
 		await message.reply(resultMessage)
-	}
+	  }
 }
+
+module.exports = new InteractCommand();

@@ -26,7 +26,7 @@ class EnhanceCommand extends BaseCommand {
   async execute(message, args) {
     const { user } = await requireRpgCharacter(message.author.id);
 
-    // Parse weapon ID or default to equipped weapon
+    
     const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
     let itemId = Number(cleanArg);
 
@@ -40,7 +40,7 @@ class EnhanceCommand extends BaseCommand {
       itemId = equipped.weapon;
     }
 
-    // Find the item in user's inventory
+    
     const items = user.rpg.items || [];
     const itemIndex = items.findIndex((it) => it.id === itemId);
     if (itemIndex === -1) {
@@ -66,10 +66,10 @@ class EnhanceCommand extends BaseCommand {
     let stoneQty = 0;
 
     if (isDungeon) {
-      // Dungeon Weapon upgrade: max +10
-      // Cost: 20k to 450k Coke (linear/progressive: 20000 + currentLvl * 47777)
+      
+      
       cokeCost = Math.floor(20000 + currentLvl * 47777);
-      // Stones: Cristal Smithing Stone [1] to [8] (cristal-1 to cristal-8) + cristal-9 for +10
+      
       if (nextLvl === 10) {
         stoneId = "cristal-9";
         stoneQty = 1;
@@ -79,10 +79,10 @@ class EnhanceCommand extends BaseCommand {
         stoneQty = 1;
       }
     } else {
-      // Normal Weapon upgrade: max +25
-      // Cost: 10k to 200k Coke (linear/progressive: 10000 + currentLvl * 7916)
+      
+      
       cokeCost = Math.floor(10000 + currentLvl * 7916);
-      // Stones: Smithing Stone [1] to [8] (somber-1 to somber-8) + somber-9 for +25
+      
       if (nextLvl === 25) {
         stoneId = "somber-9";
         stoneQty = 1;
@@ -93,14 +93,14 @@ class EnhanceCommand extends BaseCommand {
       }
     }
 
-    // Validate Coke
+    
     if (user.coke < cokeCost) {
       return message.reply(
         `${config.emoji.no} Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${user.coke.toLocaleString()}** ${config.emoji.money}.`
       );
     }
 
-    // Validate Stones
+    
     if (!user.inventory) {
       user.inventory = new Map();
     }
@@ -115,7 +115,7 @@ class EnhanceCommand extends BaseCommand {
       );
     }
 
-    // Confirmation Buttons
+    
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("confirm_enhance")
@@ -151,7 +151,7 @@ class EnhanceCommand extends BaseCommand {
       });
 
       if (interaction.customId === "confirm_enhance") {
-        // Reload data to ensure consistency and avoid duplication/race condition
+        
         const { getUser } = require("../../utils/userUtil");
         const freshUser = await getUser(message.author.id);
 
@@ -204,7 +204,7 @@ class EnhanceCommand extends BaseCommand {
           });
         }
 
-        // Process Upgrade
+        
         freshUser.coke -= cokeCost;
         const newQty = freshUserStoneQty - stoneQty;
         if (newQty === 0) {
@@ -214,16 +214,16 @@ class EnhanceCommand extends BaseCommand {
         }
         freshUser.markModified("inventory");
 
-        // Update item upgradeLevel and name
+        
         freshItem.upgradeLevel = nextLvl;
         freshItem.name = getGearDisplayName(freshItem);
         freshUser.markModified("rpg");
 
-        // Recalculate power
+        
         freshUser.rpg.power = calculateRpgPower(freshUser);
         await freshUser.save();
 
-        // Response Embed
+        
         const successEmbed = new EmbedBuilder()
           .setColor("#FFD700")
           .setTitle("✨ CƯỜNG HÓA VŨ KHÍ THÀNH CÔNG! ✨")

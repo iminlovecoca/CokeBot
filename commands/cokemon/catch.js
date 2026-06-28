@@ -3,14 +3,22 @@ const { getGenderEmoji } = require('../../utils/cokemonUtil')
 const config = require('../../data/config')
 const { UserFriendlyError } = require('../../utils/errors')
 
-module.exports = {
-	name: 'catch',
-	aliases: ['c'],
-	description: 'Thử bắt cokemon.',
-	usage: `${config.prefix}catch`,
-	examples: [
-		{ intent: 'Bắt Cokemon đang xuất hiện', command: `${config.prefix}catch` }
-	],
+const BaseCommand = require('../../core/BaseCommand')
+
+class CatchCommand extends BaseCommand {
+	constructor() {
+		super({
+			name: 'catch',
+			aliases: ['c'],
+			description: 'Thử bắt cokemon.',
+			usage: `${config.prefix}catch`,
+			examples: [
+				{ intent: 'Bắt Cokemon đang xuất hiện', command: `${config.prefix}catch` }
+			],
+			cooldown: 0
+		});
+	}
+
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {
@@ -87,3 +95,5 @@ module.exports = {
 		}
 	}
 }
+
+module.exports = new CatchCommand();

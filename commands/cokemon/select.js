@@ -5,7 +5,11 @@ const {
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SelectCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "select",
   aliases: ["active"],
   description:
@@ -18,6 +22,10 @@ module.exports = {
       command: `${config.prefix}select 27`,
     },
   ],
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (args.length === 0) {
       const activeCokemon = await getActiveCokemon(message.author.id);
@@ -44,5 +52,7 @@ module.exports = {
         `${config.emoji.yes} Bạn đã chọn **${cokemonName}** ${emoji} (ID: ${cokemonUid}) làm bạn đồng hành mới!`,
       );
     }
-  },
-};
+    }
+}
+
+module.exports = new SelectCommand();

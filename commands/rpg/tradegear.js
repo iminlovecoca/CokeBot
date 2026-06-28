@@ -81,10 +81,10 @@ class TradegearCommand extends BaseCommand {
       );
     }
 
-    // Load sender details
+    
     const { user: senderUser, rpgClass: senderClass } = await requireRpgCharacter(senderId);
 
-    // Find the item
+    
     const senderItem = findRpgItem(senderUser, itemId);
     if (!senderItem) {
       return message.reply(`${config.emoji.no} Bạn không sở hữu trang bị RPG có ID \`${itemId}\`.`);
@@ -94,7 +94,7 @@ class TradegearCommand extends BaseCommand {
       return message.reply(`${config.emoji.no} Trang bị từ God Set không thể giao dịch!`);
     }
 
-    // Check if equipped
+    
     const isEquipped = Object.values(senderUser.rpg.equipped || {}).includes(senderItem.id);
     if (isEquipped) {
       return message.reply(
@@ -102,7 +102,7 @@ class TradegearCommand extends BaseCommand {
       );
     }
 
-    // Load receiver details
+    
     const receiverId = targetUserMention.id;
     let receiverUser;
     try {
@@ -114,8 +114,8 @@ class TradegearCommand extends BaseCommand {
       );
     }
 
-    // Check unique ID: "những ng có cùng id sẽ cũng có cùng vũ khí với nhau và không thể trade được"
-    // senderItem.uid is guaranteed to exist because of our legacy handler in getRpgItems
+    
+    
     const hasSameUid = receiverUser.rpg.items.some(
       (item) => item.uid && item.uid === senderItem.uid,
     );
@@ -125,7 +125,7 @@ class TradegearCommand extends BaseCommand {
       );
     }
 
-    // Build confirm buttons
+    
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("trade_confirm")
@@ -183,11 +183,11 @@ class TradegearCommand extends BaseCommand {
       if (interaction.customId === "trade_confirm") {
         collector.stop("confirmed");
 
-        // Reload data to ensure consistency and avoid race conditions
+        
         const freshSender = await getUser(senderId);
         const freshReceiver = await getUser(receiverId);
 
-        // Re-run ownership check
+        
         const freshItem = findRpgItem(freshSender, itemId);
         if (!freshItem) {
           return interaction.update({
@@ -206,7 +206,7 @@ class TradegearCommand extends BaseCommand {
           });
         }
 
-        // Re-run same UID check
+        
         const freshHasSameUid = freshReceiver.rpg.items.some(
           (item) => item.uid && item.uid === freshItem.uid,
         );
@@ -218,12 +218,12 @@ class TradegearCommand extends BaseCommand {
           });
         }
 
-        // Perform trade
-        // Remove from sender
+        
+        
         freshSender.rpg.items = freshSender.rpg.items.filter((item) => item.id !== freshItem.id);
         freshSender.rpg.power = calculateRpgPower(freshSender);
 
-        // Add to receiver
+        
         const transferredItem = {
           ...freshItem,
         };
@@ -231,7 +231,7 @@ class TradegearCommand extends BaseCommand {
         freshReceiver.rpg.items.push(transferredItem);
         freshReceiver.rpg.power = calculateRpgPower(freshReceiver);
 
-        // Save modifications
+        
         freshSender.markModified("rpg");
         freshReceiver.markModified("rpg");
 

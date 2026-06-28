@@ -3,7 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const TEMP_DIR = path.join(__dirname, '../temp')
 
-// Merges a cokemon image onto a background image
+
 const compositeImages = async (backgroundPath, cokemonPath) => {
     try {
         const background = await loadImage(backgroundPath)

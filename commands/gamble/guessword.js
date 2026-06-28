@@ -15,7 +15,7 @@ class GuessWordCommand extends BaseCommand {
       examples: [
         { intent: 'Chơi ghép chữ', command: `${config.prefix}gw` }
       ],
-      cooldown: 0 // handled manually on channelId
+      cooldown: 0 
     });
   }
 

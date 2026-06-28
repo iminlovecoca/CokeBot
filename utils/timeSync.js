@@ -13,7 +13,7 @@ async function syncTimeDrift() {
     
     const serverTime = new Date(serverTimeStr).getTime();
     
-    // Estimate network latency (half of round trip time)
+    
     const latency = (endTime - startTime) / 2;
     const estimatedServerTime = serverTime + latency;
     

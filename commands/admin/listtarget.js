@@ -2,11 +2,19 @@ const { EmbedBuilder } = require("discord.js");
 const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class ListtargetCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "listtarget",
   aliases: ["listtargets", "eventtargets", "targetlist"],
   description: "Xem danh sách các mã loại yêu cầu (targets) có thể sử dụng khi tạo sự kiện (Chỉ Admin)",
   usage: `${config.prefix}listtarget`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args = []) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
       return message.reply("❌ Bạn không có quyền sử dụng lệnh này!");
@@ -48,5 +56,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new ListtargetCommand();

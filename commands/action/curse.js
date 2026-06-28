@@ -15,7 +15,7 @@ class CurseCommand extends BaseCommand {
         { intent: 'Tự nguyền rủa mình', command: `${config.prefix}curse` },
         { intent: 'Nguyền rủa người khác', command: `${config.prefix}curse @PlayerName` }
       ],
-      cooldown: 0 // Handled manually for detailed message
+      cooldown: 0 
     });
   }
 

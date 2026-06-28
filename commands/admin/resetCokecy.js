@@ -8,9 +8,17 @@ const User = require("../../models/User");
 
 const ALLOWED_IDS = [process.env.OWNER_ID];
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class ResetCokecyCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "resetcoke",
   description: "Reset coke về 0 cho 1 người hoặc tất cả",
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const authorId = message.author.id;
     if (!ALLOWED_IDS.includes(authorId)) {
@@ -125,5 +133,7 @@ module.exports = {
         });
       }
     });
-  },
-};
+    }
+}
+
+module.exports = new ResetCokecyCommand();

@@ -19,7 +19,7 @@ class SkinCommand extends BaseCommand {
   }
 
   async execute(message) {
-    // Ensure the user has an RPG character
+    
     await requireRpgCharacter(message.author.id);
 
     const user = await getUser(message.author.id);
@@ -40,7 +40,7 @@ class SkinCommand extends BaseCommand {
       return message.reply(`❌ Hiện tại class **${className}** chưa có skin nào trong cửa hàng!`);
     }
 
-    // Function to generate the main shop embed and components
+    
     const buildMainShop = (currentUser) => {
       const embed = new EmbedBuilder()
         .setColor(rpgClass.color || "#FFD700")
@@ -106,7 +106,7 @@ class SkinCommand extends BaseCommand {
 
     const collector = shopMsg.createMessageComponentCollector({
       filter: (interaction) => interaction.user.id === message.author.id,
-      time: 180000, // 3 minutes
+      time: 180000, 
     });
 
     let selectedFile = null;
@@ -182,7 +182,7 @@ class SkinCommand extends BaseCommand {
           return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
         }
 
-        // Process transaction
+        
         u.coke -= price;
         if (!u.rpg.ownedSkins) {
           u.rpg.ownedSkins = [];
@@ -203,7 +203,7 @@ class SkinCommand extends BaseCommand {
           )
           .setTimestamp();
 
-        // Update the button row to show disabled "Đã sở hữu"
+        
         const btnRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("skin_shop_buy")
@@ -225,7 +225,7 @@ class SkinCommand extends BaseCommand {
     });
 
     collector.on("end", async () => {
-      // Disable select menu or components when time expires
+      
       const disabledRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId("skin_shop_disabled")

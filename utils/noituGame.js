@@ -314,7 +314,7 @@ function setGameState(client, guildId, state) {
 
   client.noituGames.set(guildId, state);
 
-  // Persist state to MongoDB asynchronously in the background
+  
   NoituGuild.updateOne(
     { guildId },
     {
@@ -340,7 +340,7 @@ function clearGameState(client, guildId) {
     client.noituGames.delete(guildId);
   }
 
-  // Clear state in MongoDB asynchronously in the background
+  
   NoituGuild.updateOne(
     { guildId },
     {

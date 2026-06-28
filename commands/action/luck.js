@@ -15,7 +15,7 @@ class PrayCommand extends BaseCommand {
         { intent: 'Cầu may cho chính mình', command: `${config.prefix}pray` },
         { intent: 'Cầu may cho người khác', command: `${config.prefix}pray @PlayerName` }
       ],
-      cooldown: 0 // handled manually for custom response
+      cooldown: 0 
     });
   }
 

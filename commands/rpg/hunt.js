@@ -73,7 +73,7 @@ class HuntCommand extends BaseCommand {
 
     await user.save();
 
-    // Quest triggers
+    
     const { updateQuestProgress } = require("../../utils/questUtil");
     await updateQuestProgress(message.author.id, "exp_gain", expGain, message.channel);
     if (droppedItem) {

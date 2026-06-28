@@ -92,13 +92,13 @@ const getDungeonWeaponKey = (subType) => {
   if (!subType) return null;
   const subNameClean = String(subType).toLowerCase().replace(/\s+/g, "");
   
-  // 1. Check English keys and names
+  
   const found = dungeonWeapons.find(dw => 
     dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean
   );
   if (found) return found.key;
 
-  // 2. Check default boss reward
+  
   const dCfg = config.dungeon || {};
   if (dCfg.default_boss?.first_clear_reward?.name) {
     const defaultName = dCfg.default_boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
@@ -107,7 +107,7 @@ const getDungeonWeaponKey = (subType) => {
     }
   }
   
-  // Check all chapters boss rewards
+  
   if (dCfg.chapters) {
     for (const ch of Object.values(dCfg.chapters)) {
       if (ch.boss?.first_clear_reward?.name) {
@@ -335,7 +335,7 @@ const getWeaponScalingStats = (subType) => {
     name = dungKey;
   }
 
-  // Special named weapons
+  
   if (name.includes("duskanddawn") || name.includes("dusk and dawn") || name.includes("dusk")) {
     return { prim: "int", sec: "dex" };
   }
@@ -377,7 +377,7 @@ const getWeaponScaling = (item) => {
     return { str: "-", dex: "S", int: "A", arc: "S" };
   }
 
-  // Hex weapons hardcoded scaling
+  
   if (subType.includes("axesnake")) {
     return { str: "S", dex: "-", int: "-", arc: "-" };
   }
@@ -552,7 +552,7 @@ const getEffectiveRpgStats = (user) => {
     }
   }
 
-  // Cap effective stats at 99
+  
   for (const stat of Object.keys(stats)) {
     stats[stat] = Math.min(99, stats[stat]);
   }
@@ -751,7 +751,7 @@ const generateGearStats = (slot, rarity, quality, subType = "") => {
     }
     randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"].filter(s => s !== fixedStat);
   } else {
-    // Weapons or other slots: pick 2 random stats from pool
+    
     const pool = ["str", "int", "dex", "arc", "vigor"];
     const picked = pickUnique(pool, 2);
     const stats = {};
@@ -760,8 +760,8 @@ const generateGearStats = (slot, rarity, quality, subType = "") => {
     return stats;
   }
 
-  // Use quality as a deterministic seed so the same item always gets the same random stat.
-  // quality is a float like 69.9 → multiply by 1000 to get an integer seed.
+  
+  
   const qualitySeed = Math.round((typeof quality === "number" ? quality : 50) * 1000);
   const randomIndex = qualitySeed % randomPool.length;
   const randomStat = randomPool[randomIndex] || "vigor";
@@ -890,7 +890,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   const level = 1;
 
-  // Power config bump for Dungeon Weapons: quality and power is 1 tier higher
+  
   let powerRarityConfig = rarityConfig;
   if (isDungeon) {
     const getNextRarity = (rar) => {
@@ -1072,21 +1072,21 @@ const revokeRpgGodset = async (userId, client) => {
 
   const backup = user.rpg.godsetBackup;
 
-  // Restore stats and level
+  
   user.rpg.level = backup.level || 1;
   user.rpg.exp = backup.exp || 0;
   user.rpg.rank = backup.rank || "Novice";
   user.rpg.stats = backup.stats ? { ...backup.stats } : {};
   user.rpg.equipped = backup.equipped ? { ...backup.equipped } : {};
 
-  // Remove godset items from user's inventory
+  
   user.rpg.items = (user.rpg.items || []).filter(item => !item.isGodset);
   user.rpg.isGodMode = false;
 
-  // Recalculate power
+  
   user.rpg.power = calculateRpgPower(user);
 
-  // Remove backup
+  
   user.rpg.godsetBackup = undefined;
   user.markModified("rpg");
   await user.save();
@@ -1121,9 +1121,9 @@ const getBossForPower = (power) => {
 const getItemQuality = (item) => {
   if (!item) return 0;
   if (typeof item.quality === "number") return item.quality;
-  // Fallback to deterministic quality based on item ID/UID
+  
   const seed = item.id || 1;
-  const pseudoRandom = (Math.sin(seed) + 1) / 2; // 0 to 1
+  const pseudoRandom = (Math.sin(seed) + 1) / 2; 
   return Math.floor((10 + pseudoRandom * 90) * 10) / 10;
 };
 

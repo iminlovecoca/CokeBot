@@ -14,9 +14,17 @@ function getRankEmoji(level) {
   return "<:Common:1390024512774471902>";
 }
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddXPCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addxp",
   description: "Thêm XP cho 1 người chơi (admin only)",
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!message.member.permissions.has("Administrator")) {
       return message.reply("❌ | Bạn không có quyền dùng lệnh này.");
@@ -80,5 +88,7 @@ module.exports = {
     }
 
     return message.channel.send(msg);
-  },
-};
+    }
+}
+
+module.exports = new AddXPCommand();

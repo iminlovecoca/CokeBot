@@ -3,11 +3,19 @@ const User = require("../../models/User");
 const config = require("../../data/config");
 const { isDungeonWeapon, getGearDisplayName, calculateRpgPower } = require("../../utils/rpgUtil");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SetupgradeCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "setupgrade",
   aliases: ["setupg", "setenhance", "seteh"],
   description: "Đặt cấp cường hóa cho vũ khí của người chơi (Chỉ Admin/Dev)",
   usage: `${config.prefix}setupgrade @user <cấp độ> [ID vũ khí]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -43,7 +51,7 @@ module.exports = {
     if (args[2] && !isNaN(args[2])) {
       itemId = parseInt(args[2], 10);
     } else {
-      // Default to equipped weapon
+      
       itemId = dbUser.rpg.equipped?.weapon;
       if (!itemId) {
         return message.reply(`❌ Người dùng <@${mention.id}> hiện không mặc vũ khí nào. Vui lòng nhập ID vũ khí cụ thể.`);
@@ -73,7 +81,7 @@ module.exports = {
     item.name = getGearDisplayName(item);
     dbUser.markModified("rpg");
 
-    // Recalculate power
+    
     dbUser.rpg.power = calculateRpgPower(dbUser);
     await dbUser.save();
 
@@ -89,5 +97,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new SetupgradeCommand();

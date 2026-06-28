@@ -57,7 +57,7 @@ class StatCommand extends BaseCommand {
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
 
-    // Compute stats
+    
     const startingStats = getStartingStats(user);
     const stats = {};
     for (const key of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
@@ -66,7 +66,7 @@ class StatCommand extends BaseCommand {
     const level = user.rpg.level || 1;
     let available = getAvailablePoints(user);
 
-    // Check if arguments were passed
+    
     if (args[0]) {
       const inputStat = args[0].toLowerCase();
       const targetStat = statMap[inputStat];
@@ -107,7 +107,7 @@ class StatCommand extends BaseCommand {
         );
       }
 
-      // Perform allocation
+      
       user.rpg.stats = {
         ...stats,
         [targetStat]: currentVal + amount
@@ -122,7 +122,7 @@ class StatCommand extends BaseCommand {
       );
     }
 
-    // Interactive menu flow
+    
     let selectedStat = "vigor";
 
     const buildEmbed = (availablePoints, currentStats) => {
@@ -213,11 +213,11 @@ class StatCommand extends BaseCommand {
 
     const collector = sentMessage.createMessageComponentCollector({
       filter: (interaction) => interaction.user.id === message.author.id,
-      time: 180000, // 3 minutes
+      time: 180000, 
     });
 
     collector.on("collect", async (interaction) => {
-      // Refresh user to avoid race conditions
+      
       const refreshedUser = await getUser(message.author.id);
       const starting = getStartingStats(refreshedUser);
       let currStats = {};

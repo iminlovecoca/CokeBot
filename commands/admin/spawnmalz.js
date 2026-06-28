@@ -3,11 +3,19 @@ const { isDev, isAdmin } = require("../../utils/userUtil");
 const config = require("../../data/config");
 const { spawnRandomBoss } = require("../../features/rpgBossSpawner");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class SpawnmalzCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "spawnmalz",
   aliases: ["forcemalz", "smalz"],
   description: "Triệu hồi boss Malzareth có cờ Cõi Linh Hồn hoạt động (chỉ Admin/Dev).",
   usage: `${config.prefix}spawnmalz [#channel|channelId]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -41,7 +49,7 @@ module.exports = {
       );
     }
 
-    // Spawn boss with allowSoulRealm: true
+    
     const activeBoss = await spawnRandomBoss(message.client, {
       channelId: targetChannel.id,
       bossKey: "boss_XI",
@@ -58,5 +66,7 @@ module.exports = {
     return message.reply(
       `👻 Boss **${activeBoss.boss.name}** đã được triệu hồi tại <#${targetChannel.id}> với tính năng **Cõi Linh Hồn** được bật!`,
     );
-  },
-};
+    }
+}
+
+module.exports = new SpawnmalzCommand();

@@ -14,11 +14,11 @@ const initializeGodsetExpirations = async (client) => {
       const remainingMs = expiresAt - Date.now();
 
       if (remainingMs <= 0) {
-        // Expired while bot was offline
+        
         console.log(`Revoking expired godset for offline user ${u.userId}`);
         await revokeRpgGodset(u.userId, client);
       } else {
-        // Schedule revocation
+        
         console.log(`Scheduling godset revocation for ${u.userId} in ${remainingMs}ms`);
         setTimeout(async () => {
           await revokeRpgGodset(u.userId, client);

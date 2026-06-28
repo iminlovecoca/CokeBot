@@ -17,7 +17,7 @@ const initializeAutohuntReminders = async (client) => {
       const remainingMs = durationMs - elapsedMs;
 
       if (remainingMs <= 0) {
-        // Already finished while bot was offline: Send DM immediately
+        
         try {
           const discordUser = await client.users.fetch(u.userId).catch(() => null);
           if (discordUser) {
@@ -40,7 +40,7 @@ const initializeAutohuntReminders = async (client) => {
           await u.save();
         }
       } else {
-        // Schedule reminder for the remaining duration
+        
         setTimeout(async () => {
           try {
             const refreshed = await User.findOne({ userId: u.userId });

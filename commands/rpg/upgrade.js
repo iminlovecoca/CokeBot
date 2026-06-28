@@ -3,7 +3,7 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { requireRpgCharacter } = require("../../utils/rpgUtil");
 
-// Owo Bot Autohunt traits configuration
+
 const traits = {
   efficiency: { inc: 10, pow: 1.748, base: 25, upg: 1, max: 215, prefix: "/H" },
   duration: { inc: 10, pow: 1.7, base: 0.5, upg: 0.1, max: 235, prefix: "H" },
@@ -108,7 +108,7 @@ class UpgradeCommand extends BaseCommand {
   async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
 
-    // Initialize/migrate autohunt state if not present
+    
     if (!user.rpg.autohunt) {
       user.rpg.autohunt = {
         isActive: false,

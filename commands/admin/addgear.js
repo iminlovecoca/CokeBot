@@ -3,16 +3,16 @@ const User = require("../../models/User");
 const config = require("../../data/config");
 const { addRpgGearToUser, generateRpgGearDrop } = require("../../utils/rpgUtil");
 
-// Define mapping tables for English and Vietnamese inputs
+
 const slotMap = {
-  // English
+  
   "weapon": "weapon", "w": "weapon",
   "armor": "armor", "a": "armor",
   "helmet": "helmet", "h": "helmet",
   "boots": "boots", "b": "boots",
   "ring": "ring", "r": "ring",
   "necklace": "necklace", "n": "necklace",
-  // Vietnamese
+  
   "vukhi": "weapon", "vũ khí": "weapon",
   "giap": "armor", "giáp": "armor",
   "mu": "helmet", "mũ": "helmet",
@@ -22,7 +22,7 @@ const slotMap = {
 };
 
 const rarityMap = {
-  // English
+  
   "common": "Common", "c": "Common",
   "rare": "Rare", "r": "Rare",
   "epic": "Epic", "e": "Epic",
@@ -30,7 +30,7 @@ const rarityMap = {
   "mythic": "Mythic", "m": "Mythic",
   "ancient": "Ancient", "a": "Ancient",
   "divine": "Divine", "d": "Divine",
-  // Vietnamese
+  
   "thuong": "Common", "thường": "Common",
   "hiem": "Rare", "hiếm": "Rare",
   "suthi": "Epic", "sử thi": "Epic",
@@ -60,11 +60,19 @@ const rarityColor = {
   Divine: "#FFFFFF",
 };
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddgearCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addgear",
   aliases: ["givegear"],
   description: "Thêm trang bị RPG với slot, cấp bậc (rarity) và cấp độ (level) tùy chọn cho người chơi (Chỉ Dev/Owner)",
   usage: `${config.prefix}addgear @user <slot> <rarity> <level> [số lượng] [cấp cường hóa] [subtype]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -130,7 +138,7 @@ module.exports = {
 
     const dbUser = await User.findOne({ userId: mention.id }) || await User.create({ userId: mention.id });
 
-    // Check if target user has chosen an RPG class
+    
     if (!dbUser.rpg || !dbUser.rpg.classKey) {
       return message.reply(`❌ Người dùng <@${mention.id}> chưa chọn Class RPG (chưa tạo nhân vật).`);
     }
@@ -150,7 +158,7 @@ module.exports = {
       if (gear) {
         addRpgGearToUser(dbUser, gear);
         addedGears.push(gear);
-        // Prevent duplicate IDs inside loop
+        
         dbUser.rpg.lastItemId = Math.max(dbUser.rpg.lastItemId || 0, gear.id);
       }
     }
@@ -175,5 +183,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new AddgearCommand();

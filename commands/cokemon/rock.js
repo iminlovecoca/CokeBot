@@ -2,14 +2,22 @@ const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 const MULTIPLIER = 1.5
 
-module.exports = {
-	name: 'rock',
-	aliases: ['r'],
-	description: 'Ném đá vào cokemon. Tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ nó bỏ chạy.',
-	usage: `${config.prefix}rock`,
-	examples: [
-		{ intent: 'Ném đá vào Cokemon', command: `${config.prefix}rock` }
-	],
+const BaseCommand = require('../../core/BaseCommand')
+
+class RockCommand extends BaseCommand {
+	constructor() {
+		super({
+			name: 'rock',
+			aliases: ['r'],
+			description: 'Ném đá vào cokemon. Tăng tỉ lệ bắt nhưng cũng tăng tỉ lệ nó bỏ chạy.',
+			usage: `${config.prefix}rock`,
+			examples: [
+				{ intent: 'Ném đá vào Cokemon', command: `${config.prefix}rock` }
+			],
+			cooldown: 0
+		});
+	}
+
 	async execute(message) {
 		try {
 			if (message.client.actionLocks.has(message.author.id)) {
@@ -42,3 +50,5 @@ module.exports = {
 		}
 	}
 }
+
+module.exports = new RockCommand();

@@ -69,7 +69,7 @@ const buildCokemonQuery = async (args) => {
             continue
         }
 
-        // Handle flags with values
+        
         let operator = flag.slice(-1)
         let mongoOp = '$eq'
 
@@ -116,7 +116,7 @@ const buildCokemonQuery = async (args) => {
                 target.push(orClauses[0])
             }
         } else if (type === 'numeric') {
-            const numValue = parseFloat(valueParts[0]) // Numeric filters only take the first value
+            const numValue = parseFloat(valueParts[0]) 
             if (!isNaN(numValue)) {
                 target.push({ [field]: { [mongoOp]: numValue } })
             }

@@ -15,7 +15,11 @@ const { DateTime } = require("luxon");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class InfoCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "info",
   description: "Xem thông tin chi tiết của một cokemon bạn sở hữu.",
   usage: `${config.prefix}info <id>`,
@@ -25,6 +29,10 @@ module.exports = {
       command: `${config.prefix}info 12`,
     },
   ],
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     const cokemonUid = parseInt(args[0]);
     if (isNaN(cokemonUid)) {
@@ -92,5 +100,7 @@ module.exports = {
       embeds: [embed],
       files: [imagePath],
     });
-  },
-};
+    }
+}
+
+module.exports = new InfoCommand();

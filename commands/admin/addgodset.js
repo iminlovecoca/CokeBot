@@ -11,7 +11,7 @@ const {
   revokeRpgGodset,
 } = require("../../utils/rpgUtil");
 
-// Define weapon list for robust matching
+
 const dungeonWeapons = [
   { name: "Shadow Dagger", key: "shadowdagger" },
   { name: "Poison Dagger", key: "poisondagger" },
@@ -30,11 +30,19 @@ const dungeonWeapons = [
 ];
 const normalWeapons = ["Longsword", "Staff", "Dagger"];
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddgodsetCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addgodset",
   aliases: ["givegodset", "godset", "maxrpg"],
   description: "Cấp full set trang bị Divine +10 mạnh nhất và nâng cấp độ nhân vật lên 120 cho người chơi (Chỉ Dev/Owner)",
   usage: `${config.prefix}addgodset @user [tên vũ khí riêng (ví dụ: Shadow Dagger hoặc Fire Sword)] [số phút]`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -46,7 +54,7 @@ module.exports = {
       return message.reply(`❌ Cú pháp: \`${config.prefix}addgodset @user [tên vũ khí riêng] [số phút]\` hoặc \`${config.prefix}addgodset remove @user\``);
     }
 
-    // Check if it's a revoke command
+    
     const isRevoke = args.some(arg => ["remove", "revoke", "clear"].includes(arg.toLowerCase()));
     if (isRevoke) {
       const cleanArgs = args.filter(arg => !["remove", "revoke", "clear"].includes(arg.toLowerCase()));
@@ -75,13 +83,13 @@ module.exports = {
 
     let dbUser = await User.findOne({ userId: mention.id }) || await User.create({ userId: mention.id });
 
-    // Auto initialize character as Warrior if they don't have one
+    
     if (!hasRpgCharacter(dbUser)) {
       await selectRpgClass(mention.id, "warrior");
       dbUser = await User.findOne({ userId: mention.id });
     }
 
-    // Parse duration and check for god mode
+    
     let durationMinutes = null;
     let isGodMode = false;
     const remainingArgs = [];
@@ -98,14 +106,14 @@ module.exports = {
       }
     }
 
-    // Create or update godset backup
+    
     let expiresAt = null;
     if (durationMinutes !== null) {
       expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
     }
 
     if (dbUser.rpg.godsetBackup) {
-      // Clean up previous godset items
+      
       dbUser.rpg.items = dbUser.rpg.items.filter(item => !item.isGodset);
       dbUser.rpg.godsetBackup.expiresAt = expiresAt;
     } else {
@@ -120,7 +128,7 @@ module.exports = {
       };
     }
 
-    // 1. Upgrade player character level to 120 (Transcendent) and set all stats to 99 (Max base)
+    
     dbUser.rpg.level = 120;
     dbUser.rpg.exp = 0;
     dbUser.rpg.rank = "Transcendent";
@@ -135,20 +143,20 @@ module.exports = {
     };
     dbUser.rpg.isGodMode = isGodMode;
 
-    // 2. Parse and match weapon subtype
+    
     const inputWeapon = remainingArgs.join(" ").trim();
-    let weaponSubtype = isGodMode ? "God Sword" : "Holy Sword"; // default
+    let weaponSubtype = isGodMode ? "God Sword" : "Holy Sword"; 
 
     if (inputWeapon) {
       const cleanInput = inputWeapon.toLowerCase().replace(/\s+/g, "");
       
-      // Try exact match on key or name without spaces
+      
       let matched = dungeonWeapons.find(dw => 
         dw.key === cleanInput || 
         dw.name.toLowerCase().replace(/\s+/g, "") === cleanInput
       );
       
-      // If not matched, try partial match on dungeon weapons
+      
       if (!matched) {
         matched = dungeonWeapons.find(dw => 
           dw.name.toLowerCase().includes(inputWeapon.toLowerCase())
@@ -158,7 +166,7 @@ module.exports = {
       if (matched) {
         weaponSubtype = matched.name;
       } else {
-        // Try matching normal weapons
+        
         const matchedNormal = normalWeapons.find(nw => 
           nw.toLowerCase().replace(/\s+/g, "") === cleanInput ||
           nw.toLowerCase().includes(inputWeapon.toLowerCase())
@@ -166,13 +174,13 @@ module.exports = {
         if (matchedNormal) {
           weaponSubtype = matchedNormal;
         } else {
-          // If still not matched, use capitalized input
+          
           weaponSubtype = inputWeapon.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
         }
       }
     }
 
-    // 3. Generate and equip a full set of Divine gear (Weapon is +10)
+    
     const slots = ["weapon", "armor", "helmet", "boots", "ring", "necklace"];
     const rarity = "Divine";
     const level = 120;
@@ -187,27 +195,27 @@ module.exports = {
         slot,
         rarity,
         level,
-        upgradeLevel: isWeapon ? 10 : 0, // weapons get upgraded to +10
+        upgradeLevel: isWeapon ? 10 : 0, 
         subType: isWeapon ? weaponSubtype : null,
         fromAdmin: true,
       });
 
       if (gear) {
-        gear.isGodset = true; // MARK GEAR AS GODSET
+        gear.isGodset = true; 
         addRpgGearToUser(dbUser, gear);
         dbUser.rpg.equipped[slot] = gear.id;
         addedGears.push(gear);
-        // Prevent duplicate IDs inside loop
+        
         dbUser.rpg.lastItemId = Math.max(dbUser.rpg.lastItemId || 0, gear.id);
       }
     }
 
-    // Recalculate power
+    
     dbUser.rpg.power = calculateRpgPower(dbUser);
     dbUser.markModified("rpg");
     await dbUser.save();
 
-    // If duration is specified, set a timer to automatically revoke
+    
     if (durationMinutes !== null) {
       setTimeout(async () => {
         await revokeRpgGodset(mention.id, message.client);
@@ -231,5 +239,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new AddgodsetCommand();

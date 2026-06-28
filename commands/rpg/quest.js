@@ -25,12 +25,12 @@ class QuestCommand extends BaseCommand {
     const { user } = await requireRpgCharacter(message.author.id);
     const memberName = message.member?.displayName || message.author.username;
 
-    // Run daily reset logic
+    
     await checkAndResetDailyQuests(user);
 
     const subCommand = args[0]?.toLowerCase();
 
-    // 1. REROLL SUBCOMMAND
+    
     if (subCommand === "rr" || subCommand === "reroll") {
       const idxArg = parseInt(args[1]);
       if (isNaN(idxArg) || idxArg < 1 || idxArg > 3) {
@@ -65,7 +65,7 @@ class QuestCommand extends BaseCommand {
       );
     }
 
-    // 2. VIEW QUEST LOG
+    
     const activeQuests = user.rpg.quests.active || [];
 
     const tz = "Asia/Ho_Chi_Minh";

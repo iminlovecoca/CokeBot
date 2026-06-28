@@ -7,7 +7,7 @@ const { getItem, getGenderText, getTypeText } = require("./cokemonUtil");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Vector Search for general rules (RAG)
+
 const getRulesContext = async (userQuestion) => {
   try {
     const embedModel = genAI.getGenerativeModel({
@@ -174,7 +174,7 @@ const getItemsContext = (userQuestion, client) => {
       cleanedQuestion.includes(item.item_id.toLowerCase()),
   );
 
-  // Proactively provide evolution item dictionary if evolution is likely
+  
   if (hasEvoKeywords || needsItemEvo) {
     const evoItems = client.allItems.filter(
       (i) =>
@@ -209,7 +209,7 @@ const getUserCokemonContext = async (userId) => {
   const userCokemons = await Cokemon.find({ owner_id: userId })
     .populate("species_id")
     .sort({ level: -1 })
-    .limit(50) // don't fetch more than 50 to save tokens
+    .limit(50) 
     .lean();
 
   if (userCokemons.length === 0) return "User currently owns 0 Cokemon.";
@@ -323,7 +323,7 @@ const getThreadHistory = async (channel, excludeIds = [], client) => {
   });
   return rawMessages
     .reverse()
-    .filter((m) => !excludeIds.includes(m.id)) // skip specific IDs
+    .filter((m) => !excludeIds.includes(m.id)) 
     .filter((m) => {
       if (m.author.id !== client.user.id) return true;
       const isInitialGreeting = /^🤔 <@!?\d+> ơi/.test(m.content);

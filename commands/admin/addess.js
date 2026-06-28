@@ -4,10 +4,18 @@ const User = require("../../models/User");
 
 const { isDev } = require("../../utils/userUtil");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class AddessCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "addess",
   aliases: ["addessence"],
   description: "Thêm Essence cho người dùng hoặc tất cả (chỉ admin/owner)",
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const authorId = message.author.id;
@@ -70,7 +78,7 @@ module.exports = {
     collector.on("collect", async (interaction) => {
       if (interaction.customId === "confirm_add") {
         if (isAll) {
-          // Update Mongoose records
+          
           await User.updateMany(
             { "rpg.classKey": { $ne: null } },
             { 
@@ -163,5 +171,7 @@ module.exports = {
         });
       }
     });
-  },
-};
+    }
+}
+
+module.exports = new AddessCommand();

@@ -9,7 +9,7 @@ const {
   getWeaponPower
 } = require("../../utils/rpgUtil");
 
-// Helper to calculate base stats without gear
+
 const getBaseStatsWithoutGear = (user) => {
   if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
   const rpgClass = getRpgClass(user.rpg.classKey);
@@ -37,10 +37,10 @@ const getBaseStatsWithoutGear = (user) => {
   return stats;
 };
 
-// Helper to score items for suitability
+
 const getItemScore = (item, classKey, baseStats) => {
   if (item.slot === "weapon") {
-    // Suitability check for weapon types
+    
     const subType = String(item.subType || "").toLowerCase();
     const magicalClasses = ["mage"];
     const isMagicalClass = magicalClasses.includes(classKey);
@@ -50,11 +50,11 @@ const getItemScore = (item, classKey, baseStats) => {
       : !subType.includes("staff");
 
     const scaledPower = getWeaponPower(item, baseStats);
-    // If not suitable, apply a huge penalty to keep it from auto-equipping unless it is the only option
+    
     return isSuitable ? scaledPower : scaledPower - 5000;
   }
 
-  // Non-weapons
+  
   let score = item.power || 0;
   const magicalClasses = ["mage"];
   const dexClasses = ["assassin", "archer"];
@@ -146,7 +146,7 @@ module.exports = {
       return message.reply({ embeds: [embed] });
     }
 
-    // Save changes
+    
     user.rpg.power = calculateRpgPower(user);
     user.markModified("rpg");
     await user.save();

@@ -18,7 +18,7 @@ const settings = config.gamble_settings;
 const { drawBettingCanvas, drawResultCanvas } = require("../../utils/baucuaCanvas");
 const { getDrift } = require("../../utils/timeSync");
 
-// Danh sách 6 con vật bầu cua tôm cá
+
 const ITEMS = [
   { id: "cua", name: "Cua", emoji: "🦀" },
   { id: "tom", name: "Tôm", emoji: "🦐" },
@@ -30,7 +30,7 @@ const ITEMS = [
 
 const activeGames = new Map();
 
-// Hàm tạo giao diện bảng đặt cược (giống phong cách bảng căn cột của OwO)
+
 function generateGameEmbed(game) {
   const drift = getDrift();
   const timestampDiscord = `<t:${Math.floor((game.createdAt + 60000 - drift) / 1000)}:R>`;
@@ -61,7 +61,7 @@ function generateGameEmbed(game) {
   });
 
   const embed = new EmbedBuilder()
-    .setColor("#248046") // Màu xanh lá giống OwO
+    .setColor("#248046") 
     .setTitle("BẦU CUA TÔM CÁ")
     .setDescription(description)
     .setImage(`attachment://baucua_betting_${game.gameId}.png`);
@@ -69,7 +69,7 @@ function generateGameEmbed(game) {
   return embed;
 }
 
-// Hàm tạo các nút đặt cược (màu xanh Success)
+
 function generateGameButtons(gameId, disabled = false) {
   const row1 = new ActionRowBuilder();
   const row2 = new ActionRowBuilder();
@@ -102,12 +102,12 @@ async function runRollingPhase(game, client) {
     if (game.status !== "betting") return;
     game.status = "rolling";
 
-    // Hủy đăng ký lắng nghe sự kiện
+    
     if (game.modalCollectorListener) {
       client.removeListener("interactionCreate", game.modalCollectorListener);
     }
 
-    // Cập nhật giao diện thông báo đang lắc
+    
     const disabledButtons = generateGameButtons(game.gameId, true);
     const rollingEmbed = new EmbedBuilder()
       .setColor("#248046")
@@ -122,13 +122,13 @@ async function runRollingPhase(game, client) {
     await game.message.edit({
       embeds: [rollingEmbed],
       components: disabledButtons,
-      files: [] // Xóa hình nền đặt cược cũ
+      files: [] 
     }).catch(() => null);
 
-    // Chờ 3 giây
+    
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    // Lấy kết quả ngẫu nhiên 3 xúc xắc
+    
     const results = [];
     for (let i = 0; i < 3; i++) {
       const idx = await random(0, 5);
@@ -139,7 +139,7 @@ async function runRollingPhase(game, client) {
     const losePlayers = [];
     const drawPlayers = [];
 
-    // Tính tiền thưởng và phân loại
+    
     for (const [userId, userBets] of game.bets.entries()) {
       const totalBet = userBets.reduce((sum, b) => sum + b.amount, 0);
       let totalPrize = 0;
@@ -193,7 +193,7 @@ async function runRollingPhase(game, client) {
       if (p.netProfit > 0) totalWinners++;
     });
 
-    // Vẽ và gửi kết quả bằng Canvas (chỉ chứa 3 xúc xắc rolled khổng lồ)
+    
     const resultAttachment = await drawResultCanvas(game, results);
     const embedResult = new EmbedBuilder()
       .setColor("#248046")
@@ -226,7 +226,7 @@ async function runRollingPhase(game, client) {
       console.error("[Baucua Error] Failed to send error message to channel:", msgErr);
     }
   } finally {
-    // Xóa game khỏi danh sách game đang chạy
+    
     activeGames.delete(game.channelId);
   }
 }
@@ -251,7 +251,7 @@ class BaucuaCommand extends BaseCommand {
   async execute(message, args, client, locator) {
     const channelId = message.channel.id;
 
-    // Cooldown theo kênh
+    
     const remainingCooldown = checkAndSetCooldown(
       channelId,
       "baucua",
@@ -273,8 +273,8 @@ class BaucuaCommand extends BaseCommand {
       hostUsername: message.member?.displayName || message.author.username,
       status: "betting",
       createdAt: Date.now(),
-      bets: new Map(), // Map<userId, Array<{ choice, amount }>>
-      usernames: new Map(), // Map<userId, string>
+      bets: new Map(), 
+      usernames: new Map(), 
       message: null,
       timer: null,
       modalCollectorListener: null
@@ -293,9 +293,9 @@ class BaucuaCommand extends BaseCommand {
     });
     game.message = mainMsg;
 
-    // Lắng nghe tương tác của người chơi
+    
     const interactionListener = async (interaction) => {
-      // 1. Xử lý nút bấm chọn con vật
+      
       if (interaction.isButton() && interaction.customId.startsWith(`bc_btn_${gameId}_`)) {
         if (game.status !== "betting") {
           return interaction.reply({
@@ -308,7 +308,7 @@ class BaucuaCommand extends BaseCommand {
         const item = ITEMS.find((i) => i.id === choiceId);
         if (!item) return;
 
-        // Mỗi người được đặt cược tối đa 3 lần trong 1 ván
+        
         const userBets = game.bets.get(interaction.user.id) || [];
         if (userBets.length >= 3) {
           return interaction.reply({
@@ -327,7 +327,7 @@ class BaucuaCommand extends BaseCommand {
 
         const maxRemainingBet = 250000 - currentTotalBet;
 
-        // Mở Modal đặt cược
+        
         const modal = new ModalBuilder()
           .setCustomId(`bc_modal_${gameId}_${choiceId}`)
           .setTitle(`Cược ${item.name} (Tối đa ${maxRemainingBet.toLocaleString()})`);
@@ -345,7 +345,7 @@ class BaucuaCommand extends BaseCommand {
         await interaction.showModal(modal);
       }
 
-      // 2. Xử lý khi người chơi submit Modal
+      
       if (interaction.isModalSubmit() && interaction.customId.startsWith(`bc_modal_${gameId}_`)) {
         if (game.status !== "betting") {
           return interaction.reply({
@@ -360,7 +360,7 @@ class BaucuaCommand extends BaseCommand {
 
         const betInputVal = interaction.fields.getTextInputValue("bc_input_amount").trim();
 
-        // Mỗi người được đặt cược tối đa 3 lần trong 1 ván
+        
         const userBets = game.bets.get(interaction.user.id) || [];
         if (userBets.length >= 3) {
           return interaction.reply({
@@ -379,13 +379,13 @@ class BaucuaCommand extends BaseCommand {
         }
 
         try {
-          // Sử dụng hàm tiện ích getBetAmount
+          
           const amount = await getBetAmount(betInputVal, interaction.user.id, maxRemainingBet, 1);
 
-          // Trừ tiền cược
+          
           await decBalance(interaction.user.id, amount);
 
-          // Ghi nhận cược
+          
           userBets.push({ choice: choiceId, amount });
           game.bets.set(interaction.user.id, userBets);
           game.usernames.set(
@@ -412,7 +412,7 @@ class BaucuaCommand extends BaseCommand {
     client.on("interactionCreate", interactionListener);
     game.modalCollectorListener = interactionListener;
 
-    // Timeout kết thúc đặt cược sau 1 phút
+    
     game.timer = setTimeout(async () => {
       await runRollingPhase(game, client);
     }, 60000);

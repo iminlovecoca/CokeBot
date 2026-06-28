@@ -5,10 +5,18 @@ const { DateTime } = require("luxon");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class CheckbanCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "checkban",
   description: "Kiểm tra tình trạng cấm của người dùng.",
   usage: `${config.prefix}checkban <@user|userId>`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(
@@ -52,5 +60,7 @@ module.exports = {
         .setColor("#E74C3C");
     }
     await message.reply({ embeds: [embed] });
-  },
-};
+    }
+}
+
+module.exports = new CheckbanCommand();

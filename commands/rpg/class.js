@@ -300,7 +300,7 @@ class ClassCommand extends BaseCommand {
 
       const collector = prompt.createMessageComponentCollector({
         filter: (interaction) => interaction.user.id === message.author.id,
-        time: 180000, // 3 minutes
+        time: 180000, 
       });
 
       collector.on("collect", async (interaction) => {
@@ -420,7 +420,7 @@ class ClassCommand extends BaseCommand {
           const isFree = !user.rpg.freeClassChangeUsed;
           const changeCost = isFree ? 0 : 100000;
 
-          // Confirmation to change class
+          
           const confirmRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId("rpg_class_change_confirm")
@@ -459,7 +459,7 @@ class ClassCommand extends BaseCommand {
           user.coke -= changeCost;
           await user.save();
 
-          // Now start class choosing flow
+          
           let currentClassKey = classEntries()[0][0];
           let currentAvatar = getRpgClass(currentClassKey).asset;
 
@@ -690,7 +690,7 @@ class ClassCommand extends BaseCommand {
       return;
     }
 
-    // Default selections
+    
     let currentClassKey = classEntries()[0][0];
     let currentAvatar = getRpgClass(currentClassKey).asset;
 
@@ -721,7 +721,7 @@ class ClassCommand extends BaseCommand {
 
     const collector = prompt.createMessageComponentCollector({
       filter: (interaction) => interaction.user.id === message.author.id,
-      time: 180000, // 3 minutes to choose
+      time: 180000, 
     });
 
     collector.on("collect", async (interaction) => {

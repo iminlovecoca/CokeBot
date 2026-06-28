@@ -72,7 +72,7 @@ const getTransparentCharacter = async (pAsset) => {
   return tempCanvas;
 };
 
-// Pre-load all character assets and the background image at startup
+
 const preloadAssets = async () => {
   try {
     const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
@@ -99,7 +99,7 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  // Load background
+  
   const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
   const bg = await getCachedImage(bgPath);
   if (bg) {
@@ -137,7 +137,7 @@ const simulatePvP = (p1, p2) => {
   p1.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
   p2.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
 
-  // Sunbow flat stats boost at start of PvP
+  
   const p1SubType = p1.weapon?.subType ? p1.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
   const p2SubType = p2.weapon?.subType ? p2.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
 
@@ -150,7 +150,7 @@ const simulatePvP = (p1, p2) => {
     p2.effectiveStats.mr = (p2.effectiveStats.mr || 0) + 10;
   }
 
-  // Determine who goes first based on DEX. Higher DEX goes first. If equal, random.
+  
   let p1Dex = p1.effectiveStats.dex || 0;
   let p2Dex = p2.effectiveStats.dex || 0;
   let turnOrder =
@@ -166,14 +166,14 @@ const simulatePvP = (p1, p2) => {
     const attacker = turnOrder[0];
     const defender = turnOrder[1];
 
-    // Process bleed at start of attacker turn
+    
     if (attacker.effects.bleedRounds > 0) {
       attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
       attacker.effects.bleedRounds -= 1;
       if (attacker.hp <= 0) break;
     }
 
-    // Process Shieldhex reflect at start of attacker turn (in round 4, i.e., rounds >= 3)
+    
     const attackerSubType = attacker.weapon?.subType ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
     if (attackerSubType.includes("shieldhex") && attacker.effects.shieldhexRounds >= 3) {
       const reflectDmg = Math.floor((attacker.effects.shieldhexAbsorbed || 0) * 0.90);
@@ -291,7 +291,7 @@ const simulatePvP = (p1, p2) => {
         rawDamage *= 1.15;
       }
 
-      rawDamage *= 0.85 + Math.random() * 0.3; // variance
+      rawDamage *= 0.85 + Math.random() * 0.3; 
       if (isCrit) {
         rawDamage *= critMult;
       }
@@ -329,7 +329,7 @@ const simulatePvP = (p1, p2) => {
       }
       if (attacker.effects.damageReduced) {
         finalMult *= 1 - attacker.effects.damageReduced;
-        delete attacker.effects.damageReduced; // consume
+        delete attacker.effects.damageReduced; 
       }
 
       let damage = Math.max(5, Math.floor((rawDamage * finalMult) / 10));
@@ -342,7 +342,7 @@ const simulatePvP = (p1, p2) => {
 
       defender.hp = Math.max(0, defender.hp - damage);
 
-      // Green Staff heal passive
+      
       if (hasTriggered && cleanSubType === "greenstaff") {
         let healAmt = Math.floor(damage * 0.25);
         let healReduceFactor = 1.0;
@@ -556,7 +556,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const maxHp1 = 150 + stats1.vigor * 20 + user1.rpg.level * 20;
   const maxHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
 
-  // Retrieve actual user names from the client, checking RPG database/cache first to avoid slow API fetch
+  
   let p1Name = user1.rpg.name || usernameCache.get(p1Id);
   let p2Name = user2.rpg.name || usernameCache.get(p2Id);
 
@@ -714,7 +714,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
   }
 
-  // Save both users concurrently
+  
   await Promise.all([user1.save(), user2.save()]);
 
   const renderTextBar = (hp, max, power) => {

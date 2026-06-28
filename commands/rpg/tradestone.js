@@ -38,7 +38,7 @@ class TradestoneCommand extends BaseCommand {
       return message.reply(`${config.emoji.no} Bạn không thể tự giao dịch đá với chính mình!`);
     }
 
-    // Filter args to remove user mention
+    
     const cleanArgs = args.filter((arg) => !arg.startsWith("<@") && !arg.startsWith("<!@"));
     const argsStr = cleanArgs.join(" ").toLowerCase().trim();
 
@@ -48,7 +48,7 @@ class TradestoneCommand extends BaseCommand {
       );
     }
 
-    // Parse stone ID
+    
     let stoneId = "";
     const directMatch = argsStr.match(/(somber|cristal)-\d+/);
     if (directMatch) {
@@ -73,7 +73,7 @@ class TradestoneCommand extends BaseCommand {
       );
     }
 
-    // Parse quantity
+    
     const numbers = argsStr.match(/\d+/g) || [];
     let qty = 1;
     const stoneNumStr = stoneId.split("-")[1];
@@ -86,10 +86,10 @@ class TradestoneCommand extends BaseCommand {
       return message.reply(`${config.emoji.no} Số lượng đá rèn giao dịch phải là số nguyên dương lớn hơn 0.`);
     }
 
-    // Load sender details
+    
     const { user: senderUser } = await requireRpgCharacter(senderId);
 
-    // Verify sender's stone balance
+    
     if (!senderUser.inventory) {
       senderUser.inventory = new Map();
     }
@@ -104,7 +104,7 @@ class TradestoneCommand extends BaseCommand {
       );
     }
 
-    // Load receiver details
+    
     const receiverId = targetUserMention.id;
     let receiverUser;
     try {
@@ -116,7 +116,7 @@ class TradestoneCommand extends BaseCommand {
       );
     }
 
-    // Build confirm buttons
+    
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("trade_confirm")
@@ -167,7 +167,7 @@ class TradestoneCommand extends BaseCommand {
       });
 
       if (interaction.customId === "trade_confirm") {
-        // Reload data to ensure consistency and avoid race conditions
+        
         const freshSender = await getUser(senderId);
         const freshReceiver = await getUser(receiverId);
 
@@ -187,7 +187,7 @@ class TradestoneCommand extends BaseCommand {
           });
         }
 
-        // Re-verify quantity
+        
         if (!freshSender.inventory) {
           freshSender.inventory = new Map();
         }
@@ -200,7 +200,7 @@ class TradestoneCommand extends BaseCommand {
           });
         }
 
-        // Deduct from sender
+        
         const newSenderQty = freshSenderQty - qty;
         if (newSenderQty <= 0) {
           freshSender.inventory.delete(stoneId);
@@ -209,7 +209,7 @@ class TradestoneCommand extends BaseCommand {
         }
         freshSender.markModified("inventory");
 
-        // Add to receiver
+        
         if (!freshReceiver.inventory) {
           freshReceiver.inventory = new Map();
         }
@@ -217,7 +217,7 @@ class TradestoneCommand extends BaseCommand {
         freshReceiver.inventory.set(stoneId, freshReceiverQty + qty);
         freshReceiver.markModified("inventory");
 
-        // Save modifications
+        
         await freshSender.save();
         await freshReceiver.save();
 

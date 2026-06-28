@@ -10,7 +10,7 @@ class GambleService extends BaseService {
     let debuffPercentage = 0;
     
     if (config.gamble_settings.enable_special_treatment) {
-      // Lazy load user util for now to prevent cyclic dependencies during migration
+      
       const { getTotalCoke } = require('../utils/userUtil');
       const totalCoke = await getTotalCoke(userId);
       if (totalCoke > 10000000) {

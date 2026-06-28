@@ -27,7 +27,7 @@ class GiveCommand extends BaseCommand {
           command: `${config.prefix}give @PlayerName 1000000`,
         },
       ],
-      cooldown: 5 // Anti-spam
+      cooldown: 5 
     });
   }
 

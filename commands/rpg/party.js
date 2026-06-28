@@ -24,7 +24,7 @@ class PartyCommand extends BaseCommand {
     const userId = message.author.id;
     const arg = (args[0] || "").toLowerCase();
 
-    // Check if user has RPG character
+    
     const userDoc = await getUser(userId);
     const userHasChar = hasRpgCharacter(userDoc);
     if (!userHasChar) {
@@ -38,18 +38,18 @@ class PartyCommand extends BaseCommand {
       }
 
       if (guild.leaderId === userId) {
-        // Disband guild
+        
         await RpgGuild.deleteOne({ _id: guild._id });
         return message.reply("📢 Party đã được giải tán vì Trưởng nhóm rời đi.");
       } else {
-        // Leave guild
+        
         guild.members = guild.members.filter((id) => id !== userId);
         await guild.save();
         return message.reply("📢 Bạn đã rời khỏi party thành công.");
       }
     }
 
-    // Invite flow if user mentions someone
+    
     const targetUser = message.mentions.users.first();
     if (targetUser) {
       const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
@@ -68,14 +68,14 @@ class PartyCommand extends BaseCommand {
         return message.reply("❌ Người được mời chưa có nhân vật RPG.");
       }
 
-      // Find or create sender's guild
+      
       let guild = await RpgGuild.findOne({ members: userId });
       if (guild && guild.leaderId !== userId) {
         return message.reply("❌ Chỉ Trưởng nhóm mới có quyền mời thành viên mới.");
       }
 
       if (!guild) {
-        // Create new guild with sender as leader
+        
         guild = new RpgGuild({
           leaderId: userId,
           members: [userId],
@@ -88,13 +88,13 @@ class PartyCommand extends BaseCommand {
         return message.reply("❌ Party của bạn đã đạt số lượng tối đa (3 thành viên).");
       }
 
-      // Check if target is already in a guild
+      
       const targetGuild = await RpgGuild.findOne({ members: targetId });
       if (targetGuild) {
         return message.reply("❌ Người này đã tham gia một party khác rồi.");
       }
 
-      // Send invite message with buttons
+      
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`rpg_guild_accept_${guild._id}_${targetId}`)
@@ -119,7 +119,7 @@ class PartyCommand extends BaseCommand {
         await i.deferUpdate();
 
         if (isAccept) {
-          // Re-fetch guild to ensure it's not full
+          
           const freshGuild = await RpgGuild.findById(guild._id);
           if (!freshGuild) {
             return i.editReply({ content: "❌ Lỗi: Party không còn tồn tại.", components: [] });
@@ -160,7 +160,7 @@ class PartyCommand extends BaseCommand {
       return;
     }
 
-    // Default to show guild info
+    
     const guild = await RpgGuild.findOne({ members: userId });
     if (!guild) {
       return message.reply(`❌ Bạn chưa tham gia party nào. Hãy dùng lệnh \`${config.prefix}party @User\` để mời người chơi khác và thành lập tổ đội!`);

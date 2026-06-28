@@ -4,11 +4,19 @@ const { DateTime } = require("luxon");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class BanCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "ban",
   description: "Cấm người dùng sử dụng bot.",
   usage: `\`${config.prefix}ban <@user|userId> <số_giờ> [lý_do]\``,
   examples: `${config.prefix}ban @user 2.5 Spamming\n${config.prefix}ban <userId> 72`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(
@@ -51,5 +59,7 @@ module.exports = {
     await message.reply(
       `🔒 Đã cấm <@${target.id}> sử dụng bot trong **${durationHours} giờ** (đến ${banExpirationDate}).\n**Lý do:** ${reason}`,
     );
-  },
-};
+    }
+}
+
+module.exports = new BanCommand();

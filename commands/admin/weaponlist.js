@@ -2,11 +2,19 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("../../data/config");
 const { dungeonWeapons } = require("../../utils/rpgUtil");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class WeaponlistCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "weaponlist",
   aliases: ["weapons", "wlist"],
   description: "Xem danh sách các loại vũ khí và thông tin phím phụ để dùng lệnh addgear (Chỉ Dev/Owner)",
   usage: `${config.prefix}weaponlist`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     const ownerId = "745950731638407210";
@@ -85,5 +93,7 @@ module.exports = {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-  }
-};
+    }
+}
+
+module.exports = new WeaponlistCommand();

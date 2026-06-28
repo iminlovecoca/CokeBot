@@ -4,7 +4,11 @@ const { isDev } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class ReloadCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "reload",
   aliases: ["rld", "reld"],
   description: "Tải lại (Hot-reload) một lệnh hoặc tệp cấu hình mà không cần khởi động lại bot.",
@@ -13,6 +17,10 @@ module.exports = {
     { intent: "Tải lại tệp cấu hình config.js", command: `${config.prefix}reload config` },
     { intent: "Tải lại mã nguồn lệnh boss", command: `${config.prefix}reload boss` }
   ],
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id)) {
@@ -38,7 +46,7 @@ module.exports = {
           delete require.cache[configPath];
         }
         
-        // Thử require lại để kiểm tra cú pháp và nạp lại vào bộ nhớ đệm cache
+        
         require("../../data/config");
 
         return message.reply(`${config.emoji.yes} **|** Đã xóa cache của \`data/config.js\` thành công. Các lệnh được reload sau đây sẽ áp dụng cấu hình mới.`);
@@ -47,7 +55,7 @@ module.exports = {
       }
     }
 
-    // Tìm lệnh trong client.commands hoặc client.noituCommands
+    
     let cmd = client.commands.get(target) || [...client.commands.values()].find(c => c.aliases && c.aliases.includes(target));
     let isNoitu = false;
 
@@ -66,22 +74,22 @@ module.exports = {
     }
 
     try {
-      // Xóa cache của config trước nếu tồn tại, để lệnh mới nạp sẽ đọc config mới
+      
       const configPath = path.resolve(__dirname, "../../data/config.js");
       if (require.cache[configPath]) {
         delete require.cache[configPath];
       }
 
-      // Xóa cache của chính lệnh đó
+      
       if (require.cache[require.resolve(filePath)]) {
         delete require.cache[require.resolve(filePath)];
       }
 
-      // Load lại lệnh mới
+      
       const newCmd = require(filePath);
       newCmd.filePath = filePath;
       
-      // Gán category
+      
       const relativePath = path.relative(path.resolve(__dirname, "../"), filePath);
       const pathParts = relativePath.split(path.sep);
       newCmd.category = pathParts.length > 1 ? pathParts[0].toLowerCase() : "general";
@@ -96,5 +104,7 @@ module.exports = {
     } catch (err) {
       return message.reply(`${config.emoji.no} **|** Lỗi khi reload lệnh \`${target}\`: \`${err.message}\``);
     }
-  }
-};
+    }
+}
+
+module.exports = new ReloadCommand();

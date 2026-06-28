@@ -14,7 +14,7 @@ class DropCommand extends BaseCommand {
       examples: [
         { intent: "Thả 7,777,777 coke", command: `${config.prefix}drop 7777777` }
       ],
-      cooldown: 0 // handled manually for special message
+      cooldown: 0 
     });
   }
 

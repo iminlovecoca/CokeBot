@@ -35,7 +35,7 @@ class EventCommand extends BaseCommand {
     const dbUser = await getUser(message.author.id);
     const memberName = message.member?.displayName || message.author.username;
 
-    // Fetch active unexpired events
+    
     const activeEvents = await Event.find({
       expiresAt: { $gt: new Date() },
       active: true
@@ -134,14 +134,14 @@ class EventCommand extends BaseCommand {
 
     const replyMsg = await message.reply({
       embeds: [buildEmbed(dbUser)],
-      components: activeEvents.length <= 5 ? buildComponents(dbUser) : [] // Discord allows max 5 buttons per row
+      components: activeEvents.length <= 5 ? buildComponents(dbUser) : [] 
     });
 
     if (activeEvents.length > 5) return;
 
     const collector = replyMsg.createMessageComponentCollector({
       filter: (i) => i.user.id === message.author.id,
-      time: 60000 // 1 minute
+      time: 60000 
     });
 
     collector.on("collect", async (interaction) => {
@@ -177,11 +177,11 @@ class EventCommand extends BaseCommand {
 
       await interaction.deferUpdate();
 
-      // Coke reward
+      
       freshUser.coke = (freshUser.coke || 0) + event.rewards.coke;
 
       let gearLog = "";
-      // Gear reward
+      
       if (event.rewards.gear && event.rewards.gear.name) {
         const gear = await generateRpgGearDrop(freshUser, {
           forceDrop: true,
@@ -201,7 +201,7 @@ class EventCommand extends BaseCommand {
       }
 
       let otherLog = "";
-      // Other reward
+      
       if (event.rewards.other && event.rewards.other.name) {
         if (!freshUser.inventory) {
           freshUser.inventory = new Map();
@@ -213,13 +213,13 @@ class EventCommand extends BaseCommand {
         otherLog = `\n🎁 **Vật phẩm:** \`${event.rewards.other.name}\` x${qty}`;
       }
 
-      // Add to claimed events list
+      
       freshUser.rpg.claimedEvents = userClaimed;
       freshUser.rpg.claimedEvents.push(eventId);
       freshUser.markModified("rpg");
       await freshUser.save();
 
-      // Refresh list
+      
       claimedEvents.push(eventId);
       await replyMsg.edit({
         embeds: [buildEmbed(freshUser)],

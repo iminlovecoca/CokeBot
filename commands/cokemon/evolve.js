@@ -5,7 +5,11 @@ const { DateTime } = require('luxon')
 const { UserFriendlyError } = require('../../utils/errors')
 const config = require('../../data/config')
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class EvolveCommand extends BaseCommand {
+  constructor() {
+    super({
 	name: 'evolve',
 	description: 'Tiến hóa một Cokemon nếu nó đủ điều kiện.',
 	usage: `${config.prefix}evolve <cokemon_id> [item_id]`,
@@ -13,7 +17,11 @@ module.exports = {
 		{ intent: 'Tiến hóa bằng cấp độ hoặc điều kiện sẵn có', command: `${config.prefix}evolve 27` },
 		{ intent: 'Tiến hóa bằng cách sử dụng vật phẩm cụ thể (ví dụ: moon-stone)', command: `${config.prefix}evolve 12 moon-stone` }
 	],
-	async execute(message, args) {
+	      cooldown: 0
+    });
+  }
+
+  async execute(message, args) {
 		const cokemonId = parseInt(args[0])
 		const providedItemId = args[1]?.toLowerCase()
 		if (isNaN(cokemonId)) {
@@ -96,10 +104,10 @@ module.exports = {
 						break
 					}
 					case 'move_known':
-						// todo
+						
 						break
 					case 'other':
-						// todo
+						
 						break
 				}
 				if (!conditionsMet) break
@@ -107,8 +115,10 @@ module.exports = {
 			if (conditionsMet) {
 				evolutionPath = path
 				break
-			}
-		}
+			  }
+}
+
+module.exports = new EvolveCommand();
 
 		if (evolutionPath) {
 			const newSpecies = await getSpecies(evolutionPath.species_id)

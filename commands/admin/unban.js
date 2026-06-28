@@ -2,10 +2,18 @@ const { getUser, isDev } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class UnbanCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "unban",
   description: "Gỡ cấm người dùng khỏi bot.",
   usage: `${config.prefix}unban <@user|userId>`,
+        cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(
@@ -39,5 +47,7 @@ module.exports = {
     message.client.bannedUsersCache?.delete(target.id);
     message.client.verificationCache?.delete(target.id);
     await message.reply(`${config.emoji.yes} Đã gỡ cấm cho <@${target.id}>.`);
-  },
-};
+    }
+}
+
+module.exports = new UnbanCommand();

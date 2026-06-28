@@ -11,11 +11,11 @@ try {
 } catch (error) {
 	console.error('❌ Failed to register font.')
 }
-// Structure: Map<userId, {
-//	 spamBucket: { tokens: number, lastFill: number },
-//   channelData: Map<channelId, { timestamps: number[], lastCommand: string, consecutive: number }>,
-//   globalCommandHistory: { category: string }[]
-// }>
+
+
+
+
+
 const userBehaviorHistory = new Map()
 
 const generateVerificationCode = () => {
@@ -114,7 +114,7 @@ const checkMessage = message => {
 	}
 	const history = userBehaviorHistory.get(userId)
 
-	// Burst spam
+	
 	if (config.anticheat.burst_enabled) {
 		const bucket = history.spamBucket || { tokens: config.anticheat.burst_bucket_capacity, lastFill: now }
 		const tokensToAdd = Math.floor((now - bucket.lastFill) / config.anticheat.burst_refill_rate_ms)
@@ -131,11 +131,11 @@ const checkMessage = message => {
 		bucket.tokens--
 	}
 
-	// Bot detection
+	
 	if (config.anticheat.bot_detection_enabled && content.startsWith(config.prefix)) {
 		const command = content.slice(config.prefix.length).split(' ')[0].toLowerCase()
 
-		// 1. Random verification check on high-value commands (0.6% chance)
+		
 		if (config.anticheat.focus_high_value_commands.includes(command)) {
 			if (Math.random() < 0.006) {
 				console.log(`[Anti-Cheat] User ${userId} (${username}) flagged by random validation check.`)
@@ -143,7 +143,7 @@ const checkMessage = message => {
 			}
 		}
 
-		// 2. Consecutive command play without a 2-minute break
+		
 		if (history.lastCommandTime && (now - history.lastCommandTime) > 2 * 60 * 1000) {
 			history.consecutiveCommandsCount = 1
 		} else {
@@ -153,17 +153,17 @@ const checkMessage = message => {
 
 		if (history.consecutiveCommandsCount >= 200) {
 			console.log(`[Anti-Cheat] User ${userId} (${username}) flagged for consecutive play (>200 commands without break).`)
-			history.consecutiveCommandsCount = 0 // Reset
+			history.consecutiveCommandsCount = 0 
 			return { status: 'TRIGGER_VERIFICATION', reason: 'consecutive play (>200 commands without break)' }
 		}
 
-		// Rhythm and Monotony (per-channel)
+		
 		if (!history.channelData.has(channelId)) {
 			history.channelData.set(channelId, { timestamps: [], lastCommand: '', consecutive: 0 })
 		}
 		const channelHistory = history.channelData.get(channelId)
 
-		// Monotony
+		
 		if (content.toLowerCase() === channelHistory.lastCommand) {
 			channelHistory.consecutive++
 		} else {
@@ -176,7 +176,7 @@ const checkMessage = message => {
 			return { status: 'TRIGGER_VERIFICATION', reason: 'monotony' }
 		}
 
-		// Rhythm
+		
 		channelHistory.timestamps.push(now)
 		if (channelHistory.timestamps.length > config.anticheat.rhythm_history_length) {
 			channelHistory.timestamps.shift()
@@ -187,14 +187,14 @@ const checkMessage = message => {
 				intervals.push(channelHistory.timestamps[i] - channelHistory.timestamps[i - 1])
 			}
 
-			// Calculate median of intervals to filter out outlier pauses/breaks
+			
 			const sortedIntervals = [...intervals].sort((a, b) => a - b)
 			const mid = Math.floor(sortedIntervals.length / 2)
 			const medianInterval = sortedIntervals.length % 2 !== 0 
 				? sortedIntervals[mid] 
 				: (sortedIntervals[mid - 1] + sortedIntervals[mid]) / 2
 
-			// Filter out pauses (any interval > median * 2.5, minimum threshold of 35000ms)
+			
 			const activeIntervals = intervals.filter(val => val <= Math.max(35000, medianInterval * 2.5))
 
 			if (activeIntervals.length >= 6) {
@@ -202,7 +202,7 @@ const checkMessage = message => {
 				const stdDev = calculateStd(activeIntervals)
 				const cv = mean > 0 ? stdDev / mean : 0
 
-				// Calculate differences of consecutive active intervals to detect alternating loops
+				
 				const diffs = []
 				for (let i = 1; i < activeIntervals.length; i++) {
 					diffs.push(Math.abs(activeIntervals[i] - activeIntervals[i - 1]))
@@ -232,7 +232,7 @@ const checkMessage = message => {
 			}
 		}
 
-		// Suspicious Focus (global)
+		
 		const category = config.anticheat.focus_high_value_commands.includes(command) ? 'high_value' : 'other'
 		history.globalCommandHistory.push({ category })
 		if (history.globalCommandHistory.length > config.anticheat.focus_history_length) {

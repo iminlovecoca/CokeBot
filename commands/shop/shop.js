@@ -26,7 +26,7 @@ class ShopCommand extends BaseCommand {
     const regularPages = Math.ceil(regularItems.length / ITEMS_PER_PAGE);
     const stonePages = Math.ceil(stoneItems.length / ITEMS_PER_PAGE);
     
-    // Check Hex Event status
+    
     let isEventActive = false;
     try {
       const HexEventState = require('../../models/HexEventState');
@@ -35,7 +35,7 @@ class ShopCommand extends BaseCommand {
         const { DateTime } = require('luxon');
         const timezone = config.rpg.boss?.spawn_timezone || 'Asia/Ho_Chi_Minh';
         const now = DateTime.now().setZone(timezone);
-        const day = now.weekday; // 1: Monday, ..., 6: Saturday, 7: Sunday
+        const day = now.weekday; 
         if (day === 6 || day === 7 || day === 1) {
           isEventActive = true;
         }
@@ -60,7 +60,7 @@ class ShopCommand extends BaseCommand {
         pageItems = stoneItems.slice(startIdx, startIdx + ITEMS_PER_PAGE);
         title = 'Cửa Hàng Cokemon - Đá Cường Hóa';
       } else {
-        // Hex Event Shop page!
+        
         title = 'Cửa Hàng Sự Kiện Hex 🟣';
         const embed = new EmbedBuilder()
           .setColor('#9B59B6')

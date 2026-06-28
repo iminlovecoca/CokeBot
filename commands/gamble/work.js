@@ -13,7 +13,7 @@ class WorkCommand extends BaseCommand {
       examples: [
         { intent: 'Làm việc kiếm coke', command: `${config.prefix}work` }
       ],
-      cooldown: 0 // Handled manually for detailed time format
+      cooldown: 0 
     });
   }
 

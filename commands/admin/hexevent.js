@@ -4,11 +4,19 @@ const config = require("../../data/config");
 const HexEventState = require("../../models/HexEventState");
 const { DateTime } = require("luxon");
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class HexeventCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "hexevent",
   aliases: ["hexe", "hexev"],
   description: "Quản lý sự kiện Hex (start/stop/status).",
   usage: `${config.prefix}hexevent <start|stop|status>`,
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
@@ -56,12 +64,12 @@ module.exports = {
     if (action === "start") {
       const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
       const now = DateTime.now().setZone(timezone);
-      const dayOfWeek = now.weekday; // 1: Monday, ..., 7: Sunday
+      const dayOfWeek = now.weekday; 
       let daysToAdd = 0;
       if (dayOfWeek === 1) {
-        daysToAdd = 0; // Expires end of today (Monday)
+        daysToAdd = 0; 
       } else {
-        daysToAdd = 8 - dayOfWeek; // Expires end of upcoming Monday
+        daysToAdd = 8 - dayOfWeek; 
       }
       
       const expiresAtDate = now.plus({ days: daysToAdd }).set({ hour: 23, minute: 59, second: 59, millisecond: 999 }).toJSDate();
@@ -96,5 +104,7 @@ module.exports = {
 
       return message.reply("🟣 **[Sự Kiện Hex]** Đã hủy kích hoạt sự kiện thành công.");
     }
-  },
-};
+    }
+}
+
+module.exports = new HexeventCommand();

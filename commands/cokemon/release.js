@@ -25,43 +25,51 @@ const cokemonInfo = (cokemon) => {
   return `${displayName} ${emoji}${genderSymbol} (No. ${cokemon.uid} • Cấp ${cokemon.level} • ${cokemon.iv_percent}%)`;
 };
 
-module.exports = {
-  name: "release",
-  description: "Thả một hoặc nhiều cokemon về với tự nhiên.",
-  aliases: ["rl"],
-  usage: `${config.prefix}release <ID1> [ID2]...\n${config.prefix}release [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav]\n${config.prefix}release all  (thả tất cả trừ cokemon yêu thích)`,
-  examples: [
-    {
-      intent: "Thả theo danh sách ID cụ thể",
-      command: `${config.prefix}release 1 5 10 22`,
-    },
-    {
-      intent: "Lọc theo đặc điểm (type, tier, name, nature, ability, gender)",
-      command: `${config.prefix}release --type water grass --tier common --gender male`,
-    },
-    {
-      intent: "Lọc theo chỉ số game (lvl, iv)",
-      command: `${config.prefix}release --lvl- 10 --iv- 40`,
-    },
-    {
-      intent:
-        "Lọc theo chỉ số IV cụ thể (hpiv, atkiv, defiv, spatkiv, spdefiv, spdiv)",
-      command: `${config.prefix}release --atkiv- 5 --spdiv- 5`,
-    },
-    {
-      intent:
-        "Lọc theo chỉ số cơ bản - Base Stats (hp, atk, def, spatk, spdef, spd)",
-      command: `${config.prefix}release --hp- 50 --spd- 40`,
-    },
-    {
-      intent: "Lọc theo trạng thái đặc biệt (shiny, noshiny, fav, nofav)",
-      command: `${config.prefix}release --noshiny --nofav`,
-    },
-    {
-      intent: "Thả toàn bộ cokemon (trừ yêu thích)",
-      command: `${config.prefix}release all`,
-    },
-  ],
+const BaseCommand = require('../../core/BaseCommand');
+
+class ReleaseCommand extends BaseCommand {
+  constructor() {
+    super({
+      name: "release",
+      description: "Thả một hoặc nhiều cokemon về với tự nhiên.",
+      aliases: ["rl"],
+      usage: `${config.prefix}release <ID1> [ID2]...\n${config.prefix}release [--type <types>] [--tier <tiers>] [--lvl<op> <val>] [--iv<op> <val>] [--shiny] [--fav]\n${config.prefix}release all  (thả tất cả trừ cokemon yêu thích)`,
+      examples: [
+        {
+          intent: "Thả theo danh sách ID cụ thể",
+          command: `${config.prefix}release 1 5 10 22`,
+        },
+        {
+          intent: "Lọc theo đặc điểm (type, tier, name, nature, ability, gender)",
+          command: `${config.prefix}release --type water grass --tier common --gender male`,
+        },
+        {
+          intent: "Lọc theo chỉ số game (lvl, iv)",
+          command: `${config.prefix}release --lvl- 10 --iv- 40`,
+        },
+        {
+          intent:
+            "Lọc theo chỉ số IV cụ thể (hpiv, atkiv, defiv, spatkiv, spdefiv, spdiv)",
+          command: `${config.prefix}release --atkiv- 5 --spdiv- 5`,
+        },
+        {
+          intent:
+            "Lọc theo chỉ số cơ bản - Base Stats (hp, atk, def, spatk, spdef, spd)",
+          command: `${config.prefix}release --hp- 50 --spd- 40`,
+        },
+        {
+          intent: "Lọc theo trạng thái đặc biệt (shiny, noshiny, fav, nofav)",
+          command: `${config.prefix}release --noshiny --nofav`,
+        },
+        {
+          intent: "Thả toàn bộ cokemon (trừ yêu thích)",
+          command: `${config.prefix}release all`,
+        },
+      ],
+      cooldown: 0
+    });
+  }
+
   async execute(message, args) {
     if (args.length === 0) {
       throw new UserFriendlyError(
@@ -75,13 +83,13 @@ module.exports = {
     let cokemonToRelease = [];
     let msgContent = "";
     if (isAll) {
-      // Releasing ALL non-favorite cokemon
+      
       cokemonToRelease = await Cokemon.find({
         owner_id: message.author.id,
         is_favorite: { $ne: true },
       }).populate("species_id");
     } else if (isIdBased) {
-      // Releasing by IDs
+      
       const uidsToRelease = [
         ...new Set(args.map((id) => parseInt(id)).filter((id) => !isNaN(id))),
       ];
@@ -96,11 +104,11 @@ module.exports = {
         uidsToRelease,
       );
       if (cokemonToRelease.length !== uidsToRelease.length) {
-        // Warns if some IDs were invalid
+        
         msgContent = `${config.emoji.warning} Một hoặc nhiều ID không hợp lệ đã được bỏ qua.\n`;
       }
     } else if (isFilterBased) {
-      // Releasing by filter
+      
       validateFilterArgs(args);
       const { cokemonQuery, speciesQuery } = await buildCokemonQuery(args);
       cokemonToRelease = await getFilteredCokemon(
@@ -120,7 +128,7 @@ module.exports = {
       );
     }
 
-    // Check if the list contains favorited cokemon
+    
     const favCokemon = cokemonToRelease.filter((c) => c.is_favorite);
     if (!isAll && favCokemon.length > 0) {
       const favIds = favCokemon.map((c) => `${c.uid}`).join(", ");
@@ -128,7 +136,7 @@ module.exports = {
         `${config.emoji.no} Bạn không thể thả cokemon yêu thích! Hãy bỏ yêu thích cho các cokemon có ID: ${favIds} trước, hoặc sử dụng tag \`--nofav\``,
       );
     }
-    // For 'all': silently exclude favorites, they are already filtered out by the DB query
+    
     if (isAll && favCokemon.length > 0) {
       msgContent = `${config.emoji.warning} **${favCokemon.length}** cokemon yêu thích đã được giữ lại và không bị thả.\n`;
     }
@@ -236,5 +244,7 @@ module.exports = {
         });
       }
     });
-  },
-};
+  }
+}
+
+module.exports = new ReleaseCommand();

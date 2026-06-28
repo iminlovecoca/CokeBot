@@ -50,9 +50,17 @@ async function resetUserData(user) {
   await user.save();
 }
 
-module.exports = {
+const BaseCommand = require('../../core/BaseCommand');
+
+class DeleteCommand extends BaseCommand {
+  constructor() {
+    super({
   name: "delete",
   description: "Reset dữ liệu người chơi (chỉ dành cho Owner)",
+
+        cooldown: 0
+    });
+  }
 
   async execute(message, args) {
     if (message.author.id !== OWNER_ID)
@@ -126,5 +134,7 @@ module.exports = {
         message.channel.send("⌛ Hết thời gian, thao tác reset đã bị huỷ.");
       }
     });
-  },
-};
+    }
+}
+
+module.exports = new DeleteCommand();

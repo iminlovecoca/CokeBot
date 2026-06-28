@@ -19,7 +19,7 @@ const {
 } = require("../../utils/anticheat");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 
-// Owo Bot Autohunt traits configuration
+
 const traits = {
   efficiency: { inc: 10, pow: 1.748, base: 25, upg: 1, max: 215, prefix: "/H" },
   duration: { inc: 10, pow: 1.7, base: 0.5, upg: 0.1, max: 235, prefix: "H" },
@@ -92,7 +92,7 @@ const getXpForMax = (traitName) => {
   return totalxp;
 };
 
-// Owo Bot rank-based bot emojis
+
 const bots = [
   { emoji: '<:cbot:459996048379609098>', label: 'Common Bot' },
   { emoji: '<:ubot:459996048660889600>', label: 'Uncommon Bot' },
@@ -115,7 +115,7 @@ const getBot = (rank, totalBots) => {
   return bots[5];
 };
 
-// Rarity mapping for sacrifice command
+
 const rarityMapping = {
   c: "Common",
   r: "Rare",
@@ -133,7 +133,7 @@ const rarityMapping = {
   divine: "Divine",
 };
 
-// Essence yield when sacrificing RPG gear
+
 const sacrificeEssenceYield = {
   Common: 10,
   Rare: 40,
@@ -349,7 +349,7 @@ class XautohuntCommand extends BaseCommand {
     const { user } = await requireRpgCharacter(message.author.id);
     const memberName = message.member?.displayName || message.author.username;
 
-    // Initialize/migrate autohunt states if not present
+    
     if (!user.rpg.autohunt) {
       user.rpg.autohunt = {
         isActive: false,
@@ -400,7 +400,7 @@ class XautohuntCommand extends BaseCommand {
       await user.save();
     }
 
-    // Calculate bot ranking and emoji
+    
     const User = require("../../models/User");
     const totalUsers = await User.countDocuments({ "rpg.autohunt": { $exists: true } });
     const rank = await User.countDocuments({
@@ -408,14 +408,14 @@ class XautohuntCommand extends BaseCommand {
     }) + 1;
     const botInfo = getBot(rank, totalUsers);
 
-    // Auto-claim check: if active and duration has finished
+    
     if (user.rpg.autohunt.isActive) {
       const startTime = new Date(user.rpg.autohunt.startTime).getTime();
       const durationMs = user.rpg.autohunt.durationHours * 60 * 60 * 1000;
       const elapsedMs = Date.now() - startTime;
 
       if (elapsedMs >= durationMs) {
-        // Auto-claim the completed hunt!
+        
         const xp = user.rpg.autohunt.xp;
         const effInfo = getLvl(xp.efficiency, 0, 'efficiency');
         const gainInfo = getLvl(xp.gain, 0, 'gain');
@@ -450,15 +450,15 @@ class XautohuntCommand extends BaseCommand {
         const levelsGained = addRpgExp(user.rpg, xpGain);
         user.rpg.power = calculateRpgPower(user);
 
-        // Update quest progress
+        
         const { updateQuestProgress } = require("../../utils/questUtil");
         if (xpGain > 0) {
           await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
         }
-        // Quest hunt_loot chỉ được hoàn thành qua hunt thủ công, không tính cho autohunt
+        
 
 
-        // Reset states
+        
         user.rpg.autohunt.isActive = false;
         user.rpg.autohunt.startTime = null;
         user.rpg.autohunt.durationHours = 0;
@@ -485,7 +485,7 @@ class XautohuntCommand extends BaseCommand {
 
     const subCommand = args[0]?.toLowerCase();
 
-    // 1. SACRIFICE SUBCOMMAND
+    
     if (subCommand === "sacrifice" || subCommand === "sac") {
       const targetRarityAbbr = args[1]?.toLowerCase();
       const targetRarity = rarityMapping[targetRarityAbbr];
@@ -525,7 +525,7 @@ class XautohuntCommand extends BaseCommand {
       const essencePerItem = sacrificeEssenceYield[targetRarity] || 10;
       const totalEssenceGain = itemsToSacrifice.length * essencePerItem;
 
-      // Update user inventory and essence
+      
       const sacIds = new Set(itemsToSacrifice.map((it) => it.id));
       user.rpg.items = userItems.filter((it) => !sacIds.has(it.id));
       user.rpg.autohunt.essence =
@@ -540,7 +540,7 @@ class XautohuntCommand extends BaseCommand {
       );
     }
 
-    // 2. UPGRADE SUBCOMMAND
+    
     if (subCommand === "upgrade" || subCommand === "up") {
       const inputTrait = args[1]?.toLowerCase();
       const trait = traitMapping[inputTrait];
@@ -603,7 +603,7 @@ class XautohuntCommand extends BaseCommand {
       }
     }
 
-    // 3. CLAIM SUBCOMMAND
+    
     if (subCommand === "claim" || subCommand === "c") {
       if (!user.rpg.autohunt.isActive) {
         return message.reply(
@@ -639,7 +639,7 @@ class XautohuntCommand extends BaseCommand {
         addRpgGearToUser,
       } = require("../../utils/rpgUtil");
 
-      // Simulate drops in background
+      
       for (let i = 0; i < huntsCount; i++) {
         const droppedItem = await generateRpgGearDrop(user, {
           forceDrop: false,
@@ -651,21 +651,21 @@ class XautohuntCommand extends BaseCommand {
         }
       }
 
-      // Add essence and XP
+      
       user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
       user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
       const previousLevel = user.rpg.level;
       const levelsGained = addRpgExp(user.rpg, xpGain);
       user.rpg.power = calculateRpgPower(user);
 
-      // Update quest progress
+      
       const { updateQuestProgress } = require("../../utils/questUtil");
       if (xpGain > 0) {
         await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
       }
-      // Quest hunt_loot chỉ được hoàn thành qua hunt thủ công, không tính cho autohunt
+      
 
-      // Reset states
+      
       user.rpg.autohunt.isActive = false;
       user.rpg.autohunt.startTime = null;
       user.rpg.autohunt.durationHours = 0;
@@ -689,7 +689,7 @@ class XautohuntCommand extends BaseCommand {
       return message.reply({ embeds: [embed] });
     }
 
-    // 4. CAPTCHA AND START AUTOHUNT
+    
     let cokeAmount = null;
     let durationHours = null;
     let captchaInput = null;
@@ -756,7 +756,7 @@ class XautohuntCommand extends BaseCommand {
         duration = maxDuration;
       }
 
-      // Calculate final Coke cost for this duration
+      
       const totalCost = Math.round(duration * efficiency * costPerHunt);
 
       if (user.coke < totalCost) {
@@ -766,7 +766,7 @@ class XautohuntCommand extends BaseCommand {
         );
       }
 
-      // Case 4a: CAPTCHA REQUEST (User did not supply captcha input)
+      
       if (!captchaInput) {
         const captchaCode = generateVerificationCode();
         user.rpg.autohunt.captchaCode = captchaCode;
@@ -789,7 +789,7 @@ class XautohuntCommand extends BaseCommand {
         });
       }
 
-      // Case 4b: VERIFY CAPTCHA AND START
+      
       const expectedCaptcha = user.rpg.autohunt.captchaCode;
       const expectedDuration = user.rpg.autohunt.pendingDuration;
 
@@ -809,14 +809,14 @@ class XautohuntCommand extends BaseCommand {
         );
       }
 
-      // Correct captcha: Start Autohunt!
+      
       user.coke -= totalCost;
       user.rpg.autohunt.isActive = true;
       user.rpg.autohunt.startTime = new Date();
       user.rpg.autohunt.durationHours = duration;
-      user.rpg.autohunt.captchaCode = null; // Clear captcha
+      user.rpg.autohunt.captchaCode = null; 
       user.rpg.autohunt.pendingDuration = 0;
-      user.rpg.autohunt.dmReminder = false; // Reset reminder
+      user.rpg.autohunt.dmReminder = false; 
       user.markModified("rpg");
       await user.save();
 
@@ -832,10 +832,10 @@ class XautohuntCommand extends BaseCommand {
           `| **${Math.floor(duration * gainInfo.stat).toLocaleString()} ESSENCE, AND ${Math.floor(duration * expInfo.stat).toLocaleString()} EXPERIENCE**`,
       );
 
-      // React to the message with ⏰
+      
       await replyMsg.react("⏰").catch(() => {});
 
-      // Setup a collector to listen for reactions (valid for 5 minutes)
+      
       const collector = replyMsg.createReactionCollector({
         filter: (reaction, u) => reaction.emoji.name === "⏰" && u.id === message.author.id,
         time: 5 * 60 * 1000,
@@ -882,7 +882,7 @@ class XautohuntCommand extends BaseCommand {
       return replyMsg;
     }
 
-    // 5. STATUS / VIEW PANEL (No args)
+    
     return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)] });
   }
 }

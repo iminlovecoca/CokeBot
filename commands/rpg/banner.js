@@ -21,7 +21,7 @@ class BannerCommand extends BaseCommand {
       return message.reply("❌ Tính năng Gacha hiện đang được bảo trì / khóa tạm thời và chỉ dành cho Admin.");
     }
 
-    // Load banner configuration
+    
     const banner = gachaBanner;
     if (!banner || !banner.bannerName) {
       return message.reply("❌ Hiện tại không có banner gacha nào đang diễn ra.");
@@ -35,7 +35,7 @@ class BannerCommand extends BaseCommand {
       return message.reply("❌ Banner gacha hiện tại đã kết thúc.");
     }
 
-    // Format the time as hh:mm and the full date
+    
     const timeStr = expireDate.toFormat("HH:mm");
     const dateStr = expireDate.toFormat("dd/MM/yyyy");
 

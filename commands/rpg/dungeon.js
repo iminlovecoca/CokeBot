@@ -33,7 +33,7 @@ const CLASS_ATTACK_TYPES = {
   wretch: "physical",
 };
 
-// Helper for HP bars (Boss/Creep - 10 blocks)
+
 const getHealthBar = (hp, maxHp) => {
   const percentage = Math.max(0, Math.min(1, hp / maxHp));
   const filledCount = Math.round(percentage * 10);
@@ -43,7 +43,7 @@ const getHealthBar = (hp, maxHp) => {
   return `❤️ **HP:** ${filled}${empty} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
 };
 
-// Helper for Poise bar (Boss - 10 blocks)
+
 const getPoiseBar = (poise, poiseMax) => {
   const percentage = Math.max(0, Math.min(1, poise / poiseMax));
   const filledCount = Math.round(percentage * 10);
@@ -53,13 +53,13 @@ const getPoiseBar = (poise, poiseMax) => {
   return `🛡️ **Poise:** ${filled}${empty} [${poise.toLocaleString()}/${poiseMax.toLocaleString()}]`;
 };
 
-// Get dynamically scaled delay based on active dungeon speed
+
 const getDelay = (activeDungeon, baseDelay) => {
   const speed = activeDungeon.speed ?? 1.0;
   return Math.max(100, Math.floor(baseDelay / speed));
 };
 
-// Select boss target based on class threat priority: Paladin (30%) > Warrior (25%) > Wretch (18%) > Assassin (12%) > Mage / Archer (7.5% each)
+
 const selectBossTarget = (alivePlayers) => {
   if (!alivePlayers || alivePlayers.length === 0) return null;
 
@@ -121,13 +121,13 @@ class DungeonCommand extends BaseCommand {
     if (client.rpgDungeons.has(message.channel.id)) {
       const activeDungeon = client.rpgDungeons.get(message.channel.id);
       
-      // Check if user is in the party
+      
       const isMember = activeDungeon.players.some((p) => p.id === userId);
       if (!isMember) {
         return message.reply("❌ Hiện tại đang có một phó bản diễn ra tại kênh này. Vui lòng đợi kết thúc!");
       }
 
-      // Re-send/re-render logic
+      
       if (activeDungeon.gameMessage) {
         if (activeDungeon.collector) {
           activeDungeon.collector.stop("re-sent");
@@ -146,7 +146,7 @@ class DungeonCommand extends BaseCommand {
       return message.reply("❌ Chỉ Admin mới có quyền khiêu chiến phó bản Dungeon trong giai đoạn thử nghiệm.");
     }
 
-    // Check if user is in a guild/party and is the leader
+    
     const guild = await RpgGuild.findOne({ members: userId });
     if (!guild) {
       return message.reply(`❌ Bạn chưa tham gia party nào. Hãy dùng \`${config.prefix}party @User\` để lập tổ đội!`);
@@ -160,14 +160,14 @@ class DungeonCommand extends BaseCommand {
       return message.reply(`❌ Cần chính xác **3 thành viên** trong party để tham gia Dungeon. Hiện tại party bạn có: **${guild.members.length}/3** thành viên.`);
     }
 
-    // Check if leader has a dungeon key
+    
     const leaderUser = await User.findOne({ userId: guild.leaderId }).exec();
     const keyCount = leaderUser?.inventory?.get("dungeonkey") || 0;
     if (keyCount <= 0) {
       return message.reply(`❌ Bạn (Trưởng nhóm) cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
     }
 
-    // Display chapter map select board
+    
     const progress = guild.chapterProgress || 0;
 
     const row1 = new ActionRowBuilder().addComponents(
@@ -227,7 +227,7 @@ class DungeonCommand extends BaseCommand {
       const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
       collector.stop("selected");
       
-      // Transition to Blessing Selection
+      
       await askBlessing(message, selectMsg, guild, chapter);
     });
 
@@ -296,17 +296,17 @@ const askBlessing = async (message, selectMsg, guild, chapter) => {
   });
 };
 
-// Core Dungeon Game Loop
+
 const startDungeon = async ({ message, guild, chapter, blessing }) => {
   const client = message.client;
   const channel = message.channel;
 
-  // Double check in-flight dungeon in channel
+  
   if (client.rpgDungeons.has(channel.id)) {
     return channel.send("❌ Đang có một phó bản diễn ra tại kênh này.");
   }
 
-  // Consume 1 dungeonkey from party leader
+  
   const leaderId = guild.leaderId;
   const leaderUser = await User.findOne({ userId: leaderId }).exec();
   if (!leaderUser) {
@@ -322,7 +322,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
   
   channel.send(`🔑 **${leaderUser.rpg.name || leaderUser.userId}** đã sử dụng **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon!`);
 
-  // Load player characters
+  
   const playerStates = [];
   for (const memberId of guild.members) {
     try {
@@ -354,7 +354,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
         power: gearPower,
         weapon: weapon,
         rpgClass: rpgClass,
-        userRef: user, // For rewards
+        userRef: user, 
         rage: 0,
         mana: (user.rpg.classKey === "mage") ? 100 : 0,
       });
@@ -363,7 +363,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
     }
   }
 
-  // Initialize active dungeon state
+  
   const activeDungeon = {
     guildId: guild._id,
     leaderId: leaderId,
@@ -390,11 +390,11 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
 
   client.rpgDungeons.set(channel.id, activeDungeon);
 
-  // Setup first round
+  
   setupRound(activeDungeon, channel);
 };
 
-// Help to make sure user object isn't cached/stale
+
 const getBossConfig = (chapter) => {
   const dCfg = config.dungeon || {};
   const chCfg = dCfg.chapters?.[chapter];
@@ -408,17 +408,17 @@ const freshUserObject = (user) => {
   return user.toObject ? user.toObject() : user;
 };
 
-// Setup current round monsters/boss
+
 const setupRound = (activeDungeon, channel) => {
   const { round, chapter } = activeDungeon;
 
-  // Clear any existing timeout
+  
   if (activeDungeon.timeoutTimer) {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
   }
 
-  // Set timeout for this round: 10 minutes for boss round, 5 minutes for normal rounds
+  
   const isBossRound = (round === 5);
   const roundTimeLimit = isBossRound ? 10 * 60 * 1000 : 5 * 60 * 1000;
   
@@ -464,7 +464,7 @@ const setupRound = (activeDungeon, channel) => {
     const bossCfg = getBossConfig(chapter);
     const b1Cfg = bossCfg.stats.phase1;
 
-    // Leader scaling
+    
     const leader = activeDungeon.players.find(p => p.id === activeDungeon.leaderId) || activeDungeon.players[0];
     const leaderLevel = leader ? (leader.level || 1) : 1;
     const leaderPower = leader ? (leader.power || 0) : 0;
@@ -499,7 +499,7 @@ const setupRound = (activeDungeon, channel) => {
   if (round < 5) {
     setupNormalMonster();
   } else {
-    // Round 5: Boss Phase 1
+    
     if (chapter === 6 && !activeDungeon.veilreaperStoryShown) {
       activeDungeon.veilreaperStoryShown = true;
       activeDungeon.actionInProgress = true;
@@ -576,7 +576,7 @@ const setupRound = (activeDungeon, channel) => {
   }
 };
 
-// Render main game screen
+
 const renderGameScreen = async (channel, activeDungeon) => {
   const { chapter, round, players, enemy, logs, currentActor } = activeDungeon;
 
@@ -603,7 +603,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
   const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
 
-  // Top Frame: Enemy info
+  
   let enemyInfo = `${getHealthBar(enemy.hp, enemy.maxHp)}\n`;
   if (enemy.isBoss) {
     enemyInfo += `${getPoiseBar(enemy.poise || 0, enemy.poiseMax || 100)}\n`;
@@ -639,10 +639,10 @@ const renderGameScreen = async (channel, activeDungeon) => {
   }
   embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
 
-  // Separator: between Boss and Players
+  
   embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
-  // Bottom Frame: 3 Players
+  
   players.forEach((p, idx) => {
     const classIcon = p.rpgClass?.emoji || "👤";
     const className = p.rpgClass?.name || p.classKey.toUpperCase();
@@ -664,17 +664,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
     embed.addFields({ name: `${classIcon} ${p.name}`, value: hpInfo, inline: true });
   });
 
-  // Separator: between Players and Logs
+  
   embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
 
-  // Middle Frame: Logs
+  
   const recentLogs = logs.slice(-5).join("\n");
   embed.addFields({ name: "📝 Nhật ký chiến trường", value: recentLogs || "*Trận đấu đang diễn ra...*" });
 
-  // Buttons row
+  
   const row = new ActionRowBuilder();
   
-  // Disable buttons if action is in progress or dice rolling or finished
+  
   let disableControls = activeDungeon.actionInProgress || activeDungeon.isFinished || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
   if (activeDungeon.isSimulation) {
     disableControls = true;
@@ -718,7 +718,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       }
     }
 
-    // Check skill ban debuff
+    
     if (currentActor.skillBanRounds && currentActor.skillBanRounds > 0) {
       isSkillDisabled = true;
       skillLabel = `${skillLabel.split(" ✨")[0]} 🚫 (Bị Cấm)`;
@@ -752,7 +752,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     embed.setFooter({ text: "👿 Lượt của kẻ địch..." });
   }
 
-  // Handle files (Boss/Creep image)
+  
   const files = [];
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(chapter);
@@ -765,7 +765,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       }
     }
   } else {
-    // Normal monster round: determine creep image under Creeps folder
+    
     let filePath = null;
     let fileName = null;
 
@@ -778,7 +778,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
         fileName = "soilderDevil.png";
       }
     } else if (chapter === 5) {
-      // Chapter 5: Fallback to old behavior searching bossKey-creep${round}
+      
       const bossCfg = getBossConfig(chapter);
       const bossKey = bossCfg?.key ? bossCfg.key.toUpperCase() : "";
       if (bossKey) {
@@ -793,7 +793,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
         }
       }
     } else {
-      // Other chapters: use Creep1.png to Creep4.png based on round
+      
       const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/Creep${round}.png`);
       if (fs.existsSync(testPath)) {
         filePath = testPath;
@@ -816,17 +816,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
     setupCollector(channel, activeDungeon);
   }
 
-  // Dice roll sequence triggers automatically at Round 5 Phase 1
+  
   if (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled && !activeDungeon.actionInProgress) {
     await runDiceRoll(channel, activeDungeon);
   }
 };
 
-// Phase 1: Dice rolling sequence
+
 const runDiceRoll = async (channel, activeDungeon) => {
   activeDungeon.actionInProgress = true;
   
-  // Pick random alive player to roll
+  
   const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
   if (!alivePlayers.length) return;
   const roller = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
@@ -857,26 +857,26 @@ const runDiceRoll = async (channel, activeDungeon) => {
   }, getDelay(activeDungeon, 2500));
 };
 
-// Setup component interaction collector for the combat screen
+
 const setupCollector = (channel, activeDungeon) => {
   const collector = activeDungeon.gameMessage.createMessageComponentCollector({
     filter: (i) => i.customId.startsWith("rpg_dungeon_action_") || i.customId.startsWith("rpg_dungeon_coin_"),
-    time: 15 * 60 * 1000, // 15 mins dungeon limit
+    time: 15 * 60 * 1000, 
   });
 
   collector.on("collect", async (i) => {
-    // Check if player is in the guild/party
+    
     const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
     if (!pExist) {
       return i.reply({ content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
     }
 
-    // Check if action is locked
+    
     if (activeDungeon.actionInProgress) {
       return i.reply({ content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
     }
 
-    // Turn verification
+    
     const currentActor = activeDungeon.currentActor;
     if (!currentActor || currentActor.id !== i.user.id) {
       return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
@@ -884,11 +884,11 @@ const setupCollector = (channel, activeDungeon) => {
 
     await i.deferUpdate();
 
-    // Lock actions
+    
     activeDungeon.actionInProgress = true;
 
     if (i.customId === "rpg_dungeon_action_heal") {
-      // Check if player is heal banned
+      
       if (pExist.healBanRounds && pExist.healBanRounds > 0) {
         activeDungeon.actionInProgress = false;
         const bossCfg = getBossConfig(activeDungeon.chapter);
@@ -896,7 +896,7 @@ const setupCollector = (channel, activeDungeon) => {
         return i.followUp({ content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
       }
 
-      // Process heal
+      
       if (pExist.potions <= 0) {
         activeDungeon.actionInProgress = false;
         return i.followUp({ content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
@@ -906,7 +906,7 @@ const setupCollector = (channel, activeDungeon) => {
       pExist.potions -= 1;
       activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
 
-      // Decrement skill ban if they have any
+      
       if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
         pExist.skillBanRounds -= 1;
         if (pExist.skillBanRounds === 0) {
@@ -920,14 +920,14 @@ const setupCollector = (channel, activeDungeon) => {
     } else if (i.customId === "rpg_dungeon_action_attack") {
       pExist.hasActedThisRound = true;
 
-      // Decrement heal ban if they have any
+      
       if (pExist.healBanRounds && pExist.healBanRounds > 0) {
         pExist.healBanRounds -= 1;
         if (pExist.healBanRounds === 0) {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
         }
       }
-      // Decrement skill ban if they have any
+      
       if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
         pExist.skillBanRounds -= 1;
         if (pExist.skillBanRounds === 0) {
@@ -935,28 +935,28 @@ const setupCollector = (channel, activeDungeon) => {
         }
       }
 
-      // Check if coin flip is triggered in Phase 2
+      
       const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
       const bossCfg = getBossConfig(activeDungeon.chapter);
       const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
       if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
-        // Trigger coin flip choice
+        
         await askCoinFlip(channel, activeDungeon, pExist);
       } else {
-        // Normal attack
+        
         await executePlayerAttack(channel, activeDungeon, pExist, 1.0);
       }
     } else if (i.customId === "rpg_dungeon_action_skill") {
       pExist.hasActedThisRound = true;
 
-      // Decrement heal ban if they have any
+      
       if (pExist.healBanRounds && pExist.healBanRounds > 0) {
         pExist.healBanRounds -= 1;
         if (pExist.healBanRounds === 0) {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
         }
       }
-      // Decrement skill ban if they have any
+      
       if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
         pExist.skillBanRounds -= 1;
         if (pExist.skillBanRounds === 0) {
@@ -968,14 +968,14 @@ const setupCollector = (channel, activeDungeon) => {
     } else if (i.customId === "rpg_dungeon_action_crimson") {
       pExist.hasActedThisRound = true;
 
-      // Decrement heal ban if they have any
+      
       if (pExist.healBanRounds && pExist.healBanRounds > 0) {
         pExist.healBanRounds -= 1;
         if (pExist.healBanRounds === 0) {
           activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
         }
       }
-      // Decrement skill ban if they have any
+      
       if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
         pExist.skillBanRounds -= 1;
         if (pExist.skillBanRounds === 0) {
@@ -983,12 +983,12 @@ const setupCollector = (channel, activeDungeon) => {
         }
       }
 
-      // HP Cost: 15% of max HP
+      
       const hpCost = Math.floor(pExist.maxHp * 0.15);
       pExist.hp = Math.max(1, pExist.hp - hpCost);
       activeDungeon.logs.push(`🩸 **${pExist.name}** hy sinh **${hpCost.toLocaleString()}** HP để kích hoạt **Huyết Sát**!`);
 
-      // Set crimson active flag for this turn
+      
       activeDungeon.crimsonActivePlayer = pExist.id;
       activeDungeon.crimsonHpCost = hpCost;
 
@@ -1008,7 +1008,7 @@ const setupCollector = (channel, activeDungeon) => {
   activeDungeon.collector = collector;
 };
 
-// Ask player to guess Heads or Tails
+
 const askCoinFlip = async (channel, activeDungeon, player) => {
   const embed = new EmbedBuilder()
     .setColor("#F1C40F")
@@ -1033,11 +1033,11 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
   const comp = await coinMsg.awaitMessageComponent({ filter, time: 20000 }).catch(() => null);
 
   if (!comp) {
-    // Timeout fallback: normal attack
+    
     await coinMsg.delete().catch(() => {});
     activeDungeon.logs.push(`⏳ Quá thời gian chọn mặt đồng xu! Sát thương bình thường (x1.0). Chuỗi đoán đúng bị ngắt!`);
     activeDungeon.consecutiveCoinSuccess = 0;
-    activeDungeon.coinFlipCount = 0; // reset counter
+    activeDungeon.coinFlipCount = 0; 
     return executePlayerAttack(channel, activeDungeon, player, 1.0);
   }
 
@@ -1069,12 +1069,12 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
       activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán SAI! Sát thương bình thường (x1.0). Chuỗi đoán đúng bị ngắt!`);
     }
 
-    activeDungeon.coinFlipCount = 0; // reset counter
+    activeDungeon.coinFlipCount = 0; 
     await executePlayerAttack(channel, activeDungeon, player, multiplier);
   }, getDelay(activeDungeon, 1500));
 };
 
-// Execute player skill action
+
 const executePlayerSkill = async (channel, activeDungeon, player) => {
   const enemy = activeDungeon.enemy;
 
@@ -1115,7 +1115,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
 
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
-        // Clear all debuffs instantly
+        
         const clearedDebuffs = [];
         if (p.poisonRounds && p.poisonRounds > 0) {
           p.poisonRounds = 0;
@@ -1133,7 +1133,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
           activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
 
-        // Heal 35% of each member's own max HP
+        
         const healAmount = Math.floor(p.maxHp * 0.35);
         const oldHp = p.hp;
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
@@ -1157,11 +1157,11 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
   }
 };
 
-// Execute player attack action
+
 const executePlayerAttack = async (channel, activeDungeon, player, multiplier) => {
   const enemy = activeDungeon.enemy;
 
-  // Eldric / Draugor deflection mechanic
+  
   if (enemy.key === "eldric" || enemy.key === "draugor") {
     const deflectionChance = enemy.key === "eldric" ? 0.40 : 0.25;
     if (Math.random() < deflectionChance) {
@@ -1175,7 +1175,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     }
   }
 
-  // Veilreaper dodge mechanic against ranged classes
+  
   if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage")) {
     if (Math.random() < 0.40) {
       activeDungeon.actionInProgress = false;
@@ -1188,7 +1188,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     }
   }
 
-  // Damage calculation
+  
   const isMagical = CLASS_ATTACK_TYPES[player.classKey] === "magical";
   const baseAttack = isMagical
     ? player.stats.int * 3.5 + player.stats.arc * 1.5
@@ -1199,7 +1199,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     rawDamage *= 1.2;
   }
 
-  // Event weapon passives: Sunbow and Clawhex damage modifications
+  
   const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
   if (pWeaponSubType === "sunbow" && isMagical) {
     rawDamage *= 1.036;
@@ -1211,17 +1211,17 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     enemy.bleedDamage = Math.floor((player.stats.str * 0.5 + player.stats.dex * 0.5));
     rawDamage *= 1.15;
   } else if (enemy.bleedRounds && enemy.bleedRounds > 0 && enemy.clawhexBleed) {
-    rawDamage *= 1.15; // 15% extra damage from all sources while clawhex bleed is active
+    rawDamage *= 1.15; 
   }
 
-  // Archer next teammate attack boost
+  
   if (activeDungeon.archerDoubleDmgNext && player.id !== activeDungeon.archerCasterId) {
     rawDamage *= 2.0;
     activeDungeon.archerDoubleDmgNext = false;
     activeDungeon.logs.push(`✨ Nhận cường hóa từ Xuyên Táo, đòn đánh gây gấp đôi sát thương!`);
   }
 
-  rawDamage *= 0.85 + Math.random() * 0.3; // variance
+  rawDamage *= 0.85 + Math.random() * 0.3; 
 
   const classCritBonus = player.rpgClass?.bonuses?.critRate || 0;
   const critRate = Math.min(
@@ -1234,17 +1234,17 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     rawDamage *= critMult;
   }
 
-  // Axesnake armor/mr shredding on attack/skill
+  
   if (pWeaponSubType === "axesnake") {
     enemy.armor = Math.max(0, Math.floor(enemy.armor * 0.90));
     enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * 0.90));
     activeDungeon.logs.push(`🐍 **[Axesnake]** Phá hủy 10% giáp vật lý và phép của đối thủ! Giáp còn: ${enemy.armor.toLocaleString()} PR / ${enemy.magicResist.toLocaleString()} MR.`);
   }
 
-  // Mitigation
+  
   let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
   
-  // Spearhex armor bypass (physical only)
+  
   if (!isMagical && pWeaponSubType === "spearhex") {
     mrOrArmor = Math.floor(mrOrArmor * 0.90);
   }
@@ -1256,7 +1256,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     damage = enemy.hp;
   }
 
-  // Apply Phase 1 dice multiplier or Phase 2 coin multiplier
+  
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(activeDungeon.chapter);
     const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
@@ -1272,7 +1272,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
       }
     }
 
-    // Vulnerable on heal ban mechanic: takes x2 damage when any alive player is heal banned
+    
     if (bossCfg?.mechanics?.vulnerable_on_heal_ban) {
       const isAnyPlayerHealBanned = activeDungeon.players.some((p) => p.hp > 0 && p.healBanRounds && p.healBanRounds > 0);
       if (isAnyPlayerHealBanned) {
@@ -1280,19 +1280,19 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
       }
     }
 
-    // 2.0x damage multiplier if boss poise is broken (takes +100% damage)
+    
     if (enemy.poiseBroken) {
       damage = Math.floor(damage * 2.0);
     }
   }
 
-  // Base attack modification done in rawDamage
+  
 
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
 
-  // Deal poise damage to boss (slightly increased poise damage)
+  
   if (enemy.isBoss && !enemy.poiseBroken) {
     const poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
     enemy.poise = Math.max(0, enemy.poise - poiseDmg);
@@ -1302,7 +1302,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
     }
   }
 
-  // Accumulate rage on successful attack
+  
   if (player.classKey !== "mage" && player.classKey !== "wretch") {
     player.rage = Math.min(100, (player.rage || 0) + 10);
   }
@@ -1325,15 +1325,15 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   }
 };
 
-// Proceed to the next actor in the turn queue
+
 const nextTurn = async (channel, activeDungeon) => {
   const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
-  // Sort by DEX descending so higher DEX goes first!
+  
   alivePlayers.sort((a, b) => (b.stats?.dex || 0) - (a.stats?.dex || 0));
   const nextPlayer = alivePlayers.find((p) => !p.hasActedThisRound);
 
   if (nextPlayer) {
-    // Process poison status at the start of player turn
+    
     if (nextPlayer.poisonRounds && nextPlayer.poisonRounds > 0) {
       const poisonDamage = Math.floor(nextPlayer.maxHp * 0.08);
       nextPlayer.poisonRounds -= 1;
@@ -1352,7 +1352,7 @@ const nextTurn = async (channel, activeDungeon) => {
       }
     }
 
-    // Process Shieldhex reflect at the start of player turn (in round 4, i.e., rounds >= 3)
+    
     const playerSubType = nextPlayer.weapon?.subType ? nextPlayer.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
     if (playerSubType.includes("shieldhex") && nextPlayer.shieldhexRounds >= 3) {
       const reflectDmg = Math.floor((nextPlayer.shieldhexAbsorbed || 0) * 0.90);
@@ -1378,11 +1378,11 @@ const nextTurn = async (channel, activeDungeon) => {
       }, getDelay(activeDungeon, 2000));
     }
   } else {
-    // All alive players have acted. Set enemy as current actor
+    
     activeDungeon.currentActor = activeDungeon.enemy;
     await renderGameScreen(channel, activeDungeon);
 
-    // Trigger enemy turn automatically
+    
     activeDungeon.actionInProgress = true;
     setTimeout(async () => {
       await runEnemyTurn(channel, activeDungeon);
@@ -1390,7 +1390,7 @@ const nextTurn = async (channel, activeDungeon) => {
   }
 };
 
-// Enemy/Boss attack logic
+
 const runEnemyTurn = async (channel, activeDungeon) => {
   const enemy = activeDungeon.enemy;
   const alivePlayers = activeDungeon.players.filter((p) => p.hp > 0);
@@ -1400,12 +1400,12 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     return;
   }
 
-  // Poise broken → boss bị stun, bỏ lượt này và phục hồi Poise
+  
   if (enemy.isBoss && enemy.poiseBroken) {
     activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
     enemy.poiseBroken = false;
     enemy.poise = enemy.poiseMax || (80 + (activeDungeon.chapter || 1) * 20);
-    // Reset player turns for the next round of combat
+    
     activeDungeon.players.forEach((p) => {
       p.hasActedThisRound = false;
     });
@@ -1414,7 +1414,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     return;
   }
 
-  // Bleed tick check
+  
   if (enemy.bleedRounds && enemy.bleedRounds > 0) {
     const bleedDamage = Math.floor(enemy.maxHp * 0.1);
     enemy.hp = Math.max(0, enemy.hp - bleedDamage);
@@ -1428,7 +1428,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     }
   }
 
-  // Chapter 3: Mourngait skill ban passive trigger
+  
   if (enemy.key === "mourngait" && Math.random() < 0.35) {
     const targets = [];
     const pool = [...alivePlayers];
@@ -1450,7 +1450,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     }
   }
 
-  // Chapter 5: Vaelmor poison debuff trigger
+  
   if (enemy.key === "vaelmor" && Math.random() < 0.35) {
     activeDungeon.logs.push(`☣️ **${enemy.name}** giải phóng **[Hơi Thở Kịch Độc: Vaelmor Miasma]** lan tỏa khắp trận địa!`);
     activeDungeon.players.forEach((p) => {
@@ -1460,7 +1460,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     });
   }
 
-  // Phase 2 Boss Passive Skill
+  
   if (enemy.isBoss && enemy.phase === 2) {
     const bossCfg = getBossConfig(activeDungeon.chapter);
     const passive = bossCfg.passive;
@@ -1475,7 +1475,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   const mitCfg = config.dungeon?.ranged_class_mitigation;
 
   if (isAOE) {
-    // Phase 2: AOE attack on all alive players
+    
     const mult = activeDungeon.phase2Madness;
     if (enemy.key === "eldric") {
       activeDungeon.logs.push(`🌀 **${enemy.name}** giải phóng **[Điểm Kỳ Dị: Hố Đen Trọng Lực]** hút mọi vật thể và ép nát tất cả!`);
@@ -1491,17 +1491,17 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       const rawDmg = enemy.atk * mult * (0.85 + Math.random() * 0.3);
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
 
-      // Archer & Mage ranged passive mitigation
+      
       if (mitCfg && mitCfg.classes?.includes(p.classKey)) {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }
 
-      // Paladin passive 5% damage reduction
+      
       if (p.classKey === "paladin") {
         damage = Math.floor(damage * 0.95);
       }
 
-      // Shieldhex passive: reduce damage by 20% and accumulate
+      
       const playerSubType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
       if (playerSubType.includes("shieldhex")) {
         damage = Math.floor(damage * 0.80);
@@ -1522,11 +1522,11 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       }
     });
 
-    // Increase madness for next turn (scaled dynamically so early chapters are easier)
+    
     const madnessIncrement = 0.05 + (activeDungeon.chapter - 1) * 0.03;
     activeDungeon.phase2Madness += madnessIncrement;
   } else {
-    // Phase 1 / Regular monsters: Single target attack on a prioritized alive player
+    
     const target = selectBossTarget(alivePlayers);
     const armor = target.stats.pr * 12.0;
     const mitigation = armor / (armor + 1000);
@@ -1550,24 +1550,24 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     if (!isCustomSkillUsed) {
       let damageMult = 1.0;
       if (enemy.key === "mourngait") {
-        damageMult = 0.70; // 30% weaker due to seal
+        damageMult = 0.70; 
         activeDungeon.logs.push(`🔥 Hắc hỏa phong ấn kiềm hãm... Đòn đánh của **${enemy.name}** bị giảm sức mạnh!`);
       }
       
       const rawDmg = enemy.atk * (0.85 + Math.random() * 0.3) * damageMult;
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
 
-      // Archer & Mage ranged passive mitigation
+      
       if (mitCfg && mitCfg.classes?.includes(target.classKey)) {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }
 
-      // Paladin passive 5% damage reduction
+      
       if (target.classKey === "paladin") {
         damage = Math.floor(damage * 0.95);
       }
 
-      // Shieldhex passive: reduce damage by 20% and accumulate
+      
       const targetSubType = target.weapon?.subType ? target.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
       if (targetSubType.includes("shieldhex")) {
         damage = Math.floor(damage * 0.80);
@@ -1593,10 +1593,10 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     }
   }
 
-  // Check if team is wiped out
+  
   const teamWiped = activeDungeon.players.every((p) => p.hp <= 0);
 
-  // Reset player turns for the next round of combat
+  
   activeDungeon.players.forEach((p) => {
     p.hasActedThisRound = false;
   });
@@ -1610,7 +1610,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   }
 };
 
-// Enemy died: progress round, phase or victory
+
 const handleEnemyDefeat = async (channel, activeDungeon) => {
   const { round, chapter, enemy } = activeDungeon;
 
@@ -1628,11 +1628,11 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
         return;
       }
 
-      // Transition to Phase 2
+      
       const bossCfg = getBossConfig(chapter);
       const b2Cfg = bossCfg.stats.phase2;
 
-      // Leader scaling
+      
       const leader = activeDungeon.players.find(p => p.id === activeDungeon.leaderId) || activeDungeon.players[0];
       const leaderLevel = leader ? (leader.level || 1) : 1;
       const leaderPower = leader ? (leader.power || 0) : 0;
@@ -1648,7 +1648,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       enemy.armor = Math.floor(b2Cfg.base_defense * leaderScaler);
       enemy.magicResist = Math.floor(b2Cfg.base_defense * leaderScaler);
       enemy.phase = 2;
-      enemy.bleedRounds = 0; // Clear bleed when entering phase 2
+      enemy.bleedRounds = 0; 
       enemy.poiseMax = poiseMax;
       enemy.poise = poiseMax;
       enemy.poiseBroken = false;
@@ -1657,17 +1657,17 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
 
       activeDungeon.logs.push(`👿 **${bossCfg.name_phase1}** đã ngã xuống! Cơ thể boss bắt đầu biến đổi dữ dội và cười điên cuồng bước vào **Phase 2**!`);
       
-      // Reset player turns for Phase 2
+      
       activeDungeon.players.forEach((p) => {
         p.hasActedThisRound = false;
       });
 
-      // Reset timer to exactly 5 minutes for Phase 2 (like entering a new stage, no announcement)
+      
       if (activeDungeon.timeoutTimer) {
         clearTimeout(activeDungeon.timeoutTimer);
         activeDungeon.timeoutTimer = null;
       }
-      const newTimeLimit = 5 * 60 * 1000; // 5 minutes
+      const newTimeLimit = 5 * 60 * 1000; 
       activeDungeon.roundEndTime = Date.now() + newTimeLimit;
       activeDungeon.timeoutTimer = setTimeout(async () => {
         await handleTimeout(channel, activeDungeon);
@@ -1675,11 +1675,11 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
 
       await nextTurn(channel, activeDungeon);
     } else {
-      // Defeated Phase 2: Complete Victory!
+      
       await handleVictory(channel, activeDungeon);
     }
   } else {
-    // Vòng 1-4: Advance round
+    
     if (enemy.key === "draugor") {
       activeDungeon.logs.push(`🗣️ **Draugor** hét lên phẫn nộ: *"Các người... các người sẽ phải chịu đựng cơn thịnh nộ của ngài ấy... lũ sinh vật thấp kém!"*`);
     } else {
@@ -1690,7 +1690,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
   }
 };
 
-// Victory handler: give rewards, save progress
+
 const handleVictory = async (channel, activeDungeon) => {
   activeDungeon.isFinished = true;
   await renderGameScreen(channel, activeDungeon);
@@ -1714,7 +1714,7 @@ const handleVictory = async (channel, activeDungeon) => {
     return;
   }
 
-  // Update Guild Progress & check first clear of chapter
+  
   const guild = await RpgGuild.findById(activeDungeon.guildId);
   let isFirstClearOfChapter = false;
   if (guild) {
@@ -1738,19 +1738,19 @@ const handleVictory = async (channel, activeDungeon) => {
     const freshUser = await User.findById(p.userRef._id);
     if (!freshUser) continue;
 
-    // Add coke and exp
+    
     await incBalance(freshUser.userId, cokeReward);
     addRpgExp(freshUser.rpg, expReward);
     freshUser.markModified("rpg");
 
-    // Generate random gear drop
+    
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
       forceDrop: true,
     });
     
-    // Give special weapon on first clear!
+    
     let specialGear = null;
     const claimedWeapons = freshUser.rpg.claimedBossWeapons || [];
     const bossCfg = getBossConfig(activeDungeon.chapter);
@@ -1777,7 +1777,7 @@ const handleVictory = async (channel, activeDungeon) => {
       }
     }
 
-    // Give cristal stone reward based on chapter!
+    
     const cristalStoneId = `cristal-${activeDungeon.chapter}`;
     if (!freshUser.inventory) {
       freshUser.inventory = new Map();
@@ -1825,7 +1825,7 @@ const handleVictory = async (channel, activeDungeon) => {
   await channel.send({ embeds: [embed] });
 };
 
-// Defeat handler: fail
+
 const handleDefeat = async (channel, activeDungeon) => {
   activeDungeon.isFinished = true;
   await renderGameScreen(channel, activeDungeon);
@@ -1851,7 +1851,7 @@ const handleDefeat = async (channel, activeDungeon) => {
   await channel.send({ embeds: [embed] });
 };
 
-// Timeout handler
+
 const handleTimeout = async (channel, activeDungeon) => {
   activeDungeon.isFinished = true;
   await renderGameScreen(channel, activeDungeon);
@@ -1877,18 +1877,18 @@ const handleTimeout = async (channel, activeDungeon) => {
   await channel.send({ embeds: [embed] });
 };
 
-// Run simulated turn for automated testing
+
 const runSimulatedTurn = async (channel, activeDungeon, player) => {
   if (!channel.client.rpgDungeons.has(channel.id)) return;
   if (player.hp <= 0) return;
 
-  // Let's check if the simulation has already progressed to another actor (prevent double execution)
+  
   if (activeDungeon.currentActor !== player) return;
 
-  // Set action in progress
+  
   activeDungeon.actionInProgress = true;
 
-  // Check if player has heal ban
+  
   if (player.healBanRounds && player.healBanRounds > 0) {
     player.healBanRounds -= 1;
     if (player.healBanRounds === 0) {
@@ -1902,7 +1902,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
     }
   }
 
-  // Check if skill is ready
+  
   let useSkill = false;
   const hasSkillBan = player.skillBanRounds && player.skillBanRounds > 0;
   if (player.classKey !== "wretch" && !hasSkillBan) {
@@ -1921,7 +1921,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
     return;
   }
 
-  // Check if need healing
+  
   const needHeal = player.hp < player.maxHp * 0.4 && player.potions > 0 && !(player.healBanRounds && player.healBanRounds > 0);
   if (needHeal) {
     player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3));
@@ -1933,16 +1933,16 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
     return;
   }
 
-  // Otherwise, normal attack
+  
   player.hasActedThisRound = true;
 
-  // Check if coin flip is triggered in Phase 2
+  
   const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
   const bossCfg = getBossConfig(activeDungeon.chapter);
   const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
   
   if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
-    // Guess coin flip
+    
     const guess = Math.random() < 0.5 ? "h" : "t";
     const guessLabel = guess === "h" ? "Heads" : "Tails";
     activeDungeon.logs.push(`🪙 [Sim] **${player.name}** dự đoán mặt **${guessLabel}**!`);

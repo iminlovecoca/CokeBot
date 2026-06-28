@@ -11,7 +11,7 @@ class DailyCommand extends BaseCommand {
       examples: [
         { intent: 'Nhận phần thưởng hàng ngày', command: `${config.prefix}daily` }
       ],
-      cooldown: 0 // handled manually via Luxon logic inside
+      cooldown: 0 
     });
   }
 
@@ -59,7 +59,7 @@ class DailyCommand extends BaseCommand {
     user.dailyStreak = streak;
     user.lastDaily = now.toJSDate();
 
-    // Give some XP
+    
     user.xp += 500;
     while (user.xp >= userService.getUserXpNeeded(user.level)) {
       user.xp -= userService.getUserXpNeeded(user.level);
@@ -67,7 +67,7 @@ class DailyCommand extends BaseCommand {
       user.coke += 2000;
     }
 
-    // Add 1 wc item to user inventory
+    
     if (!user.inventory) {
       user.inventory = new Map();
     }

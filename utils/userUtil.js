@@ -604,8 +604,8 @@ const getFilteredCokemon = async (userId, cokemonQuery, speciesQuery) => {
     match: speciesQuery,
   });
 
-  // Because a 'match' on a populated field can leave nulls, we must filter them out.
-  // This ensures we only return cokemon where the species also matched the filter.
+  
+  
   userCokemon = userCokemon.filter((c) => c.species_id);
   return userCokemon;
 };

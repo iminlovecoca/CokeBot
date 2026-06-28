@@ -17,7 +17,7 @@ const getKnowledgeData = () => {
             content: "Bot được tạo bởi Khang và Myth, sử dụng Node.js và MongoDB."
         },
 
-        // Spawning mechanics
+        
         {
             id: "spawn_intervals",
             category: "spawning",
@@ -34,7 +34,7 @@ const getKnowledgeData = () => {
             content: `Tỉ lệ xuất hiện Cokemon lấp lánh (Shiny) là 1/${settings.shiny_rate}. Cokemon Shiny có màu sắc đặc biệt và biểu tượng ✨.`
         },
 
-        // Economy
+        
         {
             id: "economy_currency",
             category: "economy",
@@ -63,7 +63,7 @@ const getKnowledgeData = () => {
                      "8. Lên cấp Trainer: Tích cực hoạt động để tăng cấp độ và nhận phần thưởng Coke giá trị sau mỗi lần lên cấp."
         },
 
-        // Growth & Friendship
+        
         {
             id: "growth_level_up",
             category: "growth",
@@ -81,7 +81,7 @@ const getKnowledgeData = () => {
                      "Lưu ý: Điểm tình bạn tối đa là " + settings.max_friendship + ". Khi trao đổi (!trade) hoặc tặng, điểm tình bạn sẽ bị reset về mức cơ bản (" + settings.base_friendship + ")."
         },
 
-        // Items
+        
         {
             id: "catch_net_info",
             category: "items",
@@ -93,7 +93,7 @@ const getKnowledgeData = () => {
             content: `Bả (Lure) giúp tăng tỉ lệ xuất hiện của các hệ Cokemon cụ thể. Khi sử dụng Bả, thời gian chờ giữa các lần spawn giảm xuống còn ${settings.lure_spawn_cooldown_ms / 1000 / 60} phút. Hiệu ứng của Bả kéo dài trong ${settings.lure_duration_ms / 1000 / 60} phút. Mỗi người dùng cần chờ ${settings.lure_user_cooldown_ms / 1000 / 60 / 60} giờ sau khi bả hết hạn mới có thể đặt bả tiếp theo.`
         },
 
-        // Security
+        
         {
             id: "anti_spam_rules",
             category: "security",
@@ -115,7 +115,7 @@ const getKnowledgeData = () => {
             content: `Vi phạm luật spam hoặc không vượt qua được bài kiểm tra xác thực sẽ dẫn đến hình phạt cấm (ban) sử dụng bot. Thời gian cấm mặc định là ${ac.mute_duration_ms / 1000 / 60} phút. Các trường hợp cố tình gian lận nhiều lần có thể bị ban vĩnh viễn bởi Admin.`
         },
 
-        // Personality
+        
         {
             id: "cola_trivia",
             category: "general",
