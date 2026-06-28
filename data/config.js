@@ -1,5 +1,5 @@
 module.exports = {
-  prefix: "q",
+  prefix: "x",
   emoji: {
     blank: "<:blank:1403928807395819671>",
     money: "<:cokecy:1509951335016173662>",
