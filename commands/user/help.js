@@ -1,10 +1,5 @@
 const BaseCommand = require('../../core/BaseCommand');
-const {
-  EmbedBuilder,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-} = require("discord.js");
-const fs = require("fs");
+const { EmbedBuilder } = require("discord.js");
 const path = require("path");
 const config = require("../../data/config");
 
@@ -127,178 +122,71 @@ class HelpCommand extends BaseCommand {
       }
       return message.reply({ embeds: [detailEmbed] });
     } else {
-      let commandFolders = fs.readdirSync(
-        path.join(__dirname, "../../commands"),
-      ).filter((item) => {
-        const fullPath = path.join(__dirname, "../../commands", item);
-        return fs.statSync(fullPath).isDirectory() && item !== "noitu";
+      const grouped = {};
+      commands.forEach((cmd) => {
+        if (cmd.hidden) return;
+        const cat = cmd.category || 'general';
+        if (cat === 'admin' && !showAdmin) return;
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(cmd.name);
       });
-      if (!showAdmin) {
-        commandFolders = commandFolders.filter((folder) => folder !== "admin");
+
+      for (const cat in grouped) {
+        grouped[cat].sort();
       }
-      let currentCategory = "main";
 
-      const generateEmbed = (category) => {
-        const embed = new EmbedBuilder()
-          .setColor("#5865F2")
-          .setAuthor({
-            name: "Bảng Hướng Dẫn Sử Dụng Lệnh",
-            iconURL: message.client.user.displayAvatarURL(),
+      const embed = new EmbedBuilder()
+        .setColor("#5865F2")
+        .setAuthor({
+          name: "Command List",
+          iconURL: message.client.user.displayAvatarURL(),
+        })
+        .setDescription(
+          `Dưới đây là danh sách các lệnh của Coke!\n` +
+          `Để biết thêm thông tin chi tiết của từng lệnh, sử dụng \`${config.prefix}help {tên lệnh}\``
+        );
+
+      const categoryOrder = [
+        "user",
+        "cokecy",
+        "shop",
+        "gamble",
+        "rpg",
+        "cokemon",
+        "action",
+        "general",
+        "config",
+        "admin"
+      ];
+
+      categoryOrder.forEach((cat) => {
+        const cmdNames = grouped[cat];
+        if (cmdNames && cmdNames.length > 0) {
+          const emoji = config.category_emojis[cat] || config.category_emojis["default"] || "➡️";
+          const categoryName = categoryTranslations[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
+          
+          embed.addFields({
+            name: `${emoji} ${categoryName}`,
+            value: cmdNames.map(name => `\`${name}\``).join(" "),
           });
-
-        if (category === "main") {
-          let desc = commandFolders
-            .map((folder) => {
-              const emoji =
-                config.category_emojis[folder] ||
-                config.category_emojis["default"];
-              const categoryName =
-                categoryTranslations[folder.toLowerCase()] ||
-                (folder.charAt(0).toUpperCase() + folder.slice(1));
-              return `- ${emoji} **${categoryName}**`;
-            })
-            .join("\n");
-
-          if (showAdmin) {
-            const packageJson = require("../../package.json");
-            desc += `\n\n**Phiên bản bot:** \`v${packageJson.version}\``;
-          }
-
-          embed.setTitle("Chọn một danh mục để xem các lệnh").setDescription(desc);
-        } else {
-          if (category === "admin" && !showAdmin) {
-            return embed
-              .setColor("#FF0000")
-              .setTitle("⚠️ Lỗi")
-              .setDescription("Bạn không có quyền truy cập danh mục này.");
-          }
-          const emoji =
-            config.category_emojis[category] ||
-            config.category_emojis["default"];
-          const categoryName =
-            categoryTranslations[category.toLowerCase()] ||
-            (category.charAt(0).toUpperCase() + category.slice(1));
-          const isNoituCategory = category === "noitu";
-          embed
-            .setTitle(`${emoji} Lệnh trong danh mục: ${categoryName}`)
-            .setDescription(
-              `Nhập \`${config.prefix}help <lệnh>\` để biết thêm thông tin chi tiết.`,
-            );
-
-          const sourceCommands = isNoituCategory ? noituCommands : commands;
-          const commandsInCategory = sourceCommands
-            .filter((cmd) => {
-              const commandPath = require.resolve(cmd.filePath);
-              return path.dirname(commandPath).endsWith(category);
-            })
-            .filter((cmd) => !cmd.hidden);
-
-          if (commandsInCategory.size > 0) {
-            if (commandsInCategory.size <= 24) {
-              commandsInCategory.forEach((cmd) => {
-                embed.addFields({
-                  name: `\`${isNoituCategory ? `${config.prefix} noitu ${cmd.name}` : `${config.prefix}${cmd.name}`}\``,
-                  value: cmd.description || "Không có mô tả.",
-                  inline: true,
-                });
-              });
-            } else {
-              let lines = [];
-              commandsInCategory.forEach((cmd) => {
-                const cmdName = isNoituCategory ? `noitu ${cmd.name}` : cmd.name;
-                lines.push(`• \`${config.prefix}${cmdName}\`: ${cmd.description || "Không có mô tả."}`);
-              });
-
-              let currentFieldVal = "";
-              let fieldIndex = 1;
-              for (const line of lines) {
-                if (currentFieldVal.length + line.length + 1 > 1000) {
-                  embed.addFields({
-                    name: `Danh sách lệnh (Phần ${fieldIndex})`,
-                    value: currentFieldVal,
-                  });
-                  currentFieldVal = "";
-                  fieldIndex++;
-                }
-                currentFieldVal += line + "\n";
-              }
-              if (currentFieldVal.length > 0) {
-                embed.addFields({
-                  name: fieldIndex > 1 ? `Danh sách lệnh (Phần ${fieldIndex})` : "Danh sách lệnh",
-                  value: currentFieldVal,
-                });
-              }
-            }
-          } else {
-            embed.setDescription("Không có lệnh nào trong danh mục này.");
-          }
-        }
-        return embed;
-      };
-
-      const generateSelectMenu = () => {
-        const options = commandFolders.map((folder) => {
-          const categoryName =
-            categoryTranslations[folder.toLowerCase()] ||
-            (folder.charAt(0).toUpperCase() + folder.slice(1));
-          return {
-            label: categoryName,
-            value: folder.toLowerCase(),
-            description: `Xem các lệnh trong mục ${categoryName}.`,
-          };
-        });
-
-        options.unshift({
-          label: "Trang Chính",
-          value: "main",
-          description: "Quay lại danh sách các danh mục.",
-        });
-        return new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId("help_category_select")
-            .setPlaceholder("Chọn một danh mục...")
-            .addOptions(options),
-        );
-      };
-
-      const initialEmbed = generateEmbed(currentCategory);
-      const initialComponents = generateSelectMenu();
-      const replyMessage = await message.reply({
-        embeds: [initialEmbed],
-        components: [initialComponents],
-        fetchReply: true,
-      });
-
-      const collector = replyMessage.createMessageComponentCollector({
-        filter: (i) => i.user.id === message.author.id,
-        time: 120000,
-      });
-
-      collector.on("collect", async (i) => {
-        if (i.customId === "help_category_select") {
-          currentCategory = i.values[0];
-          const newEmbed = generateEmbed(currentCategory);
-          await i.update({ embeds: [newEmbed] });
         }
       });
 
-      collector.on("end", async () => {
-        const disabledRow = new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId("help_category_select_disabled")
-            .setPlaceholder("Chọn một danh mục...")
-            .addOptions([
-              {
-                label: "Hết hạn",
-                value: "expired",
-                description: "Menu trợ giúp đã hết hạn tương tác.",
-              },
-            ])
-            .setDisabled(true),
-        );
-
-        await replyMessage.edit({ components: [disabledRow] }).catch(() => {});
+      Object.keys(grouped).forEach((cat) => {
+        if (!categoryOrder.includes(cat)) {
+          const cmdNames = grouped[cat];
+          if (cmdNames && cmdNames.length > 0) {
+            const emoji = config.category_emojis[cat] || config.category_emojis["default"] || "➡️";
+            const categoryName = categoryTranslations[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
+            embed.addFields({
+              name: `${emoji} ${categoryName}`,
+              value: cmdNames.map(name => `\`${name}\``).join(" "),
+            });
+          }
+        }
       });
+
+      return message.reply({ embeds: [embed] });
     }
   }
 }
