@@ -75,12 +75,17 @@ class TopCommand extends BaseCommand {
         break;
     }
 
+    if (guild) {
+      await guild.members.fetch().catch(() => {});
+    }
+
     if (!topUsers || topUsers.length === 0)
       return message.reply('❌ **|** Không có dữ liệu người chơi nào.');
 
     topUsers = topUsers.filter(u => {
+      if (!guild) return true;
       const member = guild.members.cache.get(u.userId);
-      return !!member;
+      return member && !member.user.bot;
     });
 
     if (topUsers.length === 0)

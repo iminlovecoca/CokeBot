@@ -4,20 +4,20 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://i.imgur.com/3SsZUVT.gif",
-  "https://i.imgur.com/g005tMV.gif",
-  "https://i.imgur.com/wzn0ghV.gif",
-  "https://i.imgur.com/D8SIe4Z.gif",
-  "https://i.imgur.com/xmj8XRD.gif",
-  "https://i.imgur.com/N10WUeF.gif",
-  "https://i.imgur.com/pO2smzw.gif",
-  "https://i.imgur.com/UYKs7Q1.gif",
-  "https://i.imgur.com/aBQJPvZ.gif",
-  "https://i.imgur.com/meZ0TDz.gif",
-  "https://i.imgur.com/jI8zhH6.gif",
-  "https://i.imgur.com/eP7NKy7.gif",
-  "https://i.imgur.com/a3upumA.gif",
-  "https://i.imgur.com/Lbzh24f.gif"
+  "https://files.catbox.moe/5wm7ns.gif",
+  "https://files.catbox.moe/emzrr6.gif",
+  "https://files.catbox.moe/e52bb1.gif",
+  "https://files.catbox.moe/s1ml4o.gif",
+  "https://files.catbox.moe/zfkczg.gif",
+  "https://files.catbox.moe/eadhlc.gif",
+  "https://files.catbox.moe/qh9ewv.gif",
+  "https://files.catbox.moe/n4icmo.gif",
+  "https://files.catbox.moe/4okxba.gif",
+  "https://files.catbox.moe/n29em0.gif",
+  "https://files.catbox.moe/5392ne.gif",
+  "https://files.catbox.moe/4db3v0.gif",
+  "https://files.catbox.moe/4dwcnv.gif",
+  "https://files.catbox.moe/c9al40.gif"
 ];
 
 class BullyCommand extends BaseCommand {

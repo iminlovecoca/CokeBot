@@ -4,14 +4,14 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/X2WGK2fbenEAAAAM/peak.gif",
-  "https://media1.tenor.com/m/XiYuU9h44-AAAAAM/anime-slap-mad.gif",
-  "https://media1.tenor.com/m/cfobWWgjG8wAAAAM/anime-kaguya-sama.gif",
-  "https://media1.tenor.com/m/cpWuWnOU64MAAAAM/bofetada.gif",
-  "https://media1.tenor.com/m/68_5cN3wpJcAAAAM/slap-anime-girl.gif",
-  "https://media1.tenor.com/m/VlSXTbFcvDQAAAAM/naruto-anime.gif",
-  "https://media1.tenor.com/m/Sv8LQZAoQmgAAAAM/chainsaw-man-csm.gif",
-  "https://media1.tenor.com/m/TcBb6YDeidkAAAAM/bulma-vs-bils-slap.gif"
+  "https://files.catbox.moe/4pjo5p.gif",
+  "https://files.catbox.moe/tbmwbk.gif",
+  "https://files.catbox.moe/fqqm6x.gif",
+  "https://files.catbox.moe/c8mi7x.gif",
+  "https://files.catbox.moe/fef11d.gif",
+  "https://files.catbox.moe/e1jd71.gif",
+  "https://files.catbox.moe/a6oc48.gif",
+  "https://files.catbox.moe/h3yu4x.gif"
 ];
 
 class SlapCommand extends BaseCommand {

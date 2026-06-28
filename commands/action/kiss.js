@@ -4,22 +4,22 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/JmphmnN1y3kAAAAM/kiss.gif",
-  "https://media1.tenor.com/m/BZyWzw2d5tAAAAAM/hyakkano-100-girlfriends.gif",
-  "https://media1.tenor.com/m/LWwxh8RIiVEAAAAM/s6.gif",
-  "https://media1.tenor.com/m/YHxJ9NvLYKsAAAAM/anime-kiss.gif",
-  "https://media1.tenor.com/m/6l_1S34ErxMAAAAM/sena-aijisai-watanare.gif",
-  "https://media1.tenor.com/m/L-NTpww8HTUAAAAM/kiss-anime-anime-kiss.gif",
-  "https://media1.tenor.com/m/5jhwSnExvoEAAAAM/baiser-animes.gif",
-  "https://media1.tenor.com/m/U4YIaKPyS4cAAAAM/umibe-no-%C3%A9tranger-kiss.gif",
-  "https://media1.tenor.com/m/zUTrh58kH50AAAAM/vegeta-anime.gif",
-  "https://media1.tenor.com/m/NZUQilMD3IIAAAAM/horimiya-izumi-miyamura.gif",
-  "https://media1.tenor.com/m/IYm_z25wOHMAAAAM/ayla-soft-kiss.gif",
-  "https://media1.tenor.com/m/Fyq9izHlreQAAAAM/my-little-monster-haru-yoshida.gif",
-  "https://media1.tenor.com/m/FoUR5FPFYyoAAAAM/darker-than-black-dtb-hei.gif",
-  "https://media1.tenor.com/m/ErAPuiWY46QAAAAM/kiss-anime.gif",
-  "https://media1.tenor.com/m/ibHBbBdai8AAAAAM/lesbian.gif",
-  "https://media1.tenor.com/m/UyhucXktku0AAAAM/love-kiss.gif"
+  "https://files.catbox.moe/fuqsua.gif",
+  "https://files.catbox.moe/2l18rd.gif",
+  "https://files.catbox.moe/io8tto.gif",
+  "https://files.catbox.moe/k4l4e7.gif",
+  "https://files.catbox.moe/t8wtmp.gif",
+  "https://files.catbox.moe/xdkyap.gif",
+  "https://files.catbox.moe/s5griu.gif",
+  "https://files.catbox.moe/lpwg8e.gif",
+  "https://files.catbox.moe/4jyw8s.gif",
+  "https://files.catbox.moe/mgtr39.gif",
+  "https://files.catbox.moe/tbshki.gif",
+  "https://files.catbox.moe/vurvxc.gif",
+  "https://files.catbox.moe/vekpy8.gif",
+  "https://files.catbox.moe/s6i2ut.gif",
+  "https://files.catbox.moe/t4ao7p.gif",
+  "https://files.catbox.moe/i773y1.gif"
 ];
 
 class KissCommand extends BaseCommand {

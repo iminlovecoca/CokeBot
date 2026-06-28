@@ -4,17 +4,17 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/p8y_fm-CAuUAAAAM/anime-haruhi-fujioka.gif",
-  "https://media1.tenor.com/m/SYsRdiK-T7gAAAAM/hug-anime.gif",
-  "https://media1.tenor.com/m/J7eGDvGeP9IAAAAM/enage-kiss-anime-hug.gif",
-  "https://media1.tenor.com/m/YVSiUKjAvsMAAAAM/anime-nuzzle-k-on.gif",
-  "https://media1.tenor.com/m/YapsPDvVKIAAAAAM/rikekoi-anime-nuzzle.gif",
-  "https://media1.tenor.com/m/w5TTA_fLV6UAAAAM/anime-hug-hug.gif",
-  "https://media1.tenor.com/m/oJydVqWFDUQAAAAM/natsu-lucy.gif",
-  "https://media1.tenor.com/m/PlenvFTbCcAAAAAM/animehug.gif",
-  "https://media1.tenor.com/m/FCBl9L-SO9QAAAAC/anime-lycoris-recoil.gif",
-  "https://media1.tenor.com/m/omM3N60gsFcAAAAM/yakuzas-way-to-babysitting-anime-hug.gif",
-  "https://media1.tenor.com/m/8Jk1ueYnyYUAAAAM/hug.gif"
+  "https://files.catbox.moe/a7crzx.gif",
+  "https://files.catbox.moe/qp5gk5.gif",
+  "https://files.catbox.moe/5fmdt0.gif",
+  "https://files.catbox.moe/2u0wkh.gif",
+  "https://files.catbox.moe/5umxzp.gif",
+  "https://files.catbox.moe/hggwol.gif",
+  "https://files.catbox.moe/y94ww0.gif",
+  "https://files.catbox.moe/9fj25w.gif",
+  "https://files.catbox.moe/epruvi.gif",
+  "https://files.catbox.moe/bqh05o.gif",
+  "https://files.catbox.moe/x4ledc.gif"
 ];
 
 class HugCommand extends BaseCommand {

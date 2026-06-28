@@ -40,6 +40,10 @@ class GiveCommand extends BaseCommand {
       );
     }
 
+    if (mention.bot) {
+      return message.reply("**Bạn giàu quá hay sao mà trả công cho Bot vậy =))**");
+    }
+
     const senderId = message.author.id;
     const receiverId = mention.id;
     const vnNow = new Date(

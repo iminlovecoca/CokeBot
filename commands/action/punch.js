@@ -4,20 +4,20 @@ const { UserFriendlyError } = require('../../utils/errors');
 const config = require('../../data/config');
 
 const gifs = [
-  "https://media1.tenor.com/m/lWmjgII6fcgAAAAM/saki-saki-mukai-naoya.gif",
-  "https://media1.tenor.com/m/qDDsivB4UEkAAAAM/anime-fight.gif",
-  "https://media1.tenor.com/m/FAEF_H8BFC8AAAAM/punch.gif",
-  "https://media1.tenor.com/m/ZJpW9TXNlCIAAAAM/ora-oraora.gif",
-  "https://media.tenor.com/yA_KtmPI1EMAAAAM/hxh-hunter-x-hunter.gif",
-  "https://media1.tenor.com/m/i3hP7zju5JYAAAAM/higurashi-sotsu.gif",
-  "https://i.imgur.com/e4bi40y.gif",
-  "https://i.imgur.com/Op0Pu0J.gif",
-  "https://i.imgur.com/FCXJydZ.gif",
-  "https://i.imgur.com/jznCcr2.gif",
-  "https://i.imgur.com/y8dqJmY.gif",
-  "https://i.imgur.com/BYAHeVB.gif",
-  "https://media1.tenor.com/m/rf95MNM-96MAAAAM/luffy-one-piece.gif",
-  "https://media1.tenor.com/m/UK-nHsdngT0AAAAM/sakura-punch-naruto.gif"
+  "https://files.catbox.moe/3xm60t.gif",
+  "https://files.catbox.moe/7dicm2.gif",
+  "https://files.catbox.moe/ke30bl.gif",
+  "https://files.catbox.moe/t5eprq.gif",
+  "https://files.catbox.moe/8wiy0d.gif",
+  "https://files.catbox.moe/6xll7q.gif",
+  "https://files.catbox.moe/kxf4zo.gif",
+  "https://files.catbox.moe/zoni5k.gif",
+  "https://files.catbox.moe/0lf69c.gif",
+  "https://files.catbox.moe/e52tfh.gif",
+  "https://files.catbox.moe/qrbho8.gif",
+  "https://files.catbox.moe/tkpkfz.gif",
+  "https://files.catbox.moe/mrk1xf.gif",
+  "https://files.catbox.moe/admn6j.gif"
 ];
 
 class PunchCommand extends BaseCommand {
