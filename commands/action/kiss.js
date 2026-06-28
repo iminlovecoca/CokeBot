@@ -1,6 +1,7 @@
 const BaseCommand = require('../../core/BaseCommand');
 const { EmbedBuilder } = require('discord.js');
 const { UserFriendlyError } = require('../../utils/errors');
+const { updateQuestProgress } = require('../../utils/questUtil');
 const config = require('../../data/config');
 
 const gifs = [
@@ -60,6 +61,9 @@ class KissCommand extends BaseCommand {
       .setColor('#3498db');
 
     await message.channel.send({ embeds: [embed] });
+
+    await updateQuestProgress(message.author.id, 'kiss', 1, message.channel);
+    await updateQuestProgress(userMention.id, 'kiss_received', 1, message.channel);
   }
 }
 

@@ -1,5 +1,19 @@
 const { DateTime } = require("luxon");
 
+const QUEST_GROUPS = {
+  punch: ["punch", "action_send", "actions"],
+  slap: ["slap", "action_send", "actions"],
+  kiss: ["kiss", "action_send", "actions"],
+  hug: ["hug", "action_send", "actions"],
+  bully: ["bully", "action_send", "actions"],
+
+  punch_received: ["punch_received", "action_receive", "actions_received"],
+  slap_received: ["slap_received", "action_receive", "actions_received"],
+  kiss_received: ["kiss_received", "action_receive", "actions_received"],
+  hug_received: ["hug_received", "action_receive", "actions_received"],
+  bully_received: ["bully_received", "action_receive", "actions_received"]
+};
+
 const QUEST_TEMPLATES = {
   beginner: [
     { type: "boss_fight", text: "Tham gia hạ gục boss 3 lần", target: 3 },
@@ -9,6 +23,8 @@ const QUEST_TEMPLATES = {
     { type: "pray", text: "Được người khác pray 3 lần", target: 3 },
     { type: "curse", text: "Được người khác curse 3 lần", target: 3 },
     { type: "boss_damage", text: "Gây 250 sát thương lên boss", target: 250 },
+    { type: "action_send", text: "Tương tác hành động lên người khác 3 lần", target: 3 },
+    { type: "action_receive", text: "Được người khác tương tác hành động 3 lần", target: 3 }
   ],
   intermediate: [
     { type: "boss_fight", text: "Tham gia hạ gục boss 5 lần", target: 5 },
@@ -18,6 +34,8 @@ const QUEST_TEMPLATES = {
     { type: "pray", text: "Được người khác pray 5 lần", target: 5 },
     { type: "curse", text: "Được người khác curse 5 lần", target: 5 },
     { type: "boss_damage", text: "Gây 1000 sát thương lên boss", target: 1000 },
+    { type: "action_send", text: "Tương tác hành động lên người khác 5 lần", target: 5 },
+    { type: "action_receive", text: "Được người khác tương tác hành động 5 lần", target: 5 }
   ],
   advanced: [
     { type: "boss_last_hit", text: "Dứt điểm boss 2 lần", target: 2 },
@@ -26,7 +44,9 @@ const QUEST_TEMPLATES = {
     { type: "pray", text: "Được người khác pray 10 lần", target: 10 },
     { type: "curse", text: "Được người khác curse 10 lần", target: 10 },
     { type: "boss_damage", text: "Gây 5000 sát thương lên boss", target: 5000 },
-  ],
+    { type: "action_send", text: "Tương tác hành động lên người khác 10 lần", target: 10 },
+    { type: "action_receive", text: "Được người khác tương tác hành động 10 lần", target: 10 }
+  ]
 };
 
 const generateRandomQuest = (tier, excludeTexts = []) => {
@@ -127,6 +147,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   const Event = require("../models/Event");
   const config = require("../data/config");
   
+  const triggeredTypes = QUEST_GROUPS[type] || [type];
   let user;
   if (userIdOrUser && typeof userIdOrUser === "object" && userIdOrUser.save) {
     user = userIdOrUser;
@@ -140,11 +161,10 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
 
   let modified = false;
 
-  
   const activeEvents = await Event.find({
     expiresAt: { $gt: new Date() },
     active: true,
-    "requirement.type": type
+    "requirement.type": { $in: triggeredTypes }
   });
 
   if (activeEvents.length > 0) {
@@ -197,7 +217,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   
   for (let i = activeQuests.length - 1; i >= 0; i--) {
     const quest = activeQuests[i];
-    if (quest.type !== type) continue;
+    if (!triggeredTypes.includes(quest.type)) continue;
     
     if (type === "hunt_loot" && String(extraData.rarity || "").toLowerCase() !== String(quest.rarity || "").toLowerCase()) continue;
     

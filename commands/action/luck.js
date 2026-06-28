@@ -22,7 +22,7 @@ class PrayCommand extends BaseCommand {
   async execute(message, args) {
     const authorId = message.author.id;
 
-    const cd = checkAndSetCooldown(authorId, 'pray', COOLDOWN);
+    const cd = checkAndSetCooldown(authorId, 'luck', COOLDOWN);
     if (cd > 0) {
       const minutes = Math.floor(cd / 60);
       const seconds = cd % 60;
