@@ -16,55 +16,72 @@ class BannerCommand extends BaseCommand {
   }
 
   async execute(message, args) {
+    const subcommand = args[0]?.toLowerCase();
+    const bannersToShow = [];
 
-    
-    const banner = gachaBanner;
-    if (!banner || !banner.bannerName) {
+    if (subcommand === "wp" || subcommand === "weapon") {
+      if (gachaBanner.weapon) bannersToShow.push(gachaBanner.weapon);
+    } else if (subcommand === "skin") {
+      if (gachaBanner.skin) bannersToShow.push(gachaBanner.skin);
+    } else {
+      if (gachaBanner.weapon) bannersToShow.push(gachaBanner.weapon);
+      if (gachaBanner.skin) bannersToShow.push(gachaBanner.skin);
+    }
+
+    if (bannersToShow.length === 0) {
       return message.reply("❌ Hiện tại không có banner gacha nào đang diễn ra.");
     }
 
+    const { AttachmentBuilder } = require("discord.js");
+    const fs = require("fs");
+    const path = require("path");
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
-    const expireDate = DateTime.fromISO(banner.expiresAt).setZone(timezone);
     const now = DateTime.now().setZone(timezone);
 
-    if (expireDate < now) {
-      return message.reply("❌ Banner gacha hiện tại đã kết thúc.");
-    }
-
-    
-    const timeStr = expireDate.toFormat("HH:mm");
-    const dateStr = expireDate.toFormat("dd/MM/yyyy");
-
-    const embed = new EmbedBuilder()
-      .setColor("#FFD700")
-      .setTitle(`✨ ${banner.bannerName} ✨`)
-      .setDescription(
-        `🔥 **Thông tin tiêu điểm:**\n` +
-        `• Vũ khí: ${banner.weaponEmoji} **${banner.weaponName}**\n` +
-        `• Cấp bậc: **${banner.rarity}**\n` +
-        `• Loại: \`${banner.weaponType === "weapon" ? "Vũ khí" : "Skin"}\`\n\n` +
-        `⏰ Thời gian kết thúc: **${timeStr}:** ngày **${dateStr}**`
-      )
-      .setTimestamp();
-
+    const embeds = [];
     const files = [];
-    if (banner.coverImage) {
-      if (banner.coverImage.startsWith("http://") || banner.coverImage.startsWith("https://")) {
-        embed.setImage(banner.coverImage);
-      } else {
-        const { AttachmentBuilder } = require("discord.js");
-        const fs = require("fs");
-        const path = require("path");
-        const localPath = path.join(__dirname, "../../assets/backgrounds", banner.coverImage);
-        if (fs.existsSync(localPath)) {
-          const attachment = new AttachmentBuilder(localPath, { name: "banner_cover.png" });
-          files.push(attachment);
-          embed.setImage("attachment://banner_cover.png");
+
+    for (let idx = 0; idx < bannersToShow.length; idx++) {
+      const banner = bannersToShow[idx];
+      const expireDate = DateTime.fromISO(banner.expiresAt).setZone(timezone);
+      if (expireDate < now) continue;
+
+      const timeStr = expireDate.toFormat("HH:mm");
+      const dateStr = expireDate.toFormat("dd/MM/yyyy");
+
+      const embed = new EmbedBuilder()
+        .setColor(banner.weaponType === "weapon" ? "#FFD700" : "#9B59B6")
+        .setTitle(`✨ ${banner.bannerName} ✨`)
+        .setDescription(
+          `🔥 **Thông tin tiêu điểm:**\n` +
+          `• Vũ khí: ${banner.weaponEmoji} **${banner.weaponName}**\n` +
+          `• Cấp bậc: **${banner.rarity}**\n` +
+          `• Loại: \`${banner.weaponType === "weapon" ? "Vũ khí" : "Skin"}\`\n\n` +
+          `⏰ Thời gian kết thúc: **${timeStr}:** ngày **${dateStr}**`
+        )
+        .setTimestamp();
+
+      if (banner.coverImage) {
+        if (banner.coverImage.startsWith("http://") || banner.coverImage.startsWith("https://")) {
+          embed.setImage(banner.coverImage);
+        } else {
+          const localPath = path.join(__dirname, "../../assets/backgrounds", banner.coverImage);
+          if (fs.existsSync(localPath)) {
+            const fileName = `banner_cover_${idx}.png`;
+            const attachment = new AttachmentBuilder(localPath, { name: fileName });
+            files.push(attachment);
+            embed.setImage(`attachment://${fileName}`);
+          }
         }
       }
+      embeds.push(embed);
     }
 
-    const payload = { embeds: [embed] };
+    if (embeds.length === 0) {
+      return message.reply("❌ Tất cả các banner đã kết thúc hoặc không khả dụng.");
+    }
+
+    const payload = { embeds };
     if (files.length > 0) {
       payload.files = files;
     }

@@ -60,17 +60,13 @@ class GachaCommand extends BaseCommand {
 
     let usedCoke = false;
     const costSouls = pulls === 1 ? 10 : 100;
-    const costCoke = 1000000;
+    const costCoke = pulls === 1 ? 100000 : 1000000;
 
-    
     const currencyPref = args[2]?.toLowerCase();
     if (currencyPref === "coke") {
-      if (pulls !== 10) {
-        throw new UserFriendlyError("❌ Bạn chỉ có thể quay 10 lần bằng Coke!");
-      }
       if (currentCoke < costCoke) {
         throw new UserFriendlyError(
-          `❌ Bạn không đủ Coke! Cần **${costCoke.toLocaleString()} Coke** để quay 10 lần (bạn hiện có **${currentCoke.toLocaleString()}**).`
+          `❌ Bạn không đủ Coke! Cần **${costCoke.toLocaleString()} Coke** để quay ${pulls} lần (bạn hiện có **${currentCoke.toLocaleString()}**).`
         );
       }
       usedCoke = true;
@@ -82,39 +78,21 @@ class GachaCommand extends BaseCommand {
       }
       usedCoke = false;
     } else {
-      
-      if (pulls === 1) {
-        if (currentSouls < 10) {
-          throw new UserFriendlyError(
-            `❌ Bạn không đủ Linh Hồn <:souls:1518749776538243082>! Cần **10 Linh Hồn** để quay 1 lần (bạn hiện có **${currentSouls}**).`
-          );
-        }
+      if (currentSouls >= costSouls) {
         usedCoke = false;
+      } else if (currentCoke >= costCoke) {
+        usedCoke = true;
       } else {
-        
-        if (currentSouls >= 100) {
-          usedCoke = false; 
-        } else if (currentCoke >= costCoke) {
-          usedCoke = true;
-        } else {
-          throw new UserFriendlyError(
-            `❌ Bạn không đủ tài nguyên! Cần **100 Linh Hồn** <:souls:1518749776538243082> hoặc **1,000,000 Coke** để quay 10 lần.`
-          );
-        }
+        throw new UserFriendlyError(
+          `❌ Bạn không đủ tài nguyên! Cần **${costSouls} Linh Hồn** <:souls:1518749776538243082> hoặc **${costCoke.toLocaleString()} Coke** để quay ${pulls} lần.`
+        );
       }
     }
 
     
-    const banner = gachaBanner;
+    const banner = subcommand === "wp" ? gachaBanner.weapon : gachaBanner.skin;
     if (!banner || !banner.bannerName) {
-      throw new UserFriendlyError("❌ Hiện không có banner gacha nào đang diễn ra.");
-    }
-
-    if (subcommand === "wp" && banner.weaponType === "skin") {
-      throw new UserFriendlyError(`❌ Banner hiện tại là Gacha Skin. Vui lòng dùng lệnh \`${config.prefix}gacha skin <1 hoặc 10> [coke/souls]\` để quay!`);
-    }
-    if (subcommand === "skin" && banner.weaponType === "weapon") {
-      throw new UserFriendlyError(`❌ Banner hiện tại là Gacha Vũ Khí. Vui lòng dùng lệnh \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay!`);
+      throw new UserFriendlyError("❌ Hiện không có banner gacha tương ứng đang diễn ra.");
     }
 
     
@@ -135,8 +113,10 @@ class GachaCommand extends BaseCommand {
     }
 
     
-    let pity = user.rpg.gachaWpPity || 0;
-    let guaranteed = user.rpg.gachaWpGuaranteed || false;
+    const pityField = subcommand === "wp" ? "gachaWpPity" : "gachaSkinPity";
+    const guaranteedField = subcommand === "wp" ? "gachaWpGuaranteed" : "gachaSkinGuaranteed";
+    let pity = user.rpg[pityField] || 0;
+    let guaranteed = user.rpg[guaranteedField] || false;
     let hasGold = false;
     const itemsGained = [];
     const rollsLog = [];
@@ -244,8 +224,8 @@ class GachaCommand extends BaseCommand {
     }
 
     
-    user.rpg.gachaWpPity = pity;
-    user.rpg.gachaWpGuaranteed = guaranteed;
+    user.rpg[pityField] = pity;
+    user.rpg[guaranteedField] = guaranteed;
     user.markModified("rpg");
     await user.save();
 
