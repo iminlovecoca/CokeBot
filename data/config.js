@@ -360,11 +360,11 @@ module.exports = {
   },
   dungeon: {
     normal_monster: {
-      base_hp: 20000,
+      base_hp: 5000,
       round_hp_mult: 0.1,
-      base_atk: 100,
+      base_atk: 50,
       round_atk_mult: 0.05,
-      base_defense: 50,
+      base_defense: 30,
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],

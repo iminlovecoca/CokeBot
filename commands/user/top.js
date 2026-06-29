@@ -75,18 +75,35 @@ class TopCommand extends BaseCommand {
         break;
     }
 
-    if (guild) {
-      await guild.members.fetch().catch(() => {});
-    }
-
     if (!topUsers || topUsers.length === 0)
       return message.reply('❌ **|** Không có dữ liệu người chơi nào.');
 
-    topUsers = topUsers.filter(u => {
-      if (!guild) return true;
-      const member = guild.members.cache.get(u.userId);
-      return member && !member.user.bot;
-    });
+    let matchedUsers = [];
+    if (guild) {
+      const batchSize = 100;
+      const maxUsersToCheck = Math.min(topUsers.length, 1000);
+      const authorIndex = topUsers.findIndex(u => u.userId === authorId);
+      for (let i = 0; i < maxUsersToCheck; i += batchSize) {
+        const batch = topUsers.slice(i, i + batchSize);
+        const batchIds = batch.map(u => u.userId);
+        try {
+          const fetched = await guild.members.fetch({ user: batchIds });
+          for (const u of batch) {
+            const member = fetched.get(u.userId);
+            if (member && !member.user.bot) {
+              matchedUsers.push(u);
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching top members batch:", err);
+        }
+        const authorInMatched = matchedUsers.some(u => u.userId === authorId);
+        if (matchedUsers.length >= limit && (authorIndex === -1 || authorInMatched || i + batchSize >= authorIndex)) {
+          break;
+        }
+      }
+      topUsers = matchedUsers;
+    }
 
     if (topUsers.length === 0)
       return message.reply('❌ **|** Không có thành viên nào trong server để hiển thị.');

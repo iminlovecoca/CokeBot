@@ -1,11 +1,11 @@
 module.exports = {
-  bannerName: "Vũ Khí Giới Hạn: Dusk and Dawn",
-  weaponKey: "duskanddawn",
-  weaponName: "Dusk and Dawn",
+  bannerName: "ECHOES OF TWILIGHT",
+  weaponKey: "sunbow",
+  weaponName: "Sun Bow",
   weaponType: "weapon",
-  weaponEmoji: "<:DuskandDawn:1517552769270153277>",
+  weaponEmoji: "<:Sunbow:1518746354728304720>",
   rarity: "Ancient",
-  imageKey: "DuskandDawn.png",
-  coverImage: "https://i.imgur.com/PZcZpZg.png",
+  imageKey: "Sunbow.png",
+  coverImage: "weapon_banner.jpg",
   expiresAt: "2026-07-31T23:59:00+07:00",
 };

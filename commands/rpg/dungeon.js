@@ -440,13 +440,14 @@ const setupRound = (activeDungeon, channel) => {
       name = "Draugor (Tướng Tiên Phong)";
       key = "draugor";
     }
-    const maxHp = Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult));
+    const maxHp = Math.max(12000, Math.min(50000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
+    const atk = Math.min(450, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
     activeDungeon.enemy = {
       name: name,
       key: key,
       maxHp: maxHp,
       hp: maxHp,
-      atk: Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)),
+      atk: atk,
       armor: Math.floor(normCfg.base_defense * chapter),
       magicResist: Math.floor(normCfg.base_defense * chapter),
       isBoss: false,
@@ -1784,6 +1785,10 @@ const handleVictory = async (channel, activeDungeon) => {
     }
     const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
     freshUser.inventory.set(cristalStoneId, currentQty + 1);
+
+    const currentSouls = freshUser.inventory.get("souls") || 0;
+    freshUser.inventory.set("souls", currentSouls + 10);
+
     freshUser.markModified("inventory");
 
     if (gear) {
@@ -1803,6 +1808,7 @@ const handleVictory = async (channel, activeDungeon) => {
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${cokeReward.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
+      `  • nhận **+10 Linh Hồn** <:souls:1518749776538243082>\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: ${gearText}`;
 

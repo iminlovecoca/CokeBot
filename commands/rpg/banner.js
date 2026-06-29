@@ -16,10 +16,6 @@ class BannerCommand extends BaseCommand {
   }
 
   async execute(message, args) {
-    const { isDev, isAdmin } = require("../../utils/userUtil");
-    if (!isDev(message.author.id) && !isAdmin(message.author.id)) {
-      return message.reply("❌ Tính năng Gacha hiện đang được bảo trì / khóa tạm thời và chỉ dành cho Admin.");
-    }
 
     
     const banner = gachaBanner;
@@ -49,10 +45,30 @@ class BannerCommand extends BaseCommand {
         `• Loại: \`${banner.weaponType === "weapon" ? "Vũ khí" : "Skin"}\`\n\n` +
         `⏰ Thời gian kết thúc: **${timeStr}:** ngày **${dateStr}**`
       )
-      .setImage(banner.coverImage)
       .setTimestamp();
 
-    return message.reply({ embeds: [embed] });
+    const files = [];
+    if (banner.coverImage) {
+      if (banner.coverImage.startsWith("http://") || banner.coverImage.startsWith("https://")) {
+        embed.setImage(banner.coverImage);
+      } else {
+        const { AttachmentBuilder } = require("discord.js");
+        const fs = require("fs");
+        const path = require("path");
+        const localPath = path.join(__dirname, "../../assets/backgrounds", banner.coverImage);
+        if (fs.existsSync(localPath)) {
+          const attachment = new AttachmentBuilder(localPath, { name: "banner_cover.png" });
+          files.push(attachment);
+          embed.setImage("attachment://banner_cover.png");
+        }
+      }
+    }
+
+    const payload = { embeds: [embed] };
+    if (files.length > 0) {
+      payload.files = files;
+    }
+    return message.reply(payload);
   }
 }
 

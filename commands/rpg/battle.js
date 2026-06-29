@@ -437,6 +437,12 @@ class BattleCommand extends BaseCommand {
         );
       }
 
+      if (targetMention.bot) {
+        return message.reply(
+          `${config.emoji.no} Bạn không thể khiêu chiến với Bot!`,
+        );
+      }
+
       let receiverUser, receiverClass;
       try {
         const res = await requireRpgCharacter(receiverId);
@@ -517,7 +523,7 @@ class BattleCommand extends BaseCommand {
     } else {
       const count = await User.countDocuments({
         "rpg.classKey": { $ne: null },
-        userId: { $ne: senderId },
+        userId: { $ne: senderId, $regex: /^\d+$/ },
         "rpg.godsetBackup": null,
       });
 
@@ -527,12 +533,31 @@ class BattleCommand extends BaseCommand {
         );
       }
 
-      const randomIndex = Math.floor(Math.random() * count);
-      const randomOpponent = await User.findOne({
-        "rpg.classKey": { $ne: null },
-        userId: { $ne: senderId },
-        "rpg.godsetBackup": null,
-      }).skip(randomIndex);
+      let randomOpponent = null;
+      let attempts = 0;
+      while (attempts < 15) {
+        attempts++;
+        const randomIndex = Math.floor(Math.random() * count);
+        const opp = await User.findOne({
+          "rpg.classKey": { $ne: null },
+          userId: { $ne: senderId, $regex: /^\d+$/ },
+          "rpg.godsetBackup": null,
+        }).skip(randomIndex);
+
+        if (!opp) break;
+
+        const discordUser = await message.client.users.fetch(opp.userId).catch(() => null);
+        if (discordUser && !discordUser.bot) {
+          randomOpponent = opp;
+          break;
+        }
+      }
+
+      if (!randomOpponent) {
+        return message.reply(
+          `${config.emoji.no} Không tìm thấy người chơi hợp lệ (không phải Bot) để thách đấu.`,
+        );
+      }
 
       await runPvPBattle(message, null, senderUser, randomOpponent);
     }

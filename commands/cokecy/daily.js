@@ -73,6 +73,12 @@ class DailyCommand extends BaseCommand {
     }
     const currentWc = user.inventory.get("wc") || 0;
     user.inventory.set("wc", currentWc + 1);
+
+    const currentSouls = user.inventory.get("souls") || 0;
+    const isSunday = now.weekday === 7;
+    const soulsGained = isSunday ? 4 : 2;
+    user.inventory.set("souls", currentSouls + soulsGained);
+
     user.markModified("inventory");
 
     const milestones = Object.keys(config.emoji.streakMilestones || {})
@@ -102,6 +108,7 @@ class DailyCommand extends BaseCommand {
       responseText += `<:blank:1403928807395819671>**|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
     }
     responseText += `<:crate:1512793698025603282> **|** You received a **lootbox**!\n`;
+    responseText += `<:souls:1518749776538243082> **|** You received **${soulsGained} Linh Hồn**!\n`;
     responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;
 
     if (milestoneMessage) {
