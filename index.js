@@ -39,10 +39,18 @@ const { startNetworkMonitor } = require("./utils/networkMonitor");
 
 process.on("unhandledRejection", (error) => {
   console.error("❌ Unhandled rejection:", error);
+  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
+    console.error("Shutting down process due to network failure to let PM2 handle...");
+    process.exit(1);
+  }
 });
 
 process.on("uncaughtException", (error) => {
   console.error("❌ Uncaught exception:", error);
+  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
+    console.error("Shutting down process due to network failure to let PM2 handle...");
+    process.exit(1);
+  }
 });
 
 const client = new Client({
@@ -385,13 +393,13 @@ async function connectWithRetry() {
       retryWrites: true,
       family: 4,
     });
-    client.login(process.env.TOKEN);
+    await client.login(process.env.TOKEN);
   } catch (err) {
     console.error(
-      "❌ MongoDB connection failed, retrying in 5s...",
+      "❌ Connection or Login failed, retrying in 10s...",
       err.message,
     );
-    setTimeout(connectWithRetry, 5000);
+    setTimeout(connectWithRetry, 10000);
   }
 }
 

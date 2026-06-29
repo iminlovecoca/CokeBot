@@ -8,12 +8,11 @@ module.exports = {
       // Tự động restart khi process thoát (mất mạng, crash, v.v.)
       autorestart: true,
 
-      // Chờ 3 giây trước khi restart (để tránh restart liên tục khi mất mạng kéo dài)
-      restart_delay: 3000,
+      // Sử dụng Exponential Backoff để tự động giãn cách thời gian restart khi mất mạng lâu
+      exp_backoff_restart_delay: 3000,
 
-      // Số lần restart tối đa trong vòng 60 giây để tránh restart loop vô hạn
-      max_restarts: 10,
-      min_uptime: 10000, // Phải sống ít nhất 10 giây mới tính là restart ổn định
+      // Cấu hình restart vô hạn, không giới hạn số lần và không tắt bot hẳn
+      max_restarts: 0,
 
       // Không watch file (tắt auto-reload khi code thay đổi)
       watch: false,
