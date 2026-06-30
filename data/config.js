@@ -371,8 +371,8 @@ module.exports = {
       multiplier: 0.6, 
     },
     rewards: {
-      base_coke: 100000,
-      base_exp: 30000,
+      base_coke: 80000,
+      base_exp: 24000,
     },
     default_boss: {
       key: "tf",
@@ -410,12 +410,12 @@ module.exports = {
             phase1: {
               base_hp: 240000,
               base_atk: 270,
-              base_defense: 125,
+              base_defense: 175,
             },
             phase2: {
               base_hp: 130000,
               base_atk_mult: 1.6,
-              base_defense: 115,
+              base_defense: 162,
             },
           },
           passive: {
@@ -449,12 +449,12 @@ module.exports = {
             phase1: {
               base_hp: 310000,
               base_atk: 300,
-              base_defense: 135,
+              base_defense: 188,
             },
             phase2: {
               base_hp: 165000,
               base_atk_mult: 1.7,
-              base_defense: 120,
+              base_defense: 169,
             },
           },
           mechanics: {
@@ -482,12 +482,12 @@ module.exports = {
             phase1: {
               base_hp: 360000,
               base_atk: 320,
-              base_defense: 140,
+              base_defense: 200,
             },
             phase2: {
               base_hp: 195000,
               base_atk_mult: 1.7,
-              base_defense: 120,
+              base_defense: 175,
             },
           },
           mechanics: {
@@ -515,12 +515,12 @@ module.exports = {
             phase1: {
               base_hp: 380000,
               base_atk: 330,
-              base_defense: 145,
+              base_defense: 215,
             },
             phase2: {
               base_hp: 210000,
               base_atk_mult: 1.8,
-              base_defense: 125,
+              base_defense: 185,
             },
           },
           mechanics: {
@@ -548,12 +548,12 @@ module.exports = {
             phase1: {
               base_hp: 440000,
               base_atk: 400,
-              base_defense: 170,
+              base_defense: 235,
             },
             phase2: {
               base_hp: 240000,
               base_atk_mult: 1.9,
-              base_defense: 170,
+              base_defense: 210,
             },
           },
           mechanics: {
@@ -581,12 +581,12 @@ module.exports = {
             phase1: {
               base_hp: 520000,
               base_atk: 500,
-              base_defense: 210,
+              base_defense: 265,
             },
             phase2: {
               base_hp: 280000,
               base_atk_mult: 2.2,
-              base_defense: 210,
+              base_defense: 245,
             },
           },
           mechanics: {

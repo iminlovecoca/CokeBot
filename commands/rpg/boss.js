@@ -1768,7 +1768,7 @@ const executePlayerSoulSkill = async (playerState, bossState, logs) => {
     playerState.rage = 0;
   } else if (playerState.classKey === "paladin") {
     logs.push(`🛡️ **${playerState.name}** dùng kỹ năng **[Thiên Mệnh]**!`);
-    const healAmt = Math.floor(playerState.maxHp * 0.35);
+    const healAmt = Math.floor(playerState.maxHp * 0.30);
     playerState.hp = Math.min(playerState.maxHp, playerState.hp + healAmt);
     logs.push(`💚 Hồi phục **${healAmt.toLocaleString()}** HP.`);
     playerState.rage = Math.max(0, playerState.rage - 50) + 10;

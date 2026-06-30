@@ -1115,7 +1115,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
     await executePlayerAttack(channel, activeDungeon, player, 3.0);
   } else if (player.classKey === "paladin") {
-    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 35% lượng máu tối đa cho toàn đội!`);
+    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 30% lượng máu tối đa cho toàn đội!`);
 
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
@@ -1138,12 +1138,12 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
         }
 
         
-        const healAmount = Math.floor(p.maxHp * 0.35);
+        const healAmount = Math.floor(p.maxHp * 0.30);
         const oldHp = p.hp;
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
         const actualHealed = p.hp - oldHp;
         if (actualHealed > 0) {
-          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (35% máu tối đa).`);
+          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (30% máu tối đa).`);
         } else {
           activeDungeon.logs.push(`💚 **${p.name}** đang đầy máu.`);
         }
