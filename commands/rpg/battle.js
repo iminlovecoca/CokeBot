@@ -349,8 +349,12 @@ const simulatePvP = (p1, p2) => {
 
       
       if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
-        const healPercent = riverofbloodTriggered ? 0.05 : 0.15;
-        let healAmt = Math.floor(damage * healPercent);
+        let baseHeal = 0;
+        if (riverofbloodTriggered) {
+          baseHeal = Math.max(1, Math.floor(damage * 0.01));
+        } else {
+          baseHeal = Math.floor(damage * 0.15);
+        }
         let healReduceFactor = 1.0;
         if (attacker.effects.healReduced) {
           healReduceFactor *= 0.7;
@@ -358,8 +362,8 @@ const simulatePvP = (p1, p2) => {
         if (defender.rpgClass?.bonuses?.healReduction) {
           healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
         }
-        healAmt = Math.floor(healAmt * healReduceFactor);
-        attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmt);
+        const finalHealAmt = Math.floor(baseHeal * healReduceFactor);
+        attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
       }
     }
 

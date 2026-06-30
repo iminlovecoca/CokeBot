@@ -470,7 +470,7 @@ const setupRound = (activeDungeon, channel) => {
     const leader = activeDungeon.players.find(p => p.id === activeDungeon.leaderId) || activeDungeon.players[0];
     const leaderLevel = leader ? (leader.level || 1) : 1;
     const leaderPower = leader ? (leader.power || 0) : 0;
-    const leaderScaler = 1 + (leaderLevel * 0.005) + (leaderPower * 0.00004);
+    const leaderScaler = 1 + (leaderLevel * 0.003) + (leaderPower * 0.00002);
 
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
     const poiseMax = 80 + chapter * 20;
@@ -1297,7 +1297,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
 
   if (pWeaponSubType === "riverofblood" && hasWeaponTriggered) {
-    const healAmt = Math.max(1, Math.floor(damage * 0.05));
+    const healAmt = Math.max(1, Math.floor(damage * 0.01));
     player.hp = Math.min(player.maxHp, player.hp + healAmt);
     activeDungeon.logs.push(`🩸 **[River of Blood]** Hồi phục cho **${player.name}** **${healAmt.toLocaleString()}** HP.`);
   }
@@ -1646,7 +1646,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       const leader = activeDungeon.players.find(p => p.id === activeDungeon.leaderId) || activeDungeon.players[0];
       const leaderLevel = leader ? (leader.level || 1) : 1;
       const leaderPower = leader ? (leader.power || 0) : 0;
-      const leaderScaler = 1 + (leaderLevel * 0.005) + (leaderPower * 0.00004);
+      const leaderScaler = 1 + (leaderLevel * 0.003) + (leaderPower * 0.00002);
 
       const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
       const poiseMax = 80 + chapter * 20;

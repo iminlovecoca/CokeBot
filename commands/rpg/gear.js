@@ -206,7 +206,7 @@ class GearCommand extends BaseCommand {
             darkstaff: "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce",
             gravitybow: "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (S) | INT (A) (Không có nội tại kích hoạt)",
             duskanddawn: "Vũ khí giới hạn banner, sở hữu hệ số scale kết hợp độc đáo. Không có nội tại kích hoạt.",
-            riverofblood: "Đòn đánh hồi phục HP cho bản thân bằng 5% sát thương gây ra",
+             riverofblood: "Đòn đánh hồi phục HP cho bản thân bằng 1% sát thương gây ra",
             axesnake: "Phá 10% giáp vật lý của đối thủ mỗi khi tấn công hoặc dùng kỹ năng (Cộng dồn)",
             sunbow: "Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của đối thủ",
             clawhex: "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt",

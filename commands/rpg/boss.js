@@ -1074,12 +1074,16 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   
   if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
-    const healPercent = riverofbloodTriggered ? 0.05 : 0.15;
-    const healAmt = Math.floor(damage * healPercent);
-    participant.hp = Math.min(maxHp, participant.hp + healAmt);
+    let baseHeal = 0;
+    if (riverofbloodTriggered) {
+      baseHeal = Math.max(1, Math.floor(damage * 0.01));
+    } else {
+      baseHeal = Math.floor(damage * 0.15);
+    }
+    participant.hp = Math.min(maxHp, participant.hp + baseHeal);
     const label = riverofbloodTriggered ? "River of Blood" : "Green Staff";
     const emoji = riverofbloodTriggered ? "❤️" : "💚";
-    passiveTriggers.push(`${emoji} **[${label}]** Đòn đánh hồi phục cho bạn **${healAmt.toLocaleString()}** HP.`);
+    passiveTriggers.push(`${emoji} **[${label}]** Đòn đánh hồi phục cho bạn **${baseHeal.toLocaleString()}** HP.`);
   }
 
   
