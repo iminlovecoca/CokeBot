@@ -141,10 +141,7 @@ class DungeonCommand extends BaseCommand {
       return;
     }
 
-    const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
-    if (!isAdmin) {
-      return message.reply("❌ Chỉ Admin mới có quyền khiêu chiến phó bản Dungeon trong giai đoạn thử nghiệm.");
-    }
+
 
     
     const guild = await RpgGuild.findOne({ members: userId });
@@ -432,20 +429,28 @@ const setupRound = (activeDungeon, channel) => {
   const setupNormalMonster = () => {
     let name = `Quái Vật Gác Đền (Vòng ${round})`;
     let key = `creep${round}`;
+    let maxHp = Math.max(12000, Math.min(50000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
+    let atk = Math.min(450, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
+    let armor = Math.floor(normCfg.base_defense * chapter);
+    let magicResist = Math.floor(normCfg.base_defense * chapter);
+
     if (chapter === 4 && round === 3) {
       name = "Draugor (Tướng Tiên Phong)";
       key = "draugor";
+      maxHp = 75000;
+      atk = 410;
+      armor = 240;
+      magicResist = 240;
     }
-    const maxHp = Math.max(12000, Math.min(50000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
-    const atk = Math.min(450, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
+
     activeDungeon.enemy = {
       name: name,
       key: key,
       maxHp: maxHp,
       hp: maxHp,
       atk: atk,
-      armor: Math.floor(normCfg.base_defense * chapter),
-      magicResist: Math.floor(normCfg.base_defense * chapter),
+      armor: armor,
+      magicResist: magicResist,
       isBoss: false,
     };
     activeDungeon.diceRolled = false;
@@ -995,11 +1000,13 @@ const setupCollector = (channel, activeDungeon) => {
 
   collector.on("end", (collected, reason) => {
     if (reason === "re-sent") return;
-    if (activeDungeon.timeoutTimer) {
-      clearTimeout(activeDungeon.timeoutTimer);
-      activeDungeon.timeoutTimer = null;
+    if (activeDungeon.isFinished) {
+      if (activeDungeon.timeoutTimer) {
+        clearTimeout(activeDungeon.timeoutTimer);
+        activeDungeon.timeoutTimer = null;
+      }
+      channel.client.rpgDungeons.delete(channel.id);
     }
-    channel.client.rpgDungeons.delete(channel.id);
   });
 
   activeDungeon.collector = collector;

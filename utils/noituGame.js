@@ -503,7 +503,7 @@ async function handleNoituMessage(message, client) {
     await User.updateOne(
       { userId: message.author.id },
       {
-        $inc: { noituWins: 1, coke: 50000 },
+        $inc: { noituWins: 1, coke: 40000 },
         $set: { noituLastPlayedAt: new Date() },
       },
       { upsert: true },
@@ -512,7 +512,7 @@ async function handleNoituMessage(message, client) {
     addRoundPlayedCount();
 
     await message.channel.send(
-      `👑 **${message.member?.displayName || message.author.username}** chiến thắng sau **${state.words.length - 1} lượt**! Nhận **50,000 coke**.\n` +
+      `👑 **${message.member?.displayName || message.author.username}** chiến thắng sau **${state.words.length - 1} lượt**! Nhận **40,000 coke**.\n` +
         "Lượt mới bắt đầu!",
     );
 

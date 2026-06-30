@@ -360,11 +360,11 @@ module.exports = {
   },
   dungeon: {
     normal_monster: {
-      base_hp: 5000,
+      base_hp: 7000,
       round_hp_mult: 0.1,
-      base_atk: 50,
+      base_atk: 70,
       round_atk_mult: 0.05,
-      base_defense: 30,
+      base_defense: 45,
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],
@@ -408,14 +408,14 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 160000,
+              base_hp: 180000,
               base_atk: 200,
-              base_defense: 100,
+              base_defense: 110,
             },
             phase2: {
-              base_hp: 80000,
+              base_hp: 90000,
               base_atk_mult: 1.5,
-              base_defense: 90,
+              base_defense: 100,
             },
           },
           passive: {
@@ -447,14 +447,14 @@ module.exports = {
           image_phase2: "Vaelmor.png",
           stats: {
             phase1: {
-              base_hp: 220000,
+              base_hp: 250000,
               base_atk: 240,
-              base_defense: 110,
+              base_defense: 120,
             },
             phase2: {
-              base_hp: 110000,
+              base_hp: 125000,
               base_atk_mult: 1.6,
-              base_defense: 95,
+              base_defense: 105,
             },
           },
           mechanics: {
@@ -480,14 +480,14 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 300000,
+              base_hp: 340000,
               base_atk: 280,
-              base_defense: 120,
+              base_defense: 135,
             },
             phase2: {
-              base_hp: 150000,
+              base_hp: 170000,
               base_atk_mult: 1.6,
-              base_defense: 100,
+              base_defense: 115,
             },
           },
           mechanics: {
@@ -514,13 +514,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 380000,
-              base_atk: 360,
-              base_defense: 140,
+              base_atk: 330,
+              base_defense: 145,
             },
             phase2: {
               base_hp: 190000,
               base_atk_mult: 1.7,
-              base_defense: 120,
+              base_defense: 125,
             },
           },
           mechanics: {
@@ -546,14 +546,14 @@ module.exports = {
           image_phase2: "TF-2.png",
           stats: {
             phase1: {
-              base_hp: 460000,
-              base_atk: 460,
-              base_defense: 180,
+              base_hp: 440000,
+              base_atk: 400,
+              base_defense: 170,
             },
             phase2: {
-              base_hp: 230000,
+              base_hp: 220000,
               base_atk_mult: 1.8,
-              base_defense: 180,
+              base_defense: 170,
             },
           },
           mechanics: {
@@ -579,14 +579,14 @@ module.exports = {
           image_phase2: "Veilreaper.png",
           stats: {
             phase1: {
-              base_hp: 540000,
-              base_atk: 580,
-              base_defense: 220,
+              base_hp: 520000,
+              base_atk: 500,
+              base_defense: 210,
             },
             phase2: {
-              base_hp: 270000,
+              base_hp: 260000,
               base_atk_mult: 2.0,
-              base_defense: 220,
+              base_defense: 210,
             },
           },
           mechanics: {
