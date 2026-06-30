@@ -196,30 +196,28 @@ const simulatePvP = (p1, p2) => {
     let shieldhexTriggered = false;
     let riverofbloodTriggered = false;
 
-    if (cleanSubType === "axesnake") {
-      axesnakeTriggered = true;
-      defender.effects.armorReduced = Math.min(0.9, (defender.effects.armorReduced || 0) + 0.10);
-    } else if (cleanSubType === "sunbow") {
-      sunbowTriggered = true;
-    } else if (cleanSubType === "clawhex") {
-      clawhexTriggered = true;
-      defender.effects.bleedRounds = 3;
-      defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str * 0.5 + attacker.effectiveStats.dex * 0.5));
-    } else if (cleanSubType === "spearhex") {
-      spearhexTriggered = true;
-    } else if (cleanSubType === "shieldhex") {
-      shieldhexTriggered = true;
-    } else if (cleanSubType === "riverofblood") {
-      riverofbloodTriggered = true;
-    }
-
-    const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && !riverofbloodTriggered && Math.random() < 0.45;
+    const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
     let blueStaffPierce = false;
     let crimsonDaggerPierce = false;
     let holySwordDouble = false;
 
     if (hasTriggered) {
-      if (cleanSubType === "shadowdagger") {
+      if (cleanSubType === "axesnake") {
+        axesnakeTriggered = true;
+        defender.effects.armorReduced = Math.min(0.9, (defender.effects.armorReduced || 0) + 0.10);
+      } else if (cleanSubType === "sunbow") {
+        sunbowTriggered = true;
+      } else if (cleanSubType === "clawhex") {
+        clawhexTriggered = true;
+        defender.effects.bleedRounds = 3;
+        defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str * 0.5 + attacker.effectiveStats.dex * 0.5));
+      } else if (cleanSubType === "spearhex") {
+        spearhexTriggered = true;
+      } else if (cleanSubType === "shieldhex") {
+        shieldhexTriggered = true;
+      } else if (cleanSubType === "riverofblood") {
+        riverofbloodTriggered = true;
+      } else if (cleanSubType === "shadowdagger") {
         defender.effects.armorReduced = 0.3;
       } else if (cleanSubType === "poisondagger") {
         attacker.nextAttackMult = 1.5;
@@ -238,9 +236,8 @@ const simulatePvP = (p1, p2) => {
       } else if (cleanSubType === "darksword") {
         defender.effects.damageReduced = 0.3;
       } else if (cleanSubType === "darkstaff") {
-        const effects = ["burn", "weakness", "pierce"];
-        const chosenEffect =
-          effects[Math.floor(Math.random() * effects.length)];
+        const textEffects = ["burn", "weakness", "pierce"];
+        const chosenEffect = textEffects[Math.floor(Math.random() * textEffects.length)];
         if (chosenEffect === "burn") {
           defender.effects.healReduced = true;
         } else if (chosenEffect === "weakness") {

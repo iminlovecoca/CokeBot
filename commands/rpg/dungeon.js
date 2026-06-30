@@ -1205,8 +1205,9 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 
   
   const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  const hasWeaponTriggered = Math.random() < 0.45;
   
-  if (pWeaponSubType === "clawhex") {
+  if (pWeaponSubType === "clawhex" && hasWeaponTriggered) {
     enemy.bleedRounds = 3;
     enemy.clawhexBleed = true;
     enemy.bleedDamage = Math.floor((player.stats.str * 0.5 + player.stats.dex * 0.5));
@@ -1236,7 +1237,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   }
 
   
-  if (pWeaponSubType === "axesnake") {
+  if (pWeaponSubType === "axesnake" && hasWeaponTriggered) {
     enemy.armor = Math.max(0, Math.floor(enemy.armor * 0.90));
     enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * 0.90));
     activeDungeon.logs.push(`🐍 **[Axesnake]** Phá hủy 10% giáp vật lý và phép của đối thủ! Giáp còn: ${enemy.armor.toLocaleString()} PR / ${enemy.magicResist.toLocaleString()} MR.`);
@@ -1245,10 +1246,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   
   let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
   
-  if (!isMagical && pWeaponSubType === "spearhex") {
+  if (!isMagical && pWeaponSubType === "spearhex" && hasWeaponTriggered) {
     mrOrArmor = Math.floor(mrOrArmor * 0.90);
   }
-  if (pWeaponSubType === "sunbow") {
+  if (pWeaponSubType === "sunbow" && hasWeaponTriggered) {
     mrOrArmor = Math.floor(mrOrArmor * 0.90);
   }
 
@@ -1295,7 +1296,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
 
-  if (pWeaponSubType === "riverofblood") {
+  if (pWeaponSubType === "riverofblood" && hasWeaponTriggered) {
     const healAmt = Math.max(1, Math.floor(damage * 0.05));
     player.hp = Math.min(player.maxHp, player.hp + healAmt);
     activeDungeon.logs.push(`🩸 **[River of Blood]** Hồi phục cho **${player.name}** **${healAmt.toLocaleString()}** HP.`);

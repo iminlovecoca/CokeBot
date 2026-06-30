@@ -243,9 +243,10 @@ class SimCommand extends BaseCommand {
           const weaponPower = p.weapon?.power || 0;
           let rawDamage = (baseAttack + weaponPower);
 
-          
           const subType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-          if (subType === "clawhex") {
+          const hasWeaponTriggered = Math.random() < 0.45;
+
+          if (subType === "clawhex" && hasWeaponTriggered) {
             activeBossEffects.bleedRounds = 3;
             activeBossEffects.clawhexBleed = true;
             activeBossEffects.bleedDamage = Math.floor(p.stats.str * 0.5 + p.stats.dex * 0.5);
@@ -265,17 +266,17 @@ class SimCommand extends BaseCommand {
           
           let mrOrArmor = isMagical ? boss.magicResist : boss.armor;
           
-          if (subType === "axesnake") {
+          if (subType === "axesnake" && hasWeaponTriggered) {
             activeBossEffects.armorReduced = Math.min(0.9, (activeBossEffects.armorReduced || 0) + 0.10);
           }
           if (activeBossEffects.armorReduced) {
             mrOrArmor *= (1 - activeBossEffects.armorReduced);
           }
 
-          if (!isMagical && subType === "spearhex") {
+          if (!isMagical && subType === "spearhex" && hasWeaponTriggered) {
             mrOrArmor *= 0.90;
           }
-          if (subType === "sunbow") {
+          if (subType === "sunbow" && hasWeaponTriggered) {
             mrOrArmor *= 0.90;
           }
 
@@ -285,7 +286,7 @@ class SimCommand extends BaseCommand {
           bossHp = Math.max(0, bossHp - damage);
           p.damageDealt += damage;
 
-          if (subType === "riverofblood") {
+          if (subType === "riverofblood" && hasWeaponTriggered) {
             const healAmt = Math.max(1, Math.floor(damage * 0.05));
             p.hp = Math.min(p.maxHp, p.hp + healAmt);
           }

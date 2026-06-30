@@ -919,34 +919,32 @@ const performBossAttack = async ({ client, channel, userId }) => {
   let shieldhexTriggered = false;
   let riverofbloodTriggered = false;
 
-  if (cleanSubType === "axesnake") {
-    axesnakeTriggered = true;
-    activeBoss.effects.armorReduced = Math.min(0.9, (activeBoss.effects.armorReduced || 0) + 0.10);
-    passiveTriggers.push(`⚔️ **[Axesnake]** Phá 10% giáp của boss! Giáp boss giảm tổng cộng ${(activeBoss.effects.armorReduced * 100).toFixed(0)}% vĩnh viễn.`);
-  } else if (cleanSubType === "sunbow") {
-    sunbowTriggered = true;
-    passiveTriggers.push(`⚔️ **[Sun Bow]** Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của boss.`);
-  } else if (cleanSubType === "clawhex") {
-    clawhexTriggered = true;
-    passiveTriggers.push(`⚔️ **[Clawhex]** Sát thương kích hoạt hiệu ứng chảy máu, tăng 15% sát thương.`);
-  } else if (cleanSubType === "spearhex") {
-    spearhexTriggered = true;
-    passiveTriggers.push(`⚔️ **[Spearhex]** Đòn đánh xuyên qua phòng ngự, bỏ qua 10% giáp vật lý của boss.`);
-  } else if (cleanSubType === "shieldhex") {
-    shieldhexTriggered = true;
-    passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
-  } else if (cleanSubType === "riverofblood") {
-    riverofbloodTriggered = true;
-    passiveTriggers.push(`⚔️ **[River of Blood]** Chém hồi máu bằng 5% sát thương gây ra.`);
-  }
-
-  const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && !riverofbloodTriggered && Math.random() < 0.45;
+  const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
   let blueStaffPierce = false;
   let crimsonDaggerPierce = false;
   let holySwordDouble = false;
 
   if (hasTriggered) {
-    if (cleanSubType === "shadowdagger") {
+    if (cleanSubType === "axesnake") {
+      axesnakeTriggered = true;
+      activeBoss.effects.armorReduced = Math.min(0.9, (activeBoss.effects.armorReduced || 0) + 0.10);
+      passiveTriggers.push(`⚔️ **[Axesnake]** Phá 10% giáp của boss! Giáp boss giảm tổng cộng ${(activeBoss.effects.armorReduced * 100).toFixed(0)}% vĩnh viễn.`);
+    } else if (cleanSubType === "sunbow") {
+      sunbowTriggered = true;
+      passiveTriggers.push(`⚔️ **[Sun Bow]** Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của boss.`);
+    } else if (cleanSubType === "clawhex") {
+      clawhexTriggered = true;
+      passiveTriggers.push(`⚔️ **[Clawhex]** Sát thương kích hoạt hiệu ứng chảy máu, tăng 15% sát thương.`);
+    } else if (cleanSubType === "spearhex") {
+      spearhexTriggered = true;
+      passiveTriggers.push(`⚔️ **[Spearhex]** Đòn đánh xuyên qua phòng ngự, bỏ qua 10% giáp vật lý của boss.`);
+    } else if (cleanSubType === "shieldhex") {
+      shieldhexTriggered = true;
+      passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
+    } else if (cleanSubType === "riverofblood") {
+      riverofbloodTriggered = true;
+      passiveTriggers.push(`⚔️ **[River of Blood]** Chém hồi máu bằng 5% sát thương gây ra.`);
+    } else if (cleanSubType === "shadowdagger") {
       activeBoss.effects.armorReduced = 0.30;
       passiveTriggers.push(`⚔️ **[Shadow Dagger]** Đã phá giáp boss! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
     } else if (cleanSubType === "poisondagger") {
