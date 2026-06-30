@@ -52,10 +52,7 @@ class PartyCommand extends BaseCommand {
     
     const targetUser = message.mentions.users.first();
     if (targetUser) {
-      const isAdmin = config.permissions?.dev_ids?.includes(userId) || userId === "745950731638407210" || userId === process.env.OWNER_ID;
-      if (!isAdmin) {
-        return message.reply("❌ Chỉ Admin mới có quyền tạo party và mời người chơi khác gia nhập trong giai đoạn thử nghiệm.");
-      }
+
 
       const targetId = targetUser.id;
       if (targetId === userId) {
