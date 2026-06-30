@@ -197,8 +197,8 @@ class GearCommand extends BaseCommand {
           const passives = {
             shadowdagger: "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)",
             poisondagger: "Tăng 50% sát thương cho đòn tiếp theo",
-            firesword: "Giảm 50% hồi máu của boss/đối thủ vĩnh viễn",
-            greenstaff: "Hồi phục HP bằng 25% sát thương gây ra",
+            firesword: "Giảm 30% hồi máu của boss/đối thủ trong 2 lượt (30 giây đối với World Boss)",
+            greenstaff: "Hồi phục HP bằng 15% sát thương gây ra",
             bluestaff: "Đòn đánh xuyên 50% kháng phép",
             crimsondagger: "Đòn đánh xuyên 50% giáp vật lý",
             holysword: "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương",

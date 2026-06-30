@@ -25,8 +25,8 @@ class WeaponlistCommand extends BaseCommand {
       let desc = "";
       if (dw.key === "shadowdagger") desc = "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)";
       else if (dw.key === "poisondagger") desc = "Tăng 50% sát thương cho đòn tiếp theo";
-      else if (dw.key === "firesword") desc = "Giảm 50% hồi máu của boss/đối thủ vĩnh viễn";
-      else if (dw.key === "greenstaff") desc = "Hồi phục HP bằng 25% sát thương gây ra";
+      else if (dw.key === "firesword") desc = "Giảm 30% hồi máu của boss/đối thủ trong 2 lượt (30 giây đối với World Boss)";
+      else if (dw.key === "greenstaff") desc = "Hồi phục HP bằng 15% sát thương gây ra";
       else if (dw.key === "bluestaff") desc = "Đòn đánh xuyên 50% kháng phép";
       else if (dw.key === "crimsondagger") desc = "Đòn đánh xuyên 50% giáp vật lý";
       else if (dw.key === "holysword") desc = "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương";

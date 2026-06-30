@@ -360,11 +360,11 @@ module.exports = {
   },
   dungeon: {
     normal_monster: {
-      base_hp: 7000,
+      base_hp: 9100,
       round_hp_mult: 0.1,
-      base_atk: 70,
+      base_atk: 91,
       round_atk_mult: 0.05,
-      base_defense: 45,
+      base_defense: 58,
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],
@@ -409,13 +409,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 240000,
-              base_atk: 240,
-              base_defense: 120,
+              base_atk: 270,
+              base_defense: 125,
             },
             phase2: {
-              base_hp: 120000,
-              base_atk_mult: 1.5,
-              base_defense: 110,
+              base_hp: 130000,
+              base_atk_mult: 1.6,
+              base_defense: 115,
             },
           },
           passive: {
@@ -448,13 +448,13 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 310000,
-              base_atk: 280,
-              base_defense: 130,
+              base_atk: 300,
+              base_defense: 135,
             },
             phase2: {
-              base_hp: 155000,
-              base_atk_mult: 1.6,
-              base_defense: 115,
+              base_hp: 165000,
+              base_atk_mult: 1.7,
+              base_defense: 120,
             },
           },
           mechanics: {
@@ -485,8 +485,8 @@ module.exports = {
               base_defense: 140,
             },
             phase2: {
-              base_hp: 180000,
-              base_atk_mult: 1.6,
+              base_hp: 195000,
+              base_atk_mult: 1.7,
               base_defense: 120,
             },
           },
@@ -518,8 +518,8 @@ module.exports = {
               base_defense: 145,
             },
             phase2: {
-              base_hp: 190000,
-              base_atk_mult: 1.7,
+              base_hp: 210000,
+              base_atk_mult: 1.8,
               base_defense: 125,
             },
           },
@@ -551,8 +551,8 @@ module.exports = {
               base_defense: 170,
             },
             phase2: {
-              base_hp: 220000,
-              base_atk_mult: 1.8,
+              base_hp: 240000,
+              base_atk_mult: 1.9,
               base_defense: 170,
             },
           },
@@ -584,8 +584,8 @@ module.exports = {
               base_defense: 210,
             },
             phase2: {
-              base_hp: 260000,
-              base_atk_mult: 2.0,
+              base_hp: 280000,
+              base_atk_mult: 2.2,
               base_defense: 210,
             },
           },

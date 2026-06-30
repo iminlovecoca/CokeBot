@@ -429,8 +429,8 @@ const setupRound = (activeDungeon, channel) => {
   const setupNormalMonster = () => {
     let name = `Quái Vật Gác Đền (Vòng ${round})`;
     let key = `creep${round}`;
-    let maxHp = Math.max(12000, Math.min(50000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
-    let atk = Math.min(450, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
+    let maxHp = Math.max(15000, Math.min(65000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
+    let atk = Math.min(580, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
     let armor = Math.floor(normCfg.base_defense * chapter);
     let magicResist = Math.floor(normCfg.base_defense * chapter);
 
@@ -1795,8 +1795,13 @@ const handleVictory = async (channel, activeDungeon) => {
     const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
     freshUser.inventory.set(cristalStoneId, currentQty + 1);
 
-    const currentSouls = freshUser.inventory.get("souls") || 0;
-    freshUser.inventory.set("souls", currentSouls + 10);
+    const gotSoul = Math.random() < 0.50;
+    let soulText = "*Không nhận được* <:souls:1518749776538243082>";
+    if (gotSoul) {
+      const currentSouls = freshUser.inventory.get("souls") || 0;
+      freshUser.inventory.set("souls", currentSouls + 10);
+      soulText = "**+10 Linh Hồn** <:souls:1518749776538243082>";
+    }
 
     freshUser.markModified("inventory");
 
@@ -1817,7 +1822,7 @@ const handleVictory = async (channel, activeDungeon) => {
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${cokeReward.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
       `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
-      `  • nhận **+10 Linh Hồn** <:souls:1518749776538243082>\n` +
+      `  • Linh Hồn: ${soulText}\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: ${gearText}`;
 

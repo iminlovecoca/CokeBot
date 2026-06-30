@@ -952,7 +952,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
       passiveTriggers.push(`⚔️ **[Poison Dagger]** Sát khí hội tụ! Đòn đánh tiếp theo của bạn sẽ gây thêm 50% sát thương.`);
     } else if (cleanSubType === "firesword") {
       activeBoss.effects.healReduced = true;
-      passiveTriggers.push(`⚔️ **[Fire Sword]** Thiêu đốt boss! Giảm 50% hồi máu của boss cho đến hết trận đấu.`);
+      activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
+      passiveTriggers.push(`⚔️ **[Fire Sword]** Thiêu đốt boss! Giảm 30% hồi máu của boss trong 30 giây.`);
     } else if (cleanSubType === "bluestaff") {
       blueStaffPierce = true;
       passiveTriggers.push(`⚔️ **[Blue Staff]** Đòn đánh xuyên 50% kháng phép của boss.`);
@@ -974,7 +975,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
       const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
       if (chosenEffect === "burn") {
         activeBoss.effects.healReduced = true;
-        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thiêu đốt! Giảm 50% hồi máu của boss cho đến hết trận đấu.`);
+        activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
+        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thiêu đốt! Giảm 30% hồi máu của boss trong 30 giây.`);
       } else if (chosenEffect === "weakness") {
         participant.bossDamageReduced = true;
         passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám suy yếu! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
@@ -1072,7 +1074,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   
   if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
-    const healPercent = riverofbloodTriggered ? 0.05 : 0.25;
+    const healPercent = riverofbloodTriggered ? 0.05 : 0.15;
     const healAmt = Math.floor(damage * healPercent);
     participant.hp = Math.min(maxHp, participant.hp + healAmt);
     const label = riverofbloodTriggered ? "River of Blood" : "Green Staff";
@@ -1141,8 +1143,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
           const missingHp = activeBoss.maxHp - activeBoss.hp;
           if (missingHp > 0) {
             let healFactor = 0.20;
-            if (activeBoss.effects.healReduced) {
-              healFactor *= 0.50;
+            if (activeBoss.effects.healReduced && Date.now() < (activeBoss.effects.healReducedUntil || 0)) {
+              healFactor *= 0.70;
             }
             if (rpgClass?.bonuses?.healReduction) {
               healFactor *= (1 - rpgClass.bonuses.healReduction);

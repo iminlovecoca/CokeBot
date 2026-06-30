@@ -134,8 +134,8 @@ const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 20;
 
-  p1.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
-  p2.effects = { armorReduced: 0, healReduced: false, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
+  p1.effects = { armorReduced: 0, healReduced: false, healReducedRounds: 0, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
+  p2.effects = { armorReduced: 0, healReduced: false, healReducedRounds: 0, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
 
   
   const p1SubType = p1.weapon?.subType ? p1.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
@@ -164,6 +164,13 @@ const simulatePvP = (p1, p2) => {
       attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
       attacker.effects.bleedRounds -= 1;
       if (attacker.hp <= 0) break;
+    }
+
+    if (attacker.effects.healReducedRounds > 0) {
+      attacker.effects.healReducedRounds -= 1;
+      if (attacker.effects.healReducedRounds <= 0) {
+        attacker.effects.healReduced = false;
+      }
     }
 
     
@@ -223,6 +230,7 @@ const simulatePvP = (p1, p2) => {
         attacker.nextAttackMult = 1.5;
       } else if (cleanSubType === "firesword") {
         defender.effects.healReduced = true;
+        defender.effects.healReducedRounds = 2;
       } else if (cleanSubType === "bluestaff") {
         blueStaffPierce = true;
       } else if (cleanSubType === "crimsondagger") {
@@ -240,6 +248,7 @@ const simulatePvP = (p1, p2) => {
         const chosenEffect = textEffects[Math.floor(Math.random() * textEffects.length)];
         if (chosenEffect === "burn") {
           defender.effects.healReduced = true;
+          defender.effects.healReducedRounds = 2;
         } else if (chosenEffect === "weakness") {
           defender.effects.damageReduced = 0.3;
         } else {
@@ -340,11 +349,11 @@ const simulatePvP = (p1, p2) => {
 
       
       if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
-        const healPercent = riverofbloodTriggered ? 0.05 : 0.25;
+        const healPercent = riverofbloodTriggered ? 0.05 : 0.15;
         let healAmt = Math.floor(damage * healPercent);
         let healReduceFactor = 1.0;
         if (attacker.effects.healReduced) {
-          healReduceFactor *= 0.5;
+          healReduceFactor *= 0.7;
         }
         if (defender.rpgClass?.bonuses?.healReduction) {
           healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
