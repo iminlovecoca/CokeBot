@@ -475,7 +475,7 @@ const setupRound = (activeDungeon, channel) => {
     }
     const targetLevel = strongestPlayer ? (strongestPlayer.level || 1) : 1;
     const targetPower = strongestPlayer ? (strongestPlayer.power || 0) : 0;
-    const leaderScaler = 1 + (targetLevel * 0.003) + (targetPower * 0.00002);
+    const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
 
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
     const poiseMax = 80 + chapter * 20;
@@ -1656,7 +1656,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       }
       const targetLevel = strongestPlayer ? (strongestPlayer.level || 1) : 1;
       const targetPower = strongestPlayer ? (strongestPlayer.power || 0) : 0;
-      const leaderScaler = 1 + (targetLevel * 0.003) + (targetPower * 0.00002);
+      const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
 
       const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
       const poiseMax = 80 + chapter * 20;
