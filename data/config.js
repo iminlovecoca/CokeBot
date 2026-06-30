@@ -408,14 +408,14 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 180000,
-              base_atk: 200,
-              base_defense: 110,
+              base_hp: 240000,
+              base_atk: 240,
+              base_defense: 120,
             },
             phase2: {
-              base_hp: 90000,
+              base_hp: 120000,
               base_atk_mult: 1.5,
-              base_defense: 100,
+              base_defense: 110,
             },
           },
           passive: {
@@ -447,14 +447,14 @@ module.exports = {
           image_phase2: "Vaelmor.png",
           stats: {
             phase1: {
-              base_hp: 250000,
-              base_atk: 240,
-              base_defense: 120,
+              base_hp: 310000,
+              base_atk: 280,
+              base_defense: 130,
             },
             phase2: {
-              base_hp: 125000,
+              base_hp: 155000,
               base_atk_mult: 1.6,
-              base_defense: 105,
+              base_defense: 115,
             },
           },
           mechanics: {
@@ -480,14 +480,14 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 340000,
-              base_atk: 280,
-              base_defense: 135,
+              base_hp: 360000,
+              base_atk: 320,
+              base_defense: 140,
             },
             phase2: {
-              base_hp: 170000,
+              base_hp: 180000,
               base_atk_mult: 1.6,
-              base_defense: 115,
+              base_defense: 120,
             },
           },
           mechanics: {
