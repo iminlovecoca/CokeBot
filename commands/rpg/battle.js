@@ -141,14 +141,7 @@ const simulatePvP = (p1, p2) => {
   const p1SubType = p1.weapon?.subType ? p1.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
   const p2SubType = p2.weapon?.subType ? p2.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
 
-  if (p1SubType.includes("sunbow")) {
-    p1.effectiveStats.pr = (p1.effectiveStats.pr || 0) + 10;
-    p1.effectiveStats.mr = (p1.effectiveStats.mr || 0) + 10;
-  }
-  if (p2SubType.includes("sunbow")) {
-    p2.effectiveStats.pr = (p2.effectiveStats.pr || 0) + 10;
-    p2.effectiveStats.mr = (p2.effectiveStats.mr || 0) + 10;
-  }
+
 
   
   let p1Dex = p1.effectiveStats.dex || 0;
@@ -201,6 +194,7 @@ const simulatePvP = (p1, p2) => {
     let clawhexTriggered = false;
     let spearhexTriggered = false;
     let shieldhexTriggered = false;
+    let riverofbloodTriggered = false;
 
     if (cleanSubType === "axesnake") {
       axesnakeTriggered = true;
@@ -215,9 +209,11 @@ const simulatePvP = (p1, p2) => {
       spearhexTriggered = true;
     } else if (cleanSubType === "shieldhex") {
       shieldhexTriggered = true;
+    } else if (cleanSubType === "riverofblood") {
+      riverofbloodTriggered = true;
     }
 
-    const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && Math.random() < 0.45;
+    const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && !riverofbloodTriggered && Math.random() < 0.45;
     let blueStaffPierce = false;
     let crimsonDaggerPierce = false;
     let holySwordDouble = false;
@@ -284,9 +280,6 @@ const simulatePvP = (p1, p2) => {
         : attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5;
 
       let rawDamage = baseAtk + attacker.gearPower;
-      if (sunbowTriggered && isMagical) {
-        rawDamage *= 1.036;
-      }
       if (clawhexTriggered) {
         rawDamage *= 1.15;
       }
@@ -303,6 +296,9 @@ const simulatePvP = (p1, p2) => {
         if (blueStaffPierce) {
           mr *= 0.5;
         }
+        if (sunbowTriggered) {
+          mr *= 0.90;
+        }
         defenderMitigation = mr / (mr + 1000);
       } else {
         let armor =
@@ -314,6 +310,9 @@ const simulatePvP = (p1, p2) => {
           armor *= 0.5;
         }
         if (spearhexTriggered) {
+          armor *= 0.90;
+        }
+        if (sunbowTriggered) {
           armor *= 0.90;
         }
         defenderMitigation = armor / (armor + 1000);
@@ -343,8 +342,9 @@ const simulatePvP = (p1, p2) => {
       defender.hp = Math.max(0, defender.hp - damage);
 
       
-      if (hasTriggered && cleanSubType === "greenstaff") {
-        let healAmt = Math.floor(damage * 0.25);
+      if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
+        const healPercent = riverofbloodTriggered ? 0.05 : 0.25;
+        let healAmt = Math.floor(damage * healPercent);
         let healReduceFactor = 1.0;
         if (attacker.effects.healReduced) {
           healReduceFactor *= 0.5;

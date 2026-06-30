@@ -245,9 +245,6 @@ class SimCommand extends BaseCommand {
 
           
           const subType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-          if (subType === "sunbow" && isMagical) {
-            rawDamage *= 1.036;
-          }
           if (subType === "clawhex") {
             activeBossEffects.bleedRounds = 3;
             activeBossEffects.clawhexBleed = true;
@@ -278,12 +275,20 @@ class SimCommand extends BaseCommand {
           if (!isMagical && subType === "spearhex") {
             mrOrArmor *= 0.90;
           }
+          if (subType === "sunbow") {
+            mrOrArmor *= 0.90;
+          }
 
           const mitigation = mrOrArmor / (mrOrArmor + 1000);
           let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
 
           bossHp = Math.max(0, bossHp - damage);
           p.damageDealt += damage;
+
+          if (subType === "riverofblood") {
+            const healAmt = Math.max(1, Math.floor(damage * 0.05));
+            p.hp = Math.min(p.maxHp, p.hp + healAmt);
+          }
 
           if (bossHp <= 0) {
             lastHitUser = p;
@@ -293,9 +298,6 @@ class SimCommand extends BaseCommand {
           
           let bossDmg = boss.attackPower * (0.85 + Math.random() * 0.3);
           let playerRes = isMagical ? p.stats.mr : p.stats.pr;
-          if (subType === "sunbow") {
-            playerRes += 10;
-          }
           const playerMitigation = (playerRes * 12.0 + p.power * 0.10) / (playerRes * 12.0 + p.power * 0.10 + 1000);
           let counterDmg = Math.max(10, Math.floor(bossDmg * (1 - playerMitigation)));
 

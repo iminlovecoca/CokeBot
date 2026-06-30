@@ -7,12 +7,12 @@ const categoryTranslations = {
   action: "Hành động",
   admin: "Quản trị viên",
   cokecy: "Kinh tế",
-  cokemon: "Cokemon (Thú cưng)",
+  cokemon: "Cokemon",
   config: "Cấu hình",
-  gamble: "Trò chơi may rủi",
+  gamble: "Casino",
   general: "Thông tin chung",
   noitu: "Nối từ",
-  rpg: "RPG (Nhập vai)",
+  rpg: "RPG",
   shop: "Cửa hàng",
   user: "Cá nhân"
 };

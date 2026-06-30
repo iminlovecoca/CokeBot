@@ -331,11 +331,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
       const gearPower = calculateRpgPower(freshUserObject(user));
       const weapon = getEquippedItems(user).weapon;
       
-      const cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-      if (cleanSubType.includes("sunbow")) {
-        stats.pr = (stats.pr || 0) + 10;
-        stats.mr = (stats.mr || 0) + 10;
-      }
+
       
       let maxHp = 150 + stats.vigor * 20 + user.rpg.level * 20;
       if (blessing === "active") {
@@ -1202,9 +1198,6 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 
   
   const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  if (pWeaponSubType === "sunbow" && isMagical) {
-    rawDamage *= 1.036;
-  }
   
   if (pWeaponSubType === "clawhex") {
     enemy.bleedRounds = 3;
@@ -1245,8 +1238,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   
   let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
   
-  
   if (!isMagical && pWeaponSubType === "spearhex") {
+    mrOrArmor = Math.floor(mrOrArmor * 0.90);
+  }
+  if (pWeaponSubType === "sunbow") {
     mrOrArmor = Math.floor(mrOrArmor * 0.90);
   }
 
@@ -1292,6 +1287,12 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
+
+  if (pWeaponSubType === "riverofblood") {
+    const healAmt = Math.max(1, Math.floor(damage * 0.05));
+    player.hp = Math.min(player.maxHp, player.hp + healAmt);
+    activeDungeon.logs.push(`🩸 **[River of Blood]** Hồi phục cho **${player.name}** **${healAmt.toLocaleString()}** HP.`);
+  }
 
   
   if (enemy.isBoss && !enemy.poiseBroken) {

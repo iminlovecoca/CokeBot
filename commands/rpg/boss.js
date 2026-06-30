@@ -917,6 +917,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   let clawhexTriggered = false;
   let spearhexTriggered = false;
   let shieldhexTriggered = false;
+  let riverofbloodTriggered = false;
 
   if (cleanSubType === "axesnake") {
     axesnakeTriggered = true;
@@ -924,9 +925,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     passiveTriggers.push(`⚔️ **[Axesnake]** Phá 10% giáp của boss! Giáp boss giảm tổng cộng ${(activeBoss.effects.armorReduced * 100).toFixed(0)}% vĩnh viễn.`);
   } else if (cleanSubType === "sunbow") {
     sunbowTriggered = true;
-    effectiveStats.pr += 10;
-    effectiveStats.mr += 10;
-    passiveTriggers.push(`⚔️ **[Sun Bow]** Tăng 10 PR và 10 MR cho bản thân, đòn đánh nhận thêm 3.6% sát thương phép.`);
+    passiveTriggers.push(`⚔️ **[Sun Bow]** Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của boss.`);
   } else if (cleanSubType === "clawhex") {
     clawhexTriggered = true;
     passiveTriggers.push(`⚔️ **[Clawhex]** Sát thương kích hoạt hiệu ứng chảy máu, tăng 15% sát thương.`);
@@ -936,9 +935,12 @@ const performBossAttack = async ({ client, channel, userId }) => {
   } else if (cleanSubType === "shieldhex") {
     shieldhexTriggered = true;
     passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
+  } else if (cleanSubType === "riverofblood") {
+    riverofbloodTriggered = true;
+    passiveTriggers.push(`⚔️ **[River of Blood]** Chém hồi máu bằng 5% sát thương gây ra.`);
   }
 
-  const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && Math.random() < 0.45;
+  const hasTriggered = isDungeonWeapon && !axesnakeTriggered && !sunbowTriggered && !clawhexTriggered && !spearhexTriggered && !shieldhexTriggered && !riverofbloodTriggered && Math.random() < 0.45;
   let blueStaffPierce = false;
   let crimsonDaggerPierce = false;
   let holySwordDouble = false;
@@ -1002,12 +1004,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
     : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
 
-  const gearPower = calculateRpgPower(user);
   let rawDamage = baseAttack + gearPower;
-
-  if (sunbowTriggered && isMagical) {
-    rawDamage *= 1.036;
-  }
   if (clawhexTriggered) {
     rawDamage *= 1.15;
   }
@@ -1035,6 +1032,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
     if (blueStaffPierce) {
       mr *= 0.5;
     }
+    if (sunbowTriggered) {
+      mr *= 0.90;
+    }
     mitigation = mr / (mr + 250);
   } else {
     let armor = activeBoss.boss.armor || 0;
@@ -1045,6 +1045,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
       armor *= 0.5;
     }
     if (spearhexTriggered) {
+      armor *= 0.90;
+    }
+    if (sunbowTriggered) {
       armor *= 0.90;
     }
     mitigation = armor / (armor + 250);
@@ -1069,10 +1072,13 @@ const performBossAttack = async ({ client, channel, userId }) => {
   }
 
   
-  if (hasTriggered && cleanSubType === "greenstaff") {
-    const healAmt = Math.floor(damage * 0.25);
+  if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
+    const healPercent = riverofbloodTriggered ? 0.05 : 0.25;
+    const healAmt = Math.floor(damage * healPercent);
     participant.hp = Math.min(maxHp, participant.hp + healAmt);
-    passiveTriggers.push(`💚 **[Green Staff]** Đòn đánh hồi phục cho bạn **${healAmt.toLocaleString()}** HP.`);
+    const label = riverofbloodTriggered ? "River of Blood" : "Green Staff";
+    const emoji = riverofbloodTriggered ? "❤️" : "💚";
+    passiveTriggers.push(`${emoji} **[${label}]** Đòn đánh hồi phục cho bạn **${healAmt.toLocaleString()}** HP.`);
   }
 
   

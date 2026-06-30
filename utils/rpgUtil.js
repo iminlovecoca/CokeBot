@@ -382,7 +382,7 @@ const getWeaponScaling = (item) => {
     return { str: "S", dex: "-", int: "-", arc: "-" };
   }
   if (subType.includes("sunbow")) {
-    return { str: "-", dex: "S", int: "A", arc: "-" };
+    return { str: "-", dex: "S", int: "S", arc: "-" };
   }
   if (subType.includes("clawhex")) {
     return { str: "S", dex: "S", int: "-", arc: "-" };

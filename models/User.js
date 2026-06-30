@@ -149,6 +149,8 @@ const userSchema = new mongoose.Schema({
     },
     gachaWpPity: { type: Number, default: 0 },
     gachaWpGuaranteed: { type: Boolean, default: false },
+    gachaSkinPity: { type: Number, default: 0 },
+    gachaSkinGuaranteed: { type: Boolean, default: false },
     ownedSkins: { type: [String], default: [] },
   },
 });

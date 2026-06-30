@@ -7,12 +7,11 @@ const BaseCommand = require('../../core/BaseCommand');
 class WeaponlistCommand extends BaseCommand {
   constructor() {
     super({
-  name: "weaponlist",
-  aliases: ["weapons", "wlist"],
-  description: "Xem danh sách các loại vũ khí và thông tin phím phụ để dùng lệnh addgear (Chỉ Dev/Owner)",
-  usage: `${config.prefix}weaponlist`,
-
-        cooldown: 0
+      name: "weaponlist",
+      aliases: ["wplist", "weapons"],
+      description: "Xem danh sách và thông số các loại vũ khí.",
+      usage: `${config.prefix}weaponlist`,
+      cooldown: 0
     });
   }
 
@@ -35,14 +34,13 @@ class WeaponlistCommand extends BaseCommand {
       else if (dw.key === "darkstaff") desc = "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce";
       else if (dw.key === "gravitybow") desc = "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (S) | INT (A) (Không có nội tại kích hoạt)";
       else if (dw.key === "axesnake") desc = "Phá 10% giáp vật lý của đối thủ mỗi khi tấn công hoặc dùng kỹ năng (Cộng dồn)";
-      else if (dw.key === "sunbow") desc = "Gây thêm 3.6% sát thương phép và tăng 10 PR và 10 MR cho bản thân";
+      else if (dw.key === "sunbow") desc = "Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của đối thủ";
       else if (dw.key === "clawhex") desc = "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt";
       else if (dw.key === "spearhex") desc = "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ";
       else if (dw.key === "shieldhex") desc = "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4";
+      else if (dw.key === "riverofblood") desc = "Đòn đánh hồi phục HP cho bản thân bằng 5% sát thương gây ra";
+      else if (dw.key === "duskanddawn") desc = "Vũ khí giới hạn banner, sở hữu hệ số scale kết hợp độc đáo. Không có nội tại kích hoạt.";
       
-      if (dw.key === "gravitybow") {
-        return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
-      }
       return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
     };
 
@@ -93,7 +91,7 @@ class WeaponlistCommand extends BaseCommand {
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-    }
+  }
 }
 
 module.exports = new WeaponlistCommand();
