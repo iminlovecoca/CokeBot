@@ -287,7 +287,7 @@ class SimCommand extends BaseCommand {
           p.damageDealt += damage;
 
           if (subType === "riverofblood" && hasWeaponTriggered) {
-            const healAmt = Math.max(1, Math.floor(damage * 0.01));
+            const healAmt = Math.max(1, Math.floor(damage * 0.02));
             p.hp = Math.min(p.maxHp, p.hp + healAmt);
           }
 

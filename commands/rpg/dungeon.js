@@ -1302,7 +1302,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
 
   if (pWeaponSubType === "riverofblood" && hasWeaponTriggered) {
-    const healAmt = Math.max(1, Math.floor(damage * 0.01));
+    const healAmt = Math.max(1, Math.floor(damage * 0.02));
     player.hp = Math.min(player.maxHp, player.hp + healAmt);
     activeDungeon.logs.push(`🩸 **[River of Blood]** Hồi phục cho **${player.name}** **${healAmt.toLocaleString()}** HP.`);
   }

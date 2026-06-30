@@ -38,7 +38,7 @@ class WeaponlistCommand extends BaseCommand {
       else if (dw.key === "clawhex") desc = "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt";
       else if (dw.key === "spearhex") desc = "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ";
       else if (dw.key === "shieldhex") desc = "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4";
-      else if (dw.key === "riverofblood") desc = "Đòn đánh hồi phục HP cho bản thân bằng 1% sát thương gây ra";
+      else if (dw.key === "riverofblood") desc = "Đòn đánh hồi phục HP cho bản thân bằng 2% sát thương gây ra";
       else if (dw.key === "duskanddawn") desc = "Vũ khí giới hạn banner, sở hữu hệ số scale kết hợp độc đáo. Không có nội tại kích hoạt.";
       
       return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;

@@ -1076,7 +1076,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
     let baseHeal = 0;
     if (riverofbloodTriggered) {
-      baseHeal = Math.max(1, Math.floor(damage * 0.01));
+      baseHeal = Math.max(1, Math.floor(damage * 0.02));
     } else {
       baseHeal = Math.floor(damage * 0.15);
     }
