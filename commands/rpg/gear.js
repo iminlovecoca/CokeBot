@@ -137,21 +137,23 @@ class GearCommand extends BaseCommand {
       );
 
       const imageFile = getItemImageFile(freshItem);
-
-      let levelText = "";
-      if (freshItem.slot === "weapon") {
-        levelText = `Cấp cường hóa: **+${freshItem.upgradeLevel || 0}**\n`;
+      let subTypeName = freshItem.subType || freshItem.subtype;
+      if (!subTypeName) {
+        const { getLegacyMapping } = require("../../utils/rpgUtil");
+        const mapping = getLegacyMapping(freshItem.slot, freshItem.subType || freshItem.subtype);
+        subTypeName = mapping.subType || freshItem.slot.toUpperCase();
       }
+      const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` +${freshItem.upgradeLevel}` : "";
+      
+      const ownerName = freshOwner.rpg.name || freshOwner.userId;
+      const titleText = `${ownerName}'s ${freshItem.rarity} ${subTypeName}${upgradeStr}`;
 
-      let desc = `ID: \`${freshItem.id}\`\n` +
-                 `UID: \`${freshItem.uid || "N/A"}\`\n` +
-                 `Sở hữu bởi: <@${freshOwner.userId}>\n` +
-                 `Slot: **${config.rpg.gear_slot_names[freshItem.slot]}**\n` +
-                 `Rarity: **${freshItem.rarity}**\n` +
-                 levelText +
-                 `Chất lượng: **${getItemQuality(freshItem)}%**\n` +
-                 `Đang mặc: **${equippedEntry ? "Có ✨" : "Không"}**\n` +
-                 `Giá bán: **${freshItem.sellPrice.toLocaleString()} Coke**\n\n`;
+      let desc = `**Name:** ${subTypeName}\n` +
+                 `**Owner:** <@${freshOwner.userId}>\n` +
+                 `**ID:** \`${freshItem.id}\`\n` +
+                 `**Sell Value:** 💵 ${freshItem.sellPrice.toLocaleString()} Coke\n` +
+                 `**Quality:** 📈 ${getItemQuality(freshItem)}%\n` +
+                 `**Wear:** \`${freshItem.rarity.toUpperCase()}\`\n\n`;
 
       if (freshItem.slot === "weapon") {
         const ownerStats = getEffectiveRpgStats(freshOwner);
@@ -162,10 +164,12 @@ class GearCommand extends BaseCommand {
         const scaling = getWeaponScaling(freshItem);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
 
-        desc += `Lực chiến cơ bản: **${freshItem.power.toLocaleString()}**\n` +
-                `Lực chiến thực tế: ${powerText}\n` +
-                `**Scale:** \`${scalingText}\``;
+        desc += `**Lực chiến cơ bản:** ${freshItem.power.toLocaleString()}\n` +
+                `**Lực chiến thực tế:** ${powerText}\n` +
+                `**Scale:** \`${scalingText}\`\n\n`;
 
+        desc += `__**Description**__\n`;
+        
         const dungKey = getDungeonWeaponKey(freshItem.subType || freshItem.subtype);
         if (dungKey) {
           const passives = {
@@ -189,42 +193,66 @@ class GearCommand extends BaseCommand {
           };
           const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];
-          const eventWeapons = ["axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "riverofblood"];
           
           if (noPassiveWeapons.includes(dungKey)) {
-            desc += `\n**Nội tại:** *${passiveDesc}*`;
+            desc += `*${passiveDesc}*\n`;
           } else {
-            desc += `\n**Nội tại (Tỉ lệ kích hoạt 45%):** *${passiveDesc}*`;
+            desc += `*Nội tại (45% kích hoạt): ${passiveDesc}*\n`;
           }
+        } else {
+          desc += `*Vũ khí cơ bản, không có nội tại đặc biệt.*\n`;
         }
       } else {
         const statsText = formatStats(freshItem.stats) || "Không có";
-        desc += `Lực chiến: **+${freshItem.power.toLocaleString()}**\n` +
-                `Chỉ số cộng thêm: **${statsText}**`;
+        desc += `__**Description**__\n` +
+                `**Lực chiến:** +${freshItem.power.toLocaleString()}\n` +
+                `**Chỉ số cộng thêm:** ${statsText}\n`;
       }
 
       const embed = new EmbedBuilder()
         .setColor(rarityColor[freshItem.rarity] || rpgClass.color)
-        .setTitle(getGearDisplayName(freshItem))
-        .setDescription(desc)
-        .addFields({
-          name: "Lệnh tương tác",
-          value:
-            `Trang bị: \`${config.prefix}equip ${freshItem.id}\`\n` +
-            `Tháo: \`${config.prefix}unequip ${freshItem.slot}\`\n` +
-            `Bán: \`${config.prefix}sellgear ${freshItem.id}\``,
-        });
+        .setTitle(titleText)
+        .setDescription(desc);
 
       if (imageFile) {
         embed.setThumbnail(`attachment://${path.basename(imageFile)}`);
       }
 
-      const favoriteBtn = new ButtonBuilder()
-        .setCustomId(`gear_fav_${freshItem.id}`)
-        .setEmoji("⭐")
-        .setStyle(freshItem.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary);
+      const row = new ActionRowBuilder();
 
-      const row = new ActionRowBuilder().addComponents(favoriteBtn);
+      if (equippedEntry) {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`gear_uneq_${freshItem.id}`)
+            .setLabel("Tháo")
+            .setEmoji("🛡️")
+            .setStyle(ButtonStyle.Secondary)
+        );
+      } else {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`gear_equip_${freshItem.id}`)
+            .setLabel("Trang bị")
+            .setEmoji("🗡️")
+            .setStyle(ButtonStyle.Primary)
+        );
+      }
+
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`gear_sell_${freshItem.id}`)
+          .setLabel("Bán")
+          .setEmoji("💰")
+          .setStyle(ButtonStyle.Danger)
+          .setDisabled(!!freshItem.isFavorite || !!freshItem.isGodset)
+      );
+
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`gear_fav_${freshItem.id}`)
+          .setEmoji("⭐")
+          .setStyle(freshItem.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
+      );
 
       return { embed, row };
     };
@@ -257,31 +285,88 @@ class GearCommand extends BaseCommand {
       const detailMsg = await message.reply(replyOptions);
 
       const favCollector = detailMsg.createMessageComponentCollector({
-        filter: (interaction) => interaction.customId === `gear_fav_${item.id}`,
+        filter: (interaction) =>
+          interaction.customId === `gear_fav_${item.id}` ||
+          interaction.customId === `gear_equip_${item.id}` ||
+          interaction.customId === `gear_uneq_${item.id}` ||
+          interaction.customId === `gear_sell_${item.id}`,
         time: 5 * 60 * 1000,
       });
 
       favCollector.on("collect", async (interaction) => {
         if (interaction.user.id !== owner.userId) {
-          return interaction.reply({ content: "❌ Chỉ chủ sở hữu trang bị mới có quyền yêu thích!", ephemeral: true });
+          return interaction.reply({ content: "❌ Chỉ chủ sở hữu trang bị mới có quyền thực hiện hành động này!", ephemeral: true });
         }
 
-        item.isFavorite = !item.isFavorite;
-        owner.markModified("rpg");
-        await owner.save();
+        if (interaction.customId.startsWith("gear_fav_")) {
+          item.isFavorite = !item.isFavorite;
+          owner.markModified("rpg");
+          await owner.save();
 
-        const updated = getDetailEmbedAndComponents(item, owner);
-        await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+          const updated = getDetailEmbedAndComponents(item, owner);
+          await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+        }
+        else if (interaction.customId.startsWith("gear_equip_")) {
+          const { equipRpgItem } = require("../../utils/rpgUtil");
+          try {
+            const { user: updatedOwner } = await equipRpgItem(owner.userId, item.id);
+            const updated = getDetailEmbedAndComponents(item, updatedOwner);
+            await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+          } catch (err) {
+            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+          }
+        }
+        else if (interaction.customId.startsWith("gear_uneq_")) {
+          const { unequipRpgSlot } = require("../../utils/rpgUtil");
+          try {
+            const { user: updatedOwner } = await unequipRpgSlot(owner.userId, item.slot);
+            const updated = getDetailEmbedAndComponents(item, updatedOwner);
+            await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+          } catch (err) {
+            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+          }
+        }
+        else if (interaction.customId.startsWith("gear_sell_")) {
+          const { sellRpgItem } = require("../../utils/rpgUtil");
+          try {
+            const { cokeGain } = await sellRpgItem(owner.userId, item.id);
+            const soldEmbed = new EmbedBuilder()
+              .setColor("#95A5A6")
+              .setTitle("Trang bị đã được bán")
+              .setDescription(`Trang bị này đã được bán lấy **${cokeGain.toLocaleString()} Coke**.`);
+            await interaction.update({ embeds: [soldEmbed], components: [] });
+            favCollector.stop();
+          } catch (err) {
+            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+          }
+        }
       });
 
       favCollector.on("end", async () => {
         const updated = getDetailEmbedAndComponents(item, owner);
-        const disabledBtn = new ButtonBuilder()
-          .setCustomId(`gear_fav_${item.id}`)
-          .setEmoji("⭐")
-          .setStyle(item.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
-          .setDisabled(true);
-        const disabledRow = new ActionRowBuilder().addComponents(disabledBtn);
+        const disabledRow = new ActionRowBuilder();
+        
+        const isUneq = Object.values(owner.rpg.equipped || {}).includes(item.id);
+        disabledRow.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`gear_btn_dis1_${item.id}`)
+            .setLabel(isUneq ? "Tháo" : "Trang bị")
+            .setEmoji(isUneq ? "🛡️" : "🗡️")
+            .setStyle(isUneq ? ButtonStyle.Secondary : ButtonStyle.Primary)
+            .setDisabled(true),
+          new ButtonBuilder()
+            .setCustomId(`gear_btn_dis2_${item.id}`)
+            .setLabel("Bán")
+            .setEmoji("💰")
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(true),
+          new ButtonBuilder()
+            .setCustomId(`gear_btn_dis3_${item.id}`)
+            .setEmoji("⭐")
+            .setStyle(item.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
+            .setDisabled(true)
+        );
+
         await detailMsg.edit({ embeds: [updated.embed], components: [disabledRow] }).catch(() => {});
       });
 
