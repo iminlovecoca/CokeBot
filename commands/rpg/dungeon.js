@@ -478,6 +478,7 @@ const setupRound = (activeDungeon, channel) => {
     const targetPower = totalPower / count;
     const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
 
+    const chapterScaler = 1 + (chapter - 1) * 0.20;
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
     const poiseMax = 80 + chapter * 20;
 
@@ -486,7 +487,7 @@ const setupRound = (activeDungeon, channel) => {
       key: bossCfg.key,
       maxHp: maxHp,
       hp: maxHp,
-      atk: Math.floor(b1Cfg.base_atk * chapter * leaderScaler),
+      atk: Math.floor(b1Cfg.base_atk * chapterScaler * leaderScaler),
       armor: Math.floor(b1Cfg.base_defense * leaderScaler),
       magicResist: Math.floor(b1Cfg.base_defense * leaderScaler),
       isBoss: true,

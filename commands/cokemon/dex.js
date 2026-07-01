@@ -137,8 +137,8 @@ class DexCommand extends BaseCommand {
                 const evoTexts = [baseDisplayName]
 
                 while (evolutions.length > 0) {
-                    currentEvo = evolutions.pop()
-                    currentEvoText = evoTexts.pop()
+                    const currentEvo = evolutions.pop()
+                    const currentEvoText = evoTexts.pop()
                     const nextEvolutions = getEvoLineParts(currentEvo, currentEvoText)
 
                     if (nextEvolutions.length === 0 && currentEvo.name !== baseForm.name) {

@@ -10,9 +10,9 @@ function checkInternet(timeout = 5000) {
       resolve(status);
     };
     
-    dns.resolve("discord.com", (err) => { if (!err) done(true); });
+    dns.lookup("discord.com", (err) => { if (!err) done(true); });
     
-    dns.resolve("google.com", (err) => { if (!err) done(true); });
+    dns.lookup("google.com", (err) => { if (!err) done(true); });
     
     setTimeout(() => done(false), timeout);
   });
