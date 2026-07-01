@@ -1173,7 +1173,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   const enemy = activeDungeon.enemy;
 
   
-  if (enemy.key === "eldric" || enemy.key === "draugor") {
+  if ((enemy.key === "eldric" || enemy.key === "draugor") && !enemy.poiseBroken) {
     const deflectionChance = enemy.key === "eldric" ? 0.30 : 0.25;
     if (Math.random() < deflectionChance) {
       activeDungeon.actionInProgress = false;
@@ -1187,7 +1187,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   }
 
   
-  if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage")) {
+  if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage") && !enemy.poiseBroken) {
     if (Math.random() < 0.40) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`⚡ **${enemy.name}** di chuyển chớp nhoáng, né tránh đòn tấn công từ xa của **${player.name}**!`);
