@@ -1097,20 +1097,20 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
   if (player.classKey === "warrior") {
     activeDungeon.logs.push(`⚔️ **${player.name}** giải phóng kỹ năng **[Trọng Kiếm]**, chém một đòn cực mạnh vào **${enemy.name}**!`);
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 4.0);
+    await executePlayerAttack(channel, activeDungeon, player, 4.0, true);
     player.rage = 0;
   } else if (player.classKey === "assassin") {
     activeDungeon.logs.push(`🗡️ **${player.name}** tung chiêu thức **[Đâm Lén]** cực hiểm hóc vào điểm yếu của **${enemy.name}**!`);
     enemy.bleedRounds = 3;
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 2.0);
+    await executePlayerAttack(channel, activeDungeon, player, 2.0, true);
     player.rage = 0;
   } else if (player.classKey === "archer") {
     activeDungeon.logs.push(`🏹 **${player.name}** giương cung bắn ra đại tiễn **[Xuyên Táo]** xuyên thấu **${enemy.name}**!`);
     activeDungeon.archerDoubleDmgNext = true;
     activeDungeon.archerCasterId = player.id;
     player.rage = 0;
-    await executePlayerAttack(channel, activeDungeon, player, 3.0);
+    await executePlayerAttack(channel, activeDungeon, player, 3.0, true);
     player.rage = 0;
   } else if (player.classKey === "mage") {
     const currentMana = player.mana ?? 100;
@@ -1120,7 +1120,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     }
     player.mana = currentMana - 25;
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
-    await executePlayerAttack(channel, activeDungeon, player, 3.0);
+    await executePlayerAttack(channel, activeDungeon, player, 3.0, true);
   } else if (player.classKey === "paladin") {
     activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 30% lượng máu tối đa cho toàn đội!`);
 
@@ -1169,11 +1169,11 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
 };
 
 
-const executePlayerAttack = async (channel, activeDungeon, player, multiplier) => {
+const executePlayerAttack = async (channel, activeDungeon, player, multiplier, isSkill = false) => {
   const enemy = activeDungeon.enemy;
 
   
-  if ((enemy.key === "eldric" || enemy.key === "draugor") && !enemy.poiseBroken) {
+  if ((enemy.key === "eldric" || enemy.key === "draugor") && !enemy.poiseBroken && !isSkill) {
     const deflectionChance = enemy.key === "eldric" ? 0.30 : 0.25;
     if (Math.random() < deflectionChance) {
       activeDungeon.actionInProgress = false;
@@ -1187,7 +1187,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
   }
 
   
-  if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage") && !enemy.poiseBroken) {
+  if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage") && !enemy.poiseBroken && !isSkill) {
     if (Math.random() < 0.40) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`⚡ **${enemy.name}** di chuyển chớp nhoáng, né tránh đòn tấn công từ xa của **${player.name}**!`);
@@ -1540,8 +1540,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     });
 
     
-    const madnessIncrement = 0.05 + (activeDungeon.chapter - 1) * 0.03;
-    activeDungeon.phase2Madness += madnessIncrement;
+    activeDungeon.phase2Madness = Math.min(1.30, activeDungeon.phase2Madness + 0.04);
   } else {
     
     const target = selectBossTarget(alivePlayers);
