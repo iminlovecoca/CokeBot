@@ -519,7 +519,7 @@ module.exports = {
             },
             phase2: {
               base_hp: 160000,
-              base_atk_mult: 1.7,
+              base_atk_mult: 1.45,
               base_defense: 165,
             },
           },
@@ -552,7 +552,7 @@ module.exports = {
             },
             phase2: {
               base_hp: 240000,
-              base_atk_mult: 1.9,
+              base_atk_mult: 1.60,
               base_defense: 210,
             },
           },
@@ -585,7 +585,7 @@ module.exports = {
             },
             phase2: {
               base_hp: 280000,
-              base_atk_mult: 2.2,
+              base_atk_mult: 1.75,
               base_defense: 245,
             },
           },
