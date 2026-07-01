@@ -1174,7 +1174,8 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
 
   
   if ((enemy.key === "eldric" || enemy.key === "draugor") && !enemy.poiseBroken && !isSkill) {
-    const deflectionChance = enemy.key === "eldric" ? 0.30 : 0.25;
+    const isRanged = player.classKey === "archer" || player.classKey === "mage";
+    const deflectionChance = isRanged ? 0.35 : 0.20;
     if (Math.random() < deflectionChance) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`🏹 **[Cung Trọng Trường]** Trọng lực bẻ cong đòn đánh! Đòn tấn công của **${player.name}** bị lệch hướng và trượt!`);
@@ -1187,10 +1188,12 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   }
 
   
-  if (enemy.key === "veilreaper" && (player.classKey === "archer" || player.classKey === "mage") && !enemy.poiseBroken && !isSkill) {
-    if (Math.random() < 0.40) {
+  if (enemy.key === "veilreaper" && !enemy.poiseBroken && !isSkill) {
+    const isRanged = player.classKey === "archer" || player.classKey === "mage";
+    const dodgeChance = isRanged ? 0.35 : 0.20;
+    if (Math.random() < dodgeChance) {
       activeDungeon.actionInProgress = false;
-      activeDungeon.logs.push(`⚡ **${enemy.name}** di chuyển chớp nhoáng, né tránh đòn tấn công từ xa của **${player.name}**!`);
+      activeDungeon.logs.push(`⚡ **${enemy.name}** di chuyển chớp nhoáng, né tránh đòn tấn công của **${player.name}**!`);
       if (player.classKey !== "mage" && player.classKey !== "wretch") {
         player.rage = Math.min(100, (player.rage || 0) + 10);
       }
