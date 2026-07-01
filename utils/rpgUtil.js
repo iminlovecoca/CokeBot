@@ -34,9 +34,42 @@ const getRpgItems = (user) => {
       item.uid = `w-legacy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       modified = true;
     }
+    if (item.slot === "weapon") {
+      // Force level = 1 to completely remove hidden level of weapons
+      if (item.level !== 1) {
+        item.level = 1;
+        modified = true;
+      }
+      
+      const rarityConfig = config.rpg.gear_rarities[item.rarity] || config.rpg.gear_rarities.Common;
+      const isDungeon = isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
+      let powerRarityConfig = rarityConfig;
+      if (isDungeon) {
+        const getNextRarity = (rar) => {
+          const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+          const idx = rarities.indexOf(rar);
+          if (idx === -1) return rar;
+          return rarities[Math.min(rarities.length - 1, idx + 1)];
+        };
+        powerRarityConfig = config.rpg.gear_rarities[getNextRarity(item.rarity)] || rarityConfig;
+      }
+      
+      const levelBonus = 4; // level = 1, so levelBonus = 1 * 4.5 = 4
+      const qualityVal = typeof item.quality === "number" ? item.quality : 50;
+      const variance = 0.9 + 0.2 * ((qualityVal - 10) / 90);
+      const correctedPower = Math.floor((powerRarityConfig.power + levelBonus) * variance);
+      
+      if (item.power !== correctedPower) {
+        item.power = correctedPower;
+        modified = true;
+      }
+    }
   }
   if (modified) {
     user.markModified("rpg");
+    if (typeof user.save === "function") {
+      user.save().catch(err => console.error("Failed to auto-save corrected weapon stats:", err));
+    }
   }
   return items;
 };

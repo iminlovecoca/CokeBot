@@ -1758,18 +1758,31 @@ const handleVictory = async (channel, activeDungeon) => {
     const freshUser = await User.findById(p.userRef._id);
     if (!freshUser) continue;
 
-    
-    await incBalance(freshUser.userId, cokeReward);
-    addRpgExp(freshUser.rpg, expReward);
+    if (!freshUser.rpg.clearedDungeons) {
+      freshUser.rpg.clearedDungeons = [];
+    }
+    const hasClearedBefore = freshUser.rpg.clearedDungeons.includes(activeDungeon.chapter);
+
+    let userCokeReward = cokeReward;
+    let userExpReward = expReward;
+
+    if (hasClearedBefore) {
+      userCokeReward = Math.floor(cokeReward / 3);
+      userExpReward = Math.floor(expReward / 3);
+    } else {
+      freshUser.rpg.clearedDungeons.push(activeDungeon.chapter);
+      freshUser.markModified("rpg");
+    }
+
+    await incBalance(freshUser.userId, userCokeReward);
+    addRpgExp(freshUser.rpg, userExpReward);
     freshUser.markModified("rpg");
 
-    
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
       forceDrop: true,
     });
-    
     
     let specialGear = null;
     const claimedWeapons = freshUser.rpg.claimedBossWeapons || [];
@@ -1797,7 +1810,6 @@ const handleVictory = async (channel, activeDungeon) => {
       }
     }
 
-    
     const cristalStoneId = `cristal-${activeDungeon.chapter}`;
     if (!freshUser.inventory) {
       freshUser.inventory = new Map();
@@ -1805,7 +1817,7 @@ const handleVictory = async (channel, activeDungeon) => {
     const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
     freshUser.inventory.set(cristalStoneId, currentQty + 1);
 
-    const gotSoul = Math.random() < 0.50;
+    const gotSoul = Math.random() < 0.30;
     let soulText = "*Không nhận được* <:souls:1518749776538243082>";
     if (gotSoul) {
       const currentSouls = freshUser.inventory.get("souls") || 0;
@@ -1830,8 +1842,8 @@ const handleVictory = async (channel, activeDungeon) => {
       : "Không nhận được";
 
     let rewardLine = `👤 <@${p.id}>:\n` +
-      `  • nhận **+${cokeReward.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
-      `  • nhận **+${expReward.toLocaleString()} EXP RPG**\n` +
+      `  • nhận **+${userCokeReward.toLocaleString()}** <:cokecy:1509951335016173662>${hasClearedBefore ? " *(Phó bản đã vượt: nhận 1/3)*" : ""}\n` +
+      `  • nhận **+${userExpReward.toLocaleString()} EXP RPG**${hasClearedBefore ? " *(Phó bản đã vượt: nhận 1/3)*" : ""}\n` +
       `  • Linh Hồn: ${soulText}\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: ${gearText}`;

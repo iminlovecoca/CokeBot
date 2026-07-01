@@ -453,7 +453,7 @@ module.exports = {
             },
             phase2: {
               base_hp: 165000,
-              base_atk_mult: 1.7,
+              base_atk_mult: 1.6,
               base_defense: 169,
             },
           },
