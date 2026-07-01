@@ -1433,7 +1433,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
 
   
   if (enemy.bleedRounds && enemy.bleedRounds > 0) {
-    const bleedDamage = Math.floor(enemy.maxHp * 0.1);
+    const bleedDamage = Math.floor(enemy.maxHp * 0.08);
     enemy.hp = Math.max(0, enemy.hp - bleedDamage);
     enemy.bleedRounds -= 1;
     activeDungeon.logs.push(`🩸 **${enemy.name}** bị mất **${bleedDamage.toLocaleString()}** HP do hiệu ứng Chảy Máu (Còn ${enemy.bleedRounds} lượt).`);
