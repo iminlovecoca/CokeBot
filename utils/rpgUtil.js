@@ -67,9 +67,6 @@ const getRpgItems = (user) => {
   }
   if (modified) {
     user.markModified("rpg");
-    if (typeof user.save === "function") {
-      user.save().catch(err => console.error("Failed to auto-save corrected weapon stats:", err));
-    }
   }
   return items;
 };
