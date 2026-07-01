@@ -1174,7 +1174,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier) =
 
   
   if (enemy.key === "eldric" || enemy.key === "draugor") {
-    const deflectionChance = enemy.key === "eldric" ? 0.40 : 0.25;
+    const deflectionChance = enemy.key === "eldric" ? 0.30 : 0.25;
     if (Math.random() < deflectionChance) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`🏹 **[Cung Trọng Trường]** Trọng lực bẻ cong đòn đánh! Đòn tấn công của **${player.name}** bị lệch hướng và trượt!`);
