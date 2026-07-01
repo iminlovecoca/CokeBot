@@ -94,6 +94,12 @@ class TradegearCommand extends BaseCommand {
       return message.reply(`${config.emoji.no} Trang bị từ God Set không thể giao dịch!`);
     }
 
+    if (senderItem.isFavorite) {
+      return message.reply(
+        `${config.emoji.no} Trang bị này đang được yêu thích ⭐ và đã bị khóa. Hãy bỏ yêu thích trước khi giao dịch!`
+      );
+    }
+
     
     const isEquipped = Object.values(senderUser.rpg.equipped || {}).includes(senderItem.id);
     if (isEquipped) {

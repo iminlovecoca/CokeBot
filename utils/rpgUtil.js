@@ -836,7 +836,8 @@ const getGearDisplayName = (item) => {
   emoji = emoji || slotEmoji[item.slot] || "🛡️";
   subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "");
   const upgradeStr = item.upgradeLevel && item.upgradeLevel > 0 ? ` +${item.upgradeLevel}` : "";
-  return `${rank}${emoji} ${subTypeName}${upgradeStr}`;
+  const favoriteStr = item.isFavorite ? " ⭐" : "";
+  return `${rank}${emoji} ${subTypeName}${upgradeStr}${favoriteStr}`;
 };
 
 let globalLastItemId = null;
@@ -1079,6 +1080,12 @@ const sellRpgItem = async (userId, itemId) => {
 
   if (item.isGodset) {
     throw new UserFriendlyError(`${config.emoji.no} Trang bị từ God Set không thể bán!`);
+  }
+
+  if (item.isFavorite) {
+    throw new UserFriendlyError(
+      `${config.emoji.no} Trang bị này đang được yêu thích ⭐ và đã bị khóa. Hãy bỏ yêu thích trước khi bán!`,
+    );
   }
 
   if (Object.values(user.rpg.equipped || {}).includes(item.id)) {

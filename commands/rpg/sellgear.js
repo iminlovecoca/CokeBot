@@ -92,7 +92,7 @@ class SellgearCommand extends BaseCommand {
 
       
       const itemsToSell = userItems.filter(
-        (item) => raritiesToSell.includes(item.rarity) && !equippedIds.has(item.id) && !item.isGodset
+        (item) => raritiesToSell.includes(item.rarity) && !equippedIds.has(item.id) && !item.isGodset && !item.isFavorite
       );
 
       if (itemsToSell.length === 0) {

@@ -467,14 +467,15 @@ const setupRound = (activeDungeon, channel) => {
     const b1Cfg = bossCfg.stats.phase1;
 
     
-    let strongestPlayer = activeDungeon.players[0];
+    let totalLevel = 0;
+    let totalPower = 0;
+    const count = activeDungeon.players.length || 1;
     for (const p of activeDungeon.players) {
-      if ((p.power || 0) > (strongestPlayer.power || 0)) {
-        strongestPlayer = p;
-      }
+      totalLevel += (p.level || 1);
+      totalPower += (p.power || 0);
     }
-    const targetLevel = strongestPlayer ? (strongestPlayer.level || 1) : 1;
-    const targetPower = strongestPlayer ? (strongestPlayer.power || 0) : 0;
+    const targetLevel = totalLevel / count;
+    const targetPower = totalPower / count;
     const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
 
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
@@ -1648,14 +1649,15 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       const b2Cfg = bossCfg.stats.phase2;
 
       
-      let strongestPlayer = activeDungeon.players[0];
+      let totalLevel = 0;
+      let totalPower = 0;
+      const count = activeDungeon.players.length || 1;
       for (const p of activeDungeon.players) {
-        if ((p.power || 0) > (strongestPlayer.power || 0)) {
-          strongestPlayer = p;
-        }
+        totalLevel += (p.level || 1);
+        totalPower += (p.power || 0);
       }
-      const targetLevel = strongestPlayer ? (strongestPlayer.level || 1) : 1;
-      const targetPower = strongestPlayer ? (strongestPlayer.power || 0) : 0;
+      const targetLevel = totalLevel / count;
+      const targetPower = totalPower / count;
       const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
 
       const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);

@@ -513,14 +513,14 @@ module.exports = {
           image_phase2: "Eldric.png",
           stats: {
             phase1: {
-              base_hp: 380000,
-              base_atk: 330,
-              base_defense: 215,
+              base_hp: 310000,
+              base_atk: 300,
+              base_defense: 190,
             },
             phase2: {
-              base_hp: 210000,
-              base_atk_mult: 1.8,
-              base_defense: 185,
+              base_hp: 160000,
+              base_atk_mult: 1.7,
+              base_defense: 165,
             },
           },
           mechanics: {
