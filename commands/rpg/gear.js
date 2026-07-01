@@ -151,7 +151,7 @@ class GearCommand extends BaseCommand {
       let desc = `**Name:** ${subTypeName}\n` +
                  `**Owner:** <@${freshOwner.userId}>\n` +
                  `**ID:** \`${freshItem.id}\`\n` +
-                 `**Sell Value:** 💵 ${freshItem.sellPrice.toLocaleString()} Coke\n` +
+                 `**Sell Value:** ${config.emoji.money || "💵"} ${freshItem.sellPrice.toLocaleString()} Coke\n` +
                  `**Quality:** 📈 ${getItemQuality(freshItem)}%\n` +
                  `**Wear:** \`${freshItem.rarity.toUpperCase()}\`\n\n`;
 
