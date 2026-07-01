@@ -1101,7 +1101,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     player.rage = 0;
   } else if (player.classKey === "assassin") {
     activeDungeon.logs.push(`🗡️ **${player.name}** tung chiêu thức **[Đâm Lén]** cực hiểm hóc vào điểm yếu của **${enemy.name}**!`);
-    enemy.bleedRounds = 3;
+    enemy.bleedRounds = (enemy.bleedRounds || 0) + 3;
     player.rage = 0;
     await executePlayerAttack(channel, activeDungeon, player, 2.0, true);
     player.rage = 0;
@@ -1218,7 +1218,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const hasWeaponTriggered = Math.random() < 0.45;
   
   if (pWeaponSubType === "clawhex" && hasWeaponTriggered) {
-    enemy.bleedRounds = 3;
+    enemy.bleedRounds = (enemy.bleedRounds || 0) + 3;
     enemy.clawhexBleed = true;
     enemy.bleedDamage = Math.floor((player.stats.str * 0.5 + player.stats.dex * 0.5));
     rawDamage *= 1.15;
@@ -1464,8 +1464,8 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     if (targets.length > 0) {
       activeDungeon.logs.push(`🔥 **${enemy.name}** kích hoạt tà thuật **[Hắc Hỏa Cấm Chú]** phong ấn kỹ năng của đối thủ!`);
       targets.forEach((t) => {
-        t.skillBanRounds = 1;
-        activeDungeon.logs.push(`🚫 **${t.name}** bị cấm sử dụng kỹ năng trong **1** lượt!`);
+        t.skillBanRounds = (t.skillBanRounds || 0) + 1;
+        activeDungeon.logs.push(`🚫 **${t.name}** bị cấm sử dụng kỹ năng (cộng dồn thêm **1** lượt, tổng cộng còn ${t.skillBanRounds} lượt)!`);
       });
     }
   }
@@ -1475,7 +1475,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     activeDungeon.logs.push(`☣️ **${enemy.name}** giải phóng **[Hơi Thở Kịch Độc: Vaelmor Miasma]** lan tỏa khắp trận địa!`);
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
-        p.poisonRounds = 3;
+        p.poisonRounds = (p.poisonRounds || 0) + 3;
       }
     });
   }
@@ -1486,8 +1486,8 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     const passive = bossCfg.passive;
     if (passive && passive.type === "heal_ban" && Math.random() < passive.chance) {
       const target = selectBossTarget(alivePlayers);
-      target.healBanRounds = passive.duration;
-      activeDungeon.logs.push(`💀 **${enemy.name}** sử dụng [${passive.name}] lên **${target.name}**: Cấm sử dụng bình hồi máu trong ${passive.duration} lượt!`);
+      target.healBanRounds = (target.healBanRounds || 0) + passive.duration;
+      activeDungeon.logs.push(`💀 **${enemy.name}** sử dụng [${passive.name}] lên **${target.name}**: Cấm sử dụng bình hồi máu (cộng dồn thêm ${passive.duration} lượt, tổng cộng còn ${target.healBanRounds} lượt)!`);
     }
   }
 
