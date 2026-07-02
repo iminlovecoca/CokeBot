@@ -1094,6 +1094,16 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     return channel.send(`❌ **${player.name}** đang bị cấm sử dụng kỹ năng!`);
   }
 
+  const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  if (pWeaponSubType === "greenstaff") {
+    const missingHp = player.maxHp - player.hp;
+    const healAmt = Math.max(1, Math.floor(missingHp * 0.10));
+    if (healAmt > 0) {
+      player.hp = Math.min(player.maxHp, player.hp + healAmt);
+      activeDungeon.logs.push(`💚 **[Mộc Diệp Pháp Trượng]** Kích hoạt nội tại: Hồi phục **${healAmt.toLocaleString()}** HP (10% máu đã mất) khi dùng kỹ năng!`);
+    }
+  }
+
   if (player.classKey === "warrior") {
     activeDungeon.logs.push(`⚔️ **${player.name}** giải phóng kỹ năng **[Trọng Kiếm]**, chém một đòn cực mạnh vào **${enemy.name}**!`);
     player.rage = 0;
@@ -1169,7 +1179,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
 };
 
 
-const executePlayerAttack = async (channel, activeDungeon, player, multiplier, isSkill = false) => {
+const executePlayerAttack = async (channel, activeDungeon, player, multiplier, isSkill = false, isSecondHit = false) => {
   const enemy = activeDungeon.enemy;
 
   
@@ -1202,8 +1212,18 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
   }
 
-  
-  const isMagical = CLASS_ATTACK_TYPES[player.classKey] === "magical";
+  const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  const hasWeaponTriggered = Math.random() < 0.45;
+
+  let isMagical = CLASS_ATTACK_TYPES[player.classKey] === "magical";
+  if (pWeaponSubType === "duskanddawn") {
+    if (player.duskDawnNext === undefined) {
+      player.duskDawnNext = "magical";
+    }
+    isMagical = player.duskDawnNext === "magical";
+    player.duskDawnNext = isMagical ? "physical" : "magical";
+  }
+
   const baseAttack = isMagical
     ? player.stats.int * 3.5 + player.stats.arc * 1.5
     : player.stats.str * 2.5 + player.stats.dex * 1.5;
@@ -1212,10 +1232,6 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   if (activeDungeon.blessing === "active") {
     rawDamage *= 1.2;
   }
-
-  
-  const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  const hasWeaponTriggered = Math.random() < 0.45;
   
   if (pWeaponSubType === "clawhex" && hasWeaponTriggered) {
     enemy.bleedRounds = (enemy.bleedRounds || 0) + 3;
@@ -1256,6 +1272,12 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   
   let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
   
+  if (isMagical && pWeaponSubType === "bluestaff" && hasWeaponTriggered) {
+    mrOrArmor = Math.floor(mrOrArmor * 0.75); // 25% magic penetration
+  }
+  if (!isMagical && pWeaponSubType === "crimsondagger" && hasWeaponTriggered) {
+    mrOrArmor = Math.floor(mrOrArmor * 0.50); // 50% physical penetration
+  }
   if (!isMagical && pWeaponSubType === "spearhex" && hasWeaponTriggered) {
     mrOrArmor = Math.floor(mrOrArmor * 0.90);
   }
@@ -1327,21 +1349,32 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     player.rage = Math.min(100, (player.rage || 0) + 10);
   }
 
-  activeDungeon.actionInProgress = false;
-
-  if (enemy.hp <= 0) {
-    if (activeDungeon.crimsonActivePlayer === player.id) {
-      const hpRefund = activeDungeon.crimsonHpCost || 0;
-      player.hp = Math.min(player.maxHp, player.hp + hpRefund);
-      activeDungeon.logs.push(`🩸 **${player.name}** tiêu diệt mục tiêu và được hồi lại **${hpRefund.toLocaleString()}** HP từ nội tại Crimson Dagger!`);
+  let doubleHitTriggered = false;
+  if (pWeaponSubType === "duskanddawn" && !isSecondHit && enemy.hp > 0) {
+    if (Math.random() < 0.30) {
+      doubleHitTriggered = true;
+      activeDungeon.logs.push(`🌅 **[Dusk and Dawn]** Sức mạnh bình minh và hoàng hôn cộng hưởng! **${player.name}** tấn công liên kích thêm một lần nữa!`);
+      await executePlayerAttack(channel, activeDungeon, player, multiplier, isSkill, true);
     }
-    delete activeDungeon.crimsonActivePlayer;
-    delete activeDungeon.crimsonHpCost;
-    await handleEnemyDefeat(channel, activeDungeon);
-  } else {
-    delete activeDungeon.crimsonActivePlayer;
-    delete activeDungeon.crimsonHpCost;
-    await nextTurn(channel, activeDungeon);
+  }
+
+  if (!doubleHitTriggered) {
+    activeDungeon.actionInProgress = false;
+
+    if (enemy.hp <= 0) {
+      if (activeDungeon.crimsonActivePlayer === player.id) {
+        const hpRefund = activeDungeon.crimsonHpCost || 0;
+        player.hp = Math.min(player.maxHp, player.hp + hpRefund);
+        activeDungeon.logs.push(`🩸 **${player.name}** tiêu diệt mục tiêu và được hồi lại **${hpRefund.toLocaleString()}** HP từ nội tại Crimson Dagger!`);
+      }
+      delete activeDungeon.crimsonActivePlayer;
+      delete activeDungeon.crimsonHpCost;
+      await handleEnemyDefeat(channel, activeDungeon);
+    } else {
+      delete activeDungeon.crimsonActivePlayer;
+      delete activeDungeon.crimsonHpCost;
+      await nextTurn(channel, activeDungeon);
+    }
   }
 };
 
@@ -1508,7 +1541,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     alivePlayers.forEach((p) => {
       const armor = p.stats.pr * 12.0;
       const mitigation = armor / (armor + 1000);
-      const rawDmg = enemy.atk * mult * (0.85 + Math.random() * 0.3);
+      const rawDmg = enemy.atk * mult * 0.85 * (0.85 + Math.random() * 0.3);
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
 
       
@@ -1543,7 +1576,8 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     });
 
     
-    activeDungeon.phase2Madness = Math.min(1.30, activeDungeon.phase2Madness + 0.04);
+    const madnessInc = activeDungeon.chapter >= 4 ? 0.03 : 0.04;
+    activeDungeon.phase2Madness = Math.min(1.30, activeDungeon.phase2Madness + madnessInc);
   } else {
     
     const target = selectBossTarget(alivePlayers);

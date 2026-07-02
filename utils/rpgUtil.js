@@ -404,7 +404,7 @@ const getWeaponScaling = (item) => {
   const rarity = item.rarity || "Common";
   
   if (subType.includes("gravitybow") || subType.includes("gravity bow")) {
-    return { str: "-", dex: "S", int: "A", arc: "S" };
+    return { str: "-", dex: "S", int: "A", arc: "B" };
   }
 
   
@@ -489,7 +489,12 @@ const getWeaponPower = (item, effectiveStats) => {
   const isDungeon = isDungeonWeapon(item);
   const upgradeScale = isDungeon ? 0.60 : 0.10;
   const upgradedBase = base * (1 + (item.upgradeLevel || 0) * upgradeScale);
-  return Math.floor(upgradedBase * (1 + bonusPercent));
+  let finalPower = Math.floor(upgradedBase * (1 + bonusPercent));
+  const subTypeClean = String(item.subType || "").toLowerCase().replace(/\s+/g, "");
+  if (subTypeClean.includes("river")) {
+    finalPower = Math.floor(finalPower * 1.10);
+  }
+  return finalPower;
 };
 
 const emptyStats = () => ({
@@ -944,7 +949,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
   if (slot === "weapon") {
     const subName = chosenSubtype.name.toLowerCase();
     if (subName.includes("gravitybow") || subName.includes("gravity bow")) {
-      scaling = { str: "-", dex: "S", int: "A", arc: "S" };
+      scaling = { str: "-", dex: "S", int: "A", arc: "B" };
     } else {
       scaling = { str: "-", dex: "-", int: "-", arc: "-" };
       const { prim, sec } = getWeaponScalingStats(subName);

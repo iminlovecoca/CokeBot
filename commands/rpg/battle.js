@@ -300,7 +300,7 @@ const simulatePvP = (p1, p2) => {
         let mr =
           defender.effectiveStats.mr * 12.0 + (defender.defensePower || 0);
         if (blueStaffPierce) {
-          mr *= 0.5;
+          mr *= 0.75;
         }
         if (sunbowTriggered) {
           mr *= 0.90;
@@ -353,7 +353,7 @@ const simulatePvP = (p1, p2) => {
         if (riverofbloodTriggered) {
           baseHeal = Math.max(1, Math.floor(damage * 0.02));
         } else {
-          baseHeal = Math.floor(damage * 0.15);
+          baseHeal = Math.floor((attacker.maxHp - attacker.hp) * 0.10);
         }
         let healReduceFactor = 1.0;
         if (attacker.effects.healReduced) {

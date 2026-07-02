@@ -1031,7 +1031,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   if (isMagical) {
     let mr = activeBoss.boss.magicResist || 0;
     if (blueStaffPierce) {
-      mr *= 0.5;
+      mr *= 0.75;
     }
     if (sunbowTriggered) {
       mr *= 0.90;
@@ -1078,7 +1078,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     if (riverofbloodTriggered) {
       baseHeal = Math.max(1, Math.floor(damage * 0.02));
     } else {
-      baseHeal = Math.floor(damage * 0.15);
+      baseHeal = Math.floor((maxHp - participant.hp) * 0.10);
     }
     participant.hp = Math.min(maxHp, participant.hp + baseHeal);
     const label = riverofbloodTriggered ? "River of Blood" : "Green Staff";
