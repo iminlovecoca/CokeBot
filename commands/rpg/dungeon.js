@@ -925,8 +925,8 @@ const setupCollector = (channel, activeDungeon) => {
         return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
       }
 
-      await i.deferUpdate();
       activeDungeon.actionInProgress = true;
+      await i.deferUpdate();
 
       if (i.customId === "rpg_dungeon_action_heal") {
         if (pExist.healBanRounds && pExist.healBanRounds > 0) {
@@ -1032,9 +1032,21 @@ const setupCollector = (channel, activeDungeon) => {
     } catch (err) {
       console.error("[Dungeon] Lỗi trong interactionListener:", err);
       activeDungeon.actionInProgress = false;
-      try {
-        await channel.send(`⚠️ Lỗi hệ thống: \`${err.message}\`. Bạn có thể thử lại.`);
-      } catch (_) {}
+      
+      const ignoredErrors = [
+        "unknown interaction",
+        "interaction has already been acknowledged",
+        "interaction_already_acknowledged",
+        "time"
+      ];
+      const errMsg = String(err.message || "").toLowerCase();
+      const shouldIgnore = ignoredErrors.some(msg => errMsg.includes(msg));
+      
+      if (!shouldIgnore) {
+        try {
+          await channel.send(`⚠️ Lỗi hệ thống: \`${err.message}\`. Bạn có thể thử lại.`);
+        } catch (_) {}
+      }
     }
   };
 
