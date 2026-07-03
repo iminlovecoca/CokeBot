@@ -975,7 +975,7 @@ const setupCollector = (channel, activeDungeon) => {
         const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
         const bossCfg = getBossConfig(activeDungeon.chapter);
         const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
-        if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
+        if (isPhase2 && hasCoin && activeDungeon.coinFlipCount >= 2) {
           await askCoinFlip(channel, activeDungeon, pExist);
         } else {
         
@@ -2053,7 +2053,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
   const bossCfg = getBossConfig(activeDungeon.chapter);
   const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
   
-  if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
+  if (isPhase2 && hasCoin && activeDungeon.coinFlipCount >= 2) {
     
     const guess = Math.random() < 0.5 ? "h" : "t";
     const guessLabel = guess === "h" ? "Heads" : "Tails";
