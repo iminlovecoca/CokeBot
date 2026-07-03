@@ -60,6 +60,40 @@ const getDelay = (activeDungeon, baseDelay) => {
 };
 
 
+const getActiveStatusString = (target) => {
+  if (!target) return "";
+  const parts = [];
+  if (target.poisonRounds && target.poisonRounds > 0) {
+    parts.push(`<:poisonous:1522374367542247424>(${target.poisonRounds}L)`);
+  }
+  if (target.bleedRounds && target.bleedRounds > 0) {
+    parts.push(`<:bleed:1521938497642958889>(${target.bleedRounds}L)`);
+  }
+  if (target.burnRounds && target.burnRounds > 0) {
+    parts.push(`<:burn:1521938494094835774>(${target.burnRounds}L)`);
+  }
+  if (target.freezeRounds && target.freezeRounds > 0) {
+    parts.push(`<:freeze:1521938500478566639>(${target.freezeRounds}L)`);
+  }
+  if (target.frostbiteRounds && target.frostbiteRounds > 0) {
+    parts.push(`<:frostbite:1521938506425958431>(${target.frostbiteRounds}L)`);
+  }
+  if (target.stunRounds && target.stunRounds > 0) {
+    parts.push(`<:stun:1521938490605178910>(${target.stunRounds}L)`);
+  }
+  if (target.breakRounds && target.breakRounds > 0) {
+    parts.push(`<:break:1521938480337391736>(${target.breakRounds}L)`);
+  }
+  if (target.atkUp) {
+    parts.push(`<:atkup:1521938477359300648>`);
+  }
+  if (target.atkDown) {
+    parts.push(`<:atkdown:1521938474587000913>`);
+  }
+  return parts.length > 0 ? parts.join(" ") : "";
+};
+
+
 const selectBossTarget = (alivePlayers) => {
   if (!alivePlayers || alivePlayers.length === 0) return null;
 
@@ -646,7 +680,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
       }
     }
   }
-  embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}`, value: enemyInfo });
+  const enemyStatus = getActiveStatusString(enemy);
+  embed.addFields({ name: `👹 Kẻ địch: ${enemy.name}${enemyStatus ? " " + enemyStatus : ""}`, value: enemyInfo });
 
   
   embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
@@ -670,7 +705,9 @@ const renderGameScreen = async (channel, activeDungeon) => {
                    `${resourceText}\n` +
                    `🧪 Bình: **${p.potions}/3**${healBanText}\n` +
                    `Lvl **${p.level}** | **${className}**`;
-    embed.addFields({ name: `${classIcon} ${p.name}`, value: hpInfo, inline: true });
+                   
+    const pStatus = getActiveStatusString(p);
+    embed.addFields({ name: `${classIcon} ${p.name}${pStatus ? " " + pStatus : ""}`, value: hpInfo, inline: true });
   });
 
   
