@@ -163,9 +163,7 @@ class DungeonCommand extends BaseCommand {
 
       
       if (activeDungeon.gameMessage) {
-        if (activeDungeon.collector) {
-          activeDungeon.collector.stop("re-sent");
-        }
+        activeDungeon.cleanupListener?.();
         await activeDungeon.gameMessage.edit({ components: [] }).catch(() => {});
         await activeDungeon.gameMessage.delete().catch(() => {});
       }
@@ -905,90 +903,81 @@ const runDiceRoll = async (channel, activeDungeon) => {
 
 
 const setupCollector = (channel, activeDungeon) => {
-  const collector = activeDungeon.gameMessage.createMessageComponentCollector({
-    filter: (i) => i.customId.startsWith("rpg_dungeon_action_") || i.customId.startsWith("rpg_dungeon_coin_"),
-    time: 15 * 60 * 1000, 
-  });
+  const client = channel.client;
 
-  collector.on("collect", async (i) => {
-    
-    const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
-    if (!pExist) {
-      return i.reply({ content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
-    }
+  const interactionListener = async (i) => {
+    if (!i.isButton()) return;
+    if (!i.customId.startsWith("rpg_dungeon_action_") && !i.customId.startsWith("rpg_dungeon_coin_")) return;
+    if (!activeDungeon.gameMessage || i.message.id !== activeDungeon.gameMessage.id) return;
 
-    
-    if (activeDungeon.actionInProgress) {
-      return i.reply({ content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
-    }
+    try {
+      const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
+      if (!pExist) {
+        return i.reply({ content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
+      }
 
-    
-    const currentActor = activeDungeon.currentActor;
-    if (!currentActor || currentActor.id !== i.user.id) {
-      return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
-    }
+      if (activeDungeon.actionInProgress) {
+        return i.reply({ content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
+      }
 
-    await i.deferUpdate();
+      const currentActor = activeDungeon.currentActor;
+      if (!currentActor || currentActor.id !== i.user.id) {
+        return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
+      }
 
-    
-    activeDungeon.actionInProgress = true;
+      await i.deferUpdate();
+      activeDungeon.actionInProgress = true;
 
-    if (i.customId === "rpg_dungeon_action_heal") {
-      
-      if (pExist.healBanRounds && pExist.healBanRounds > 0) {
+      if (i.customId === "rpg_dungeon_action_heal") {
+        if (pExist.healBanRounds && pExist.healBanRounds > 0) {
+          activeDungeon.actionInProgress = false;
+          const bossCfg = getBossConfig(activeDungeon.chapter);
+          const passiveName = bossCfg.passive?.name || "Lời Nguyền Xương";
+          return i.followUp({ content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
+        }
+
+        if (pExist.potions <= 0) {
+          activeDungeon.actionInProgress = false;
+          return i.followUp({ content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
+        }
+
+        pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
+        pExist.potions -= 1;
+        activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
+
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
+        }
+
+        pExist.hasActedThisRound = true;
         activeDungeon.actionInProgress = false;
-        const bossCfg = getBossConfig(activeDungeon.chapter);
-        const passiveName = bossCfg.passive?.name || "Lời Nguyền Xương";
-        return i.followUp({ content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
-      }
+        await nextTurn(channel, activeDungeon);
+      } else if (i.customId === "rpg_dungeon_action_attack") {
+        pExist.hasActedThisRound = true;
 
-      
-      if (pExist.potions <= 0) {
-        activeDungeon.actionInProgress = false;
-        return i.followUp({ content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
-      }
-
-      pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
-      pExist.potions -= 1;
-      activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
-
-      
-      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
-        pExist.skillBanRounds -= 1;
-        if (pExist.skillBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+        if (pExist.healBanRounds && pExist.healBanRounds > 0) {
+          pExist.healBanRounds -= 1;
+          if (pExist.healBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+          }
         }
-      }
-
-      pExist.hasActedThisRound = true;
-      activeDungeon.actionInProgress = false;
-      await nextTurn(channel, activeDungeon);
-    } else if (i.customId === "rpg_dungeon_action_attack") {
-      pExist.hasActedThisRound = true;
-
-      
-      if (pExist.healBanRounds && pExist.healBanRounds > 0) {
-        pExist.healBanRounds -= 1;
-        if (pExist.healBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
-        }
-      }
-      
-      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
-        pExist.skillBanRounds -= 1;
-        if (pExist.skillBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
-        }
-      }
-
-      
-      const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
-      const bossCfg = getBossConfig(activeDungeon.chapter);
-      const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
-      if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
         
-        await askCoinFlip(channel, activeDungeon, pExist);
-      } else {
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
+        }
+
+        const isPhase2 = activeDungeon.enemy.isBoss && activeDungeon.enemy.phase === 2;
+        const bossCfg = getBossConfig(activeDungeon.chapter);
+        const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
+        if (isPhase2 && hasCoin && activeDungeon.coinFlipCount === 2) {
+          await askCoinFlip(channel, activeDungeon, pExist);
+        } else {
         
         await executePlayerAttack(channel, activeDungeon, pExist, 1.0);
       }
@@ -1039,21 +1028,26 @@ const setupCollector = (channel, activeDungeon) => {
       activeDungeon.crimsonHpCost = hpCost;
 
       await executePlayerAttack(channel, activeDungeon, pExist, 1.36);
-    }
-  });
-
-  collector.on("end", (collected, reason) => {
-    if (reason === "re-sent") return;
-    if (activeDungeon.isFinished) {
-      if (activeDungeon.timeoutTimer) {
-        clearTimeout(activeDungeon.timeoutTimer);
-        activeDungeon.timeoutTimer = null;
       }
-      channel.client.rpgDungeons.delete(channel.id);
+    } catch (err) {
+      console.error("[Dungeon] Lỗi trong interactionListener:", err);
+      activeDungeon.actionInProgress = false;
+      try {
+        await channel.send(`⚠️ Lỗi hệ thống: \`${err.message}\`. Bạn có thể thử lại.`);
+      } catch (_) {}
     }
-  });
+  };
 
-  activeDungeon.collector = collector;
+  client.on("interactionCreate", interactionListener);
+  activeDungeon.interactionListener = interactionListener;
+
+  const cleanupListener = () => {
+    if (activeDungeon.interactionListener) {
+      client.removeListener("interactionCreate", activeDungeon.interactionListener);
+      activeDungeon.interactionListener = null;
+    }
+  };
+  activeDungeon.cleanupListener = cleanupListener;
 };
 
 
@@ -1795,8 +1789,8 @@ const handleVictory = async (channel, activeDungeon) => {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
   }
-  if (activeDungeon.collector) {
-    activeDungeon.collector.stop("victory");
+  if (activeDungeon.cleanupListener) {
+    activeDungeon.cleanupListener();
   }
   channel.client.rpgDungeons.delete(channel.id);
 
@@ -1952,8 +1946,8 @@ const handleDefeat = async (channel, activeDungeon) => {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
   }
-  if (activeDungeon.collector) {
-    activeDungeon.collector.stop("defeat");
+  if (activeDungeon.cleanupListener) {
+    activeDungeon.cleanupListener();
   }
   channel.client.rpgDungeons.delete(channel.id);
 
@@ -1978,8 +1972,8 @@ const handleTimeout = async (channel, activeDungeon) => {
     clearTimeout(activeDungeon.timeoutTimer);
     activeDungeon.timeoutTimer = null;
   }
-  if (activeDungeon.collector) {
-    activeDungeon.collector.stop("timeout");
+  if (activeDungeon.cleanupListener) {
+    activeDungeon.cleanupListener();
   }
   channel.client.rpgDungeons.delete(channel.id);
 
