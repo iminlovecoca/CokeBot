@@ -818,14 +818,31 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const files = [];
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(chapter);
-    const fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
-    if (fileName) {
+    let fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
+    let filePath = null;
+
+    if (enemy.key === "pandemonium") {
+      const hpRatio = enemy.hp / enemy.maxHp;
+      let imageName = "Base.png";
+      if (hpRatio <= 0.05) imageName = "SevenSinsAwakened..png";
+      else if (hpRatio <= 0.10) imageName = "Sloth.png";
+      else if (hpRatio <= 0.25) imageName = "Wrath.png";
+      else if (hpRatio <= 0.40) imageName = "Gluttony.png";
+      else if (hpRatio <= 0.55) imageName = "Envy.png";
+      else if (hpRatio <= 0.70) imageName = "Lust.png";
+      else if (hpRatio <= 0.85) imageName = "Greed.png";
+      else if (hpRatio < 1.0) imageName = "Pride.png";
+      
+      fileName = imageName;
+      filePath = path.join(__dirname, "../../assets/dungeons/Chapter2/Pandemonium", fileName);
+    } else {
       const subFolder = chapter >= 7 ? "Chapter2" : "Chapter1";
-      const filePath = path.join(__dirname, "../../assets/dungeons", subFolder, fileName);
-      if (fs.existsSync(filePath)) {
-        files.push(new AttachmentBuilder(filePath, { name: fileName }));
-        embed.setImage(`attachment://${fileName}`);
-      }
+      filePath = path.join(__dirname, "../../assets/dungeons", subFolder, fileName);
+    }
+
+    if (fileName && filePath && fs.existsSync(filePath)) {
+      files.push(new AttachmentBuilder(filePath, { name: fileName }));
+      embed.setImage(`attachment://${fileName}`);
     }
   } else {
     
@@ -1348,7 +1365,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
 
     
-    const isPridePhase = enemy.key === "lucifer" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp > 0.88);
+    const isPridePhase = enemy.key === "lucifer" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp > 0.85);
     if (isPridePhase) {
       if (isSkill) {
         player.hp = Math.max(0, player.hp - damage);
@@ -1362,7 +1379,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
 
     
-    const isSlothPhase = enemy.key === "belphegor" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.24 && enemy.hp / enemy.maxHp > 0.12);
+    const isSlothPhase = enemy.key === "belphegor" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.10 && enemy.hp / enemy.maxHp > 0.05);
     if (isSlothPhase && !enemy.slothfulShieldBroken) {
       if (player.classKey === "warrior" && isSkill) {
         enemy.slothfulShieldBroken = true;
@@ -1374,7 +1391,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
 
     
-    const isGluttonyPhase = enemy.key === "beelzebub" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.49 && enemy.hp / enemy.maxHp > 0.38);
+    const isGluttonyPhase = enemy.key === "beelzebub" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.40 && enemy.hp / enemy.maxHp > 0.25);
     if (isGluttonyPhase && activeDungeon.swallowedPlayerId) {
       setTimeout(() => {
         const isBurnApplied = enemy.burnRounds && enemy.burnRounds > 0;
@@ -1674,27 +1691,29 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     
     if (enemy.key === "pandemonium") {
       const hpRatio = enemy.hp / enemy.maxHp;
-      let suffix = "True Form - Đại Ma Vương";
-      if (hpRatio > 0.88) suffix = "Kiêu Ngạo - Lucifer";
-      else if (hpRatio > 0.75) suffix = "Tham Lam - Mammon";
-      else if (hpRatio > 0.62) suffix = "Dục Vọng - Asmodeus";
-      else if (hpRatio > 0.50) suffix = "Đố Kỵ - Leviathan";
-      else if (hpRatio > 0.38) suffix = "Phàm Ăn - Beelzebub";
-      else if (hpRatio > 0.25) suffix = "Phẫn Nộ - Satan";
-      else if (hpRatio > 0.12) suffix = "Lười Biếng - Belphegor";
+      let suffix = "True Form - Thức Tỉnh";
+      if (hpRatio === 1.0) suffix = "Dạng Gốc";
+      else if (hpRatio > 0.85) suffix = "Kiêu Ngạo - Lucifer";
+      else if (hpRatio > 0.70) suffix = "Tham Lam - Mammon";
+      else if (hpRatio > 0.55) suffix = "Dục Vọng - Asmodeus";
+      else if (hpRatio > 0.40) suffix = "Đố Kỵ - Leviathan";
+      else if (hpRatio > 0.25) suffix = "Phàm Ăn - Beelzebub";
+      else if (hpRatio > 0.10) suffix = "Phẫn Nộ - Satan";
+      else if (hpRatio > 0.05) suffix = "Lười Biếng - Belphegor";
       enemy.name = `Pandemonium (${suffix})`;
     }
 
     let activeSin = "";
     if (enemy.key === "pandemonium") {
       const hpRatio = enemy.hp / enemy.maxHp;
-      if (hpRatio > 0.88) activeSin = "pride";
-      else if (hpRatio > 0.75) activeSin = "greed";
-      else if (hpRatio > 0.62) activeSin = "lust";
-      else if (hpRatio > 0.50) activeSin = "envy";
-      else if (hpRatio > 0.38) activeSin = "gluttony";
-      else if (hpRatio > 0.25) activeSin = "wrath";
-      else if (hpRatio > 0.12) activeSin = "sloth";
+      if (hpRatio === 1.0) activeSin = "base";
+      else if (hpRatio > 0.85) activeSin = "pride";
+      else if (hpRatio > 0.70) activeSin = "greed";
+      else if (hpRatio > 0.55) activeSin = "lust";
+      else if (hpRatio > 0.40) activeSin = "envy";
+      else if (hpRatio > 0.25) activeSin = "gluttony";
+      else if (hpRatio > 0.10) activeSin = "wrath";
+      else if (hpRatio > 0.05) activeSin = "sloth";
       else activeSin = "trueform";
     } else {
       activeSin = enemy.key; 
