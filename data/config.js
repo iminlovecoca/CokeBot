@@ -580,12 +580,12 @@ module.exports = {
           stats: {
             phase1: {
               base_hp: 570000,
-              base_atk: 550,
+              base_atk: 440,
               base_defense: 290,
             },
             phase2: {
               base_hp: 310000,
-              base_atk_mult: 1.75,
+              base_atk_mult: 1.50,
               base_defense: 270,
             },
           },

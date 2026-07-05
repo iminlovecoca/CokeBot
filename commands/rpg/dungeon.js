@@ -1637,10 +1637,10 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       activeDungeon.logs.push(`💀 **${enemy.name}** bị hắc hỏa dồn vào hiểm cảnh! Giải phóng **[Đoạt Hồn Phong Ấn]** lên **${target.name}**, đoạt đi 50% máu hiện tại (mất **${hpLoss.toLocaleString()}** HP)!`);
     } else if (enemy.key === "veilreaper" && Math.random() < 0.30) {
       isCustomSkillUsed = true;
-      const hpLoss = target.hp - 1;
-      target.hp = 1;
+      const hpLoss = Math.floor(target.hp * 0.55);
+      target.hp = Math.max(1, target.hp - hpLoss);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + hpLoss;
-      activeDungeon.logs.push(`💀 **${enemy.name}** tung cánh, giải phóng **[Đoạt Hồn 100% Sức Mạnh]**! **${target.name}** chỉ còn **1 HP**!`);
+      activeDungeon.logs.push(`💀 **${enemy.name}** tung cánh, giải phóng **[Đoạt Hồn Hắc Ám]** lên **${target.name}**, đoạt đi 55% máu hiện tại (mất **${hpLoss.toLocaleString()}** HP)!`);
     }
 
     if (!isCustomSkillUsed) {
