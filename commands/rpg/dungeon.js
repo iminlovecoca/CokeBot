@@ -1335,6 +1335,60 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
     const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
 
+    
+    const frozenPlayer = activeDungeon.players.find(p => p.hp > 0 && p.goldStatueFreeze > 0);
+    if (frozenPlayer) {
+      frozenPlayer.goldStatueHits = (frozenPlayer.goldStatueHits || 0) + 1;
+      activeDungeon.logs.push(`🔨 **${player.name}** đập mạnh vào Tượng Vàng để giải cứu **${frozenPlayer.name}** (Tích lũy ${frozenPlayer.goldStatueHits}/3 lần)!`);
+      if (frozenPlayer.goldStatueHits >= 3) {
+        frozenPlayer.goldStatueFreeze = 0;
+        frozenPlayer.goldStatueHits = 0;
+        activeDungeon.logs.push(`✨ **${frozenPlayer.name}** đã thoát khỏi trạng thái phong ấn Tượng Vàng!`);
+      }
+    }
+
+    
+    const isPridePhase = enemy.key === "lucifer" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp > 0.88);
+    if (isPridePhase) {
+      if (isSkill) {
+        player.hp = Math.max(0, player.hp - damage);
+        player.atkDown = true;
+        activeDungeon.logs.push(`⚠️ **[Khiên Phản Chiếu]** **${player.name}** sử dụng kỹ năng đánh trúng Khiên Kiêu Ngạo, bị phản phản lại **${damage.toLocaleString()}** sát thương và giảm 50% sức công lượt kế!`);
+        damage = 0;
+      } else {
+        activeDungeon.prideCounter = (activeDungeon.prideCounter || 0) + 1;
+        activeDungeon.logs.push(`👑 **[Pride Stack]** **${enemy.name}** hấp thụ ý chí của đối thủ và tích lũy Kiêu Ngạo (${activeDungeon.prideCounter}/10).`);
+      }
+    }
+
+    
+    const isSlothPhase = enemy.key === "belphegor" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.24 && enemy.hp / enemy.maxHp > 0.12);
+    if (isSlothPhase && !enemy.slothfulShieldBroken) {
+      if (player.classKey === "warrior" && isSkill) {
+        enemy.slothfulShieldBroken = true;
+        activeDungeon.logs.push(`💥 **${player.name}** sử dụng [Trọng Kiếm] đập nát hoàn toàn Kén Lười Biếng của Boss! Boss dính trạng thái Suy Yếu!`);
+      } else {
+        activeDungeon.logs.push(`🛡️ **[Kén Lười Biếng]** Kén ngủ hấp thụ toàn bộ đòn đánh của **${player.name}**! (Cần kỹ năng Trọng Kiếm của Warrior để phá vỡ)`);
+        damage = 0;
+      }
+    }
+
+    
+    const isGluttonyPhase = enemy.key === "beelzebub" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp <= 0.49 && enemy.hp / enemy.maxHp > 0.38);
+    if (isGluttonyPhase && activeDungeon.swallowedPlayerId) {
+      setTimeout(() => {
+        const isBurnApplied = enemy.burnRounds && enemy.burnRounds > 0;
+        if (isBurnApplied) {
+          const swallowedP = activeDungeon.players.find(p => p.id === activeDungeon.swallowedPlayerId);
+          if (swallowedP) {
+            swallowedP.isSwallowed = false;
+            activeDungeon.logs.push(`🤢 **${enemy.name}** bị bỏng lửa thiêu đốt dạ dày, bắt buộc phải nôn **${swallowedP.name}** ra ngoài!`);
+            delete activeDungeon.swallowedPlayerId;
+          }
+        }
+      }, 50);
+    }
+
     if (enemy.phase === 1) {
       if (hasDice) {
         damage = Math.floor(damage * activeDungeon.diceMultiplier);
@@ -1618,9 +1672,108 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     const armor = target.stats.pr * 12.0;
     const mitigation = armor / (armor + 1000);
     
+    if (enemy.key === "pandemonium") {
+      const hpRatio = enemy.hp / enemy.maxHp;
+      let suffix = "True Form - Đại Ma Vương";
+      if (hpRatio > 0.88) suffix = "Kiêu Ngạo - Lucifer";
+      else if (hpRatio > 0.75) suffix = "Tham Lam - Mammon";
+      else if (hpRatio > 0.62) suffix = "Dục Vọng - Asmodeus";
+      else if (hpRatio > 0.50) suffix = "Đố Kỵ - Leviathan";
+      else if (hpRatio > 0.38) suffix = "Phàm Ăn - Beelzebub";
+      else if (hpRatio > 0.25) suffix = "Phẫn Nộ - Satan";
+      else if (hpRatio > 0.12) suffix = "Lười Biếng - Belphegor";
+      enemy.name = `Pandemonium (${suffix})`;
+    }
+
+    let activeSin = "";
+    if (enemy.key === "pandemonium") {
+      const hpRatio = enemy.hp / enemy.maxHp;
+      if (hpRatio > 0.88) activeSin = "pride";
+      else if (hpRatio > 0.75) activeSin = "greed";
+      else if (hpRatio > 0.62) activeSin = "lust";
+      else if (hpRatio > 0.50) activeSin = "envy";
+      else if (hpRatio > 0.38) activeSin = "gluttony";
+      else if (hpRatio > 0.25) activeSin = "wrath";
+      else if (hpRatio > 0.12) activeSin = "sloth";
+      else activeSin = "trueform";
+    } else {
+      activeSin = enemy.key; 
+    }
+
     let isCustomSkillUsed = false;
+
     
-    if (enemy.key === "mourngait" && enemy.hp < enemy.maxHp * 0.40 && Math.random() < 0.60) {
+    const swallowedP = activeDungeon.players.find(p => p.hp > 0 && p.isSwallowed);
+    if (swallowedP) {
+      const acidDmg = 600;
+      swallowedP.hp = Math.max(0, swallowedP.hp - acidDmg);
+      activeDungeon.logs.push(`🤢 **${enemy.name}** tiêu hóa thức ăn! **${swallowedP.name}** mất **${acidDmg.toLocaleString()}** HP do dịch vị Acid trong bụng boss!`);
+      if (swallowedP.hp <= 0) {
+        swallowedP.isSwallowed = false;
+        activeDungeon.logs.push(`💀 **${swallowedP.name}** đã tử nạn bên trong dạ dày của boss!`);
+        delete activeDungeon.swallowedPlayerId;
+      }
+    }
+
+    
+    activeDungeon.players.forEach(p => {
+      if (p.hp > 0 && p.isDrowsy) {
+        p.isDrowsy = false;
+        p.stunRounds = 2;
+        activeDungeon.logs.push(`💤 Cơn buồn ngủ ập đến! **${p.name}** đã ngủ thiếp đi trong 2 lượt!`);
+      }
+    });
+
+    if (activeSin === "lucifer" || activeSin === "pride") {
+      if (activeDungeon.prideCounter >= 10 && !enemy.poiseBroken) {
+        isCustomSkillUsed = true;
+        activeDungeon.logs.push(`👑 **${enemy.name}** tích lũy đủ 10 điểm Kiêu Ngạo, giải phóng **[Phán Quyết Kiêu Ngạo]** quét sạch toàn bộ sinh mệnh!`);
+        alivePlayers.forEach(p => p.hp = 0);
+        activeDungeon.prideCounter = 0;
+      }
+    } else if (activeSin === "mammon" || activeSin === "greed") {
+      if (Math.random() < 0.40) {
+        isCustomSkillUsed = true;
+        const targetPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+        targetPlayer.goldStatueFreeze = 3;
+        targetPlayer.goldStatueHits = 0;
+        activeDungeon.logs.push(`🏆 **${enemy.name}** tung ra **[Tượng Vàng Giam Cầm]** hóa đá **${targetPlayer.name}**! Đồng đội phải đập tượng 3 lần để giải thoát!`);
+      }
+    } else if (activeSin === "asmodeus" || activeSin === "lust") {
+      if (Math.random() < 0.40 && alivePlayers.length >= 2) {
+        isCustomSkillUsed = true;
+        const p1 = alivePlayers[0];
+        const p2 = alivePlayers[1];
+        p1.chainedTo = p2.id;
+        p2.chainedTo = p1.id;
+        p1.chainRounds = 3;
+        p2.chainRounds = 3;
+        activeDungeon.logs.push(`🔗 **${enemy.name}** tung ra **[Sợi Xích Dục Vọng]** liên kết sinh mệnh của **${p1.name}** và **${p2.name}**!`);
+      }
+    } else if (activeSin === "beelzebub" || activeSin === "gluttony") {
+      if (Math.random() < 0.40 && !activeDungeon.swallowedPlayerId) {
+        isCustomSkillUsed = true;
+        const targetPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+        targetPlayer.isSwallowed = true;
+        activeDungeon.swallowedPlayerId = targetPlayer.id;
+        activeDungeon.logs.push(`🤢 **${enemy.name}** há miệng rộng **[Nuốt Chửng]** **${targetPlayer.name}** vào bụng!`);
+      }
+    } else if (activeSin === "belphegor" || activeSin === "sloth") {
+      if (Math.random() < 0.40) {
+        isCustomSkillUsed = true;
+        const targetPlayer = alivePlayers[Math.floor(Math.random() * alivePlayers.length)];
+        targetPlayer.isDrowsy = true;
+        activeDungeon.logs.push(`💤 **${enemy.name}** tỏa ra **[Hơi Thở Ru Ngủ]** bao phủ **${targetPlayer.name}**!`);
+      }
+    } else if (activeSin === "trueform") {
+      activeDungeon.wipeCountdown = activeDungeon.wipeCountdown === undefined ? 5 : activeDungeon.wipeCountdown - 1;
+      activeDungeon.logs.push(`☄️ **${enemy.name}** kích hoạt trạng thái Hủy Diệt! Đếm ngược: **${activeDungeon.wipeCountdown}** lượt trước khi nghi lễ hoàn thành!`);
+      if (activeDungeon.wipeCountdown <= 0) {
+        isCustomSkillUsed = true;
+        activeDungeon.logs.push(`💥 **${enemy.name}** hoàn thành Vòng Lặp Vô Tận, quét sạch toàn bộ tổ đội!`);
+        alivePlayers.forEach(p => p.hp = 0);
+      }
+    } else if (enemy.key === "mourngait" && enemy.hp < enemy.maxHp * 0.40 && Math.random() < 0.60) {
       isCustomSkillUsed = true;
       const hpLoss = Math.floor(target.hp * 0.5);
       target.hp = Math.max(1, target.hp - hpLoss);
