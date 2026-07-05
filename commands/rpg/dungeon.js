@@ -84,6 +84,9 @@ const getActiveStatusString = (target) => {
   if (target.breakRounds && target.breakRounds > 0) {
     parts.push(`<:break:1521938480337391736>(${target.breakRounds}L)`);
   }
+  if (target.healBanRounds && target.healBanRounds > 0) {
+    parts.push(`<:healreduction:1523340558855045190>(${target.healBanRounds}L)`);
+  }
   if (target.atkUp) {
     parts.push(`<:atkup:1521938477359300648>`);
   }
@@ -1429,22 +1432,63 @@ const nextTurn = async (channel, activeDungeon) => {
   const nextPlayer = alivePlayers.find((p) => !p.hasActedThisRound);
 
   if (nextPlayer) {
-    
+    const pStunned = nextPlayer.stunRounds && nextPlayer.stunRounds > 0;
+    const pFrozen = nextPlayer.freezeRounds && nextPlayer.freezeRounds > 0;
+    if (pStunned || pFrozen) {
+      const skipReason = pFrozen ? "ĐÓNG BĂNG <:freeze:1521938500478566639>" : "CHOÁNG <:stun:1521938490605178910>";
+      activeDungeon.logs.push(`⚠️ **${nextPlayer.name}** đang bị ${skipReason} — mất lượt hành động!`);
+      if (pFrozen) {
+        nextPlayer.freezeRounds -= 1;
+        if (nextPlayer.freezeRounds === 0) activeDungeon.logs.push(`❄️ **${nextPlayer.name}** giải đóng băng.`);
+      }
+      if (pStunned) {
+        nextPlayer.stunRounds -= 1;
+        if (nextPlayer.stunRounds === 0) activeDungeon.logs.push(`⚡ **${nextPlayer.name}** hết choáng.`);
+      }
+      nextPlayer.hasActedThisRound = true;
+      return nextTurn(channel, activeDungeon);
+    }
+
+    let pDotDmg = 0;
     if (nextPlayer.poisonRounds && nextPlayer.poisonRounds > 0) {
-      const poisonDamage = Math.floor(nextPlayer.maxHp * 0.08);
+      const dmg = Math.floor(nextPlayer.maxHp * 0.05);
       nextPlayer.poisonRounds -= 1;
-      
-      if (nextPlayer.hp <= poisonDamage) {
+      pDotDmg += dmg;
+      activeDungeon.logs.push(`<:poisonous:1522374367542247424> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Độc (Còn ${nextPlayer.poisonRounds} lượt).`);
+    }
+    if (nextPlayer.bleedRounds && nextPlayer.bleedRounds > 0) {
+      const dmg = Math.floor(nextPlayer.maxHp * 0.05);
+      nextPlayer.bleedRounds -= 1;
+      pDotDmg += dmg;
+      activeDungeon.logs.push(`<:bleed:1521938497642958889> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Chảy Máu (Còn ${nextPlayer.bleedRounds} lượt).`);
+    }
+    if (nextPlayer.burnRounds && nextPlayer.burnRounds > 0) {
+      let dmg = Math.floor(nextPlayer.maxHp * 0.04);
+      if (nextPlayer.freezeRounds && nextPlayer.freezeRounds > 0) {
+        dmg *= 2;
+      }
+      nextPlayer.burnRounds -= 1;
+      pDotDmg += dmg;
+      activeDungeon.logs.push(`<:burn:1521938494094835774> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${nextPlayer.burnRounds} lượt).`);
+    }
+    if (nextPlayer.frostbiteRounds && nextPlayer.frostbiteRounds > 0) {
+      const dmg = Math.floor(nextPlayer.maxHp * 0.045);
+      nextPlayer.frostbiteRounds -= 1;
+      pDotDmg += dmg;
+      activeDungeon.logs.push(`<:frostbite:1521938506425958431> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Frostbite (Còn ${nextPlayer.frostbiteRounds} lượt).`);
+    }
+
+    if (pDotDmg > 0) {
+      if (nextPlayer.hp <= pDotDmg) {
         const actualDmg = nextPlayer.hp;
         nextPlayer.hp = 0;
         activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
-        activeDungeon.logs.push(`☣️ **${nextPlayer.name}** chịu **${poisonDamage.toLocaleString()}** sát thương độc bào mòn và đã tử nạn!`);
+        activeDungeon.logs.push(`💀 **${nextPlayer.name}** đã tử nạn do sát thương DoT duy trì!`);
         nextPlayer.hasActedThisRound = true;
         return nextTurn(channel, activeDungeon);
       } else {
-        nextPlayer.hp -= poisonDamage;
-        activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + poisonDamage;
-        activeDungeon.logs.push(`☣️ **${nextPlayer.name}** chịu **${poisonDamage.toLocaleString()}** sát thương độc bào mòn (Độc còn ${nextPlayer.poisonRounds} lượt).`);
+        nextPlayer.hp -= pDotDmg;
+        activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + pDotDmg;
       }
     }
 
@@ -1497,10 +1541,24 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   }
 
   
-  if (enemy.isBoss && enemy.poiseBroken) {
-    activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
-    enemy.poiseBroken = false;
-    enemy.poise = enemy.poiseMax || (80 + (activeDungeon.chapter || 1) * 20);
+  const isStunned = enemy.stunRounds && enemy.stunRounds > 0;
+  const isFrozen = enemy.freezeRounds && enemy.freezeRounds > 0;
+  if (isStunned || isFrozen) {
+    const skipReason = isFrozen ? "BỊ ĐÓNG BĂNG <:freeze:1521938500478566639>" : "BỊ CHOÁNG <:stun:1521938490605178910>";
+    activeDungeon.logs.push(`⚠️ **${enemy.name}** đang trong trạng thái ${skipReason} — mất lượt tấn công!`);
+    
+    if (isFrozen) {
+      enemy.freezeRounds -= 1;
+      if (enemy.freezeRounds === 0) activeDungeon.logs.push(`❄️ **${enemy.name}** đã thoát khỏi trạng thái Đóng Băng.`);
+    }
+    if (isStunned) {
+      enemy.stunRounds -= 1;
+      if (enemy.stunRounds === 0) activeDungeon.logs.push(`⚡ **${enemy.name}** đã thoát khỏi trạng thái Choáng.`);
+    }
+    
+    if (enemy.breakRounds && enemy.breakRounds > 0) {
+      enemy.breakRounds -= 1;
+    }
     
     activeDungeon.players.forEach((p) => {
       p.hasActedThisRound = false;
@@ -1510,14 +1568,62 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     return;
   }
 
-  
+  if (enemy.isBoss && enemy.poiseBroken) {
+    activeDungeon.logs.push(`💥 **${enemy.name}** vẫn đang bị phá vỡ Poise — mất lượt tấn công! Poise phục hồi.`);
+    enemy.poiseBroken = false;
+    enemy.poise = enemy.poiseMax || (80 + (activeDungeon.chapter || 1) * 20);
+    
+    if (enemy.breakRounds && enemy.breakRounds > 0) {
+      enemy.breakRounds -= 1;
+    }
+    
+    activeDungeon.players.forEach((p) => {
+      p.hasActedThisRound = false;
+    });
+    activeDungeon.actionInProgress = false;
+    await nextTurn(channel, activeDungeon);
+    return;
+  }
+
+  if (enemy.breakRounds && enemy.breakRounds > 0) {
+    enemy.breakRounds -= 1;
+  }
+
+  let dotDamage = 0;
+  let dotMessages = [];
+
+  if (enemy.poisonRounds && enemy.poisonRounds > 0) {
+    const poisonDmg = enemy.poisonDamage || Math.floor(enemy.maxHp * 0.05);
+    enemy.hp = Math.max(0, enemy.hp - poisonDmg);
+    enemy.poisonRounds -= 1;
+    dotMessages.push(`<:poisonous:1522374367542247424> **${enemy.name}** bị mất **${poisonDmg.toLocaleString()}** HP do Độc (Còn ${enemy.poisonRounds} lượt).`);
+  }
   if (enemy.bleedRounds && enemy.bleedRounds > 0) {
-    const bleedDamage = Math.floor(enemy.maxHp * 0.08);
-    enemy.hp = Math.max(0, enemy.hp - bleedDamage);
+    const bleedDmg = enemy.bleedDamage || Math.floor(enemy.maxHp * 0.05);
+    enemy.hp = Math.max(0, enemy.hp - bleedDmg);
     enemy.bleedRounds -= 1;
-    activeDungeon.logs.push(`🩸 **${enemy.name}** bị mất **${bleedDamage.toLocaleString()}** HP do hiệu ứng Chảy Máu (Còn ${enemy.bleedRounds} lượt).`);
+    dotMessages.push(`<:bleed:1521938497642958889> **${enemy.name}** bị mất **${bleedDmg.toLocaleString()}** HP do Chảy Máu (Còn ${enemy.bleedRounds} lượt).`);
+  }
+  if (enemy.burnRounds && enemy.burnRounds > 0) {
+    let burnDmg = enemy.burnDamage || Math.floor(enemy.maxHp * 0.04);
+    if (enemy.freezeRounds && enemy.freezeRounds > 0) {
+      burnDmg *= 2;
+    }
+    enemy.hp = Math.max(0, enemy.hp - burnDmg);
+    enemy.burnRounds -= 1;
+    dotMessages.push(`<:burn:1521938494094835774> **${enemy.name}** bị mất **${burnDmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${enemy.burnRounds} lượt).`);
+  }
+  if (enemy.frostbiteRounds && enemy.frostbiteRounds > 0) {
+    const frostbiteDmg = enemy.frostbiteDamage || Math.floor(enemy.maxHp * 0.045);
+    enemy.hp = Math.max(0, enemy.hp - frostbiteDmg);
+    enemy.frostbiteRounds -= 1;
+    dotMessages.push(`<:frostbite:1521938506425958431> **${enemy.name}** bị mất **${frostbiteDmg.toLocaleString()}** HP do Frostbite (Còn ${enemy.frostbiteRounds} lượt).`);
+  }
+
+  if (dotMessages.length > 0) {
+    activeDungeon.logs.push(...dotMessages);
     if (enemy.hp <= 0) {
-      activeDungeon.logs.push(`🩸 **${enemy.name}** đã chết do mất máu quá nhiều!`);
+      activeDungeon.logs.push(`💀 **${enemy.name}** đã bị tiêu diệt bởi sát thương duy trì hiệu ứng xấu!`);
       activeDungeon.actionInProgress = false;
       await handleEnemyDefeat(channel, activeDungeon);
       return;
