@@ -820,7 +820,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
     const bossCfg = getBossConfig(chapter);
     const fileName = enemy.phase === 1 ? bossCfg.image_phase1 : bossCfg.image_phase2;
     if (fileName) {
-      const filePath = path.join(__dirname, "../../assets/dungeons", fileName);
+      const subFolder = chapter >= 7 ? "Chapter2" : "Chapter1";
+      const filePath = path.join(__dirname, "../../assets/dungeons", subFolder, fileName);
       if (fs.existsSync(filePath)) {
         files.push(new AttachmentBuilder(filePath, { name: fileName }));
         embed.setImage(`attachment://${fileName}`);
