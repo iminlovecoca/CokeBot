@@ -603,6 +603,262 @@ module.exports = {
           },
         },
       },
+      7: {
+        boss: {
+          key: "lucifer",
+          name_phase1: "Lucifer (Hoàng Tử Kiêu Ngạo)",
+          image_phase1: "Chapter2/lucifer.png",
+          stats: {
+            phase1: {
+              base_hp: 360000,
+              base_atk: 90,
+              base_defense: 120,
+            }
+          },
+          passive: {
+            name: "Kiêu Ngạo Hào Quang",
+            chance: 0.45,
+            duration: 2,
+            type: "reflect_shield",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            vulnerable_on_break: true, 
+          },
+          first_clear_reward: {
+            claim_key: "poisondagger",
+            emoji: "<:poisondagger:1514232154173866004>",
+            name: "Thuốc Độc Đoản Đao",
+            rarity: "Ancient",
+            image_path: "Weapon/poisondagger.png",
+          },
+        },
+      },
+      8: {
+        boss: {
+          key: "mammon",
+          name_phase1: "Mammon (Thần Tiền Greed)",
+          image_phase1: "Chapter2/mammon.png",
+          stats: {
+            phase1: {
+              base_hp: 390000,
+              base_atk: 100,
+              base_defense: 130,
+            }
+          },
+          passive: {
+            name: "Thuế Vàng",
+            chance: 0.50,
+            duration: 1,
+            type: "gold_drain",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            gold_statue_freeze: true,
+          },
+          first_clear_reward: {
+            claim_key: "duskanddawn",
+            emoji: "<:DuskandDawn:1517552769270153277>",
+            name: "Thần Kiếm Song Cực",
+            rarity: "Ancient",
+            image_path: "Weapon/DuskandDawn.png",
+          },
+        },
+      },
+      9: {
+        boss: {
+          key: "asmodeus",
+          name_phase1: "Asmodeus (Huyết Dục Vọng)",
+          image_phase1: "Chapter2/asmodeus.png",
+          stats: {
+            phase1: {
+              base_hp: 420000,
+              base_atk: 110,
+              base_defense: 140,
+            }
+          },
+          passive: {
+            name: "Sợi Xích Dục Vọng",
+            chance: 0.40,
+            duration: 3,
+            type: "chain_link",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            charm_taunt: true,
+          },
+          first_clear_reward: {
+            claim_key: "riverofblood",
+            emoji: "<:RiverofBlood:1517552771824615424>",
+            name: "Huyết Hải Thần Kiếm",
+            rarity: "Ancient",
+            image_path: "Weapon/RiverofBlood.png",
+          },
+        },
+      },
+      10: {
+        boss: {
+          key: "leviathan",
+          name_phase1: "Leviathan (Thủy Quái Envy)",
+          image_phase1: "Chapter2/leviathan.png",
+          stats: {
+            phase1: {
+              base_hp: 450000,
+              base_atk: 120,
+              base_defense: 150,
+            }
+          },
+          passive: {
+            name: "Đố Kỵ Vô Hạn",
+            chance: 1.0,
+            duration: 99,
+            type: "stat_steal",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            mimic_skills: true,
+          },
+          first_clear_reward: {
+            claim_key: "axesnake",
+            emoji: "<:Axesnake:1518746343999406240>",
+            name: "Rìu Mãng Xà Hex",
+            rarity: "Ancient",
+            image_path: "Weapon/Axesnake.png",
+          },
+        },
+      },
+      11: {
+        boss: {
+          key: "beelzebub",
+          name_phase1: "Beelzebub (Gluttony Phàm Ăn)",
+          image_phase1: "Chapter2/beelzebub.png",
+          stats: {
+            phase1: {
+              base_hp: 490000,
+              base_atk: 130,
+              base_defense: 160,
+            }
+          },
+          passive: {
+            name: "Ruồi Hoại Tử",
+            chance: 0.50,
+            duration: 3,
+            type: "poison_dot",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            devour_mechanic: true,
+          },
+          first_clear_reward: {
+            claim_key: "clawhex",
+            emoji: "<:Clawhex:1518746346352545792>",
+            name: "Vuốt Độc Quyền Năng",
+            rarity: "Ancient",
+            image_path: "Weapon/Clawhex.png",
+          },
+        },
+      },
+      12: {
+        boss: {
+          key: "satan",
+          name_phase1: "Satan (Bạo Chúa Wrath)",
+          image_phase1: "Chapter2/satan.png",
+          stats: {
+            phase1: {
+              base_hp: 530000,
+              base_atk: 145,
+              base_defense: 170,
+            }
+          },
+          passive: {
+            name: "Hỏa Ngục Ấn",
+            chance: 0.40,
+            duration: 3,
+            type: "burn_explode",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            wrath_frenzy: true,
+          },
+          first_clear_reward: {
+            claim_key: "darksword",
+            emoji: "<:darksword:1514232167595769949>",
+            name: "Hắc Ám Ma Kiếm",
+            rarity: "Ancient",
+            image_path: "Weapon/darksword.png",
+          },
+        },
+      },
+      13: {
+        boss: {
+          key: "belphegor",
+          name_phase1: "Belphegor (Lười Biếng Đọa Lạc)",
+          image_phase1: "Chapter2/belphegor.png",
+          stats: {
+            phase1: {
+              base_hp: 580000,
+              base_atk: 160,
+              base_defense: 185,
+            }
+          },
+          passive: {
+            name: "Hơi Thở Ru Ngủ",
+            chance: 0.35,
+            duration: 2,
+            type: "sleep_stun",
+          },
+          mechanics: {
+            dice_roll: false,
+            coin_flip: false,
+            slothful_shield: true,
+          },
+          first_clear_reward: {
+            claim_key: "darkstaff",
+            emoji: "<:darkstaff:1514232169529348106>",
+            name: "Hắc Ám Thần Trượng",
+            rarity: "Ancient",
+            image_path: "Weapon/darkstaff.png",
+          },
+        },
+      },
+      14: {
+        boss: {
+          key: "pandemonium",
+          name_phase1: "Pandemonium (Đế Vương Địa Ngục)",
+          image_phase1: "Chapter2/pandemonium.png",
+          stats: {
+            phase1: {
+              base_hp: 650000,
+              base_atk: 180,
+              base_defense: 200,
+            }
+          },
+          passive: {
+            name: "Luân Hồi Tội Lỗi",
+            chance: 1.0,
+            duration: 99,
+            type: "all_princes_buffs",
+          },
+          mechanics: {
+            dice_roll: true,
+            coin_flip: true,
+            wipe_countdown: 5,
+          },
+          first_clear_reward: {
+            claim_key: "holysword",
+            emoji: "<:holysword:1514232165334777876>",
+            name: "Thánh Kiếm Hoàng Kim",
+            rarity: "Ancient",
+            image_path: "Weapon/holysword.png",
+          },
+        },
+      },
     },
   },
 };
