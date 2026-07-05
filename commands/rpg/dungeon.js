@@ -670,7 +670,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     const hpInfo = `${statusText}` +
                    `❤️ HP: **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**` +
                    `${resourceText}\n` +
-                   `🧪 Bình: **${p.potions}/3**${healBanText}\n` +
+                   `<:healthpotion:1523351206066655333> Bình: **${p.potions}/3**${healBanText}\n` +
                    `Lvl **${p.level}** | **${className}**`;
                    
     const pStatus = getActiveStatusString(p);
@@ -701,7 +701,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
       .setDisabled(disableControls),
     new ButtonBuilder()
       .setCustomId("rpg_dungeon_action_heal")
-      .setLabel("Bình máu 🧪")
+      .setLabel("Bình máu")
+      .setEmoji("1523351206066655333")
       .setStyle(ButtonStyle.Success)
       .setDisabled(disableControls)
   );
@@ -1987,7 +1988,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
   if (needHeal) {
     player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3));
     player.potions -= 1;
-    activeDungeon.logs.push(`🧪 [Sim] **${player.name}** đã uống bình máu hồi phục **${Math.floor(player.maxHp * 0.3).toLocaleString()}** HP.`);
+    activeDungeon.logs.push(`<:healthpotion:1523351206066655333> [Sim] **${player.name}** đã uống bình máu hồi phục **${Math.floor(player.maxHp * 0.3).toLocaleString()}** HP.`);
     player.hasActedThisRound = true;
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
