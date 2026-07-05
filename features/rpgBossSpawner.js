@@ -90,9 +90,20 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
     .addFields(
       {
         name: "HP",
-        value:
-          `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
-          `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`,
+        value: (() => {
+          let val = `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
+                    `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`;
+          
+          const effects = activeBoss.effects || {};
+          const isHealReduced = effects.healReduced && Date.now() < (effects.healReducedUntil || 0);
+          if (isHealReduced) {
+            val += `\n<:healreduction:1523340558855045190> **Giảm 30% Hồi máu**`;
+          }
+          if (effects.armorReduced && effects.armorReduced > 0) {
+            val += `\n🛡️ **Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
+          }
+          return val;
+        })(),
         inline: false,
       },
       {
