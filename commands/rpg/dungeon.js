@@ -1319,7 +1319,11 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   }
 
   if (enemy.isBoss && !enemy.poiseBroken) {
-    const poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
+    let poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
+    if (player.classKey === "warrior" && isSkill) {
+      poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
+      activeDungeon.logs.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Boss!`);
+    }
     enemy.poise = Math.max(0, enemy.poise - poiseDmg);
     if (enemy.poise <= 0) {
       enemy.poiseBroken = true;
@@ -1650,8 +1654,8 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
 
   if (enemy.isBoss) {
     if (enemy.phase === 1) {
-      if (chapter === 3 || enemy.key === "mourngait") {
-        activeDungeon.logs.push(`💬 **${enemy.name}** gầm lên đau đớn trước khi tan rã: *"Sẽ có ngày ta trở lại tìm các ngươi... Hãy tận hưởng những giây phút yên bình ngắn ngủi này đi!"*`);
+      if (chapter === 3 || enemy.key === "mourngait" || chapter >= 7) {
+        activeDungeon.logs.push(`💬 **${enemy.name}** gầm lên đau đớn trước khi tan rã: *"Các ngươi đã thắng... Nhưng bóng tối sẽ không bao giờ lụi tàn!"*`);
         await renderGameScreen(channel, activeDungeon);
 
         activeDungeon.actionInProgress = true;
