@@ -60,41 +60,7 @@ const getDelay = (activeDungeon, baseDelay) => {
 };
 
 
-const getActiveStatusString = (target) => {
-  if (!target) return "";
-  const parts = [];
-  if (target.poisonRounds && target.poisonRounds > 0) {
-    parts.push(`<:poisonous:1522374367542247424>(${target.poisonRounds}L)`);
-  }
-  if (target.bleedRounds && target.bleedRounds > 0) {
-    parts.push(`<:bleed:1521938497642958889>(${target.bleedRounds}L)`);
-  }
-  if (target.burnRounds && target.burnRounds > 0) {
-    parts.push(`<:burn:1521938494094835774>(${target.burnRounds}L)`);
-  }
-  if (target.freezeRounds && target.freezeRounds > 0) {
-    parts.push(`<:freeze:1521938500478566639>(${target.freezeRounds}L)`);
-  }
-  if (target.frostbiteRounds && target.frostbiteRounds > 0) {
-    parts.push(`<:frostbite:1521938506425958431>(${target.frostbiteRounds}L)`);
-  }
-  if (target.stunRounds && target.stunRounds > 0) {
-    parts.push(`<:stun:1521938490605178910>(${target.stunRounds}L)`);
-  }
-  if (target.breakRounds && target.breakRounds > 0) {
-    parts.push(`<:break:1521938480337391736>(${target.breakRounds}L)`);
-  }
-  if (target.healBanRounds && target.healBanRounds > 0) {
-    parts.push(`<:healreduction:1523340558855045190>(${target.healBanRounds}L)`);
-  }
-  if (target.atkUp) {
-    parts.push(`<:atkup:1521938477359300648>`);
-  }
-  if (target.atkDown) {
-    parts.push(`<:atkdown:1521938474587000913>`);
-  }
-  return parts.length > 0 ? parts.join(" ") : "";
-};
+const { getActiveStatusString, tickStatusEffects, triggerWeaponPassiveOnAttack, applyStatusEffect, EMOJIS } = require("../../utils/rpgPassiveUtil");
 
 
 const selectBossTarget = (alivePlayers) => {
@@ -946,7 +912,7 @@ const setupCollector = (channel, activeDungeon) => {
 
         pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
         pExist.potions -= 1;
-        activeDungeon.logs.push(`🧪 **${pExist.name}** đã uống bình máu hồi phục **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** HP.`);
+        activeDungeon.logs.push(`<:heal:1521938487907975198> **${Math.floor(pExist.maxHp * 0.3).toLocaleString()}** (uống bình máu hồi phục cho **${pExist.name}**).`);
 
         if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
           pExist.skillBanRounds -= 1;
@@ -1197,7 +1163,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
           clearedDebuffs.push("Cấm Kỹ Năng");
         }
         if (clearedDebuffs.length > 0) {
-          activeDungeon.logs.push(`✨ **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
+          activeDungeon.logs.push(`<:dispe:1521938483730710578> **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
 
         
@@ -1206,7 +1172,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
         const actualHealed = p.hp - oldHp;
         if (actualHealed > 0) {
-          activeDungeon.logs.push(`💚 **${p.name}** được hồi **${actualHealed.toLocaleString()}** HP (30% máu tối đa).`);
+          activeDungeon.logs.push(`<:heal:1521938487907975198> **${actualHealed.toLocaleString()}** (Paladin hồi phục cho **${p.name}**).`);
         } else {
           activeDungeon.logs.push(`💚 **${p.name}** đang đầy máu.`);
         }
@@ -1279,23 +1245,19 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     rawDamage *= 1.2;
   }
   
-  if (pWeaponSubType === "clawhex" && hasWeaponTriggered) {
-    enemy.bleedRounds = (enemy.bleedRounds || 0) + 3;
-    enemy.clawhexBleed = true;
-    enemy.bleedDamage = Math.floor((player.stats.str * 0.5 + player.stats.dex * 0.5));
-    rawDamage *= 1.15;
-  } else if (enemy.bleedRounds && enemy.bleedRounds > 0 && enemy.clawhexBleed) {
-    rawDamage *= 1.15; 
+  const passiveResult = triggerWeaponPassiveOnAttack(player, enemy, activeDungeon, rawDamage, isMagical, isSecondHit, multiplier, isSkill);
+  if (passiveResult.logs.length > 0) {
+    activeDungeon.logs.push(...passiveResult.logs);
   }
 
   
   if (activeDungeon.archerDoubleDmgNext && player.id !== activeDungeon.archerCasterId) {
-    rawDamage *= 2.0;
+    passiveResult.damage *= 2.0;
     activeDungeon.archerDoubleDmgNext = false;
     activeDungeon.logs.push(`✨ Nhận cường hóa từ Xuyên Táo, đòn đánh gây gấp đôi sát thương!`);
   }
 
-  rawDamage *= 0.85 + Math.random() * 0.3; 
+  const finalRawDamage = passiveResult.damage * (0.85 + Math.random() * 0.3);
 
   const classCritBonus = player.rpgClass?.bonuses?.critRate || 0;
   const critRate = Math.min(
@@ -1304,41 +1266,20 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + player.stats.dex * 0.002;
+  
+  let finalCalculatedDamage = finalRawDamage;
   if (isCrit) {
-    rawDamage *= critMult;
+    finalCalculatedDamage *= critMult;
   }
 
-  
-  if (pWeaponSubType === "axesnake" && hasWeaponTriggered) {
-    enemy.armor = Math.max(0, Math.floor(enemy.armor * 0.90));
-    enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * 0.90));
-    activeDungeon.logs.push(`🐍 **[Axesnake]** Phá hủy 10% giáp vật lý và phép của đối thủ! Giáp còn: ${enemy.armor.toLocaleString()} PR / ${enemy.magicResist.toLocaleString()} MR.`);
-  }
-
-  
-  let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
-  
-  if (isMagical && pWeaponSubType === "bluestaff" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.75); // 25% magic penetration
-  }
-  if (!isMagical && pWeaponSubType === "crimsondagger" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.50); // 50% physical penetration
-  }
-  if (!isMagical && pWeaponSubType === "spearhex" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.90);
-  }
-  if (pWeaponSubType === "sunbow" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.90);
-  }
-
+  const mrOrArmor = passiveResult.mrOrArmor;
   const mitigation = mrOrArmor / (mrOrArmor + 250);
-  let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+  let damage = Math.max(10, Math.floor(finalCalculatedDamage * (1 - mitigation)));
 
   if (player.userRef?.rpg?.isGodMode) {
     damage = enemy.hp;
   }
 
-  
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(activeDungeon.chapter);
     const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
@@ -1354,7 +1295,6 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
       }
     }
 
-    
     if (bossCfg?.mechanics?.vulnerable_on_heal_ban) {
       const isAnyPlayerHealBanned = activeDungeon.players.some((p) => p.hp > 0 && p.healBanRounds && p.healBanRounds > 0);
       if (isAnyPlayerHealBanned) {
@@ -1362,13 +1302,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
       }
     }
 
-    
     if (enemy.poiseBroken) {
       damage = Math.floor(damage * 2.0);
     }
   }
-
-  
 
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
@@ -1377,10 +1314,9 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   if (pWeaponSubType === "riverofblood" && hasWeaponTriggered) {
     const healAmt = Math.max(1, Math.floor(damage * 0.02));
     player.hp = Math.min(player.maxHp, player.hp + healAmt);
-    activeDungeon.logs.push(`🩸 **[River of Blood]** Hồi phục cho **${player.name}** **${healAmt.toLocaleString()}** HP.`);
+    activeDungeon.logs.push(`<:heal:1521938487907975198> **${healAmt.toLocaleString()}** (River of Blood hồi phục cho **${player.name}**).`);
   }
 
-  
   if (enemy.isBoss && !enemy.poiseBroken) {
     const poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
     enemy.poise = Math.max(0, enemy.poise - poiseDmg);
@@ -1390,18 +1326,14 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
   }
 
-  
   if (player.classKey !== "mage" && player.classKey !== "wretch") {
     player.rage = Math.min(100, (player.rage || 0) + 10);
   }
 
-  let doubleHitTriggered = false;
-  if (pWeaponSubType === "duskanddawn" && !isSecondHit && enemy.hp > 0) {
-    if (Math.random() < 0.30) {
-      doubleHitTriggered = true;
-      activeDungeon.logs.push(`🌅 **[Dusk and Dawn]** Sức mạnh bình minh và hoàng hôn cộng hưởng! **${player.name}** tấn công liên kích thêm một lần nữa!`);
-      await executePlayerAttack(channel, activeDungeon, player, multiplier, isSkill, true);
-    }
+  let doubleHitTriggered = passiveResult.doubleHitTriggered;
+  if (doubleHitTriggered && enemy.hp > 0) {
+    activeDungeon.logs.push(`🌅 **[Dusk and Dawn]** Sức mạnh bình minh và hoàng hôn cộng hưởng! **${player.name}** tấn công liên kích thêm một lần nữa!`);
+    await executePlayerAttack(channel, activeDungeon, player, multiplier, isSkill, true);
   }
 
   if (!doubleHitTriggered) {
@@ -1432,64 +1364,19 @@ const nextTurn = async (channel, activeDungeon) => {
   const nextPlayer = alivePlayers.find((p) => !p.hasActedThisRound);
 
   if (nextPlayer) {
-    const pStunned = nextPlayer.stunRounds && nextPlayer.stunRounds > 0;
-    const pFrozen = nextPlayer.freezeRounds && nextPlayer.freezeRounds > 0;
-    if (pStunned || pFrozen) {
-      const skipReason = pFrozen ? "ĐÓNG BĂNG <:freeze:1521938500478566639>" : "CHOÁNG <:stun:1521938490605178910>";
-      activeDungeon.logs.push(`⚠️ **${nextPlayer.name}** đang bị ${skipReason} — mất lượt hành động!`);
-      if (pFrozen) {
-        nextPlayer.freezeRounds -= 1;
-        if (nextPlayer.freezeRounds === 0) activeDungeon.logs.push(`❄️ **${nextPlayer.name}** giải đóng băng.`);
-      }
-      if (pStunned) {
-        nextPlayer.stunRounds -= 1;
-        if (nextPlayer.stunRounds === 0) activeDungeon.logs.push(`⚡ **${nextPlayer.name}** hết choáng.`);
-      }
+    const statusResult = tickStatusEffects(nextPlayer, activeDungeon);
+    if (statusResult.logs.length > 0) {
+      activeDungeon.logs.push(...statusResult.logs);
+    }
+    
+    if (statusResult.skipTurn) {
       nextPlayer.hasActedThisRound = true;
       return nextTurn(channel, activeDungeon);
     }
-
-    let pDotDmg = 0;
-    if (nextPlayer.poisonRounds && nextPlayer.poisonRounds > 0) {
-      const dmg = Math.floor(nextPlayer.maxHp * 0.05);
-      nextPlayer.poisonRounds -= 1;
-      pDotDmg += dmg;
-      activeDungeon.logs.push(`<:poisonous:1522374367542247424> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Độc (Còn ${nextPlayer.poisonRounds} lượt).`);
-    }
-    if (nextPlayer.bleedRounds && nextPlayer.bleedRounds > 0) {
-      const dmg = Math.floor(nextPlayer.maxHp * 0.05);
-      nextPlayer.bleedRounds -= 1;
-      pDotDmg += dmg;
-      activeDungeon.logs.push(`<:bleed:1521938497642958889> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Chảy Máu (Còn ${nextPlayer.bleedRounds} lượt).`);
-    }
-    if (nextPlayer.burnRounds && nextPlayer.burnRounds > 0) {
-      let dmg = Math.floor(nextPlayer.maxHp * 0.04);
-      if (nextPlayer.freezeRounds && nextPlayer.freezeRounds > 0) {
-        dmg *= 2;
-      }
-      nextPlayer.burnRounds -= 1;
-      pDotDmg += dmg;
-      activeDungeon.logs.push(`<:burn:1521938494094835774> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${nextPlayer.burnRounds} lượt).`);
-    }
-    if (nextPlayer.frostbiteRounds && nextPlayer.frostbiteRounds > 0) {
-      const dmg = Math.floor(nextPlayer.maxHp * 0.045);
-      nextPlayer.frostbiteRounds -= 1;
-      pDotDmg += dmg;
-      activeDungeon.logs.push(`<:frostbite:1521938506425958431> **${nextPlayer.name}** mất **${dmg.toLocaleString()}** HP do Frostbite (Còn ${nextPlayer.frostbiteRounds} lượt).`);
-    }
-
-    if (pDotDmg > 0) {
-      if (nextPlayer.hp <= pDotDmg) {
-        const actualDmg = nextPlayer.hp;
-        nextPlayer.hp = 0;
-        activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
-        activeDungeon.logs.push(`💀 **${nextPlayer.name}** đã tử nạn do sát thương DoT duy trì!`);
-        nextPlayer.hasActedThisRound = true;
-        return nextTurn(channel, activeDungeon);
-      } else {
-        nextPlayer.hp -= pDotDmg;
-        activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + pDotDmg;
-      }
+    
+    if (nextPlayer.hp <= 0) {
+      nextPlayer.hasActedThisRound = true;
+      return nextTurn(channel, activeDungeon);
     }
 
     
@@ -1541,30 +1428,23 @@ const runEnemyTurn = async (channel, activeDungeon) => {
   }
 
   
-  const isStunned = enemy.stunRounds && enemy.stunRounds > 0;
-  const isFrozen = enemy.freezeRounds && enemy.freezeRounds > 0;
-  if (isStunned || isFrozen) {
-    const skipReason = isFrozen ? "BỊ ĐÓNG BĂNG <:freeze:1521938500478566639>" : "BỊ CHOÁNG <:stun:1521938490605178910>";
-    activeDungeon.logs.push(`⚠️ **${enemy.name}** đang trong trạng thái ${skipReason} — mất lượt tấn công!`);
-    
-    if (isFrozen) {
-      enemy.freezeRounds -= 1;
-      if (enemy.freezeRounds === 0) activeDungeon.logs.push(`❄️ **${enemy.name}** đã thoát khỏi trạng thái Đóng Băng.`);
-    }
-    if (isStunned) {
-      enemy.stunRounds -= 1;
-      if (enemy.stunRounds === 0) activeDungeon.logs.push(`⚡ **${enemy.name}** đã thoát khỏi trạng thái Choáng.`);
-    }
-    
-    if (enemy.breakRounds && enemy.breakRounds > 0) {
-      enemy.breakRounds -= 1;
-    }
-    
+  const statusResult = tickStatusEffects(enemy, activeDungeon);
+  if (statusResult.logs.length > 0) {
+    activeDungeon.logs.push(...statusResult.logs);
+  }
+
+  if (statusResult.skipTurn) {
     activeDungeon.players.forEach((p) => {
       p.hasActedThisRound = false;
     });
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
+    return;
+  }
+
+  if (enemy.hp <= 0) {
+    activeDungeon.actionInProgress = false;
+    await handleEnemyDefeat(channel, activeDungeon);
     return;
   }
 
@@ -1573,61 +1453,12 @@ const runEnemyTurn = async (channel, activeDungeon) => {
     enemy.poiseBroken = false;
     enemy.poise = enemy.poiseMax || (80 + (activeDungeon.chapter || 1) * 20);
     
-    if (enemy.breakRounds && enemy.breakRounds > 0) {
-      enemy.breakRounds -= 1;
-    }
-    
     activeDungeon.players.forEach((p) => {
       p.hasActedThisRound = false;
     });
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
     return;
-  }
-
-  if (enemy.breakRounds && enemy.breakRounds > 0) {
-    enemy.breakRounds -= 1;
-  }
-
-  let dotDamage = 0;
-  let dotMessages = [];
-
-  if (enemy.poisonRounds && enemy.poisonRounds > 0) {
-    const poisonDmg = enemy.poisonDamage || Math.floor(enemy.maxHp * 0.05);
-    enemy.hp = Math.max(0, enemy.hp - poisonDmg);
-    enemy.poisonRounds -= 1;
-    dotMessages.push(`<:poisonous:1522374367542247424> **${enemy.name}** bị mất **${poisonDmg.toLocaleString()}** HP do Độc (Còn ${enemy.poisonRounds} lượt).`);
-  }
-  if (enemy.bleedRounds && enemy.bleedRounds > 0) {
-    const bleedDmg = enemy.bleedDamage || Math.floor(enemy.maxHp * 0.05);
-    enemy.hp = Math.max(0, enemy.hp - bleedDmg);
-    enemy.bleedRounds -= 1;
-    dotMessages.push(`<:bleed:1521938497642958889> **${enemy.name}** bị mất **${bleedDmg.toLocaleString()}** HP do Chảy Máu (Còn ${enemy.bleedRounds} lượt).`);
-  }
-  if (enemy.burnRounds && enemy.burnRounds > 0) {
-    let burnDmg = enemy.burnDamage || Math.floor(enemy.maxHp * 0.04);
-    if (enemy.freezeRounds && enemy.freezeRounds > 0) {
-      burnDmg *= 2;
-    }
-    enemy.hp = Math.max(0, enemy.hp - burnDmg);
-    enemy.burnRounds -= 1;
-    dotMessages.push(`<:burn:1521938494094835774> **${enemy.name}** bị mất **${burnDmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${enemy.burnRounds} lượt).`);
-  }
-  if (enemy.frostbiteRounds && enemy.frostbiteRounds > 0) {
-    const frostbiteDmg = enemy.frostbiteDamage || Math.floor(enemy.maxHp * 0.045);
-    enemy.hp = Math.max(0, enemy.hp - frostbiteDmg);
-    enemy.frostbiteRounds -= 1;
-    dotMessages.push(`<:frostbite:1521938506425958431> **${enemy.name}** bị mất **${frostbiteDmg.toLocaleString()}** HP do Frostbite (Còn ${enemy.frostbiteRounds} lượt).`);
-  }
-
-  if (dotMessages.length > 0) {
-    activeDungeon.logs.push(...dotMessages);
-    if (enemy.hp <= 0) {
-      activeDungeon.logs.push(`💀 **${enemy.name}** đã bị tiêu diệt bởi sát thương duy trì hiệu ứng xấu!`);
-      activeDungeon.actionInProgress = false;
-      await handleEnemyDefeat(channel, activeDungeon);
-      return;
-    }
   }
 
   

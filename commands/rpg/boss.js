@@ -28,6 +28,8 @@ const {
   dungeonKeys,
 } = require("../../utils/rpgUtil");
 
+const { triggerWorldBossPassive } = require("../../utils/rpgPassiveUtil");
+
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -941,49 +943,12 @@ const performBossAttack = async ({ client, channel, userId }) => {
     } else if (cleanSubType === "shieldhex") {
       shieldhexTriggered = true;
       passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
-    } else if (cleanSubType === "riverofblood") {
-      riverofbloodTriggered = true;
-      passiveTriggers.push(`⚔️ **[River of Blood]** Chém hồi máu bằng 5% sát thương gây ra.`);
-    } else if (cleanSubType === "shadowdagger") {
-      activeBoss.effects.armorReduced = 0.30;
-      passiveTriggers.push(`⚔️ **[Shadow Dagger]** Đã phá giáp boss! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
-    } else if (cleanSubType === "poisondagger") {
-      participant.nextAttackMult = 1.5;
-      passiveTriggers.push(`⚔️ **[Poison Dagger]** Sát khí hội tụ! Đòn đánh tiếp theo của bạn sẽ gây thêm 50% sát thương.`);
-    } else if (cleanSubType === "firesword") {
-      activeBoss.effects.healReduced = true;
-      activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
-      passiveTriggers.push(`⚔️ **[Fire Sword]** Thiêu đốt boss! Giảm 30% hồi máu của boss trong 30 giây.`);
-    } else if (cleanSubType === "bluestaff") {
-      blueStaffPierce = true;
-      passiveTriggers.push(`⚔️ **[Blue Staff]** Đòn đánh xuyên 50% kháng phép của boss.`);
-    } else if (cleanSubType === "crimsondagger") {
-      crimsonDaggerPierce = true;
-      passiveTriggers.push(`⚔️ **[Crimson Dagger]** Đòn đánh xuyên 50% phòng ngự vật lý của boss.`);
-    } else if (cleanSubType === "holysword") {
-      participant.holySwordHits = (participant.holySwordHits || 0) + 1;
-      if (participant.holySwordHits >= 3) {
-        participant.holySwordHits = 0;
-        holySwordDouble = true;
-        passiveTriggers.push(`⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`);
-      }
-    } else if (cleanSubType === "darksword") {
-      participant.bossDamageReduced = true;
-      passiveTriggers.push(`⚔️ **[Dark Sword]** Yếu khí bao phủ! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
-    } else if (cleanSubType === "darkstaff") {
-      const effects = ["burn", "weakness", "pierce"];
-      const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
-      if (chosenEffect === "burn") {
-        activeBoss.effects.healReduced = true;
-        activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
-        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thiêu đốt! Giảm 30% hồi máu của boss trong 30 giây.`);
-      } else if (chosenEffect === "weakness") {
-        participant.bossDamageReduced = true;
-        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám suy yếu! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
-      } else {
-        activeBoss.effects.armorReduced = 0.30;
-        passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám phá giáp! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
-      }
+    } else {
+      const res = triggerWorldBossPassive(cleanSubType, participant, activeBoss, passiveTriggers, damage = 0);
+      blueStaffPierce = res.blueStaffPierce;
+      crimsonDaggerPierce = res.crimsonDaggerPierce;
+      holySwordDouble = res.holySwordDouble;
+      riverofbloodTriggered = res.riverofbloodTriggered;
     }
   } else if (cleanSubType === "holysword") {
     participant.holySwordHits = (participant.holySwordHits || 0) + 1;
