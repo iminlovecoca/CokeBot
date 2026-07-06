@@ -4,8 +4,11 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ComponentType
+  ComponentType,
+  AttachmentBuilder
 } = require("discord.js");
+const path = require("path");
+const { createCanvas, loadImage } = require("canvas");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
 const { getBetAmount } = require("../../utils/gameUtil");
@@ -48,6 +51,7 @@ const rankValues = {
 
 const suits = ['s', 'c', 'h', 'd']; // Spades, Clubs, Hearts, Diamonds
 const ranks = Object.keys(rankValues);
+const CARD_ASSET_DIR = path.join(__dirname, "..", "..", "assets", "cards");
 
 /**
  * Tạo một lá bài mới ngẫu nhiên loại trừ lá bài hiện tại (còn lại 51 lá bài)
@@ -121,33 +125,91 @@ function getCardDisplayValue(card) {
   return rankValues[rank] || rank;
 }
 
-/**
- * Dựng chuỗi biểu thị hàng lá bài
- */
-function buildCardRow(cardHistory, isFinished, isLost, lostCard) {
-  const emojiBack = CONFIG.EMOJIS.back;
-  const emojiDict = config.emoji;
-  const arrow = " ▶️ ";
-  
+function getDisplayedCards(cardHistory, isFinished, isLost, lostCard) {
   if (isFinished) {
     if (isLost && lostCard) {
       const tempHistory = [...cardHistory];
       if (tempHistory[tempHistory.length - 1] !== lostCard) {
         tempHistory.push(lostCard);
       }
-      // Hiển thị tối đa 3 lá bài cuối
-      const displayed = tempHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join(arrow);
-    } else {
-      // Đã cash out: Hiển thị tối đa 3 lá bài đã chơi
-      const displayed = cardHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join(arrow);
+      return tempHistory.slice(-3);
     }
-  } else {
-    // Game đang diễn ra: Hiển thị tối đa 2 lá bài và lá Úp ở cuối
-    const displayed = cardHistory.slice(-2);
-    return [...displayed.map(c => emojiDict[c] || c), emojiBack].join(arrow);
+    return cardHistory.slice(-3);
   }
+
+  return [...cardHistory.slice(-2), "back"];
+}
+
+async function buildCardsAttachment(gameData, state, optionInfo = {}) {
+  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
+  const displayedCards = getDisplayedCards(
+    gameData.cardHistory,
+    isFinished,
+    state === 'incorrect',
+    optionInfo.lostCard
+  );
+
+  const cardHeight = 70;
+  const cardWidth = Math.round(cardHeight * (262 / 372));
+  const arrowWidth = 34;
+  const paddingX = 6;
+  const paddingY = 6;
+  const textGap = 12;
+  const textLineHeight = 20;
+  const minWidth = 380;
+  const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
+  const bodyLines = [];
+
+  if (state === 'incorrect') {
+    bodyLines.push(`You guessed ${optionInfo.guess}. You lost.`);
+    bodyLines.push(`Current Card: ${getCardDisplayValue(optionInfo.lostCard || gameData.currentCard)}`);
+  } else if (state === 'cashout') {
+    bodyLines.push(`You cashed out with ${formatNumber(gameData.cashOut)} coke!`);
+    bodyLines.push(`Current Card: ${getCardDisplayValue(gameData.currentCard)}`);
+  } else if (state === 'timeout') {
+    bodyLines.push("Game timed out. You lost the bet!");
+  } else {
+    bodyLines.push("Is the next card higher, lower, or the same value?");
+    bodyLines.push(`Current Card: ${getCardDisplayValue(gameData.currentCard)}`);
+  }
+
+  const width = Math.max(minWidth, paddingX * 2 + cardRowWidth);
+  const height = paddingY * 2 + cardHeight + textGap + bodyLines.length * textLineHeight;
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+
+  let x = paddingX;
+  for (let i = 0; i < displayedCards.length; i++) {
+    const cardKey = String(displayedCards[i]).toLowerCase();
+    const imgPath = path.join(CARD_ASSET_DIR, `${cardKey}.png`);
+    const img = await loadImage(imgPath);
+    ctx.drawImage(img, x, paddingY, cardWidth, cardHeight);
+    x += cardWidth;
+
+    if (i < displayedCards.length - 1) {
+      ctx.fillStyle = "#f2f3f5";
+      ctx.beginPath();
+      const arrowX = x + 11;
+      const arrowY = paddingY + cardHeight / 2;
+      ctx.moveTo(arrowX, arrowY - 13);
+      ctx.lineTo(arrowX, arrowY + 13);
+      ctx.lineTo(arrowX + 15, arrowY);
+      ctx.closePath();
+      ctx.fill();
+      x += arrowWidth;
+    }
+  }
+
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#f2f3f5";
+  let textY = paddingY + cardHeight + textGap + 14;
+  for (let i = 0; i < bodyLines.length; i++) {
+    ctx.fillStyle = i === 0 ? "#f2f3f5" : "#b9bbbe";
+    ctx.fillText(bodyLines[i], paddingX, textY);
+    textY += textLineHeight;
+  }
+
+  return new AttachmentBuilder(canvas.toBuffer("image/png"), { name: "higherlower_cards.png" });
 }
 
 /**
@@ -158,26 +220,26 @@ function buildButtons(currentCard, currentCashOut, isFinished, isLost = false, a
   const lowerMultiplier = calculateMultiplier('lower', currentCard);
   const sameMultiplier = calculateMultiplier('same', currentCard);
 
-  // Tính tiền lãi hiển thị trên nhãn nút
-  const higherProfit = higherMultiplier > 0 ? Math.round(currentCashOut * (higherMultiplier - 1)) : 0;
-  const lowerProfit = lowerMultiplier > 0 ? Math.round(currentCashOut * (lowerMultiplier - 1)) : 0;
-  const sameProfit = sameMultiplier > 0 ? Math.round(currentCashOut * (sameMultiplier - 1)) : 0;
+  // Hiển thị tổng tiền sẽ nhận nếu lựa chọn đó thắng.
+  const higherPayout = higherMultiplier > 0 ? Math.round(currentCashOut * higherMultiplier) : 0;
+  const lowerPayout = lowerMultiplier > 0 ? Math.round(currentCashOut * lowerMultiplier) : 0;
+  const samePayout = sameMultiplier > 0 ? Math.round(currentCashOut * sameMultiplier) : 0;
 
   const btnHigher = new ButtonBuilder()
     .setCustomId('hl_higher')
-    .setLabel(`Higher (+${formatNumber(higherProfit)})`)
+    .setLabel(`Higher (+${formatNumber(higherPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || higherMultiplier === 0);
 
   const btnLower = new ButtonBuilder()
     .setCustomId('hl_lower')
-    .setLabel(`Lower (+${formatNumber(lowerProfit)})`)
+    .setLabel(`Lower (+${formatNumber(lowerPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || lowerMultiplier === 0);
 
   const btnSame = new ButtonBuilder()
     .setCustomId('hl_same')
-    .setLabel(`Same (+${formatNumber(sameProfit)})`)
+    .setLabel(`Same (+${formatNumber(samePayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished);
 
@@ -226,7 +288,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
     titleText = `⏱ | <@${userId}>'s game timed out!`;
   }
 
-  const { bet, streak, cashOut, currentCard, cardHistory } = gameData;
+  const { bet, streak, cashOut } = gameData;
   const displayCashOut = streak === 0 && state === 'start' ? 0 : cashOut;
   const currentMultiplier = bet > 0 ? (displayCashOut / bet) : 0.0;
   
@@ -239,36 +301,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   descriptionLines.push(divider);
   embed.setDescription(descriptionLines.join('\n'));
 
-  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
-  const cardRowText = buildCardRow(cardHistory, isFinished, state === 'incorrect', optionInfo.lostCard);
-
-  embed.addFields({
-    name: "\u200b",
-    value: cardRowText,
-    inline: false
-  });
-
-  // 2. Chứa kết quả đoán và Current Card (Văn bản thường)
-  const fieldValueLines = [];
-  if (state === 'incorrect') {
-    fieldValueLines.push(`You guessed \`${optionInfo.guess}\`. You lost.`);
-    fieldValueLines.push(`Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
-  } else if (state === 'cashout') {
-    fieldValueLines.push(`You cashed out with **${formatNumber(cashOut)}** coke!`);
-    fieldValueLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
-  } else if (state === 'timeout') {
-    fieldValueLines.push(`Game timed out. You lost the bet!`);
-  } else {
-    // Trạng thái bắt đầu và đoán đúng: Chỉ hiển thị giá trị lá bài hiện tại
-    fieldValueLines.push(`Is the next card higher, lower, or the same value?`);
-    fieldValueLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
-  }
-  
-  embed.addFields({
-    name: "\u200b",
-    value: fieldValueLines.join('\n'),
-    inline: false
-  });
+  embed.setImage("attachment://higherlower_cards.png");
 
   embed.setColor(embedColor);
   
@@ -364,18 +397,21 @@ module.exports = {
 
     // 5. Gửi giao diện bắt đầu game
     const embed = buildEmbed(userId, gameData, 'start');
+    const cardAttachment = await buildCardsAttachment(gameData, 'start');
     const components = buildButtons(firstCard, betAmount, false, false, false);
     
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
         embeds: [embed],
+        files: [cardAttachment],
         components: components,
         fetchReply: true
       });
     } else {
       replyMsg = await context.channel.send({
         embeds: [embed],
+        files: [cardAttachment],
         components: components
       });
     }
@@ -424,10 +460,13 @@ module.exports = {
 
           // Cập nhật Embed thông báo thắng cuộc
           const finishedEmbed = buildEmbed(userId, game, 'cashout');
+          const finishedAttachment = await buildCardsAttachment(game, 'cashout');
           const finishedComponents = buildButtons(game.currentCard, game.cashOut, true);
           await i.editReply({
             content: null,
+            attachments: [],
             embeds: [finishedEmbed],
+            files: [finishedAttachment],
             components: finishedComponents
           });
         } catch (err) {
@@ -494,10 +533,13 @@ module.exports = {
 
         // Cập nhật Embed
         const nextEmbed = buildEmbed(userId, updatedGame, 'correct', { guess });
+        const nextAttachment = await buildCardsAttachment(updatedGame, 'correct', { guess });
         const nextComponents = buildButtons(nextCard, newCashOut, false);
         await i.editReply({
           content: null,
+          attachments: [],
           embeds: [nextEmbed],
+          files: [nextAttachment],
           components: nextComponents
         });
       } else {
@@ -509,10 +551,13 @@ module.exports = {
 
         // Cập nhật Embed
         const lostEmbed = buildEmbed(userId, game, 'incorrect', { guess, lostCard: nextCard });
+        const lostAttachment = await buildCardsAttachment(game, 'incorrect', { guess, lostCard: nextCard });
         const lostComponents = buildButtons(nextCard, 0, true, true);
         await i.editReply({
           content: null,
+          attachments: [],
           embeds: [lostEmbed],
+          files: [lostAttachment],
           components: lostComponents
         });
       }
@@ -530,10 +575,13 @@ module.exports = {
 
         // Sửa giao diện sang dạng hết giờ cược
         const timeoutEmbed = buildEmbed(userId, game, 'timeout');
+        const timeoutAttachment = await buildCardsAttachment(game, 'timeout');
         const timeoutComponents = buildButtons(game.currentCard, 0, true, true);
         await replyMsg.edit({
           content: null,
+          attachments: [],
           embeds: [timeoutEmbed],
+          files: [timeoutAttachment],
           components: timeoutComponents
         }).catch(() => {});
       }
