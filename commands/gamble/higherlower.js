@@ -265,6 +265,8 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
 
 module.exports = {
   name: "higherlower",
+  aliases: ["hl", "caothap"],
+  category: "gamble",
   data: new SlashCommandBuilder()
     .setName("higherlower")
     .setDescription("Chơi trò chơi Cao Thấp (Higher Lower)!")
@@ -275,14 +277,15 @@ module.exports = {
         .setRequired(true)
     ),
 
-  async execute(interaction, client) {
-    const userId = interaction.user.id;
-    const betInput = interaction.options.getString("bet");
+  async execute(context, arg2, arg3, arg4) {
+    const isSlash = !context.author;
+    const userId = isSlash ? context.user.id : context.author.id;
+    const betInput = isSlash ? context.options.getString("bet") : (arg2[0] || "min");
 
     // 1. Kiểm tra cooldown
     const remainingCooldown = checkAndSetCooldown(userId, "higherlower", CONFIG.COOLDOWN_SECONDS);
     if (remainingCooldown > 0) {
-      return interaction.reply({
+      return context.reply({
         content: `⏱ | Vui lòng chờ **${remainingCooldown}s** để dùng lại lệnh này.`,
         ephemeral: true
       });
@@ -293,7 +296,7 @@ module.exports = {
     try {
       betAmount = await getBetAmount(betInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
     } catch (err) {
-      return interaction.reply({
+      return context.reply({
         content: err.message || "❌ Có lỗi xảy ra khi xác nhận tiền cược.",
         ephemeral: true
       });
@@ -307,7 +310,7 @@ module.exports = {
         // Tự động giải phóng game treo trên 2 phút
         await HigherLowerGame.deleteOne({ userId });
       } else {
-        return interaction.reply({
+        return context.reply({
           content: "❌ Bạn đang có một ván chơi Higher Lower đang diễn ra!",
           ephemeral: true
         });
@@ -341,7 +344,7 @@ module.exports = {
       await runTransactionWithRetry(startGameTxn);
     } catch (err) {
       console.error("Lỗi khi tạo game Cao Thấp:", err);
-      return interaction.reply({
+      return context.reply({
         content: "❌ Không thể bắt đầu trò chơi do lỗi giao dịch dữ liệu. Hãy thử lại!",
         ephemeral: true
       });
@@ -350,11 +353,20 @@ module.exports = {
     // 5. Gửi giao diện bắt đầu game
     const embed = buildEmbed(userId, gameData, 'start');
     const components = buildButtons(firstCard, betAmount, false);
-    const replyMsg = await interaction.reply({
-      embeds: [embed],
-      components: components,
-      fetchReply: true
-    });
+    
+    let replyMsg;
+    if (isSlash) {
+      replyMsg = await context.reply({
+        embeds: [embed],
+        components: components,
+        fetchReply: true
+      });
+    } else {
+      replyMsg = await context.reply({
+        embeds: [embed],
+        components: components
+      });
+    }
 
     // 6. Tạo collector nhận tín hiệu nhấn nút
     const filter = (i) => i.user.id === userId && ['hl_higher', 'hl_lower', 'hl_same', 'hl_cashout'].includes(i.customId);
