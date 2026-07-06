@@ -129,11 +129,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     optionInfo.lostCard
   );
 
-  const cardHeight = 110; // Giảm kích thước bài xuống 110px cho gọn gàng hơn
-  const cardWidth = Math.round(cardHeight * (262 / 372)); // 78px
-  const arrowWidth = 40;
-  const paddingX = 12;
-  const paddingY = 12;
+  const cardHeight = 85; // Giảm kích thước bài xuống 85px cho nhỏ gọn hơn
+  const cardWidth = Math.round(cardHeight * (262 / 372)); // 60px
+  const arrowWidth = 32;
+  const paddingX = 8;
+  const paddingY = 8;
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
   const width = paddingX * 2 + cardRowWidth;
@@ -170,25 +170,30 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
 /**
  * Tạo dãy nút lựa chọn và nút rút tiền
  */
-function buildButtons(currentCard, currentCashOut, isFinished) {
+function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
   const higherMultiplier = calculateMultiplier('higher', currentCard);
   const lowerMultiplier = calculateMultiplier('lower', currentCard);
+  const sameMultiplier = calculateMultiplier('same', currentCard);
+
+  const higherPayout = higherMultiplier > 0 ? Math.round(currentCashOut * higherMultiplier) : 0;
+  const lowerPayout = lowerMultiplier > 0 ? Math.round(currentCashOut * lowerMultiplier) : 0;
+  const samePayout = sameMultiplier > 0 ? Math.round(currentCashOut * sameMultiplier) : 0;
 
   const btnHigher = new ButtonBuilder()
     .setCustomId('hl_higher')
-    .setLabel(`Higher`)
+    .setLabel(`Higher (+${formatNumber(higherPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || higherMultiplier === 0);
 
   const btnLower = new ButtonBuilder()
     .setCustomId('hl_lower')
-    .setLabel(`Lower`)
+    .setLabel(`Lower (+${formatNumber(lowerPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || lowerMultiplier === 0);
 
   const btnSame = new ButtonBuilder()
     .setCustomId('hl_same')
-    .setLabel(`Same`)
+    .setLabel(`Same (+${formatNumber(samePayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished);
 
@@ -299,7 +304,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         // Cập nhật Embed thông báo thắng cuộc
         const finishedEmbed = buildEmbed(userId, game, 'cashout');
         const finishedAttachment = await buildCardsAttachment(game, 'cashout');
-        const finishedComponents = buildButtons(game.currentCard, game.cashOut, true);
+        const finishedComponents = buildButtons(game.currentCard, game.cashOut, true, game.streak);
         await i.editReply({
           content: null,
           attachments: [],
@@ -369,7 +374,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       // Cập nhật Embed
       const nextEmbed = buildEmbed(userId, updatedGame, 'correct', { guess });
       const nextAttachment = await buildCardsAttachment(updatedGame, 'correct', { guess });
-      const nextComponents = buildButtons(nextCard, newCashOut, false);
+      const nextComponents = buildButtons(nextCard, newCashOut, false, newStreak);
       await i.editReply({
         content: null,
         attachments: [],
@@ -387,7 +392,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       // Cập nhật Embed
       const lostEmbed = buildEmbed(userId, game, 'incorrect', { guess, lostCard: nextCard });
       const lostAttachment = await buildCardsAttachment(game, 'incorrect', { guess, lostCard: nextCard });
-      const lostComponents = buildButtons(nextCard, 0, true, true);
+      const lostComponents = buildButtons(nextCard, 0, true, game.streak);
       await i.editReply({
         content: null,
         attachments: [],
@@ -427,7 +432,7 @@ module.exports = {
       // RESUME GAME! (Không còn giới hạn 2 phút hết hạn nữa)
       const embed = buildEmbed(userId, activeGame, 'resume');
       const cardAttachment = await buildCardsAttachment(activeGame, 'resume');
-      const components = buildButtons(activeGame.currentCard, activeGame.cashOut, false);
+      const components = buildButtons(activeGame.currentCard, activeGame.cashOut, false, activeGame.streak);
       
       let replyMsg;
       if (isSlash) {
@@ -520,7 +525,7 @@ module.exports = {
     // 5. Gửi giao diện bắt đầu game
     const embed = buildEmbed(userId, gameData, 'start');
     const cardAttachment = await buildCardsAttachment(gameData, 'start');
-    const components = buildButtons(firstCard, betAmount, false);
+    const components = buildButtons(firstCard, betAmount, false, 0);
     
     let replyMsg;
     if (isSlash) {
