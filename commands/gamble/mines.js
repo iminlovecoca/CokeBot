@@ -158,26 +158,18 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
 /**
  * Tạo embed hiển thị trạng thái trò chơi
  */
-function buildEmbed(userId, gameData, state) {
-  const embed = new EmbedBuilder();
-  let embedColor = 0x615F5F; // Mặc định xám
-  let titleText = "";
-  
+function buildMessageContent(userId, gameData, state) {
+  let headerText = "";
   if (state === 'start') {
-    embedColor = 0x5865F2; // Xanh dương
-    titleText = `## **⚫ <@${userId}> started a mines game.**`;
+    headerText = `⚫ **<@${userId}> started a mines game.**`;
   } else if (state === 'play') {
-    embedColor = 0x5865F2; // Xanh dương
-    titleText = `## **⚫ <@${userId}> is playing a mines game.**`;
+    headerText = `⚫ **<@${userId}> is playing a mines game.**`;
   } else if (state === 'cashout') {
-    embedColor = 0x57F287; // Xanh lá
-    titleText = `## **💎 <@${userId}> cashed out!**`;
+    headerText = `💎 **<@${userId}> cashed out!**`;
   } else if (state === 'lost') {
-    embedColor = 0xED4245; // Đỏ
-    titleText = `## **💥 <@${userId}> touched a mine!**`;
+    headerText = `💥 **<@${userId}> touched a mine!**`;
   } else if (state === 'resume') {
-    embedColor = 0x5865F2; // Xanh dương
-    titleText = `## **🎮 <@${userId}> resumed a mines game.**`;
+    headerText = `🎮 **<@${userId}> resumed a mines game.**`;
   }
 
   const { bet, minesCount, cashOut, revealed } = gameData;
@@ -186,42 +178,24 @@ function buildEmbed(userId, gameData, state) {
   const nextMultiplier = getMinesMultiplier(minesCount, revealedCount + 1);
   const nextPayout = bet * nextMultiplier;
 
-  const descriptionLines = [];
-  if (titleText) {
-    descriptionLines.push(titleText);
-    descriptionLines.push(""); // giãn dòng
-  }
-
-  descriptionLines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Mines:** \`${minesCount}\``);
-  
   const isFinished = state === 'cashout' || state === 'lost';
+
+  const lines = [headerText, ""];
+  lines.push(`**Bet:** \`${formatNumber(bet)}\`  **Mines:** \`${minesCount}\``);
 
   if (isFinished) {
     if (state === 'cashout') {
-      descriptionLines.push(`-# ~~**Winnings:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      lines.push(`~~**Winnings:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     } else {
-      descriptionLines.push(`-# ~~**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      lines.push(`~~**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     }
-    descriptionLines.push(`-# ~~**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    lines.push(`~~**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
   } else {
-    descriptionLines.push(`-# **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    descriptionLines.push(`-# **Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    lines.push(`**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    lines.push(`**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
-  descriptionLines.push("────────────────────────────");
 
-  // Thêm nội dung hướng dẫn/kết quả ở dưới vạch kẻ để embed trông đầy đủ và đẹp mắt hơn
-  if (state === 'lost') {
-    descriptionLines.push("💥 **You touched a mine and lost your bet!**");
-  } else if (state === 'cashout') {
-    descriptionLines.push(`💰 **You cashed out successfully and won ${formatNumber(cashOut)} coke!**`);
-  } else {
-    descriptionLines.push("*Click the cells below to find diamonds! Avoid the mines to cash out.*");
-  }
-  
-  embed.setDescription(descriptionLines.join('\n'));
-  embed.setColor(embedColor);
-  
-  return embed;
+  return lines.join('\n');
 }
 
 /**
@@ -262,10 +236,11 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         await runTransactionWithRetry(cashOutTxn);
 
         // Hiển thị màn hình thắng cuộc
-        const finishedEmbed = buildEmbed(userId, game, 'cashout');
+        const finishedContent = buildMessageContent(userId, game, 'cashout');
         const finishedComponents = buildButtons(game.grid, game.revealed, true, game);
         await i.editReply({
-          embeds: [finishedEmbed],
+          content: finishedContent,
+          embeds: [],
           components: finishedComponents
         }).catch(() => {});
       } catch (err) {
@@ -308,10 +283,11 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         explodedCellIndex: cellIdx
       };
 
-      const lostEmbed = buildEmbed(userId, updatedData, 'lost');
+      const lostContent = buildMessageContent(userId, updatedData, 'lost');
       const lostComponents = buildButtons(game.grid, nextRevealed, true, updatedData);
       await i.editReply({
-        embeds: [lostEmbed],
+        content: lostContent,
+        embeds: [],
         components: lostComponents
       }).catch(() => {});
     } else {
@@ -345,10 +321,11 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
             isWon: true
           };
 
-          const finishedEmbed = buildEmbed(userId, wonData, 'cashout');
+          const finishedContent = buildMessageContent(userId, wonData, 'cashout');
           const finishedComponents = buildButtons(game.grid, nextRevealed, true, wonData);
           await i.editReply({
-            embeds: [finishedEmbed],
+            content: finishedContent,
+            embeds: [],
             components: finishedComponents
           }).catch(() => {});
         } catch (err) {
@@ -374,10 +351,11 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           { new: true }
         );
 
-        const playEmbed = buildEmbed(userId, updatedGame, 'play');
+        const playContent = buildMessageContent(userId, updatedGame, 'play');
         const playComponents = buildButtons(game.grid, nextRevealed, false, updatedGame);
         await i.editReply({
-          embeds: [playEmbed],
+          content: playContent,
+          embeds: [],
           components: playComponents
         }).catch(() => {});
       }
@@ -437,19 +415,21 @@ module.exports = {
 
     if (activeGame) {
       // RESUME GAME
-      const embed = buildEmbed(userId, activeGame, 'resume');
+      const content = buildMessageContent(userId, activeGame, 'resume');
       const components = buildButtons(activeGame.grid, activeGame.revealed, false, activeGame);
 
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
-          embeds: [embed],
+          content: content,
+          embeds: [],
           components: components,
           fetchReply: true
         });
       } else {
         replyMsg = await context.reply({
-          embeds: [embed],
+          content: content,
+          embeds: [],
           components: components
         });
       }
@@ -521,19 +501,21 @@ module.exports = {
     }
 
     // 5. Gửi màn hình bắt đầu game
-    const embed = buildEmbed(userId, gameData, 'start');
+    const content = buildMessageContent(userId, gameData, 'start');
     const components = buildButtons(grid, gameData.revealed, false, gameData);
 
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
-        embeds: [embed],
+        content: content,
+        embeds: [],
         components: components,
         fetchReply: true
       });
     } else {
       replyMsg = await context.reply({
-        embeds: [embed],
+        content: content,
+        embeds: [],
         components: components
       });
     }
