@@ -136,16 +136,16 @@ function buildCardRow(cardHistory, isFinished, isLost, lostCard) {
       }
       // Hiển thị tối đa 3 lá bài cuối
       const displayed = tempHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join("  ▶  ");
+      return displayed.map(c => emojiDict[c] || c).join(" ▶️ ");
     } else {
       // Đã cash out: Hiển thị tối đa 3 lá bài đã chơi
       const displayed = cardHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join("  ▶  ");
+      return displayed.map(c => emojiDict[c] || c).join(" ▶️ ");
     }
   } else {
     // Game đang diễn ra: Hiển thị tối đa 2 lá bài và lá Úp ở cuối
     const displayed = cardHistory.slice(-2);
-    return [...displayed.map(c => emojiDict[c] || c), emojiBack].join("  ▶  ");
+    return [...displayed.map(c => emojiDict[c] || c), emojiBack].join(" ▶️ ");
   }
 }
 
@@ -219,7 +219,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
     titleText = `👎 <@${userId}> guessed incorrectly!!\n`;
   } else if (state === 'cashout') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `💰 <@${userId}> cashed out!\n`;
+    titleText = `${CONFIG.EMOJIS.money} <@${userId}> cashed out!\n`;
   } else if (state === 'timeout') {
     embedColor = 0x95A5A6; // Xám
     titleText = `⏱ | <@${userId}>'s game timed out!\n`;
@@ -235,7 +235,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   
   // Hiển thị các thông tin thống kê ở trên
   descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-  descriptionLines.push(`━━━━━━━━━━━━━━━━━━━━\n`);
+  descriptionLines.push(`***`); // Đường kẻ ngang mỏng của Discord Markdown (thin horizontal rule)
   
   const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
   const cardRowText = buildCardRow(cardHistory, isFinished, state === 'incorrect', optionInfo.lostCard);
@@ -244,16 +244,15 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   
   // Phần mô tả chi tiết kết quả đoán
   if (state === 'incorrect') {
-    descriptionLines.push(`You guessed \`${optionInfo.guess}\`. You lost.`);
+    descriptionLines.push(`You guessed \`${optionInfo.guess}\` . You lost.`);
     descriptionLines.push(`Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
   } else if (state === 'cashout') {
-    descriptionLines.push(`You cashed out \`${formatNumber(cashOut)}\` coke!`);
+    descriptionLines.push(`You cashed out with **${formatNumber(cashOut)}** coke!`);
+    descriptionLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   } else if (state === 'timeout') {
     descriptionLines.push(`Game timed out. You lost the bet!`);
-  } else if (state === 'correct') {
-    descriptionLines.push(`You guessed \`${optionInfo.guess}\`. You won!`);
-    descriptionLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   } else {
+    // Trạng thái bắt đầu và đoán đúng: Chỉ hiển thị giá trị lá bài hiện tại
     descriptionLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   }
   
