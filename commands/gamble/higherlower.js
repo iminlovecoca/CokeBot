@@ -153,7 +153,7 @@ function buildCardRow(cardHistory, isFinished, isLost, lostCard) {
 /**
  * Tạo dãy nút lựa chọn và nút rút tiền
  */
-function buildButtons(currentCard, currentCashOut, isFinished, isLost = false) {
+function buildButtons(currentCard, currentCashOut, isFinished, isLost = false, allowCashOut = currentCashOut > 0) {
   const higherMultiplier = calculateMultiplier('higher', currentCard);
   const lowerMultiplier = calculateMultiplier('lower', currentCard);
   const sameMultiplier = calculateMultiplier('same', currentCard);
@@ -181,12 +181,15 @@ function buildButtons(currentCard, currentCashOut, isFinished, isLost = false) {
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished);
 
+  const canCashOut = !isFinished && allowCashOut && currentCashOut > 0;
   const btnCashOut = new ButtonBuilder()
     .setCustomId('hl_cashout')
     .setStyle(ButtonStyle.Success)
-    .setDisabled(isFinished || currentCashOut === 0);
+    .setDisabled(!canCashOut);
 
-  if (isFinished) {
+  if (!canCashOut && !isFinished) {
+    btnCashOut.setLabel("Cash Out");
+  } else if (isFinished) {
     if (isLost) {
       btnCashOut.setLabel("Cash Out");
     } else {
@@ -207,11 +210,13 @@ function buildButtons(currentCard, currentCashOut, isFinished, isLost = false) {
  */
 function buildEmbed(userId, gameData, state, optionInfo = {}) {
   const embed = new EmbedBuilder();
-  const embedColor = 0x4A4D55;
-  const divider = "━━━━━━━━━━━━━━━━━━━━";
+  const embedColor = 0x8AD5FF;
+  const divider = "────────────────────────────";
   let titleText = "";
   
-  if (state === 'correct') {
+  if (state === 'start') {
+    titleText = `${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.`;
+  } else if (state === 'correct') {
     titleText = `🎉 <@${userId}> guessed correctly!!`;
   } else if (state === 'incorrect') {
     titleText = `👎 <@${userId}> guessed incorrectly!!`;
@@ -222,14 +227,15 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   }
 
   const { bet, streak, cashOut, currentCard, cardHistory } = gameData;
-  const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
+  const displayCashOut = streak === 0 && state === 'start' ? 0 : cashOut;
+  const currentMultiplier = bet > 0 ? (displayCashOut / bet) : 0.0;
   
   // 1. Phần mô tả chứa thông tin cược (Bet, Streak, Cash Out) ở trên
   const descriptionLines = [];
   if (titleText) {
     descriptionLines.push(titleText);
   }
-  descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+  descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(displayCashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
   descriptionLines.push(divider);
   embed.setDescription(descriptionLines.join('\n'));
 
@@ -254,6 +260,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
     fieldValueLines.push(`Game timed out. You lost the bet!`);
   } else {
     // Trạng thái bắt đầu và đoán đúng: Chỉ hiển thị giá trị lá bài hiện tại
+    fieldValueLines.push(`Is the next card higher, lower, or the same value?`);
     fieldValueLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   }
   
@@ -357,7 +364,7 @@ module.exports = {
 
     // 5. Gửi giao diện bắt đầu game
     const embed = buildEmbed(userId, gameData, 'start');
-    const components = buildButtons(firstCard, betAmount, false);
+    const components = buildButtons(firstCard, betAmount, false, false, false);
     
     let replyMsg;
     if (isSlash) {
@@ -367,7 +374,7 @@ module.exports = {
         fetchReply: true
       });
     } else {
-      replyMsg = await context.reply({
+      replyMsg = await context.channel.send({
         embeds: [embed],
         components: components
       });
