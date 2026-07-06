@@ -129,11 +129,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     optionInfo.lostCard
   );
 
-  const cardHeight = 85; // Giảm kích thước bài xuống 85px cho nhỏ gọn hơn
-  const cardWidth = Math.round(cardHeight * (262 / 372)); // 60px
-  const arrowWidth = 32;
-  const paddingX = 8;
-  const paddingY = 8;
+  const cardHeight = 50; // Giảm kích thước bài xuống 50px cho cực kỳ nhỏ gọn
+  const cardWidth = Math.round(cardHeight * (262 / 372)); // 35px
+  const arrowWidth = 20;
+  const paddingX = 5;
+  const paddingY = 5;
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
   const width = paddingX * 2 + cardRowWidth;
@@ -150,14 +150,14 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     x += cardWidth;
 
     if (i < displayedCards.length - 1) {
-      // Vẽ dấu mũi tên màu xám phân tách giữa các quân bài
+      // Vẽ dấu mũi tên màu xám phân tách giữa các quân bài nhỏ gọn
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowX = x + (arrowWidth - 14) / 2;
+      const arrowX = x + (arrowWidth - 10) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - 10);
-      ctx.lineTo(arrowX, arrowY + 10);
-      ctx.lineTo(arrowX + 14, arrowY);
+      ctx.moveTo(arrowX, arrowY - 6);
+      ctx.lineTo(arrowX, arrowY + 6);
+      ctx.lineTo(arrowX + 10, arrowY);
       ctx.closePath();
       ctx.fill();
       x += arrowWidth;
