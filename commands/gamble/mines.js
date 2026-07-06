@@ -13,7 +13,6 @@ const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const MinesGame = require("../../models/MinesGame");
 
-// Cấu hình Mines Game
 const CONFIG = {
   MIN_BET: 10,
   MAX_BET: config.gamble_settings.max_bet || 250000,
@@ -23,9 +22,6 @@ const CONFIG = {
   }
 };
 
-/**
- * Tính toán tổ hợp n chọn r
- */
 function choose(n, r) {
   if (r < 0 || r > n) return 0;
   if (r === 0 || r === n) return 1;
@@ -36,22 +32,17 @@ function choose(n, r) {
   return res;
 }
 
-/**
- * Tính toán hệ số nhân dựa trên toán học xác suất
- */
 function getMinesMultiplier(minesCount, revealedCount) {
   if (revealedCount === 0) return 0.0;
   const totalCells = 9;
   const diamondsCount = totalCells - minesCount;
   if (revealedCount > diamondsCount) return 0.0;
 
-  // Bản tra cứu nhanh cho 3 mìn để khớp chính xác Owo
   if (minesCount === 3) {
     const lut = [0.0, 1.40, 2.20, 3.90, 7.80, 19.50, 78.00];
     return lut[revealedCount] || 0.0;
   }
 
-  // Công thức tổng quát cho số mìn khác với tỷ lệ RTP tương đương (0.93)
   const waysTotal = choose(totalCells, revealedCount);
   const waysDiamonds = choose(diamondsCount, revealedCount);
   if (waysDiamonds === 0) return 0.0;
@@ -61,16 +52,10 @@ function getMinesMultiplier(minesCount, revealedCount) {
   return Number((fairMultiplier * RTP).toFixed(2));
 }
 
-/**
- * Định dạng tiền hiển thị
- */
 function formatNumber(num) {
   return Math.round(num).toLocaleString();
 }
 
-/**
- * Tạo lưới mìn ngẫu nhiên (3x3 = 9 ô)
- */
 function generateGrid(minesCount) {
   const grid = [];
   for (let i = 0; i < minesCount; i++) {
@@ -81,7 +66,6 @@ function generateGrid(minesCount) {
     grid.push('diamond');
   }
   
-  // Shuffle lưới
   for (let i = grid.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [grid[i], grid[j]] = [grid[j], grid[i]];
@@ -89,13 +73,9 @@ function generateGrid(minesCount) {
   return grid;
 }
 
-/**
- * Dựng hệ thống nút lưới 3x3 và nút Cash Out
- */
 function buildButtons(grid, revealed, isFinished, activeGame = null) {
   const rows = [];
   
-  // 3 Hàng lưới mìn (mỗi hàng 3 cột)
   for (let r = 0; r < 3; r++) {
     const row = new ActionRowBuilder();
     for (let c = 0; c < 3; c++) {
@@ -108,14 +88,12 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
       if (isFinished) {
         btn.setDisabled(true);
         if (isCellMine) {
-          // Ô phát nổ
           if (activeGame && activeGame.explodedCellIndex === idx) {
             btn.setStyle(ButtonStyle.Danger).setEmoji('💥');
           } else {
             btn.setStyle(ButtonStyle.Secondary).setEmoji('💣');
           }
         } else {
-          // Ô kim cương
           if (isCellRevealed) {
             btn.setStyle(ButtonStyle.Success).setEmoji('💎');
           } else {
@@ -134,11 +112,11 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
     rows.push(row);
   }
 
-  // Nút Cash Out ở hàng 4
   const btnCashOut = new ButtonBuilder()
     .setCustomId('mines_cashout')
-    .setLabel('💵 Cash Out')
-    .setStyle(ButtonStyle.Success);
+    .setLabel('Cash Out')
+    .setStyle(ButtonStyle.Success)
+    .setEmoji(CONFIG.EMOJIS.money);
 
   const revealedCount = revealed.filter(Boolean).length;
   if (isFinished) {
@@ -155,21 +133,18 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
   return rows;
 }
 
-/**
- * Tạo nội dung hiển thị trạng thái trò chơi
- */
 function buildMessageContent(userId, gameData, state) {
   let headerText = "";
   if (state === 'start') {
-    headerText = `⚫ **<@${userId}> started a mines game.**`;
+    headerText = `💣 **<@${userId}> started a mines game.**`;
   } else if (state === 'play') {
-    headerText = `⚫ **<@${userId}> is playing a mines game.**`;
+    headerText = `💣 **<@${userId}> is playing a mines game.**`;
   } else if (state === 'cashout') {
     headerText = `💎 **<@${userId}> cashed out!**`;
   } else if (state === 'lost') {
     headerText = `💥 **<@${userId}> touched a mine!**`;
   } else if (state === 'resume') {
-    headerText = `🎮 **<@${userId}> resumed a mines game.**`;
+    headerText = `💣 **<@${userId}> resumed a mines game.**`;
   }
 
   const { bet, minesCount, cashOut, revealed } = gameData;
@@ -179,33 +154,29 @@ function buildMessageContent(userId, gameData, state) {
   const nextPayout = bet * nextMultiplier;
 
   const isFinished = state === 'cashout' || state === 'lost';
-  const lines = [`>>> ${headerText}`, ""];
-  lines.push(`**Bet:** \`${formatNumber(bet)}\`  **Mines:** \`${minesCount}\``);
+
+  const lines = [headerText, ""];
+  lines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Mines:** \`${minesCount}\``);
 
   if (isFinished) {
     if (state === 'cashout') {
-      lines.push(`~~**Winnings:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      lines.push(`-# ~~**Winnings:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     } else {
-      lines.push(`~~**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      lines.push(`-# ~~**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     }
-    lines.push(`~~**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    lines.push(`-# ~~**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
   } else {
-    lines.push(`**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    lines.push(`**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    lines.push(`-# **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    lines.push(`-# **Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
 
   return lines.join('\n');
 }
 
-/**
- * Thiết lập bộ lắng nghe nút bấm chung cho Start/Resume
- */
 function setupCollector(collector, replyMsg, gameData, userId, isSlash, context) {
   collector.on('collect', async (i) => {
-    // Phản hồi Discord lập tức để tránh quá giờ phản hồi của nút
     await i.deferUpdate().catch(() => {});
 
-    // Lock game
     const game = await MinesGame.findOneAndUpdate(
       { userId, status: 'active' },
       { $set: { status: 'processing' } },
@@ -216,25 +187,21 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
     const customId = i.customId;
 
-    // XỬ LÝ CASH OUT
     if (customId === 'mines_cashout') {
       collector.stop('cashout');
 
       try {
         const cashOutTxn = async (session) => {
-          // Cộng tiền thắng cược (đã làm tròn) cho người chơi
           await User.updateOne(
             { userId },
             { $inc: { coke: Math.round(game.cashOut) } }
           ).session(session);
 
-          // Xóa game khỏi DB
           await MinesGame.deleteOne({ userId }).session(session);
         };
 
         await runTransactionWithRetry(cashOutTxn);
 
-        // Hiển thị màn hình thắng cuộc
         const finishedContent = buildMessageContent(userId, game, 'cashout');
         const finishedComponents = buildButtons(game.grid, game.revealed, true, game);
         await i.editReply({
@@ -256,10 +223,8 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       return;
     }
 
-    // XỬ LÝ LỰA CHỌN Ô
     const cellIdx = parseInt(customId.split('_')[2]);
     if (game.revealed[cellIdx]) {
-      // Ô đã mở, mở khóa & bỏ qua
       await MinesGame.updateOne({ userId }, { $set: { status: 'active' } });
       return;
     }
@@ -270,10 +235,8 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
     const isMine = game.grid[cellIdx] === 'mine';
 
     if (isMine) {
-      // ĐỤNG MÌN -> THUA CUỘC
       collector.stop('lost');
 
-      // Xóa game
       await MinesGame.deleteOne({ userId });
 
       const updatedData = {
@@ -290,7 +253,6 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         components: lostComponents
       }).catch(() => {});
     } else {
-      // TRÚNG KIM CƯƠNG -> TIẾP TỤC
       const newRevealedCount = nextRevealed.filter(Boolean).length;
       const newMultiplier = getMinesMultiplier(game.minesCount, newRevealedCount);
       const newCashOut = game.bet * newMultiplier;
@@ -298,7 +260,6 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       const totalDiamonds = 9 - game.minesCount;
 
       if (newRevealedCount === totalDiamonds) {
-        // ĐÃ MỞ HẾT KIM CƯƠNG -> TỰ ĐỘNG THẮNG TUYỆT ĐỐI (Guaranteed Cash Out)
         collector.stop('win');
 
         try {
@@ -329,14 +290,12 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           }).catch(() => {});
         } catch (err) {
           console.error("Lỗi khi tự động thắng game Mines:", err);
-          // Unlock game
           await MinesGame.updateOne(
             { userId },
             { $set: { status: 'active' } }
           );
         }
       } else {
-        // CẬP NHẬT TRẠNG THÁI TIẾP TỤC GAME
         const updatedGame = await MinesGame.findOneAndUpdate(
           { userId },
           {
@@ -364,7 +323,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
 module.exports = {
   name: "mines",
-  aliases: ["min", "m"],
+  aliases: ["min", "ms", "mine"],
   category: "gamble",
   data: new SlashCommandBuilder()
     .setName("mines")
@@ -373,7 +332,7 @@ module.exports = {
       option
         .setName("bet")
         .setDescription("Số coke muốn cược (ví dụ: 10000, all, min)")
-        .setRequired(false) // Không bắt buộc để hỗ trợ khôi phục ván bài hoặc mặc định
+        .setRequired(false)
     )
     .addIntegerOption((option) =>
       option
@@ -386,7 +345,6 @@ module.exports = {
     const isSlash = !context.author;
     const userId = isSlash ? context.user.id : context.author.id;
     
-    // Parse betInput và minesInput
     let betInput = null;
     let minesInput = 3;
 
@@ -401,7 +359,6 @@ module.exports = {
       }
     }
 
-    // Giới hạn số mìn từ 1 đến 8
     if (minesInput < 1 || minesInput > 8) {
       return context.reply({
         content: "❌ Số lượng mìn chỉ được phép từ 1 đến 8 mìn!",
@@ -409,11 +366,9 @@ module.exports = {
       });
     }
 
-    // 1. Kiểm tra ván game đang active để khôi phục (Resume)
     let activeGame = await MinesGame.findOne({ userId });
 
     if (activeGame) {
-      // RESUME GAME
       const content = buildMessageContent(userId, activeGame, 'resume');
       const components = buildButtons(activeGame.grid, activeGame.revealed, false, activeGame);
 
@@ -443,10 +398,8 @@ module.exports = {
       return;
     }
 
-    // Bắt đầu game mới
     const finalBetInput = betInput || "10";
 
-    // 2. Cooldown check
     const remainingCooldown = checkAndSetCooldown(userId, "mines", CONFIG.COOLDOWN_SECONDS);
     if (remainingCooldown > 0) {
       return context.reply({
@@ -455,7 +408,6 @@ module.exports = {
       });
     }
 
-    // 3. Phân tích tiền cược & kiểm tra số dư
     let betAmount;
     try {
       betAmount = await getBetAmount(finalBetInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
@@ -466,7 +418,6 @@ module.exports = {
       });
     }
 
-    // 4. Tạo lưới mìn & Trừ tiền & Lưu trạng thái DB
     const grid = generateGrid(minesInput);
     const gameData = {
       userId,
@@ -480,13 +431,11 @@ module.exports = {
 
     try {
       const startMinesTxn = async (session) => {
-        // Trừ tiền user
         await User.updateOne(
           { userId },
           { $inc: { coke: -betAmount } }
         ).session(session);
 
-        // Lưu db
         await MinesGame.create([gameData], { session });
       };
 
@@ -499,7 +448,6 @@ module.exports = {
       });
     }
 
-    // 5. Gửi màn hình bắt đầu game
     const content = buildMessageContent(userId, gameData, 'start');
     const components = buildButtons(grid, gameData.revealed, false, gameData);
 
@@ -519,7 +467,6 @@ module.exports = {
       });
     }
 
-    // 6. Collector nút bấm
     const filter = (i) => i.user.id === userId && (i.customId.startsWith('mines_cell_') || i.customId === 'mines_cashout');
     const collector = replyMsg.createMessageComponentCollector({
       filter,
