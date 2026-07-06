@@ -902,7 +902,11 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
   const equipped = getEquippedItems(user);
   const weapon = equipped.weapon;
-  const cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
+  let cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  if (LOCKED_WEAPONS.includes(cleanSubType)) {
+    cleanSubType = "";
+  }
   const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
   
   if (!activeBoss.effects) {

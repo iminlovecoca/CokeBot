@@ -174,7 +174,12 @@ const simulatePvP = (p1, p2) => {
     }
 
     
-    const attackerSubType = attacker.weapon?.subType ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
+
+    let attackerSubType = attacker.weapon?.subType ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+    if (LOCKED_WEAPONS.includes(attackerSubType)) {
+      attackerSubType = "";
+    }
     if (attackerSubType.includes("shieldhex") && attacker.effects.shieldhexRounds >= 3) {
       const reflectDmg = Math.floor((attacker.effects.shieldhexAbsorbed || 0) * 0.90);
       defender.hp = Math.max(0, defender.hp - reflectDmg);
@@ -191,9 +196,12 @@ const simulatePvP = (p1, p2) => {
     const isEvaded = Math.random() < defenderEvasion;
 
     const attackerWeapon = attacker.weapon;
-    const cleanSubType = attackerWeapon?.subType
+    let cleanSubType = attackerWeapon?.subType
       ? attackerWeapon.subType.toLowerCase().replace(/\s+/g, "")
       : "";
+    if (LOCKED_WEAPONS.includes(cleanSubType)) {
+      cleanSubType = "";
+    }
     const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
 
     let axesnakeTriggered = false;
@@ -339,7 +347,11 @@ const simulatePvP = (p1, p2) => {
 
       let damage = Math.max(5, Math.floor((rawDamage * finalMult) / 10));
 
-      if (defender.weapon?.subType?.toLowerCase().replace(/\s+/g, "").includes("shieldhex")) {
+      let defenderSubType = defender.weapon?.subType ? defender.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+      if (LOCKED_WEAPONS.includes(defenderSubType)) {
+        defenderSubType = "";
+      }
+      if (defenderSubType.includes("shieldhex")) {
         damage = Math.floor(damage * 0.80);
         defender.effects.shieldhexAbsorbed = (defender.effects.shieldhexAbsorbed || 0) + damage;
         defender.effects.shieldhexRounds = (defender.effects.shieldhexRounds || 0) + 1;

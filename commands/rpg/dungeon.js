@@ -203,66 +203,18 @@ class DungeonCommand extends BaseCommand {
         .setDisabled(progress < 5)
     );
 
-    const row3 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_7")
-        .setLabel("Chương 7 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_8")
-        .setLabel("Chương 8 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_9")
-        .setLabel("Chương 9 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_10")
-        .setLabel("Chương 10 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true)
-    );
-
-    const row4 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_11")
-        .setLabel("Chương 11 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_12")
-        .setLabel("Chương 12 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_13")
-        .setLabel("Chương 13 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-      new ButtonBuilder()
-        .setCustomId("rpg_dungeon_start_14")
-        .setLabel("Chương 14 🔒")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true)
-    );
-
     const mapSelectEmbed = new EmbedBuilder()
       .setColor("#9B59B6")
-      .setTitle("🗺️ Bản đồ phó bản Dungeon")
+      .setTitle("🗺️ Bản đồ phó bản Dungeon (Chapter 1)")
       .setDescription(
-        `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn.\n\n` +
-        `🟢 **Chapter 1 (Khởi Đầu):** Chương 1 đến Chương 6.\n` +
-        `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(6, progress + 1)}**\n\n` +
-        `🔴 **Chapter 2 (Thất Đại Tội):** Chương 7 đến Chương 14 *(Tạm thời khóa - Sắp ra mắt)*`
+        `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn. Đi lần lượt từ chương 1 đến chương 6.\n\n` +
+        `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(6, progress + 1)}**`
       )
       .setTimestamp();
 
     const selectMsg = await message.reply({
       embeds: [mapSelectEmbed],
-      components: [row1, row2, row3, row4],
+      components: [row1, row2],
     });
 
     const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_dungeon_start_");
@@ -273,6 +225,9 @@ class DungeonCommand extends BaseCommand {
       const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
       collector.stop("selected");
       
+      if (chapter >= 7) {
+        return message.reply("❌ Dungeon Chương 7 trở đi hiện đang tạm thời đóng để bảo trì phát triển!");
+      }
       
       await askBlessing(message, selectMsg, guild, chapter);
     });

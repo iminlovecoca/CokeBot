@@ -178,6 +178,17 @@ const tickStatusEffects = (target, activeDungeon) => {
 
 const triggerWeaponPassiveOnAttack = (player, enemy, activeDungeon, rawDamage, isMagical, isSecondHit, multiplier, isSkill) => {
   const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  
+  const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
+  if (LOCKED_WEAPONS.includes(pWeaponSubType)) {
+    return {
+      damage: rawDamage,
+      mrOrArmor: isMagical ? enemy.magicResist : enemy.armor,
+      doubleHitTriggered: false,
+      logs: []
+    };
+  }
+
   const hasWeaponTriggered = Math.random() < 0.45;
   const logs = [];
   let finalDamage = rawDamage;
