@@ -269,7 +269,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
 function setupCollector(collector, replyMsg, gameData, userId, isSlash, context) {
   collector.on('collect', async (i) => {
     // Phản hồi Discord lập tức để tránh quá giờ phản hồi của nút
-    await i.deferUpdate();
+    await i.deferUpdate().catch(() => {});
 
     // Kiểm tra trạng thái và chuyển status sang 'processing' để lock game tránh bấm nút liên tiếp
     const game = await HigherLowerGame.findOneAndUpdate(
@@ -289,10 +289,10 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
       try {
         const cashOutTxn = async (session) => {
-          // Cộng tiền thưởng tích lũy cho người chơi
+          // Cộng tiền thưởng tích lũy cho người chơi (Làm tròn ở giao dịch cuối)
           await User.updateOne(
             { userId },
-            { $inc: { coke: game.cashOut } }
+            { $inc: { coke: Math.round(game.cashOut) } }
           ).session(session);
 
           // Xóa dữ liệu game Cao Thấp
@@ -311,7 +311,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           embeds: [finishedEmbed],
           files: [finishedAttachment],
           components: finishedComponents
-        });
+        }).catch(() => {});
       } catch (err) {
         console.error("Lỗi khi xử lý rút tiền game Cao Thấp:", err);
         // Trả lại trạng thái active nếu lỗi db để người chơi thử lại
@@ -322,7 +322,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         await i.followUp({
           content: "❌ Rút tiền thất bại. Hãy bấm Cash Out lại!",
           ephemeral: true
-        });
+        }).catch(() => {});
       }
       return;
     }
@@ -352,7 +352,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       // Đoán đúng! Tiếp tục trò chơi
       const multiplier = calculateMultiplier(guess.toLowerCase(), game.currentCard);
       const newStreak = game.streak + 1;
-      const newCashOut = Math.round(game.cashOut * multiplier);
+      const newCashOut = game.cashOut * multiplier; // Lưu ở dạng số thực không làm tròn trung gian
       const newCardHistory = [...game.cardHistory, nextCard];
 
       // Lưu trạng thái mới vào DB & unlock
@@ -381,7 +381,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         embeds: [nextEmbed],
         files: [nextAttachment],
         components: nextComponents
-      });
+      }).catch(() => {});
     } else {
       // Đoán sai! Mất hết tiền cược & kết thúc game
       collector.stop('lost');
@@ -399,7 +399,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         embeds: [lostEmbed],
         files: [lostAttachment],
         components: lostComponents
-      });
+      }).catch(() => {});
     }
   });
 
