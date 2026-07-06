@@ -263,7 +263,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   // 2. Di chuyển các chữ này xuống phía dưới ảnh bài và hiển thị chữ nhỏ (Embed Footer)
   let footerText = "";
   if (state === 'incorrect') {
-    footerText = `You guessed ``${optionInfo.guess}``. You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
+    footerText = `You guessed \`${optionInfo.guess}\`. You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
   } else if (state === 'cashout') {
     footerText = `You cashed out with ${formatNumber(cashOut)} coke!\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
   } else {
