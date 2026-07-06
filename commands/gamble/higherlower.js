@@ -248,7 +248,6 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   const { bet, streak, cashOut, currentCard } = gameData;
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
   
-  // 1. Phần mô tả chứa thông tin cược (Bet, Streak, Cash Out) ở trên
   const descriptionLines = [];
   if (titleText) {
     descriptionLines.push(titleText);
@@ -256,22 +255,21 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   }
   descriptionLines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
   descriptionLines.push("────────────────────────────");
-
-  // 2. Thêm thông tin mô tả trò chơi vào description (hỗ trợ markdown mã code và chữ nhạt)
-  if (state === 'incorrect') {
-    descriptionLines.push(`You guessed \`${optionInfo.guess}\`. You lost.`);
-    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
-  } else if (state === 'cashout') {
-    descriptionLines.push(`You cashed out with ${formatNumber(cashOut)} coke!`);
-    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(currentCard)}`);
-  } else {
-    descriptionLines.push("Is the next card higher, lower, or the same value?");
-    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(currentCard)}`);
-  }
   
   embed.setDescription(descriptionLines.join('\n'));
   embed.setImage("attachment://higherlower_cards.png");
   embed.setColor(embedColor);
+
+  // 2. Di chuyển các chữ này xuống phía dưới ảnh bài và hiển thị chữ nhỏ (Embed Footer)
+  let footerText = "";
+  if (state === 'incorrect') {
+    footerText = `You guessed ${optionInfo.guess}. You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
+  } else if (state === 'cashout') {
+    footerText = `You cashed out with ${formatNumber(cashOut)} coke!\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
+  } else {
+    footerText = `Is the next card higher, lower, or the same value?\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
+  }
+  embed.setFooter({ text: footerText });
   
   return embed;
 }
