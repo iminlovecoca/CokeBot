@@ -208,6 +208,15 @@ function buildEmbed(userId, gameData, state) {
     descriptionLines.push(`-# **Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
   descriptionLines.push("────────────────────────────");
+
+  // Thêm nội dung hướng dẫn/kết quả ở dưới vạch kẻ để embed trông đầy đủ và đẹp mắt hơn
+  if (state === 'lost') {
+    descriptionLines.push("💥 **You touched a mine and lost your bet!**");
+  } else if (state === 'cashout') {
+    descriptionLines.push(`💰 **You cashed out successfully and won ${formatNumber(cashOut)} coke!**`);
+  } else {
+    descriptionLines.push("*Click the cells below to find diamonds! Avoid the mines to cash out.*");
+  }
   
   embed.setDescription(descriptionLines.join('\n'));
   embed.setColor(embedColor);
