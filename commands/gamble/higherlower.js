@@ -150,11 +150,6 @@ function buildCardRow(cardHistory, isFinished, isLost, lostCard) {
   }
 }
 
-function buildMessageContent(gameData, state, optionInfo = {}) {
-  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
-  return buildCardRow(gameData.cardHistory, isFinished, state === 'incorrect', optionInfo.lostCard);
-}
-
 /**
  * Tạo dãy nút lựa chọn và nút rút tiền
  */
@@ -226,7 +221,7 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
     titleText = `⏱ | <@${userId}>'s game timed out!`;
   }
 
-  const { bet, streak, cashOut, currentCard } = gameData;
+  const { bet, streak, cashOut, currentCard, cardHistory } = gameData;
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
   
   // 1. Phần mô tả chứa thông tin cược (Bet, Streak, Cash Out) ở trên
@@ -237,6 +232,15 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
   descriptionLines.push(divider);
   embed.setDescription(descriptionLines.join('\n'));
+
+  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
+  const cardRowText = buildCardRow(cardHistory, isFinished, state === 'incorrect', optionInfo.lostCard);
+
+  embed.addFields({
+    name: "\u200b",
+    value: cardRowText,
+    inline: false
+  });
 
   // 2. Chứa kết quả đoán và Current Card (Văn bản thường)
   const fieldValueLines = [];
@@ -353,20 +357,17 @@ module.exports = {
 
     // 5. Gửi giao diện bắt đầu game
     const embed = buildEmbed(userId, gameData, 'start');
-    const content = buildMessageContent(gameData, 'start');
     const components = buildButtons(firstCard, betAmount, false);
     
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
-        content,
         embeds: [embed],
         components: components,
         fetchReply: true
       });
     } else {
       replyMsg = await context.reply({
-        content,
         embeds: [embed],
         components: components
       });
@@ -416,10 +417,9 @@ module.exports = {
 
           // Cập nhật Embed thông báo thắng cuộc
           const finishedEmbed = buildEmbed(userId, game, 'cashout');
-          const finishedContent = buildMessageContent(game, 'cashout');
           const finishedComponents = buildButtons(game.currentCard, game.cashOut, true);
           await i.editReply({
-            content: finishedContent,
+            content: null,
             embeds: [finishedEmbed],
             components: finishedComponents
           });
@@ -487,10 +487,9 @@ module.exports = {
 
         // Cập nhật Embed
         const nextEmbed = buildEmbed(userId, updatedGame, 'correct', { guess });
-        const nextContent = buildMessageContent(updatedGame, 'correct', { guess });
         const nextComponents = buildButtons(nextCard, newCashOut, false);
         await i.editReply({
-          content: nextContent,
+          content: null,
           embeds: [nextEmbed],
           components: nextComponents
         });
@@ -503,10 +502,9 @@ module.exports = {
 
         // Cập nhật Embed
         const lostEmbed = buildEmbed(userId, game, 'incorrect', { guess, lostCard: nextCard });
-        const lostContent = buildMessageContent(game, 'incorrect', { guess, lostCard: nextCard });
         const lostComponents = buildButtons(nextCard, 0, true, true);
         await i.editReply({
-          content: lostContent,
+          content: null,
           embeds: [lostEmbed],
           components: lostComponents
         });
@@ -525,10 +523,9 @@ module.exports = {
 
         // Sửa giao diện sang dạng hết giờ cược
         const timeoutEmbed = buildEmbed(userId, game, 'timeout');
-        const timeoutContent = buildMessageContent(game, 'timeout');
         const timeoutComponents = buildButtons(game.currentCard, 0, true, true);
         await replyMsg.edit({
-          content: timeoutContent,
+          content: null,
           embeds: [timeoutEmbed],
           components: timeoutComponents
         }).catch(() => {});
