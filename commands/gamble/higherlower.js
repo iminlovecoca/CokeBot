@@ -136,16 +136,16 @@ function buildCardRow(cardHistory, isFinished, isLost, lostCard) {
       }
       // Hiển thị tối đa 3 lá bài cuối
       const displayed = tempHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join(" ▶️ ");
+      return displayed.map(c => emojiDict[c] || c).join(" ▶ ");
     } else {
       // Đã cash out: Hiển thị tối đa 3 lá bài đã chơi
       const displayed = cardHistory.slice(-3);
-      return displayed.map(c => emojiDict[c] || c).join(" ▶️ ");
+      return displayed.map(c => emojiDict[c] || c).join(" ▶ ");
     }
   } else {
     // Game đang diễn ra: Hiển thị tối đa 2 lá bài và lá Úp ở cuối
     const displayed = cardHistory.slice(-2);
-    return [...displayed.map(c => emojiDict[c] || c), emojiBack].join(" ▶️ ");
+    return [...displayed.map(c => emojiDict[c] || c), emojiBack].join(" ▶ ");
   }
 }
 
@@ -228,35 +228,45 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   const { bet, streak, cashOut, currentCard, cardHistory } = gameData;
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
   
+  // 1. Phần mô tả chứa thông tin cược (Bet, Streak, Cash Out) ở trên
   const descriptionLines = [];
   if (titleText) {
     descriptionLines.push(titleText);
   }
-  
-  // Hiển thị các thông tin thống kê ở trên
   descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-  descriptionLines.push(`***`); // Đường kẻ ngang mỏng của Discord Markdown (thin horizontal rule)
-  
+  embed.setDescription(descriptionLines.join('\n'));
+
+  // 2. Field 1: Chỉ chứa hàng các lá bài (Để Discord render kích cỡ JUMBO lớn)
   const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
   const cardRowText = buildCardRow(cardHistory, isFinished, state === 'incorrect', optionInfo.lostCard);
-  descriptionLines.push(cardRowText);
-  descriptionLines.push("");
   
-  // Phần mô tả chi tiết kết quả đoán
+  embed.addFields({
+    name: "\u200b", // Tên field rỗng để ẩn tiêu đề field
+    value: cardRowText,
+    inline: false
+  });
+
+  // 3. Field 2: Chứa kết quả đoán và Current Card (Văn bản thường)
+  const fieldValueLines = [];
   if (state === 'incorrect') {
-    descriptionLines.push(`You guessed \`${optionInfo.guess}\` . You lost.`);
-    descriptionLines.push(`Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
+    fieldValueLines.push(`You guessed \`${optionInfo.guess}\` . You lost.`);
+    fieldValueLines.push(`Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
   } else if (state === 'cashout') {
-    descriptionLines.push(`You cashed out with **${formatNumber(cashOut)}** coke!`);
-    descriptionLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
+    fieldValueLines.push(`You cashed out with **${formatNumber(cashOut)}** coke!`);
+    fieldValueLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   } else if (state === 'timeout') {
-    descriptionLines.push(`Game timed out. You lost the bet!`);
+    fieldValueLines.push(`Game timed out. You lost the bet!`);
   } else {
     // Trạng thái bắt đầu và đoán đúng: Chỉ hiển thị giá trị lá bài hiện tại
-    descriptionLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
+    fieldValueLines.push(`Current Card: ${getCardDisplayValue(currentCard)}`);
   }
   
-  embed.setDescription(descriptionLines.join('\n'));
+  embed.addFields({
+    name: "\u200b",
+    value: fieldValueLines.join('\n'),
+    inline: false
+  });
+
   embed.setColor(embedColor);
   
   return embed;
