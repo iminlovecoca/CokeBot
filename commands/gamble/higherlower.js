@@ -18,8 +18,8 @@ const HigherLowerGame = require("../../models/HigherLowerGame");
 
 // Cấu hình trò chơi Cao Thấp (Higher Lower)
 const CONFIG = {
-  RTP: 0.97,
-  MIN_BET: config.gamble_settings.min_bet || 1,
+  RTP: 0.9584, // Cập nhật sang RTP chuẩn của Owo để tỷ lệ cược khớp chính xác từng số đơn vị
+  MIN_BET: 10, // Thiết lập mức cược tối thiểu là 10
   MAX_BET: config.gamble_settings.max_bet || 250000,
   COOLDOWN_SECONDS: 15,
   SAME_MULTIPLIER_OVERRIDE: 10.0,
@@ -199,9 +199,20 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
 
   const btnCashOut = new ButtonBuilder()
     .setCustomId('hl_cashout')
-    .setLabel("Cash Out") // Chỉ hiển thị duy nhất chữ "Cash Out", không kèm tiền
-    .setStyle(ButtonStyle.Success)
-    .setDisabled(isFinished || currentCashOut === 0);
+    .setStyle(ButtonStyle.Success);
+
+  if (isFinished) {
+    btnCashOut.setDisabled(true);
+    if (currentCashOut === 0) {
+      btnCashOut.setLabel("Cash Out");
+    } else {
+      btnCashOut.setLabel(`Cash Out: ${formatNumber(currentCashOut)}`);
+    }
+  } else if (streak === 0) {
+    btnCashOut.setLabel("Cash Out").setDisabled(true);
+  } else {
+    btnCashOut.setLabel(`Cash Out: ${formatNumber(currentCashOut)}`).setDisabled(false);
+  }
 
   const row1 = new ActionRowBuilder().addComponents(btnHigher, btnLower, btnSame);
   const row2 = new ActionRowBuilder().addComponents(btnCashOut);
@@ -219,19 +230,19 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   
   if (state === 'start') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.`;
+    titleText = `## **${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
   } else if (state === 'correct') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `🎉 <@${userId}> guessed correctly!!`;
+    titleText = `## **🎉 <@${userId}> guessed correctly!!**`;
   } else if (state === 'incorrect') {
     embedColor = 0xED4245; // Đỏ
-    titleText = `👎 <@${userId}> guessed incorrectly!!`;
+    titleText = `## **👎 <@${userId}> guessed incorrectly!!**`;
   } else if (state === 'cashout') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `${CONFIG.EMOJIS.money} <@${userId}> cashed out!`;
+    titleText = `## **${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
   } else if (state === 'resume') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `🎮 <@${userId}> resumed a HighLow game.`;
+    titleText = `## **🎮 <@${userId}> resumed a HighLow game.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
@@ -241,24 +252,26 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   const descriptionLines = [];
   if (titleText) {
     descriptionLines.push(titleText);
+    descriptionLines.push(""); // cách 1 dòng so với dòng dưới
   }
-  descriptionLines.push(`**Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+  descriptionLines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
   descriptionLines.push("────────────────────────────");
+
+  // 2. Thêm thông tin mô tả trò chơi vào description (hỗ trợ markdown mã code và chữ nhạt)
+  if (state === 'incorrect') {
+    descriptionLines.push(`You guessed \`${optionInfo.guess}\`. You lost.`);
+    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`);
+  } else if (state === 'cashout') {
+    descriptionLines.push(`You cashed out with ${formatNumber(cashOut)} coke!`);
+    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(currentCard)}`);
+  } else {
+    descriptionLines.push("Is the next card higher, lower, or the same value?");
+    descriptionLines.push(`-# Current Card: ${getCardDisplayValue(currentCard)}`);
+  }
   
   embed.setDescription(descriptionLines.join('\n'));
   embed.setImage("attachment://higherlower_cards.png");
   embed.setColor(embedColor);
-
-  // 2. Phần text hiển thị chữ nhỏ phía dưới (Embed Footer)
-  let footerText = "";
-  if (state === 'incorrect') {
-    footerText = `You guessed ${optionInfo.guess} . You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
-  } else if (state === 'cashout') {
-    footerText = `You cashed out with ${formatNumber(cashOut)} coke!\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
-  } else {
-    footerText = `Is the next card higher, lower, or the same value?\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
-  }
-  embed.setFooter({ text: footerText });
   
   return embed;
 }
@@ -461,13 +474,8 @@ module.exports = {
       return;
     }
 
-    // Nếu không có game để resume, yêu cầu nhập tiền cược để bắt đầu game mới
-    if (!betInput) {
-      return context.reply({
-        content: `❌ Vui lòng nhập số tiền cược để bắt đầu ván mới! Ví dụ: \`xhl 10000\``,
-        ephemeral: true
-      });
-    }
+    // Nếu không có game để resume, tự động gán cược là 10 nếu người chơi gõ hl không có đối số cược
+    const finalBetInput = betInput || "10";
 
     // 2. Kiểm tra cooldown (chỉ áp dụng khi tạo game mới)
     const remainingCooldown = checkAndSetCooldown(userId, "higherlower", CONFIG.COOLDOWN_SECONDS);
@@ -481,7 +489,7 @@ module.exports = {
     // 3. Phân tích tiền cược & kiểm tra số dư
     let betAmount;
     try {
-      betAmount = await getBetAmount(betInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
+      betAmount = await getBetAmount(finalBetInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
     } catch (err) {
       return context.reply({
         content: err.message || "❌ Có lỗi xảy ra khi xác nhận tiền cược.",
