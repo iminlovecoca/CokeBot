@@ -12,10 +12,6 @@ module.exports = {
   reward_rarities: ["Epic"],
   last_hit_bonus_gear: 2,
   
-  
-  
-  
-  
   bossRankRewards: {
     thuong: {
       label: "Cấp Thường",
