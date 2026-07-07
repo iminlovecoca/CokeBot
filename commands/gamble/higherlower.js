@@ -222,7 +222,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   } else if (state === 'cashout') {
     headerText = `${CONFIG.EMOJIS.money} <@${userId}> **cashed out!**`;
   } else if (state === 'resume') {
-    headerText = `🎮 <@${userId}> **resumed a HighLow game.**`;
+    headerText = `:black_joker: <@${userId}> **resumed a HighLow game.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
@@ -250,9 +250,9 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
 
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
   const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
   const gallery = new MediaGalleryBuilder().addItems(mediaItem);
