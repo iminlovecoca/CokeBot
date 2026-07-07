@@ -178,10 +178,10 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
 
   const drawProgress = (info) => {
     if (info.max) {
-      return `Lvl ${info.lvl} [MAX]\n[■■■■■■■■■■■■■■■■]`;
+      return `Lvl ${info.lvl} [MAX]\n\`[■■■■■■■■■■■■■■■■]\``;
     }
     const filled = Math.min(16, Math.round((info.currentxp / info.maxxp) * 16));
-    const bar = "[" + "■".repeat(filled) + "□".repeat(16 - filled) + "]";
+    const bar = "`[" + "■".repeat(filled) + "□".repeat(16 - filled) + "]`";
     return `Lvl ${info.lvl} \`[${info.currentxp.toLocaleString()}/${info.maxxp.toLocaleString()}]\`\n${bar}`;
   };
 
@@ -252,7 +252,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
     );
 
     const filled = Math.min(20, Math.round((elapsedMs / durationMs) * 20));
-    const activeBar = "[" + "■".repeat(filled) + "□".repeat(20 - filled) + "]";
+    const activeBar = "`[" + "■".repeat(filled) + "□".repeat(20 - filled) + "]`";
 
     embed.addFields({
       name: `${botInfo.emoji} HUNTBOT is currently hunting!`,
