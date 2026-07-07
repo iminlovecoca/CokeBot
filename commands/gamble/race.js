@@ -27,10 +27,18 @@ const CONFIG = {
 };
 
 function getRaceMultiplier(round) {
-  // Fair multiplier is 6^round. Payout = 6^round * RTP (0.93)
-  const multipliers = [0, 5.58, 33.48, 200.88, 1205.28, 7231.68, 43389.08];
+  const multipliers = [0, 1.40, 2.20, 3.90, 7.80, 19.50, 78.00];
   return multipliers[round] || 0;
 }
+
+const WIN_PROBABILITIES = [
+  0.63, // Round 1 (Mines: 66.67%)
+  0.59, // Round 2 (Mines: 62.5%)
+  0.55, // Round 3 (Mines: 57.14%)
+  0.48, // Round 4 (Mines: 50.0%)
+  0.38, // Round 5 (Mines: 40.0%)
+  0.23  // Round 6 (Mines: 25.0%)
+];
 
 function formatNumber(num) {
   return Math.round(num).toLocaleString();
