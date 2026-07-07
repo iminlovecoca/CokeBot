@@ -1,10 +1,14 @@
 const {
   SlashCommandBuilder,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ComponentType
+  ComponentType,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
 } = require("discord.js");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
@@ -133,26 +137,22 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
   return rows;
 }
 
-function buildEmbed(userId, gameData, state) {
-  const embed = new EmbedBuilder();
-  let embedColor = 0x615F5F; // Mặc định xám
+function buildComponentsV2(game, state) {
+  const userId = game.userId;
   let headerText = "";
-  
   if (state === 'start') {
-    headerText = `💣 **<@${userId}> started a mines game.**`;
+    headerText = `💣 <@${userId}> started a mines game.`;
   } else if (state === 'play') {
-    headerText = `💣 **<@${userId}> is playing a mines game.**`;
+    headerText = `💣 <@${userId}> is playing a mines game.`;
   } else if (state === 'cashout') {
-    embedColor = 0x57F287; // Xanh lá
-    headerText = `💎 **<@${userId}> cashed out!**`;
+    headerText = `💎 <@${userId}> cashed out!`;
   } else if (state === 'lost') {
-    embedColor = 0xED4245; // Đỏ
-    headerText = `💥 **<@${userId}> touched a mine!**`;
+    headerText = `💥 <@${userId}> touched a mine!`;
   } else if (state === 'resume') {
-    headerText = `💣 **<@${userId}> resumed a mines game.**`;
+    headerText = `💣 <@${userId}> resumed a mines game.`;
   }
 
-  const { bet, minesCount, cashOut, revealed } = gameData;
+  const { bet, minesCount, cashOut, revealed } = game;
   const revealedCount = revealed.filter(Boolean).length;
   const currentMultiplier = getMinesMultiplier(minesCount, revealedCount);
   const nextMultiplier = getMinesMultiplier(minesCount, revealedCount + 1);
@@ -160,26 +160,40 @@ function buildEmbed(userId, gameData, state) {
 
   const isFinished = state === 'cashout' || state === 'lost';
 
-  const descriptionLines = [headerText, ""];
-  descriptionLines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Mines:** \`${minesCount}\``);
+  const textLines = [
+    headerText,
+    "",
+    `Bet: ${formatNumber(bet)}`,
+    `Mines: ${minesCount}`,
+    ""
+  ];
 
   if (isFinished) {
     if (state === 'cashout') {
-      descriptionLines.push(`-# ~~**Winnings:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`~~Winnings: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)~~`);
     } else {
-      descriptionLines.push(`-# ~~**Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`~~Cash Out: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)~~`);
     }
-    descriptionLines.push(`-# ~~**Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    textLines.push(`~~Next: ${formatNumber(nextPayout)} (${nextMultiplier.toFixed(2)}x)~~`);
   } else {
-    descriptionLines.push(`-# **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    descriptionLines.push(`-# **Next:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    textLines.push(`Cash Out: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)`);
+    textLines.push(`Next: ${formatNumber(nextPayout)} (${nextMultiplier.toFixed(2)}x)`);
   }
-  descriptionLines.push("────────────────────────────");
 
-  embed.setDescription(descriptionLines.join('\n'));
-  embed.setColor(embedColor);
-  
-  return embed;
+  const textDisplay = new TextDisplayBuilder().setContent(textLines.join('\n'));
+  const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(textDisplay)
+    .addSeparatorComponents(separator1);
+
+  const rows = buildButtons(game.grid, game.revealed, isFinished, game);
+  container.addActionRowComponents(rows[0], rows[1], rows[2]);
+  container.addSeparatorComponents(separator2);
+  container.addActionRowComponents(rows[3]);
+
+  return container;
 }
 
 function setupCollector(collector, replyMsg, gameData, userId, isSlash, context) {
@@ -211,11 +225,12 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         await runTransactionWithRetry(cashOutTxn);
 
-        const finishedEmbed = buildEmbed(userId, game, 'cashout');
-        const finishedComponents = buildButtons(game.grid, game.revealed, true, game);
+        const finishedContainer = buildComponentsV2(game, 'cashout');
         await i.editReply({
-          embeds: [finishedEmbed],
-          components: finishedComponents
+          embeds: [],
+          content: null,
+          components: [finishedContainer],
+          flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
       } catch (err) {
         console.error("Lỗi khi xử lý rút tiền game Mines:", err);
@@ -253,11 +268,12 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         explodedCellIndex: cellIdx
       };
 
-      const lostEmbed = buildEmbed(userId, updatedData, 'lost');
-      const lostComponents = buildButtons(game.grid, nextRevealed, true, updatedData);
+      const lostContainer = buildComponentsV2(updatedData, 'lost');
       await i.editReply({
-        embeds: [lostEmbed],
-        components: lostComponents
+        embeds: [],
+        content: null,
+        components: [lostContainer],
+        flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
     } else {
       const newRevealedCount = nextRevealed.filter(Boolean).length;
@@ -288,11 +304,12 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
             isWon: true
           };
 
-          const finishedEmbed = buildEmbed(userId, wonData, 'cashout');
-          const finishedComponents = buildButtons(game.grid, nextRevealed, true, wonData);
+          const finishedContainer = buildComponentsV2(wonData, 'cashout');
           await i.editReply({
-            embeds: [finishedEmbed],
-            components: finishedComponents
+            embeds: [],
+            content: null,
+            components: [finishedContainer],
+            flags: MessageFlags.IsComponentsV2
           }).catch(() => {});
         } catch (err) {
           console.error("Lỗi khi tự động thắng game Mines:", err);
@@ -315,11 +332,12 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           { new: true }
         );
 
-        const playEmbed = buildEmbed(userId, updatedGame, 'play');
-        const playComponents = buildButtons(game.grid, nextRevealed, false, updatedGame);
+        const playContainer = buildComponentsV2(updatedGame, 'play');
         await i.editReply({
-          embeds: [playEmbed],
-          components: playComponents
+          embeds: [],
+          content: null,
+          components: [playContainer],
+          flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
       }
     }
@@ -374,20 +392,22 @@ module.exports = {
     let activeGame = await MinesGame.findOne({ userId });
 
     if (activeGame) {
-      const embed = buildEmbed(userId, activeGame, 'resume');
-      const components = buildButtons(activeGame.grid, activeGame.revealed, false, activeGame);
-
+      const container = buildComponentsV2(activeGame, 'resume');
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
-          embeds: [embed],
-          components: components,
+          embeds: [],
+          content: null,
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
           fetchReply: true
         });
       } else {
         replyMsg = await context.reply({
-          embeds: [embed],
-          components: components
+          embeds: [],
+          content: null,
+          components: [container],
+          flags: MessageFlags.IsComponentsV2
         });
       }
 
@@ -451,20 +471,22 @@ module.exports = {
       });
     }
 
-    const embed = buildEmbed(userId, gameData, 'start');
-    const components = buildButtons(grid, gameData.revealed, false, gameData);
-
+    const container = buildComponentsV2(gameData, 'start');
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
-        embeds: [embed],
-        components: components,
+        embeds: [],
+        content: null,
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
         fetchReply: true
       });
     } else {
       replyMsg = await context.reply({
-        embeds: [embed],
-        components: components
+        embeds: [],
+        content: null,
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
