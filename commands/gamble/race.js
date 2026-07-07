@@ -46,7 +46,7 @@ function formatNumber(num) {
 
 function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
   const lines = [];
-  const trackLength = 20;
+  const trackLength = 10;
   
   for (let h = 1; h <= 6; h++) {
     let pos = trackLength; // far right (start)
@@ -56,28 +56,39 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
       pos = trackLength;
     } else if (roundState === 'running') {
       if (step === 1) {
-        pos = Math.floor(Math.random() * 3) + 16; // 16 to 18
+        pos = Math.floor(Math.random() * 2) + 8; // 8 to 9
       } else if (step === 2) {
-        pos = Math.floor(Math.random() * 3) + 10; // 10 to 12
+        pos = Math.floor(Math.random() * 2) + 5; // 5 to 6
       } else if (step === 3) {
-        pos = Math.floor(Math.random() * 3) + 4; // 4 to 6
+        pos = Math.floor(Math.random() * 2) + 2; // 2 to 3
       }
     } else if (roundState === 'won' || roundState === 'lost') {
       if (h === winningHorse) {
         pos = 0; // at finish line
         suffix = " (Thắng!)";
       } else if (roundState === 'lost' && h === chosenHorse) {
-        pos = Math.floor(Math.random() * 6) + 5; // 5 to 10
+        pos = Math.floor(Math.random() * 3) + 3; // 3 to 5
         suffix = " (Bạn chọn)";
       } else {
-        pos = Math.floor(Math.random() * 11) + 5; // 5 to 15
+        pos = Math.floor(Math.random() * 5) + 3; // 3 to 7
       }
     }
     
-    const prefix = `0${h} 🏁 `;
-    const before = "-".repeat(pos);
-    const after = "-".repeat(trackLength - pos);
-    lines.push(`${prefix}${before}🏇${after}${suffix}`);
+    const prefix = `\`0${h}\` 🏁 `;
+    const trackSlots = [];
+    for (let i = 0; i < trackLength; i++) {
+      if (i === pos) {
+        trackSlots.push("🏇");
+      } else {
+        trackSlots.push("—");
+      }
+    }
+    if (pos === trackLength) {
+      trackSlots.push("🏇");
+    }
+    
+    const trackStr = trackSlots.join(" ");
+    lines.push(`${prefix}${trackStr}${suffix}`);
   }
   return lines.join('\n');
 }
