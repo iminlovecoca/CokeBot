@@ -48,7 +48,7 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
   const lines = [];
   const trackLength = 10;
   
-  for (let h = 1; h <= 6; h++) {
+  for (let h = 1; h <= 8; h++) {
     let pos = trackLength; // far right (start)
     let suffix = "";
     
