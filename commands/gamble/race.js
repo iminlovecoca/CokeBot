@@ -451,6 +451,13 @@ module.exports = {
       });
     }
 
+    if (betAmount < CONFIG.MIN_BET) {
+      return context.reply({
+        content: `❌ Số tiền cược tối thiểu là **${CONFIG.MIN_BET}** coke!`,
+        ephemeral: true
+      });
+    }
+
     const gameData = {
       userId,
       bet: betAmount,
