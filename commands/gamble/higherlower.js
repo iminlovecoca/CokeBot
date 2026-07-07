@@ -170,19 +170,19 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
 
   const btnHigher = new ButtonBuilder()
     .setCustomId('hl_higher')
-    .setLabel(`Higher (+${formatNumber(higherPayout)})`)
+    .setLabel(`Cao hơn (+${formatNumber(higherPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || higherMultiplier === 0);
 
   const btnLower = new ButtonBuilder()
     .setCustomId('hl_lower')
-    .setLabel(`Lower (+${formatNumber(lowerPayout)})`)
+    .setLabel(`Thấp hơn (+${formatNumber(lowerPayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || lowerMultiplier === 0);
 
   const btnSame = new ButtonBuilder()
     .setCustomId('hl_same')
-    .setLabel(`Same (+${formatNumber(samePayout)})`)
+    .setLabel(`Bằng nhau (+${formatNumber(samePayout)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished);
 
@@ -193,14 +193,14 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
   if (isFinished) {
     btnCashOut.setDisabled(true);
     if (currentCashOut === 0) {
-      btnCashOut.setLabel("Cash Out");
+      btnCashOut.setLabel("Rút tiền");
     } else {
-      btnCashOut.setLabel(`Cash Out: ${formatNumber(currentCashOut)}`);
+      btnCashOut.setLabel(`Rút tiền: ${formatNumber(currentCashOut)}`);
     }
   } else if (streak === 0) {
-    btnCashOut.setLabel("Cash Out").setDisabled(true);
+    btnCashOut.setLabel("Rút tiền").setDisabled(true);
   } else {
-    btnCashOut.setLabel(`Cash Out: ${formatNumber(currentCashOut)}`).setDisabled(false);
+    btnCashOut.setLabel(`Rút tiền: ${formatNumber(currentCashOut)}`).setDisabled(false);
   }
 
   const row1 = new ActionRowBuilder().addComponents(btnHigher, btnLower, btnSame);
@@ -214,15 +214,15 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   let headerText = "";
   
   if (state === 'start') {
-    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **started a HighLow game.**`;
+    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **đã bắt đầu trò chơi Hi-Lo.**`;
   } else if (state === 'correct') {
-    headerText = `🎉 <@${userId}> **guessed correctly!!**`;
+    headerText = `🎉 <@${userId}> **đã đoán chính xác!!**`;
   } else if (state === 'incorrect') {
-    headerText = `👎 <@${userId}> **guessed incorrectly!!**`;
+    headerText = `👎 <@${userId}> **đã đoán sai!**`;
   } else if (state === 'cashout') {
-    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **cashed out!**`;
+    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **đã rút tiền thưởng!**`;
   } else if (state === 'resume') {
-    headerText = `:black_joker: <@${userId}> **resumed a HighLow game.**`;
+    headerText = `:black_joker: <@${userId}> **đã khôi phục trò chơi Hi-Lo.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
@@ -230,9 +230,9 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
 
   const topLines = [headerText, ""];
-  let statsLine = `-# Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
+  let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Chuỗi: \`${streak}\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
   if (state === 'incorrect') {
-    statsLine = `-# ~~Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
+    statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Chuỗi: \`${streak}\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
   }
   topLines.push(statsLine);
 
@@ -240,11 +240,12 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
 
   let footerText = "";
   if (state === 'incorrect') {
-    footerText = `-# You guessed \`${optionInfo.guess}\`. You lost.\n-# Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
+    const guessDisplay = { 'Higher': 'Cao hơn', 'Lower': 'Thấp hơn', 'Same': 'Bằng nhau' }[optionInfo.guess] || optionInfo.guess;
+    footerText = `-# Bạn đã đoán \`${guessDisplay}\` và đã thua.\n-# Lá bài hiện tại: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
   } else if (state === 'cashout') {
-    footerText = `-# You cashed out with **${formatNumber(cashOut)}** coke!\n-# Current Card: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# Bạn đã rút tiền và nhận được **${formatNumber(cashOut)}** coke!\n-# Lá bài hiện tại: ${getCardDisplayValue(currentCard)}`;
   } else {
-    footerText = `-# Is the next card higher, lower, or the same value?\n-# Current Card: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# Lá tiếp theo sẽ cao hơn, thấp hơn hay bằng lá hiện tại?\n-# Lá bài hiện tại: ${getCardDisplayValue(currentCard)}`;
   }
 
   const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
@@ -313,7 +314,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
       } catch (err) {
-        console.error("Lỗi khi xử lý rút tiền game Cao Thấp:", err);
+        console.error("Lỗi khi xử lý rút tiền game Hi-Lo:", err);
         await HigherLowerGame.updateOne(
           { userId },
           { $set: { status: 'active' } }
@@ -402,7 +403,7 @@ module.exports = {
   category: "gamble",
   data: new SlashCommandBuilder()
     .setName("higherlower")
-    .setDescription("Chơi trò chơi Cao Thấp (Higher Lower)!")
+    .setDescription("Chơi trò chơi Hi-Lo!")
     .addStringOption((option) =>
       option
         .setName("bet")
@@ -494,7 +495,7 @@ module.exports = {
 
       await runTransactionWithRetry(startGameTxn);
     } catch (err) {
-      console.error("Lỗi khi tạo game Cao Thấp:", err);
+      console.error("Lỗi khi tạo game Hi-Lo:", err);
       return context.reply({
         content: "❌ Không thể bắt đầu trò chơi do lỗi giao dịch dữ liệu. Hãy thử lại!",
         ephemeral: true

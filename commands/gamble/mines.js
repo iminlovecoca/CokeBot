@@ -118,7 +118,7 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
 
   const btnCashOut = new ButtonBuilder()
     .setCustomId('mines_cashout')
-    .setLabel('Cash Out')
+    .setLabel('Rút tiền')
     .setStyle(ButtonStyle.Success)
     .setEmoji(CONFIG.EMOJIS.money);
 
@@ -141,15 +141,15 @@ function buildComponentsV2(game, state) {
   const userId = game.userId;
   let headerText = "";
   if (state === 'start') {
-    headerText = `💣 <@${userId}> **started a mines game.**`;
+    headerText = `💣 <@${userId}> **đã bắt đầu trò chơi Dò Mìn.**`;
   } else if (state === 'play') {
-    headerText = `💣 <@${userId}> **is playing a mines game.**`;
+    headerText = `💣 <@${userId}> **đang chơi trò chơi Dò Mìn.**`;
   } else if (state === 'cashout') {
-    headerText = `💎 <@${userId}> **cashed out!**`;
+    headerText = `💎 <@${userId}> **đã rút tiền thưởng!**`;
   } else if (state === 'lost') {
-    headerText = `💥 <@${userId}> **touched a mine!**`;
+    headerText = `💥 <@${userId}> **đã giẫm phải mìn!**`;
   } else if (state === 'resume') {
-    headerText = `💣 <@${userId}> **resumed a mines game.**`;
+    headerText = `💣 <@${userId}> **đã khôi phục trò chơi Dò Mìn.**`;
   }
 
   const { bet, minesCount, cashOut, revealed } = game;
@@ -163,19 +163,19 @@ function buildComponentsV2(game, state) {
   const textLines = [
     headerText,
     "",
-    `-# Bet: \`${formatNumber(bet)}\`  Mines: \`${minesCount}\``,
+    `-# Cược: \`${formatNumber(bet)}\`  Mìn: \`${minesCount}\``,
   ];
 
   if (isFinished) {
     if (state === 'cashout') {
-      textLines.push(`-# ~~Winnings: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`-# ~~Tiền thắng: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     } else {
-      textLines.push(`-# ~~Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`-# ~~Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     }
-    textLines.push(`-# ~~Next: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    textLines.push(`-# ~~Tiếp theo: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
   } else {
-    textLines.push(`-# Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    textLines.push(`-# Next: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    textLines.push(`-# Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    textLines.push(`-# Tiếp theo: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
 
   const textDisplay = new TextDisplayBuilder().setContent(textLines.join('\n'));

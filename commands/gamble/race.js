@@ -128,9 +128,9 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const isRunning = state === 'running';
 
   const topLines = [headerText, ""];
-  let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`\n-# Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
+  let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`\n-# Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
   if (isFinished) {
-    statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
+    statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
   }
   topLines.push(statsLine);
 
@@ -205,7 +205,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const row3 = new ActionRowBuilder();
   const btnCashOut = new ButtonBuilder()
     .setCustomId('race_cashout')
-    .setLabel(round > 0 ? `Cash Out: ${formatNumber(cashOut)}` : 'Cash Out')
+    .setLabel(round > 0 ? `Rút tiền: ${formatNumber(cashOut)}` : 'Rút tiền')
     .setStyle(ButtonStyle.Success)
     .setDisabled(round === 0 || isFinished || isRunning);
   row3.addComponents(btnCashOut);
@@ -436,7 +436,7 @@ module.exports = {
     const remainingCooldown = checkAndSetCooldown(userId, "race", CONFIG.COOLDOWN_SECONDS);
     if (remainingCooldown > 0) {
       return context.reply({
-        content: `⏱ | Vui lòng chờ **${remainingCooldown}s** để chơi tiếp Horse Race.`,
+        content: `⏱ | Vui lòng chờ **${remainingCooldown}s** để chơi tiếp Đua Ngựa.`,
         ephemeral: true
       });
     }
