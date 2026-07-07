@@ -46,7 +46,7 @@ function formatNumber(num) {
 
 function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
   const lines = [];
-  const trackLength = 12;
+  const trackLength = 20;
   
   for (let h = 1; h <= 6; h++) {
     let pos = trackLength; // far right (start)
@@ -56,21 +56,21 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
       pos = trackLength;
     } else if (roundState === 'running') {
       if (step === 1) {
-        pos = Math.floor(Math.random() * 2) + 9; // 9 to 10
+        pos = Math.floor(Math.random() * 3) + 16; // 16 to 18
       } else if (step === 2) {
-        pos = Math.floor(Math.random() * 2) + 5; // 5 to 6
+        pos = Math.floor(Math.random() * 3) + 10; // 10 to 12
       } else if (step === 3) {
-        pos = Math.floor(Math.random() * 2) + 2; // 2 to 3
+        pos = Math.floor(Math.random() * 3) + 4; // 4 to 6
       }
     } else if (roundState === 'won' || roundState === 'lost') {
       if (h === winningHorse) {
         pos = 0; // at finish line
         suffix = " (Thắng!)";
       } else if (roundState === 'lost' && h === chosenHorse) {
-        pos = Math.floor(Math.random() * 3) + 3; // 3 to 5
+        pos = Math.floor(Math.random() * 6) + 5; // 5 to 10
         suffix = " (Bạn chọn)";
       } else {
-        pos = Math.floor(Math.random() * 5) + 3; // 3 to 7
+        pos = Math.floor(Math.random() * 11) + 5; // 5 to 15
       }
     }
     
