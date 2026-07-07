@@ -137,7 +137,7 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   const paddingY = 10 * scale; // 40px
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
-  const width = 2400; // Đặt chiều rộng lớn để Discord tự co nhỏ ảnh lại, giúp lá bài nhỏ nhắn và cực nét
+  const width = Math.round(cardRowWidth * 1.8); // Chiếm khoảng 55% Embed để lá bài to và dễ nhìn hơn
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
