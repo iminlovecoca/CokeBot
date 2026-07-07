@@ -31,7 +31,7 @@ class BullyCommand extends BaseCommand {
       examples: [
         { intent: 'Bắt nạt một người dùng', command: `${config.prefix}bully @user` }
       ],
-      cooldown: 0
+      cooldown: 5
     });
   }
 

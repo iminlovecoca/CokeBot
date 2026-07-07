@@ -25,7 +25,7 @@ class SlapCommand extends BaseCommand {
       examples: [
         { intent: 'Tát một người dùng', command: `${config.prefix}slap @user` }
       ],
-      cooldown: 0
+      cooldown: 5
     });
   }
 

@@ -308,8 +308,21 @@ module.exports = {
               return message.reply(`🚫 Tính năng/lệnh này đã bị chủ bot khóa tạm thời.`);
             }
           }
-          
-          
+          // Check command cooldown
+          if (command.cooldown && command.cooldown > 0) {
+            const { checkAndSetCooldown } = require("../utils/cooldown");
+            const cd = checkAndSetCooldown(userId, command.name, command.cooldown);
+            if (cd > 0) {
+              const minutes = Math.floor(cd / 60);
+              const seconds = cd % 60;
+              let timeString = "";
+              if (minutes > 0) timeString += `${minutes} phút`;
+              if (minutes > 0 && seconds > 0) timeString += " ";
+              if (seconds > 0) timeString += `${seconds} giây`;
+              return message.reply(`⏱ | Bạn phải chờ **${timeString}** để dùng lại lệnh.`).catch(() => {});
+            }
+          }
+
           await command.execute(message, parsedArgs, client, client.services);
         }
       }

@@ -33,7 +33,7 @@ class KissCommand extends BaseCommand {
       examples: [
         { intent: 'Hôn một người dùng', command: `${config.prefix}kiss @user` }
       ],
-      cooldown: 0
+      cooldown: 5
     });
   }
 

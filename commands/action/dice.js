@@ -28,7 +28,7 @@ class DiceCommand extends BaseCommand {
         { intent: 'Lắc xúc xắc 6 mặt (mặc định)', command: `${config.prefix}roll` },
         { intent: 'Lắc xúc xắc 20 mặt', command: `${config.prefix}roll 20` }
       ],
-      cooldown: 3
+      cooldown: 5
     });
   }
 

@@ -94,13 +94,13 @@ const getXpForMax = (traitName) => {
 
 
 const bots = [
-  { emoji: '<:cbot:459996048379609098>', label: 'Common Bot' },
-  { emoji: '<:ubot:459996048660889600>', label: 'Uncommon Bot' },
-  { emoji: '<:rbot:459996049361338379>', label: 'Rare Bot' },
-  { emoji: '<:ebot:459996050174902272>', label: 'Epic Bot' },
-  { emoji: '<:mbot:459996049784963073>', label: 'Mythical Bot' },
-  { emoji: '<a:lbot:459996050883608576>', label: 'Legendary Bot' },
-  { emoji: '<a:fbot:1122059611206328350>', label: 'Founder Bot' },
+  { emoji: '<:Common:1390024590347997245>', label: 'Common Bot' },
+  { emoji: '<:Rare:1390024624380706916>', label: 'Uncommon Bot' },
+  { emoji: '<:Epic:1390024749517770832>', label: 'Rare Bot' },
+  { emoji: '<:Legendary:1390024772200567026>', label: 'Epic Bot' },
+  { emoji: '<:Mythic:1390024789279772833>', label: 'Mythical Bot' },
+  { emoji: '<:Ancient:1390024806535004333>', label: 'Legendary Bot' },
+  { emoji: '<:Divine:1512512382507683880>', label: 'Founder Bot' },
 ];
 
 const getBot = (rank, totalBots) => {

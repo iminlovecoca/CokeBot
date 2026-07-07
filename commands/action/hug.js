@@ -28,7 +28,7 @@ class HugCommand extends BaseCommand {
       examples: [
         { intent: 'Ôm một người dùng', command: `${config.prefix}hug @user` }
       ],
-      cooldown: 0
+      cooldown: 5
     });
   }
 

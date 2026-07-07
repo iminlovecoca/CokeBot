@@ -31,7 +31,7 @@ class PunchCommand extends BaseCommand {
       examples: [
         { intent: 'Đấm một người dùng', command: `${config.prefix}punch @user` }
       ],
-      cooldown: 0
+      cooldown: 5
     });
   }
 

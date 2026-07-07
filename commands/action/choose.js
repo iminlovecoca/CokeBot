@@ -14,7 +14,7 @@ class ChooseCommand extends BaseCommand {
           command: `${config.prefix}choose táo, cam, chuối`,
         },
       ],
-      cooldown: 3
+      cooldown: 5
     });
   }
 
