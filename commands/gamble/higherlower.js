@@ -122,13 +122,13 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   );
 
   const scale = 4;
-  const cardHeight = 24 * scale;
+  const cardHeight = 28 * scale;
   const cardWidth = Math.round(cardHeight * (262 / 372));
-  const arrowWidth = 20 * scale;
-  const paddingX = 8 * scale;
-  const paddingY = 8 * scale;
+  const arrowWidth = 28 * scale;
+  const paddingX = 10 * scale;
+  const paddingY = 10 * scale;
 
-  const width = 600;
+  const width = 1186;
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -144,11 +144,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     if (i < displayedCards.length - 1) {
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowSize = 6 * scale;
+      const arrowSize = 7 * scale;
       const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - (4 * scale));
-      ctx.lineTo(arrowX, arrowY + (4 * scale));
+      ctx.moveTo(arrowX, arrowY - (5 * scale));
+      ctx.lineTo(arrowX, arrowY + (5 * scale));
       ctx.lineTo(arrowX + arrowSize, arrowY);
       ctx.closePath();
       ctx.fill();
@@ -249,10 +249,10 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
 
   const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
 
-  const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator1 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
   const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
   const gallery = new MediaGalleryBuilder().addItems(mediaItem);
