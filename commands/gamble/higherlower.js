@@ -122,19 +122,18 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   );
 
   const scale = 4;
-  const cardHeight = 40 * scale;
+  const cardHeight = 32 * scale;
   const cardWidth = Math.round(cardHeight * (262 / 372));
-  const arrowWidth = 40 * scale;
+  const arrowWidth = 32 * scale;
   const paddingX = 10 * scale;
   const paddingY = 10 * scale;
-  const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
   const width = 1186;
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  let x = Math.round((width - cardRowWidth) / 2);
+  let x = paddingX;
   for (let i = 0; i < displayedCards.length; i++) {
     const cardKey = String(displayedCards[i]).toLowerCase();
     const imgPath = path.join(CARD_ASSET_DIR, `${cardKey}.png`);
@@ -145,11 +144,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     if (i < displayedCards.length - 1) {
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowSize = 10 * scale;
+      const arrowSize = 8 * scale;
       const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - (6 * scale));
-      ctx.lineTo(arrowX, arrowY + (6 * scale));
+      ctx.moveTo(arrowX, arrowY - (5 * scale));
+      ctx.lineTo(arrowX, arrowY + (5 * scale));
       ctx.lineTo(arrowX + arrowSize, arrowY);
       ctx.closePath();
       ctx.fill();
@@ -230,42 +229,45 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
   const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
 
-  const descriptionLines = [headerText, ""];
+  const topLines = [headerText, ""];
   let statsLine = `-# Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
   if (isFinished) {
     statsLine = `-# ~~Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
   }
-  descriptionLines.push(statsLine);
-  descriptionLines.push("");
+  topLines.push(statsLine);
+
+  const textDisplayTop = new TextDisplayBuilder().setContent(topLines.join('\n'));
 
   let footerText = "";
   if (state === 'incorrect') {
-    footerText = `You guessed \`${optionInfo.guess}\`. You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
+    footerText = `-# You guessed \`${optionInfo.guess}\`. You lost.\n**Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}**`;
   } else if (state === 'cashout') {
-    footerText = `You cashed out with ${formatNumber(cashOut)} coke!\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# You cashed out with ${formatNumber(cashOut)} coke!\n**Current Card: ${getCardDisplayValue(currentCard)}**`;
   } else {
-    footerText = `Is the next card higher, lower, or the same value?\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# Is the next card higher, lower, or the same value?\n**Current Card: ${getCardDisplayValue(currentCard)}**`;
   }
-  descriptionLines.push(`-# ${footerText}`);
 
-  const textDisplay = new TextDisplayBuilder().setContent(descriptionLines.join('\n'));
+  const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
 
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
   const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
   const gallery = new MediaGalleryBuilder().addItems(mediaItem);
 
   const container = new ContainerBuilder()
-    .addTextDisplayComponents(textDisplay)
+    .addTextDisplayComponents(textDisplayTop)
     .addSeparatorComponents(separator1)
     .addMediaGalleryComponents(gallery)
-    .addSeparatorComponents(separator2);
+    .addSeparatorComponents(separator2)
+    .addTextDisplayComponents(textDisplayBottom)
+    .addSeparatorComponents(separator3);
 
   const rows = buildButtons(currentCard, cashOut, isFinished, streak);
   container.addActionRowComponents(rows[0]);
-  container.addSeparatorComponents(separator3);
+  container.addSeparatorComponents(separator4);
   container.addActionRowComponents(rows[1]);
 
   return container;
