@@ -372,7 +372,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
 
 module.exports = {
   name: "race",
-  aliases: ["dua", "horserace", "dua_ngua", "xrace"],
+  aliases: ["hr", "horserace"],
   category: "gamble",
   data: new SlashCommandBuilder()
     .setName("race")
