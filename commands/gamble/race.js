@@ -20,23 +20,15 @@ const HorseRaceGame = require("../../models/HorseRaceGame");
 const CONFIG = {
   MIN_BET: 10,
   MAX_BET: config.gamble_settings.max_bet || 250000,
-  COOLDOWN_SECONDS: 15,
+  COOLDOWN_SECONDS: 3,
   EMOJIS: {
     money: config.emoji.money || "<:cokecy:1509951335016173662>"
   }
 };
 
-const WIN_PROBABILITIES = [
-  4 / 6,   // Round 1 (66.67%)
-  5 / 8,   // Round 2 (62.5%)
-  4 / 7,   // Round 3 (57.14%)
-  3 / 6,   // Round 4 (50%)
-  2 / 5,   // Round 5 (40%)
-  1 / 4    // Round 6 (25%)
-];
-
 function getRaceMultiplier(round) {
-  const multipliers = [0, 1.40, 2.20, 3.90, 7.80, 19.50, 78.00];
+  // Fair multiplier is 6^round. Payout = 6^round * RTP (0.93)
+  const multipliers = [0, 5.58, 33.48, 200.88, 1205.28, 7231.68, 43389.08];
   return multipliers[round] || 0;
 }
 
@@ -44,34 +36,37 @@ function formatNumber(num) {
   return Math.round(num).toLocaleString();
 }
 
-function drawRaceTrack(winningHorse, chosenHorse, roundState) {
+function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
   const lines = [];
-  const trackLength = 10;
+  const trackLength = 12;
   
   for (let h = 1; h <= 6; h++) {
     let pos = trackLength; // far right (start)
     let suffix = "";
     
-    if (roundState === 'won') {
+    if (roundState === 'pending') {
+      pos = trackLength;
+    } else if (roundState === 'running') {
+      if (step === 1) {
+        pos = Math.floor(Math.random() * 2) + 9; // 9 to 10
+      } else if (step === 2) {
+        pos = Math.floor(Math.random() * 2) + 5; // 5 to 6
+      } else if (step === 3) {
+        pos = Math.floor(Math.random() * 2) + 2; // 2 to 3
+      }
+    } else if (roundState === 'won' || roundState === 'lost') {
       if (h === winningHorse) {
         pos = 0; // at finish line
         suffix = " (Thắng!)";
+      } else if (roundState === 'lost' && h === chosenHorse) {
+        pos = Math.floor(Math.random() * 3) + 3; // 3 to 5
+        suffix = " (Bạn chọn)";
       } else {
         pos = Math.floor(Math.random() * 5) + 3; // 3 to 7
       }
-    } else if (roundState === 'lost') {
-      if (h === winningHorse) {
-        pos = 0; // winner at finish
-        suffix = " (Thắng!)";
-      } else if (h === chosenHorse) {
-        pos = Math.floor(Math.random() * 4) + 4; // 4 to 7
-        suffix = " (Bạn chọn)";
-      } else {
-        pos = Math.floor(Math.random() * 6) + 3; // 3 to 8
-      }
     }
     
-    const prefix = `0${h} :checkered_flag:  `;
+    const prefix = `0${h} 🏁 `;
     const before = "-".repeat(pos);
     const after = "-".repeat(trackLength - pos);
     lines.push(`${prefix}${before}🏇${after}${suffix}`);
@@ -87,6 +82,8 @@ function buildComponentsV2(game, state, optionInfo = {}) {
     headerText = `🏇 <@${userId}> **đã bắt đầu cuộc đua ngựa.**`;
   } else if (state === 'play') {
     headerText = `🏇 <@${userId}> **đang chọn ngựa cho Vòng ${game.round + 1}/6.**`;
+  } else if (state === 'running') {
+    headerText = `🏇 **Cuộc đua đang diễn ra gay cấn (Vòng ${game.round + 1}/6)...**`;
   } else if (state === 'win_round') {
     headerText = `🎉 <@${userId}> **đã chọn đúng! Ngựa số 0${optionInfo.winningHorse} đã về đích đầu tiên!**`;
   } else if (state === 'lost') {
@@ -94,15 +91,16 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   } else if (state === 'cashout') {
     headerText = `💰 <@${userId}> **đã rút tiền thưởng!**`;
   } else if (state === 'won') {
-    headerText = `🏆 <@${userId}> **đã giành chức vô địch! Hoàn thành Vòng 6/6!**`;
+    headerText = `🏆 <@${userId}> **đã giành chức vô địch Vòng 6/6!**`;
   } else if (state === 'resume') {
-    headerText = `🏇 <@${userId}> **đã khôi phục trò chơi đua ngựa.**`;
+    headerText = `🎮 <@${userId}> **đã khôi phục trò chơi đua ngựa.**`;
   }
 
   const { bet, round, cashOut } = game;
   const currentMultiplier = getRaceMultiplier(round);
   const nextMultiplier = getRaceMultiplier(round + 1);
   const isFinished = ['lost', 'cashout', 'won'].includes(state);
+  const isRunning = state === 'running';
 
   const topLines = [headerText, ""];
   let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`  Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
@@ -113,8 +111,10 @@ function buildComponentsV2(game, state, optionInfo = {}) {
 
   const textDisplayTop = new TextDisplayBuilder().setContent(topLines.join('\n'));
 
-  let trackState = 'pending';
-  if (state === 'win_round' || state === 'won') {
+  let trackState = 'running';
+  if (state === 'start' || state === 'play' || state === 'resume') {
+    trackState = 'pending';
+  } else if (state === 'win_round' || state === 'won') {
     trackState = 'won';
   } else if (state === 'lost') {
     trackState = 'lost';
@@ -123,12 +123,14 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const winningHorse = optionInfo.winningHorse || (game.winningHorses && game.winningHorses[round - 1]) || 0;
   const chosenHorse = optionInfo.chosenHorse || (game.selectedHorses && game.selectedHorses[round - 1]) || 0;
 
-  const trackText = drawRaceTrack(winningHorse, chosenHorse, trackState);
-  const textDisplayTrack = new TextDisplayBuilder().setContent(`\`\`\`\n${trackText}\n\`\`\``);
+  const trackText = drawRaceTrack(winningHorse, chosenHorse, trackState, optionInfo.step || 4);
+  const textDisplayTrack = new TextDisplayBuilder().setContent(trackText);
 
   let bottomText = "";
   if (state === 'play' || state === 'start' || state === 'resume' || state === 'win_round') {
     bottomText = `-# Chọn 1 trong 6 con ngựa để chạy đua!`;
+  } else if (state === 'running') {
+    bottomText = `-# Cổ vũ cho con ngựa số 0${chosenHorse} của bạn nào!`;
   } else if (state === 'lost') {
     bottomText = `-# Bạn đã thua hết **${formatNumber(bet)}** coke cược.`;
   } else if (state === 'cashout') {
@@ -141,7 +143,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(textDisplayTop)
@@ -157,7 +159,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(isFinished);
+      .setDisabled(isFinished || isRunning);
     row1.addComponents(btn);
   }
   container.addActionRowComponents(row1);
@@ -168,7 +170,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(isFinished);
+      .setDisabled(isFinished || isRunning);
     row2.addComponents(btn);
   }
   container.addActionRowComponents(row2);
@@ -180,7 +182,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
     .setCustomId('race_cashout')
     .setLabel(round > 0 ? `Cash Out: ${formatNumber(cashOut)}` : 'Cash Out')
     .setStyle(ButtonStyle.Success)
-    .setDisabled(round === 0 || isFinished);
+    .setDisabled(round === 0 || isFinished || isRunning);
   row3.addComponents(btnCashOut);
   container.addActionRowComponents(row3);
 
@@ -239,8 +241,22 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
 
     const horseIdx = parseInt(customId.split('_')[2]);
     const currentRound = game.round;
-    const prob = WIN_PROBABILITIES[currentRound];
-    const won = Math.random() < prob;
+
+    // Roll result: 1/6 chance of winning
+    const winningHorse = Math.floor(Math.random() * 6) + 1;
+    const won = horseIdx === winningHorse;
+
+    // Play 3-second running animation
+    for (let step = 1; step <= 3; step++) {
+      const animContainer = buildComponentsV2(game, 'running', { step, chosenHorse: horseIdx });
+      await i.editReply({
+        embeds: [],
+        content: null,
+        components: [animContainer],
+        flags: MessageFlags.IsComponentsV2
+      }).catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     if (won) {
       const nextRound = currentRound + 1;
@@ -314,9 +330,6 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
     } else {
       collector.stop('lost');
 
-      const otherHorses = [1, 2, 3, 4, 5, 6].filter(h => h !== horseIdx);
-      const winningHorse = otherHorses[Math.floor(Math.random() * otherHorses.length)];
-
       await HorseRaceGame.deleteOne({ userId });
 
       const lostData = {
@@ -339,8 +352,8 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
 }
 
 module.exports = {
-  name: "horserace",
-  aliases: ["hr", "race", "dua_ngua", "xrace"],
+  name: "race",
+  aliases: ["dua", "horserace", "dua_ngua", "xrace"],
   category: "gamble",
   data: new SlashCommandBuilder()
     .setName("race")
