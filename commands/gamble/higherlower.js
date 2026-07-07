@@ -129,15 +129,16 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     optionInfo.lostCard
   );
 
-  const cardHeight = 50; // Giảm kích thước bài xuống 50px cho cực kỳ nhỏ gọn
-  const cardWidth = Math.round(cardHeight * (262 / 372)); // 35px
-  const arrowWidth = 20;
-  const paddingX = 5;
-  const paddingY = 5;
+  const scale = 4;
+  const cardHeight = 40 * scale; // 160px
+  const cardWidth = Math.round(cardHeight * (262 / 372)); // 113px
+  const arrowWidth = 40 * scale; // 160px (khoảng cách rộng hơn cho thoáng)
+  const paddingX = 10 * scale; // 40px
+  const paddingY = 10 * scale; // 40px
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
   const width = paddingX * 2 + cardRowWidth;
-  const height = paddingY * 2 + cardHeight; // Bỏ phần chiều cao thừa của text
+  const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
@@ -150,14 +151,14 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     x += cardWidth;
 
     if (i < displayedCards.length - 1) {
-      // Vẽ dấu mũi tên màu xám phân tách giữa các quân bài nhỏ gọn
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowX = x + (arrowWidth - 10) / 2;
+      const arrowSize = 10 * scale; // 40px
+      const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - 6);
-      ctx.lineTo(arrowX, arrowY + 6);
-      ctx.lineTo(arrowX + 10, arrowY);
+      ctx.moveTo(arrowX, arrowY - (6 * scale));
+      ctx.lineTo(arrowX, arrowY + (6 * scale));
+      ctx.lineTo(arrowX + arrowSize, arrowY);
       ctx.closePath();
       ctx.fill();
       x += arrowWidth;
@@ -230,19 +231,19 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   
   if (state === 'start') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `## **${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
+    titleText = `### **${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
   } else if (state === 'correct') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `## **🎉 <@${userId}> guessed correctly!!**`;
+    titleText = `### **🎉 <@${userId}> guessed correctly!!**`;
   } else if (state === 'incorrect') {
     embedColor = 0xED4245; // Đỏ
-    titleText = `## **👎 <@${userId}> guessed incorrectly!!**`;
+    titleText = `### **👎 <@${userId}> guessed incorrectly!!**`;
   } else if (state === 'cashout') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `## **${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
+    titleText = `### **${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
   } else if (state === 'resume') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `## **🎮 <@${userId}> resumed a HighLow game.**`;
+    titleText = `### **🎮 <@${userId}> resumed a HighLow game.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
