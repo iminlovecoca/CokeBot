@@ -27,17 +27,18 @@ const CONFIG = {
 };
 
 function getRaceMultiplier(round) {
-  const multipliers = [0, 1.20, 1.80, 3.00, 6.00, 12.00, 25.00];
+  // Fair multiplier is 8^round. Payout = 8^round * RTP (0.90)
+  const multipliers = [0, 7.20, 57.60, 460.80, 3686.40, 29491.20, 235929.60];
   return multipliers[round] || 0;
 }
 
 const WIN_PROBABILITIES = [
-  0.62, // Round 1
-  0.58, // Round 2
-  0.52, // Round 3
-  0.46, // Round 4
-  0.36, // Round 5
-  0.22  // Round 6
+  0.125, // Round 1
+  0.125, // Round 2
+  0.125, // Round 3
+  0.125, // Round 4
+  0.125, // Round 5
+  0.125  // Round 6
 ];
 
 function formatNumber(num) {
