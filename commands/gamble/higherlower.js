@@ -137,12 +137,12 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   const paddingY = 10 * scale; // 40px
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
-  const width = paddingX * 2 + cardRowWidth;
+  const width = 2400; // Đặt chiều rộng lớn để Discord tự co nhỏ ảnh lại, giúp lá bài nhỏ nhắn và cực nét
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  let x = paddingX;
+  let x = Math.round((width - cardRowWidth) / 2);
   for (let i = 0; i < displayedCards.length; i++) {
     const cardKey = String(displayedCards[i]).toLowerCase();
     const imgPath = path.join(CARD_ASSET_DIR, `${cardKey}.png`);
@@ -231,19 +231,19 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   
   if (state === 'start') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `### **${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
+    titleText = `**${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
   } else if (state === 'correct') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `### **🎉 <@${userId}> guessed correctly!!**`;
+    titleText = `**🎉 <@${userId}> guessed correctly!!**`;
   } else if (state === 'incorrect') {
     embedColor = 0xED4245; // Đỏ
-    titleText = `### **👎 <@${userId}> guessed incorrectly!!**`;
+    titleText = `**👎 <@${userId}> guessed incorrectly!!**`;
   } else if (state === 'cashout') {
     embedColor = 0x57F287; // Xanh lá
-    titleText = `### **${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
+    titleText = `**${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
   } else if (state === 'resume') {
     embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `### **🎮 <@${userId}> resumed a HighLow game.**`;
+    titleText = `**🎮 <@${userId}> resumed a HighLow game.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
