@@ -55,12 +55,18 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
     if (roundState === 'pending') {
       pos = trackLength;
     } else if (roundState === 'running') {
-      if (step === 1) {
-        pos = Math.floor(Math.random() * 2) + 8; // 8 to 9
-      } else if (step === 2) {
-        pos = Math.floor(Math.random() * 2) + 5; // 5 to 6
-      } else if (step === 3) {
-        pos = Math.floor(Math.random() * 2) + 2; // 2 to 3
+      if (h === winningHorse) {
+        if (step === 1) pos = 8;
+        else if (step === 2) pos = 4;
+        else if (step === 3) pos = 1;
+      } else {
+        if (step === 1) {
+          pos = Math.floor(Math.random() * 2) + 9; // 9 to 10
+        } else if (step === 2) {
+          pos = Math.floor(Math.random() * 3) + 5; // 5 to 7
+        } else if (step === 3) {
+          pos = Math.floor(Math.random() * 4) + 2; // 2 to 5
+        }
       }
     } else if (roundState === 'won' || roundState === 'lost') {
       if (h === winningHorse) {
@@ -162,7 +168,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(textDisplayTop)
@@ -271,7 +277,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
 
     // Play 3-second running animation
     for (let step = 1; step <= 3; step++) {
-      const animContainer = buildComponentsV2(game, 'running', { step, chosenHorse: horseIdx });
+      const animContainer = buildComponentsV2(game, 'running', { step, chosenHorse: horseIdx, winningHorse });
       await i.editReply({
         embeds: [],
         content: null,
