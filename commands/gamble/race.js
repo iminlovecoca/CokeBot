@@ -106,7 +106,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   } else if (state === 'win_round') {
     headerText = `🎉 <@${userId}> **đã chọn đúng! Ngựa số 0${optionInfo.winningHorse} đã về đích đầu tiên!**`;
   } else if (state === 'lost') {
-    headerText = `👎 <@${userId}> **đã chọn sai! Ngựa số 0${optionInfo.winningHorse} đã thắng. Kết thúc.**`;
+    headerText = `👎 <@${userId}> **đã chọn sai!**`;
   } else if (state === 'cashout') {
     headerText = `💰 <@${userId}> **đã rút tiền thưởng!**`;
   } else if (state === 'won') {
@@ -122,7 +122,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const isRunning = state === 'running';
 
   const topLines = [headerText, ""];
-  let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`  Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
+  let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`\n-# Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
   if (isFinished) {
     statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
   }
@@ -147,7 +147,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
 
   let bottomText = "";
   if (state === 'play' || state === 'start' || state === 'resume' || state === 'win_round') {
-    bottomText = `-# Chọn 1 trong 6 con ngựa để chạy đua!`;
+    bottomText = `-# Chọn 1 trong 8 con ngựa để chạy đua!`;
   } else if (state === 'running') {
     bottomText = `-# Cổ vũ cho con ngựa số 0${chosenHorse} của bạn nào!`;
   } else if (state === 'lost') {
@@ -173,7 +173,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
     .addSeparatorComponents(separator3);
 
   const row1 = new ActionRowBuilder();
-  for (let h = 1; h <= 3; h++) {
+  for (let h = 1; h <= 4; h++) {
     const btn = new ButtonBuilder()
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
@@ -184,7 +184,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   container.addActionRowComponents(row1);
 
   const row2 = new ActionRowBuilder();
-  for (let h = 4; h <= 6; h++) {
+  for (let h = 5; h <= 8; h++) {
     const btn = new ButtonBuilder()
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
@@ -261,9 +261,13 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
     const horseIdx = parseInt(customId.split('_')[2]);
     const currentRound = game.round;
 
-    // Roll result: 1/6 chance of winning
-    const winningHorse = Math.floor(Math.random() * 6) + 1;
-    const won = horseIdx === winningHorse;
+    // Roll result based on Mines win probabilities
+    const prob = WIN_PROBABILITIES[currentRound];
+    const won = Math.random() < prob;
+    const winningHorse = won ? horseIdx : (() => {
+      const otherHorses = [1, 2, 3, 4, 5, 6, 7, 8].filter(h => h !== horseIdx);
+      return otherHorses[Math.floor(Math.random() * otherHorses.length)];
+    })();
 
     // Play 3-second running animation
     for (let step = 1; step <= 3; step++) {
@@ -302,11 +306,11 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
             round: nextRound,
             cashOut: newCashOut,
             selectedHorses: [...game.selectedHorses, horseIdx],
-            winningHorses: [...game.winningHorses, horseIdx],
+            winningHorses: [...game.winningHorses, winningHorse],
             isWon: true
           };
 
-          const finishedContainer = buildComponentsV2(wonData, 'won', { winningHorse: horseIdx, chosenHorse: horseIdx });
+          const finishedContainer = buildComponentsV2(wonData, 'won', { winningHorse, chosenHorse: horseIdx });
           await i.editReply({
             embeds: [],
             content: null,
@@ -332,13 +336,13 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
             },
             $push: {
               selectedHorses: horseIdx,
-              winningHorses: horseIdx
+              winningHorses: winningHorse
             }
           },
           { new: true }
         );
 
-        const winRoundContainer = buildComponentsV2(updatedGame, 'win_round', { winningHorse: horseIdx, chosenHorse: horseIdx });
+        const winRoundContainer = buildComponentsV2(updatedGame, 'win_round', { winningHorse, chosenHorse: horseIdx });
         await i.editReply({
           embeds: [],
           content: null,
