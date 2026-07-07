@@ -1,11 +1,17 @@
 const {
   SlashCommandBuilder,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
-  AttachmentBuilder
+  AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags
 } = require("discord.js");
 const path = require("path");
 const { createCanvas, loadImage } = require("canvas");
@@ -16,10 +22,9 @@ const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const HigherLowerGame = require("../../models/HigherLowerGame");
 
-// Cấu hình trò chơi Cao Thấp (Higher Lower)
 const CONFIG = {
-  RTP: 0.9584, // Cập nhật sang RTP chuẩn của Owo để tỷ lệ cược khớp chính xác từng số đơn vị
-  MIN_BET: 10, // Thiết lập mức cược tối thiểu là 10
+  RTP: 0.9584,
+  MIN_BET: 10,
   MAX_BET: config.gamble_settings.max_bet || 250000,
   COOLDOWN_SECONDS: 15,
   SAME_MULTIPLIER_OVERRIDE: 10.0,
@@ -28,19 +33,15 @@ const CONFIG = {
   }
 };
 
-// Giá trị xếp hạng của các lá bài từ A (1) đến K (13)
 const rankValues = {
   'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
   'J': 11, 'Q': 12, 'K': 13
 };
 
-const suits = ['s', 'c', 'h', 'd']; // Spades, Clubs, Hearts, Diamonds
+const suits = ['s', 'c', 'h', 'd'];
 const ranks = Object.keys(rankValues);
 const CARD_ASSET_DIR = path.join(__dirname, "..", "..", "assets", "cards");
 
-/**
- * Tạo một lá bài mới ngẫu nhiên loại trừ lá bài hiện tại (còn lại 51 lá bài)
- */
 function drawNextCard(currentCard) {
   const deck = [];
   for (const suit of suits) {
@@ -59,9 +60,6 @@ function drawNextCard(currentCard) {
   return remaining[randomIndex];
 }
 
-/**
- * Tính toán hệ số nhân dựa trên xác suất toán học và cấu hình RTP
- */
 function calculateMultiplier(type, currentCard) {
   const currentValue = rankValues[currentCard.slice(0, -1)];
   const RTP = CONFIG.RTP;
@@ -70,7 +68,7 @@ function calculateMultiplier(type, currentCard) {
     if (CONFIG.SAME_MULTIPLIER_OVERRIDE !== null) {
       return CONFIG.SAME_MULTIPLIER_OVERRIDE;
     }
-    return (51 / 3) * RTP; // ≈ 16.49x
+    return (51 / 3) * RTP;
   }
 
   if (type === 'higher') {
@@ -90,16 +88,10 @@ function calculateMultiplier(type, currentCard) {
   return 0;
 }
 
-/**
- * Định dạng số hiển thị có dấu phẩy phân tách
- */
 function formatNumber(num) {
   return Math.round(num).toLocaleString();
 }
 
-/**
- * Lấy giá trị hiển thị dạng số của lá bài (ví dụ "J" -> 11)
- */
 function getCardDisplayValue(card) {
   const rank = card.slice(0, -1);
   return rankValues[rank] || rank;
@@ -130,14 +122,14 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   );
 
   const scale = 4;
-  const cardHeight = 40 * scale; // 160px
-  const cardWidth = Math.round(cardHeight * (262 / 372)); // 113px
-  const arrowWidth = 40 * scale; // 160px (khoảng cách rộng hơn cho thoáng)
-  const paddingX = 10 * scale; // 40px
-  const paddingY = 10 * scale; // 40px
+  const cardHeight = 40 * scale;
+  const cardWidth = Math.round(cardHeight * (262 / 372));
+  const arrowWidth = 40 * scale;
+  const paddingX = 10 * scale;
+  const paddingY = 10 * scale;
   const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
 
-  const width = 1186; // Chiều rộng cố định giúp giữ nguyên kích thước lá bài trên màn hình dù có 2 hay 3 lá
+  const width = 1186;
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -153,7 +145,7 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     if (i < displayedCards.length - 1) {
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowSize = 10 * scale; // 40px
+      const arrowSize = 10 * scale;
       const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
       ctx.moveTo(arrowX, arrowY - (6 * scale));
@@ -168,9 +160,6 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   return new AttachmentBuilder(canvas.toBuffer("image/png"), { name: "higherlower_cards.png" });
 }
 
-/**
- * Tạo dãy nút lựa chọn và nút rút tiền
- */
 function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
   const higherMultiplier = calculateMultiplier('higher', currentCard);
   const lowerMultiplier = calculateMultiplier('lower', currentCard);
@@ -221,47 +210,34 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
   return [row1, row2];
 }
 
-/**
- * Dựng nội dung embed hiển thị trò chơi
- */
-function buildEmbed(userId, gameData, state, optionInfo = {}) {
-  const embed = new EmbedBuilder();
-  let embedColor = 0x615F5F; // Mặc định là màu xám (khi hết giờ)
-  let titleText = "";
+function buildComponentsV2(gameData, state, optionInfo = {}) {
+  const userId = gameData.userId;
+  let headerText = "";
   
   if (state === 'start') {
-    embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `**${CONFIG.EMOJIS.money} <@${userId}> started a HighLow game.**`;
+    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **started a HighLow game.**`;
   } else if (state === 'correct') {
-    embedColor = 0x57F287; // Xanh lá
-    titleText = `**🎉 <@${userId}> guessed correctly!!**`;
+    headerText = `🎉 <@${userId}> **guessed correctly!!**`;
   } else if (state === 'incorrect') {
-    embedColor = 0xED4245; // Đỏ
-    titleText = `**👎 <@${userId}> guessed incorrectly!!**`;
+    headerText = `👎 <@${userId}> **guessed incorrectly!!**`;
   } else if (state === 'cashout') {
-    embedColor = 0x57F287; // Xanh lá
-    titleText = `**${CONFIG.EMOJIS.money} <@${userId}> cashed out!**`;
+    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **cashed out!**`;
   } else if (state === 'resume') {
-    embedColor = 0x5865F2; // Xanh dương đậm
-    titleText = `**🎮 <@${userId}> resumed a HighLow game.**`;
+    headerText = `🎮 <@${userId}> **resumed a HighLow game.**`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
-  
-  const descriptionLines = [];
-  if (titleText) {
-    descriptionLines.push(titleText);
-    descriptionLines.push(""); // cách 1 dòng so với dòng dưới
-  }
-  descriptionLines.push(`-# **Bet:** \`${formatNumber(bet)}\`  **Streak:** \`${streak}\`  **Cash Out:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-  descriptionLines.push("────────────────────────────");
-  
-  embed.setDescription(descriptionLines.join('\n'));
-  embed.setImage("attachment://higherlower_cards.png");
-  embed.setColor(embedColor);
+  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
 
-  // 2. Di chuyển các chữ này xuống phía dưới ảnh bài và hiển thị chữ nhỏ (Embed Footer)
+  const descriptionLines = [headerText, ""];
+  let statsLine = `-# Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
+  if (isFinished) {
+    statsLine = `-# ~~Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
+  }
+  descriptionLines.push(statsLine);
+  descriptionLines.push("");
+
   let footerText = "";
   if (state === 'incorrect') {
     footerText = `You guessed \`${optionInfo.guess}\`. You lost.\nCurrent Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
@@ -270,63 +246,72 @@ function buildEmbed(userId, gameData, state, optionInfo = {}) {
   } else {
     footerText = `Is the next card higher, lower, or the same value?\nCurrent Card: ${getCardDisplayValue(currentCard)}`;
   }
-  embed.setFooter({ text: footerText });
-  
-  return embed;
+  descriptionLines.push(`-# ${footerText}`);
+
+  const textDisplay = new TextDisplayBuilder().setContent(descriptionLines.join('\n'));
+
+  const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+
+  const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
+  const gallery = new MediaGalleryBuilder().addItems(mediaItem);
+
+  const container = new ContainerBuilder()
+    .addTextDisplayComponents(textDisplay)
+    .addSeparatorComponents(separator1)
+    .addMediaGalleryComponents(gallery)
+    .addSeparatorComponents(separator2);
+
+  const rows = buildButtons(currentCard, cashOut, isFinished, streak);
+  container.addActionRowComponents(rows[0]);
+  container.addSeparatorComponents(separator3);
+  container.addActionRowComponents(rows[1]);
+
+  return container;
 }
 
-/**
- * Thiết lập bộ lắng nghe nút bấm (Collector) dùng chung cho Start và Resume
- */
 function setupCollector(collector, replyMsg, gameData, userId, isSlash, context) {
   collector.on('collect', async (i) => {
-    // Phản hồi Discord lập tức để tránh quá giờ phản hồi của nút
     await i.deferUpdate().catch(() => {});
 
-    // Kiểm tra trạng thái và chuyển status sang 'processing' để lock game tránh bấm nút liên tiếp
     const game = await HigherLowerGame.findOneAndUpdate(
       { userId, status: 'active' },
       { $set: { status: 'processing' } },
       { new: true }
     );
 
-    // Nếu không tìm thấy game ở trạng thái 'active', nghĩa là game đang được xử lý hoặc đã kết thúc
     if (!game) return;
 
     const guessId = i.customId;
 
-    // Xử lý cút/rút tiền (CASH OUT)
     if (guessId === 'hl_cashout') {
       collector.stop('cashout');
 
       try {
         const cashOutTxn = async (session) => {
-          // Cộng tiền thưởng tích lũy cho người chơi (Làm tròn ở giao dịch cuối)
           await User.updateOne(
             { userId },
             { $inc: { coke: Math.round(game.cashOut) } }
           ).session(session);
 
-          // Xóa dữ liệu game Cao Thấp
           await HigherLowerGame.deleteOne({ userId }).session(session);
         };
 
         await runTransactionWithRetry(cashOutTxn);
 
-        // Cập nhật Embed thông báo thắng cuộc
-        const finishedEmbed = buildEmbed(userId, game, 'cashout');
+        const finishedContainer = buildComponentsV2(game, 'cashout');
         const finishedAttachment = await buildCardsAttachment(game, 'cashout');
-        const finishedComponents = buildButtons(game.currentCard, game.cashOut, true, game.streak);
         await i.editReply({
           content: null,
           attachments: [],
-          embeds: [finishedEmbed],
+          embeds: [],
           files: [finishedAttachment],
-          components: finishedComponents
+          components: [finishedContainer],
+          flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
       } catch (err) {
         console.error("Lỗi khi xử lý rút tiền game Cao Thấp:", err);
-        // Trả lại trạng thái active nếu lỗi db để người chơi thử lại
         await HigherLowerGame.updateOne(
           { userId },
           { $set: { status: 'active' } }
@@ -339,7 +324,6 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       return;
     }
 
-    // Xử lý đoán (Higher, Lower, Same)
     const guessMap = {
       'hl_higher': 'Higher',
       'hl_lower': 'Lower',
@@ -361,13 +345,11 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
     }
 
     if (isCorrect) {
-      // Đoán đúng! Tiếp tục trò chơi
       const multiplier = calculateMultiplier(guess.toLowerCase(), game.currentCard);
       const newStreak = game.streak + 1;
-      const newCashOut = game.cashOut * multiplier; // Lưu ở dạng số thực không làm tròn trung gian
+      const newCashOut = game.cashOut * multiplier;
       const newCardHistory = [...game.cardHistory, nextCard];
 
-      // Lưu trạng thái mới vào DB & unlock
       const updatedGame = await HigherLowerGame.findOneAndUpdate(
         { userId },
         {
@@ -383,39 +365,33 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         { new: true }
       );
 
-      // Cập nhật Embed
-      const nextEmbed = buildEmbed(userId, updatedGame, 'correct', { guess });
+      const nextContainer = buildComponentsV2(updatedGame, 'correct', { guess });
       const nextAttachment = await buildCardsAttachment(updatedGame, 'correct', { guess });
-      const nextComponents = buildButtons(nextCard, newCashOut, false, newStreak);
       await i.editReply({
         content: null,
         attachments: [],
-        embeds: [nextEmbed],
+        embeds: [],
         files: [nextAttachment],
-        components: nextComponents
+        components: [nextContainer],
+        flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
     } else {
-      // Đoán sai! Mất hết tiền cược & kết thúc game
       collector.stop('lost');
 
-      // Xóa game khỏi database
       await HigherLowerGame.deleteOne({ userId });
 
-      // Cập nhật Embed
-      const lostEmbed = buildEmbed(userId, game, 'incorrect', { guess, lostCard: nextCard });
+      const lostContainer = buildComponentsV2(game, 'incorrect', { guess, lostCard: nextCard });
       const lostAttachment = await buildCardsAttachment(game, 'incorrect', { guess, lostCard: nextCard });
-      const lostComponents = buildButtons(nextCard, 0, true, game.streak);
       await i.editReply({
         content: null,
         attachments: [],
-        embeds: [lostEmbed],
+        embeds: [],
         files: [lostAttachment],
-        components: lostComponents
+        components: [lostContainer],
+        flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
     }
   });
-
-  // Không có timeout logic nữa, game kéo dài vĩnh viễn đến khi hoàn thành
 }
 
 module.exports = {
@@ -437,32 +413,32 @@ module.exports = {
     const userId = isSlash ? context.user.id : context.author.id;
     const betInput = isSlash ? context.options.getString("bet") : (arg2[0] || null);
 
-    // 1. Kiểm tra game trùng lặp/active trước tiên để thực hiện Resume
     let activeGame = await HigherLowerGame.findOne({ userId });
     
     if (activeGame) {
-      // RESUME GAME! (Không còn giới hạn 2 phút hết hạn nữa)
-      const embed = buildEmbed(userId, activeGame, 'resume');
+      const container = buildComponentsV2(activeGame, 'resume');
       const cardAttachment = await buildCardsAttachment(activeGame, 'resume');
-      const components = buildButtons(activeGame.currentCard, activeGame.cashOut, false, activeGame.streak);
       
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
-          embeds: [embed],
+          content: null,
+          embeds: [],
           files: [cardAttachment],
-          components: components,
+          components: [container],
+          flags: MessageFlags.IsComponentsV2,
           fetchReply: true
         });
       } else {
         replyMsg = await context.reply({
-          embeds: [embed],
+          content: null,
+          embeds: [],
           files: [cardAttachment],
-          components: components
+          components: [container],
+          flags: MessageFlags.IsComponentsV2
         });
       }
 
-      // Tạo collector nhận tín hiệu nhấn nút cho ván bài được tiếp tục (không dùng time timeout)
       const filter = (i) => i.user.id === userId && ['hl_higher', 'hl_lower', 'hl_same', 'hl_cashout'].includes(i.customId);
       const collector = replyMsg.createMessageComponentCollector({
         filter,
@@ -473,10 +449,8 @@ module.exports = {
       return;
     }
 
-    // Nếu không có game để resume, tự động gán cược là 10 nếu người chơi gõ hl không có đối số cược
     const finalBetInput = betInput || "10";
 
-    // 2. Kiểm tra cooldown (chỉ áp dụng khi tạo game mới)
     const remainingCooldown = checkAndSetCooldown(userId, "higherlower", CONFIG.COOLDOWN_SECONDS);
     if (remainingCooldown > 0) {
       return context.reply({
@@ -485,7 +459,6 @@ module.exports = {
       });
     }
 
-    // 3. Phân tích tiền cược & kiểm tra số dư
     let betAmount;
     try {
       betAmount = await getBetAmount(finalBetInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
@@ -496,7 +469,6 @@ module.exports = {
       });
     }
 
-    // 4. Bắt đầu trò chơi & trừ tiền ngay (Dùng transaction)
     const firstCard = drawNextCard(null);
     const gameData = {
       userId,
@@ -510,13 +482,11 @@ module.exports = {
 
     try {
       const startGameTxn = async (session) => {
-        // Trừ tiền của user ngay lập tức
         await User.updateOne(
           { userId },
           { $inc: { coke: -betAmount } }
         ).session(session);
 
-        // Lưu thông tin game vào db
         await HigherLowerGame.create([gameData], { session });
       };
 
@@ -529,28 +499,29 @@ module.exports = {
       });
     }
 
-    // 5. Gửi giao diện bắt đầu game
-    const embed = buildEmbed(userId, gameData, 'start');
+    const container = buildComponentsV2(gameData, 'start');
     const cardAttachment = await buildCardsAttachment(gameData, 'start');
-    const components = buildButtons(firstCard, betAmount, false, 0);
     
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
-        embeds: [embed],
+        content: null,
+        embeds: [],
         files: [cardAttachment],
-        components: components,
+        components: [container],
+        flags: MessageFlags.IsComponentsV2,
         fetchReply: true
       });
     } else {
       replyMsg = await context.reply({
-        embeds: [embed],
+        content: null,
+        embeds: [],
         files: [cardAttachment],
-        components: components
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
       });
     }
 
-    // 6. Tạo collector nhận tín hiệu nhấn nút (không dùng time timeout)
     const filter = (i) => i.user.id === userId && ['hl_higher', 'hl_lower', 'hl_same', 'hl_cashout'].includes(i.customId);
     const collector = replyMsg.createMessageComponentCollector({
       filter,
