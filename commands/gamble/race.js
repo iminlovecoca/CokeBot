@@ -27,17 +27,17 @@ const CONFIG = {
 };
 
 function getRaceMultiplier(round) {
-  const multipliers = [0, 1.40, 2.20, 3.90, 7.80, 19.50, 78.00];
+  const multipliers = [0, 1.20, 1.80, 3.00, 6.00, 12.00, 25.00];
   return multipliers[round] || 0;
 }
 
 const WIN_PROBABILITIES = [
-  0.63, // Round 1 (Mines: 66.67%)
-  0.59, // Round 2 (Mines: 62.5%)
-  0.55, // Round 3 (Mines: 57.14%)
-  0.48, // Round 4 (Mines: 50.0%)
-  0.38, // Round 5 (Mines: 40.0%)
-  0.23  // Round 6 (Mines: 25.0%)
+  0.62, // Round 1
+  0.58, // Round 2
+  0.52, // Round 3
+  0.46, // Round 4
+  0.36, // Round 5
+  0.22  // Round 6
 ];
 
 function formatNumber(num) {
