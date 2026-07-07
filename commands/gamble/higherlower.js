@@ -122,14 +122,13 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   );
 
   const scale = 4;
-  const cardHeight = 32 * scale;
+  const cardHeight = 40 * scale;
   const cardWidth = Math.round(cardHeight * (262 / 372));
-  const arrowWidth = 24 * scale;
-  const paddingX = 8 * scale;
-  const paddingY = 8 * scale;
+  const arrowWidth = 40 * scale;
+  const paddingX = 12 * scale;
+  const paddingY = 10 * scale;
 
-  const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
-  const width = cardRowWidth + paddingX * 2;
+  const width = 450 * scale;
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -145,11 +144,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     if (i < displayedCards.length - 1) {
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowSize = 8 * scale;
+      const arrowSize = 10 * scale;
       const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - (5 * scale));
-      ctx.lineTo(arrowX, arrowY + (5 * scale));
+      ctx.moveTo(arrowX, arrowY - (6 * scale));
+      ctx.lineTo(arrowX, arrowY + (6 * scale));
       ctx.lineTo(arrowX + arrowSize, arrowY);
       ctx.closePath();
       ctx.fill();
