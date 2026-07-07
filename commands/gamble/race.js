@@ -20,7 +20,7 @@ const HorseRaceGame = require("../../models/HorseRaceGame");
 const CONFIG = {
   MIN_BET: 10,
   MAX_BET: config.gamble_settings.max_bet || 250000,
-  COOLDOWN_SECONDS: 3,
+  COOLDOWN_SECONDS: 15,
   EMOJIS: {
     money: config.emoji.money || "<:cokecy:1509951335016173662>"
   }
@@ -71,7 +71,7 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState) {
       }
     }
     
-    const prefix = `0${h} 🏁 `;
+    const prefix = `0${h} :checkered_flag:  `;
     const before = "-".repeat(pos);
     const after = "-".repeat(trackLength - pos);
     lines.push(`${prefix}${before}🏇${after}${suffix}`);
@@ -96,7 +96,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   } else if (state === 'won') {
     headerText = `🏆 <@${userId}> **đã giành chức vô địch! Hoàn thành Vòng 6/6!**`;
   } else if (state === 'resume') {
-    headerText = `🎮 <@${userId}> **đã khôi phục trò chơi đua ngựa.**`;
+    headerText = `🏇 <@${userId}> **đã khôi phục trò chơi đua ngựa.**`;
   }
 
   const { bet, round, cashOut } = game;
@@ -141,7 +141,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(textDisplayTop)
