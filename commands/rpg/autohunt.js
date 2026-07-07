@@ -178,11 +178,11 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
 
   const drawProgress = (info) => {
     if (info.max) {
-      return `Lvl ${info.lvl} [MAX]\n\`[■■■■■■■■■■■■■■■■]\``;
+      return `\`Lvl ${info.lvl}\` [MAX]\n\`[■■■■■■■■■■■■■■■■]\``;
     }
     const filled = Math.min(16, Math.round((info.currentxp / info.maxxp) * 16));
     const bar = "`[" + "■".repeat(filled) + "□".repeat(16 - filled) + "]`";
-    return `Lvl ${info.lvl} \`[${info.currentxp.toLocaleString()}/${info.maxxp.toLocaleString()}]\`\n${bar}`;
+    return `\`Lvl ${info.lvl}\` \`[${info.currentxp.toLocaleString()}/${info.maxxp.toLocaleString()}]\`\n${bar}`;
   };
 
   const maxhunt = Math.floor(durInfo.stat * effInfo.stat);
