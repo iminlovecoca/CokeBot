@@ -32,12 +32,12 @@ function getRaceMultiplier(round) {
 }
 
 const WIN_PROBABILITIES = [
-  0.125, // Round 1
-  0.125, // Round 2
-  0.125, // Round 3
-  0.125, // Round 4
-  0.125, // Round 5
-  0.125  // Round 6
+  0.69, // Round 1 (Mines: 66.67%) - dễ hơn
+  0.64, // Round 2 (Mines: 62.5%) - dễ hơn
+  0.57, // Round 3 (Mines: 57.14%) - dễ hơn
+  0.40, // Round 4 (Mines: 50.0%) - khó hơn
+  0.30, // Round 5 (Mines: 40.0%) - khó hơn
+  0.15  // Round 6 (Mines: 25.0%) - khó hơn
 ];
 
 function formatNumber(num) {
