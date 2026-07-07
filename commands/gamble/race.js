@@ -32,12 +32,12 @@ function getRaceMultiplier(round) {
 }
 
 const WIN_PROBABILITIES = [
-  0.69, // Round 1 (Mines: 66.67%) - dễ hơn
-  0.64, // Round 2 (Mines: 62.5%) - dễ hơn
-  0.57, // Round 3 (Mines: 57.14%) - dễ hơn
-  0.40, // Round 4 (Mines: 50.0%) - khó hơn
-  0.30, // Round 5 (Mines: 40.0%) - khó hơn
-  0.15  // Round 6 (Mines: 25.0%) - khó hơn
+  0.50,  // Round 1 (50%)
+  0.35,  // Round 2 (35%)
+  0.225, // Round 3 (22.5%)
+  0.125, // Round 4 (12.5%)
+  0.075, // Round 5 (7.5%)
+  0.05   // Round 6 (5%)
 ];
 
 function formatNumber(num) {
@@ -48,7 +48,7 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 4) {
   const lines = [];
   const trackLength = 10;
   
-  for (let h = 1; h <= 8; h++) {
+  for (let h = 1; h <= 6; h++) {
     let pos = trackLength; // far right (start)
     let suffix = "";
     
@@ -147,7 +147,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
 
   let bottomText = "";
   if (state === 'play' || state === 'start' || state === 'resume' || state === 'win_round') {
-    bottomText = `-# Chọn 1 trong 8 con ngựa để chạy đua!`;
+    bottomText = `-# Chọn 1 trong 6 con ngựa để chạy đua!`;
   } else if (state === 'running') {
     bottomText = `-# Cổ vũ cho con ngựa số 0${chosenHorse} của bạn nào!`;
   } else if (state === 'lost') {
@@ -162,7 +162,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
   const container = new ContainerBuilder()
     .addTextDisplayComponents(textDisplayTop)
@@ -173,7 +173,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
     .addSeparatorComponents(separator3);
 
   const row1 = new ActionRowBuilder();
-  for (let h = 1; h <= 4; h++) {
+  for (let h = 1; h <= 3; h++) {
     const btn = new ButtonBuilder()
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
@@ -184,7 +184,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   container.addActionRowComponents(row1);
 
   const row2 = new ActionRowBuilder();
-  for (let h = 5; h <= 8; h++) {
+  for (let h = 4; h <= 6; h++) {
     const btn = new ButtonBuilder()
       .setCustomId(`race_horse_${h}`)
       .setLabel(`🏇 0${h}`)
@@ -265,7 +265,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
     const prob = WIN_PROBABILITIES[currentRound];
     const won = Math.random() < prob;
     const winningHorse = won ? horseIdx : (() => {
-      const otherHorses = [1, 2, 3, 4, 5, 6, 7, 8].filter(h => h !== horseIdx);
+      const otherHorses = [1, 2, 3, 4, 5, 6].filter(h => h !== horseIdx);
       return otherHorses[Math.floor(Math.random() * otherHorses.length)];
     })();
 
