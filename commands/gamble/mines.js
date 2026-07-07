@@ -141,15 +141,15 @@ function buildComponentsV2(game, state) {
   const userId = game.userId;
   let headerText = "";
   if (state === 'start') {
-    headerText = `💣 <@${userId}> started a mines game.`;
+    headerText = `💣 <@${userId}> **started a mines game.**`;
   } else if (state === 'play') {
-    headerText = `💣 <@${userId}> is playing a mines game.`;
+    headerText = `💣 <@${userId}> **is playing a mines game.**`;
   } else if (state === 'cashout') {
-    headerText = `💎 <@${userId}> cashed out!`;
+    headerText = `💎 <@${userId}> **cashed out!**`;
   } else if (state === 'lost') {
-    headerText = `💥 <@${userId}> touched a mine!`;
+    headerText = `💥 <@${userId}> **touched a mine!**`;
   } else if (state === 'resume') {
-    headerText = `💣 <@${userId}> resumed a mines game.`;
+    headerText = `💣 <@${userId}> **resumed a mines game.**`;
   }
 
   const { bet, minesCount, cashOut, revealed } = game;
@@ -163,21 +163,19 @@ function buildComponentsV2(game, state) {
   const textLines = [
     headerText,
     "",
-    `Bet: ${formatNumber(bet)}`,
-    `Mines: ${minesCount}`,
-    ""
+    `-# Bet: \`${formatNumber(bet)}\`  Mines: \`${minesCount}\``,
   ];
 
   if (isFinished) {
     if (state === 'cashout') {
-      textLines.push(`~~Winnings: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)~~`);
+      textLines.push(`-# ~~Winnings: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     } else {
-      textLines.push(`~~Cash Out: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)~~`);
+      textLines.push(`-# ~~Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     }
-    textLines.push(`~~Next: ${formatNumber(nextPayout)} (${nextMultiplier.toFixed(2)}x)~~`);
+    textLines.push(`-# ~~Next: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
   } else {
-    textLines.push(`Cash Out: ${formatNumber(cashOut)} (${currentMultiplier.toFixed(2)}x)`);
-    textLines.push(`Next: ${formatNumber(nextPayout)} (${nextMultiplier.toFixed(2)}x)`);
+    textLines.push(`-# Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    textLines.push(`-# Next: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
 
   const textDisplay = new TextDisplayBuilder().setContent(textLines.join('\n'));
