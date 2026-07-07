@@ -122,13 +122,14 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
   );
 
   const scale = 4;
-  const cardHeight = 48 * scale;
+  const cardHeight = 32 * scale;
   const cardWidth = Math.round(cardHeight * (262 / 372));
-  const arrowWidth = 40 * scale;
-  const paddingX = 12 * scale;
-  const paddingY = 12 * scale;
+  const arrowWidth = 24 * scale;
+  const paddingX = 8 * scale;
+  const paddingY = 8 * scale;
 
-  const width = 450 * scale;
+  const cardRowWidth = displayedCards.length * cardWidth + Math.max(0, displayedCards.length - 1) * arrowWidth;
+  const width = cardRowWidth + paddingX * 2;
   const height = paddingY * 2 + cardHeight;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -144,11 +145,11 @@ async function buildCardsAttachment(gameData, state, optionInfo = {}) {
     if (i < displayedCards.length - 1) {
       ctx.fillStyle = "#8a919e";
       ctx.beginPath();
-      const arrowSize = 12 * scale;
+      const arrowSize = 8 * scale;
       const arrowX = x + (arrowWidth - arrowSize) / 2;
       const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - (8 * scale));
-      ctx.lineTo(arrowX, arrowY + (8 * scale));
+      ctx.moveTo(arrowX, arrowY - (5 * scale));
+      ctx.lineTo(arrowX, arrowY + (5 * scale));
       ctx.lineTo(arrowX + arrowSize, arrowY);
       ctx.closePath();
       ctx.fill();
@@ -231,7 +232,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
 
   const topLines = [headerText, ""];
   let statsLine = `-# Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
-  if (isFinished) {
+  if (state === 'incorrect') {
     statsLine = `-# ~~Bet: \`${formatNumber(bet)}\`  Streak: \`${streak}\`  Cash Out: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
   }
   topLines.push(statsLine);
@@ -240,11 +241,11 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
 
   let footerText = "";
   if (state === 'incorrect') {
-    footerText = `-# You guessed \`${optionInfo.guess}\`. You lost.\n**Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}**`;
+    footerText = `-# You guessed \`${optionInfo.guess}\`. You lost.\n-# Current Card: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
   } else if (state === 'cashout') {
-    footerText = `-# You cashed out with ${formatNumber(cashOut)} coke!\n**Current Card: ${getCardDisplayValue(currentCard)}**`;
+    footerText = `-# You cashed out with **${formatNumber(cashOut)}** coke!\n-# Current Card: ${getCardDisplayValue(currentCard)}`;
   } else {
-    footerText = `-# Is the next card higher, lower, or the same value?\n**Current Card: ${getCardDisplayValue(currentCard)}**`;
+    footerText = `-# Is the next card higher, lower, or the same value?\n-# Current Card: ${getCardDisplayValue(currentCard)}`;
   }
 
   const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
