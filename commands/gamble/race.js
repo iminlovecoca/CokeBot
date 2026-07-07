@@ -27,8 +27,8 @@ const CONFIG = {
 };
 
 function getRaceMultiplier(round) {
-  // Fair multiplier is 8^round. Payout = 8^round * RTP (0.90)
-  const multipliers = [0, 7.20, 57.60, 460.80, 3686.40, 29491.20, 235929.60];
+  // Fair multiplier is 8^round. Payout = 8^round * RTP (0.93)
+  const multipliers = [0, 7.44, 59.52, 476.16, 3809.28, 30474.24, 243793.92];
   return multipliers[round] || 0;
 }
 
