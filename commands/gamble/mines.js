@@ -182,7 +182,15 @@ function buildComponentsV2(game, state) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
+  let accentColor = 0x5865F2; // Default blue (blurple)
+  if (state === 'cashout') {
+    accentColor = 0x57F287; // Green
+  } else if (state === 'lost') {
+    accentColor = 0xED4245; // Red
+  }
+
   const container = new ContainerBuilder()
+    .setAccentColor(accentColor)
     .addTextDisplayComponents(textDisplay)
     .addSeparatorComponents(separator1);
 

@@ -258,7 +258,17 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
   const gallery = new MediaGalleryBuilder().addItems(mediaItem);
 
+  let accentColor = 0x5865F2; // Default blue (blurple)
+  if (state === 'correct') {
+    accentColor = 0x57F287; // Green
+  } else if (state === 'incorrect') {
+    accentColor = 0xED4245; // Red
+  } else if (state === 'cashout') {
+    accentColor = 0x57F287; // Green
+  }
+
   const container = new ContainerBuilder()
+    .setAccentColor(accentColor)
     .addTextDisplayComponents(textDisplayTop)
     .addSeparatorComponents(separator1)
     .addMediaGalleryComponents(gallery)
