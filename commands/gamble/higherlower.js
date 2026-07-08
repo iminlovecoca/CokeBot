@@ -217,7 +217,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
     return config.emoji[c] || `\`[ ${c} ]\``;
   });
 
-  const cardsLine = `## 🃏 Bài: ${cardStrings.join(' ➔ ')}`;
+  const cardsLine = `### ${cardStrings.join(' ▶️ ')}`;
   const textDisplayCards = new TextDisplayBuilder().setContent(cardsLine);
 
   let accentColor = 0x5865F2; // Default blue (blurple)
