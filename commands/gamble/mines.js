@@ -141,15 +141,15 @@ function buildComponentsV2(game, state) {
   const userId = game.userId;
   let headerText = "";
   if (state === 'start') {
-    headerText = `💣 <@${userId}> **đã bắt đầu trò chơi Dò Mìn.**`;
+    headerText = `### 💣 <@${userId}> đã bắt đầu trò chơi Dò Mìn.`;
   } else if (state === 'play') {
-    headerText = `💣 <@${userId}> **đang chơi trò chơi Dò Mìn.**`;
+    headerText = `### 💣 <@${userId}> đang chơi trò chơi Dò Mìn.`;
   } else if (state === 'cashout') {
-    headerText = `💎 <@${userId}> **đã rút tiền thưởng!**`;
+    headerText = `### 💎 <@${userId}> đã rút tiền thưởng!`;
   } else if (state === 'lost') {
-    headerText = `💥 <@${userId}> **đã giẫm phải mìn!**`;
+    headerText = `### 💥 <@${userId}> đã giẫm phải mìn!`;
   } else if (state === 'resume') {
-    headerText = `💣 <@${userId}> **đã khôi phục trò chơi Dò Mìn.**`;
+    headerText = `### 💣 <@${userId}> đã khôi phục trò chơi Dò Mìn.`;
   }
 
   const { bet, minesCount, cashOut, revealed } = game;

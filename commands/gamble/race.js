@@ -168,7 +168,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const separator2 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  const separator4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+  const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
   let accentColor = 0x5865F2; // Default blue (blurple)
   if (state === 'lost') {
