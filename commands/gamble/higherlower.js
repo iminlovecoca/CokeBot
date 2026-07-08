@@ -4,17 +4,13 @@ const {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
-  AttachmentBuilder,
   ContainerBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MediaGalleryBuilder,
-  MediaGalleryItemBuilder,
   MessageFlags
 } = require("discord.js");
 const path = require("path");
-const { createCanvas, loadImage } = require("canvas");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
 const { getBetAmount } = require("../../utils/gameUtil");
@@ -112,52 +108,7 @@ function getDisplayedCards(cardHistory, isFinished, isLost, lostCard) {
   return [...cardHistory.slice(-2), "back"];
 }
 
-async function buildCardsAttachment(gameData, state, optionInfo = {}) {
-  const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
-  const displayedCards = getDisplayedCards(
-    gameData.cardHistory,
-    isFinished,
-    state === 'incorrect',
-    optionInfo.lostCard
-  );
 
-  const scale = 4;
-  const cardHeight = 40 * scale;
-  const cardWidth = Math.round(cardHeight * (262 / 372));
-  const arrowWidth = 40 * scale;
-  const paddingX = 12 * scale;
-  const paddingY = 10 * scale;
-
-  const width = 450 * scale;
-  const height = paddingY * 2 + cardHeight;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext("2d");
-
-  let x = paddingX;
-  for (let i = 0; i < displayedCards.length; i++) {
-    const cardKey = String(displayedCards[i]).toLowerCase();
-    const imgPath = path.join(CARD_ASSET_DIR, `${cardKey}.png`);
-    const img = await loadImage(imgPath);
-    ctx.drawImage(img, x, paddingY, cardWidth, cardHeight);
-    x += cardWidth;
-
-    if (i < displayedCards.length - 1) {
-      ctx.fillStyle = "#8a919e";
-      ctx.beginPath();
-      const arrowSize = 10 * scale;
-      const arrowX = x + (arrowWidth - arrowSize) / 2;
-      const arrowY = paddingY + cardHeight / 2;
-      ctx.moveTo(arrowX, arrowY - (6 * scale));
-      ctx.lineTo(arrowX, arrowY + (6 * scale));
-      ctx.lineTo(arrowX + arrowSize, arrowY);
-      ctx.closePath();
-      ctx.fill();
-      x += arrowWidth;
-    }
-  }
-
-  return new AttachmentBuilder(canvas.toBuffer("image/png"), { name: "higherlower_cards.png" });
-}
 
 function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
   const higherMultiplier = calculateMultiplier('higher', currentCard);
@@ -255,8 +206,19 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
-  const mediaItem = new MediaGalleryItemBuilder().setURL('attachment://higherlower_cards.png');
-  const gallery = new MediaGalleryBuilder().addItems(mediaItem);
+  const displayedCards = getDisplayedCards(
+    gameData.cardHistory,
+    isFinished,
+    state === 'incorrect',
+    optionInfo.lostCard
+  );
+
+  const cardStrings = displayedCards.map(c => {
+    return config.emoji[c] || `\`[ ${c} ]\``;
+  });
+
+  const cardsLine = `## 🃏 Bài: ${cardStrings.join(' ➔ ')}`;
+  const textDisplayCards = new TextDisplayBuilder().setContent(cardsLine);
 
   let accentColor = 0x5865F2; // Default blue (blurple)
   if (state === 'correct') {
@@ -271,7 +233,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
     .setAccentColor(accentColor)
     .addTextDisplayComponents(textDisplayTop)
     .addSeparatorComponents(separator1)
-    .addMediaGalleryComponents(gallery)
+    .addTextDisplayComponents(textDisplayCards)
     .addSeparatorComponents(separator2)
     .addTextDisplayComponents(textDisplayBottom)
     .addSeparatorComponents(separator3);
@@ -314,12 +276,10 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         await runTransactionWithRetry(cashOutTxn);
 
         const finishedContainer = buildComponentsV2(game, 'cashout');
-        const finishedAttachment = await buildCardsAttachment(game, 'cashout');
         await i.editReply({
           content: null,
           attachments: [],
           embeds: [],
-          files: [finishedAttachment],
           components: [finishedContainer],
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
@@ -379,12 +339,10 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       );
 
       const nextContainer = buildComponentsV2(updatedGame, 'correct', { guess });
-      const nextAttachment = await buildCardsAttachment(updatedGame, 'correct', { guess });
       await i.editReply({
         content: null,
         attachments: [],
         embeds: [],
-        files: [nextAttachment],
         components: [nextContainer],
         flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
@@ -394,12 +352,10 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       await HigherLowerGame.deleteOne({ userId });
 
       const lostContainer = buildComponentsV2(game, 'incorrect', { guess, lostCard: nextCard });
-      const lostAttachment = await buildCardsAttachment(game, 'incorrect', { guess, lostCard: nextCard });
       await i.editReply({
         content: null,
         attachments: [],
         embeds: [],
-        files: [lostAttachment],
         components: [lostContainer],
         flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
@@ -430,14 +386,12 @@ module.exports = {
     
     if (activeGame) {
       const container = buildComponentsV2(activeGame, 'resume');
-      const cardAttachment = await buildCardsAttachment(activeGame, 'resume');
       
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
           content: null,
           embeds: [],
-          files: [cardAttachment],
           components: [container],
           flags: MessageFlags.IsComponentsV2,
           fetchReply: true
@@ -446,7 +400,6 @@ module.exports = {
         replyMsg = await context.reply({
           content: null,
           embeds: [],
-          files: [cardAttachment],
           components: [container],
           flags: MessageFlags.IsComponentsV2
         });
@@ -513,14 +466,12 @@ module.exports = {
     }
 
     const container = buildComponentsV2(gameData, 'start');
-    const cardAttachment = await buildCardsAttachment(gameData, 'start');
     
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
         content: null,
         embeds: [],
-        files: [cardAttachment],
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         fetchReply: true
@@ -529,7 +480,6 @@ module.exports = {
       replyMsg = await context.reply({
         content: null,
         embeds: [],
-        files: [cardAttachment],
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
