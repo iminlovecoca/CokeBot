@@ -104,21 +104,21 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   let headerText = "";
   
   if (state === 'start') {
-    headerText = `🏇 <@${userId}> **đã bắt đầu cuộc đua ngựa.**`;
+    headerText = `### 🏇 <@${userId}> đã bắt đầu cuộc đua ngựa.`;
   } else if (state === 'play') {
-    headerText = `🏇 <@${userId}> **đang chọn ngựa cho Vòng ${game.round + 1}/6.**`;
+    headerText = `### 🏇 <@${userId}> đang chọn ngựa cho Vòng ${game.round + 1}/6.`;
   } else if (state === 'running') {
-    headerText = `🏇 **Cuộc đua đang diễn ra gay cấn (Vòng ${game.round + 1}/6)...**`;
+    headerText = `### 🏇 Cuộc đua đang diễn ra gay cấn (Vòng ${game.round + 1}/6)...`;
   } else if (state === 'win_round') {
-    headerText = `🎉 <@${userId}> **đã chọn đúng! Ngựa số 0${optionInfo.winningHorse} đã về đích đầu tiên!**`;
+    headerText = `### 🎉 <@${userId}> đã chọn đúng! Ngựa số 0${optionInfo.winningHorse} đã về đích đầu tiên!`;
   } else if (state === 'lost') {
-    headerText = `👎 <@${userId}> **đã chọn sai!**`;
+    headerText = `### 👎 <@${userId}> đã chọn sai!`;
   } else if (state === 'cashout') {
-    headerText = `💰 <@${userId}> **đã rút tiền thưởng!**`;
+    headerText = `### 💰 <@${userId}> đã rút tiền thưởng!`;
   } else if (state === 'won') {
-    headerText = `🏆 <@${userId}> **đã giành chức vô địch Vòng 6/6!**`;
+    headerText = `### 🏆 <@${userId}> đã giành chức vô địch Vòng 6/6!`;
   } else if (state === 'resume') {
-    headerText = `🎮 <@${userId}> **đã khôi phục trò chơi đua ngựa.**`;
+    headerText = `### 🎮 <@${userId}> đã khôi phục trò chơi đua ngựa.`;
   }
 
   const { bet, round, cashOut } = game;
@@ -127,7 +127,7 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const isFinished = ['lost', 'cashout', 'won'].includes(state);
   const isRunning = state === 'running';
 
-  const topLines = [headerText, ""];
+  const topLines = [headerText];
   let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`\n-# Tiếp theo: \`${(bet * nextMultiplier).toLocaleString()}\` \`(${nextMultiplier.toFixed(2)}x)\``;
   if (isFinished) {
     statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Vòng: \`${round}/6\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;

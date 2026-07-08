@@ -162,7 +162,6 @@ function buildComponentsV2(game, state) {
 
   const textLines = [
     headerText,
-    "",
     `-# Cược: \`${formatNumber(bet)}\`  Mìn: \`${minesCount}\``,
   ];
 

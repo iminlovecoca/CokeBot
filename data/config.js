@@ -3,6 +3,7 @@ module.exports = {
   emoji: {
     blank: "<:blank:1403928807395819671>",
     money: "<:cokecy:1509951335016173662>",
+    arrow_right: "<:arrow_right:1524456913406791902>",
     coinflip: "<a:coinflip:1394380327014891530>",
     heads: "<:heads:1405448328728285254>",
     tails: "<:tails:1405448342141403156>",

@@ -25,7 +25,8 @@ const CONFIG = {
   COOLDOWN_SECONDS: 15,
   SAME_MULTIPLIER_OVERRIDE: 10.0,
   EMOJIS: {
-    money: config.emoji.money || "<:cokecy:1509951335016173662>"
+    money: config.emoji.money || "<:cokecy:1509951335016173662>",
+    arrow_right: config.emoji.arrow_right || "▶️"
   }
 };
 
@@ -156,7 +157,6 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
 
   const row1 = new ActionRowBuilder().addComponents(btnHigher, btnLower, btnSame);
   const row2 = new ActionRowBuilder().addComponents(btnCashOut);
-
   return [row1, row2];
 }
 
@@ -165,22 +165,22 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   let headerText = "";
   
   if (state === 'start') {
-    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **đã bắt đầu trò chơi Hi-Lo.**`;
+    headerText = `### ${CONFIG.EMOJIS.money} <@${userId}> đã bắt đầu trò chơi Hi-Lo.`;
   } else if (state === 'correct') {
-    headerText = `🎉 <@${userId}> **đã đoán chính xác!!**`;
+    headerText = `### 🎉 <@${userId}> đã đoán chính xác!!`;
   } else if (state === 'incorrect') {
-    headerText = `👎 <@${userId}> **đã đoán sai!**`;
+    headerText = `### 👎 <@${userId}> đã đoán sai!`;
   } else if (state === 'cashout') {
-    headerText = `${CONFIG.EMOJIS.money} <@${userId}> **đã rút tiền thưởng!**`;
+    headerText = `### ${CONFIG.EMOJIS.money} <@${userId}> đã rút tiền thưởng!`;
   } else if (state === 'resume') {
-    headerText = `:black_joker: <@${userId}> **đã khôi phục trò chơi Hi-Lo.**`;
+    headerText = `### :black_joker: <@${userId}> đã khôi phục trò chơi Hi-Lo.`;
   }
 
   const { bet, streak, cashOut, currentCard } = gameData;
   const currentMultiplier = bet > 0 ? (cashOut / bet) : 1.0;
   const isFinished = ['incorrect', 'cashout', 'timeout'].includes(state);
 
-  const topLines = [headerText, ""];
+  const topLines = [headerText];
   let statsLine = `-# Cược: \`${formatNumber(bet)}\`  Chuỗi: \`${streak}\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``;
   if (state === 'incorrect') {
     statsLine = `-# ~~Cược: \`${formatNumber(bet)}\`  Chuỗi: \`${streak}\`  Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`;
@@ -217,7 +217,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
     return config.emoji[c] || `\`[ ${c} ]\``;
   });
 
-  const cardsLine = `# ${cardStrings.join(' ▶️ ')}`;
+  const cardsLine = `### ${cardStrings.join(` ${CONFIG.EMOJIS.arrow_right} `)}`;
   const textDisplayCards = new TextDisplayBuilder().setContent(cardsLine);
 
   let accentColor = 0x5865F2; // Default blue (blurple)
