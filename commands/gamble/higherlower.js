@@ -217,7 +217,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
     return config.emoji[c] || `\`[ ${c} ]\``;
   });
 
-  const cardsLine = `### ${cardStrings.join(` ${CONFIG.EMOJIS.arrow_right} `)}`;
+  const cardsLine = `# ${cardStrings.join(` ${CONFIG.EMOJIS.arrow_right} `)}`;
   const textDisplayCards = new TextDisplayBuilder().setContent(cardsLine);
 
   let accentColor = 0x5865F2; // Default blue (blurple)
