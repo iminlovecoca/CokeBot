@@ -167,7 +167,7 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   if (state === 'start') {
     headerText = `### ${CONFIG.EMOJIS.money} <@${userId}> đã bắt đầu trò chơi Hi-Lo.`;
   } else if (state === 'correct') {
-    headerText = `### 🎉 <@${userId}> đã đoán chính xác!!`;
+    headerText = `### :black_joker: <@${userId}> đã đoán chính xác!!`;
   } else if (state === 'incorrect') {
     headerText = `### 👎 <@${userId}> đã đoán sai!`;
   } else if (state === 'cashout') {
