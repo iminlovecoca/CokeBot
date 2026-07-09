@@ -9,7 +9,9 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MessageFlags
+  MessageFlags,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -785,11 +787,13 @@ const renderGameScreen = async (channel, activeDungeon) => {
   container.addActionRowComponents(row);
 
   let files = [];
+  let imgFileName = null;
   if (enemy.isBoss) {
     const bossImageFile = bossCfg?.image_phase1 || "TF.png";
     const bossImagePath = path.join(__dirname, "../../assets/dungeons", chapter === 5 ? "Chapter2" : "", bossImageFile);
     if (fs.existsSync(bossImagePath)) {
       files.push(new AttachmentBuilder(bossImagePath, { name: bossImageFile }));
+      imgFileName = bossImageFile;
     }
   } else {
     let filePath = null;
@@ -828,7 +832,15 @@ const renderGameScreen = async (channel, activeDungeon) => {
 
     if (filePath && fs.existsSync(filePath)) {
       files.push(new AttachmentBuilder(filePath, { name: fileName }));
+      imgFileName = fileName;
     }
+  }
+
+  if (imgFileName) {
+    const gallery = new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(`attachment://${imgFileName}`)
+    );
+    container.addMediaGalleryComponents(gallery);
   }
 
   const payload = {

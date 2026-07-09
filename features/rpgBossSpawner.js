@@ -10,7 +10,9 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MessageFlags
+  MessageFlags,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require("discord.js");
 const { DateTime } = require("luxon");
 const config = require("../data/config");
@@ -269,6 +271,11 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
   const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const sep4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
+  const imgFileName = boss.asset || "boss_01.webp";
+  const gallery = new MediaGalleryBuilder().addItems(
+    new MediaGalleryItemBuilder().setURL(`attachment://${imgFileName}`)
+  );
+
   container
     .addTextDisplayComponents(text1)
     .addSeparatorComponents(sep1)
@@ -277,7 +284,8 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
     .addTextDisplayComponents(text3)
     .addSeparatorComponents(sep3)
     .addTextDisplayComponents(text4)
-    .addSeparatorComponents(sep4);
+    .addSeparatorComponents(sep4)
+    .addMediaGalleryComponents(gallery);
 
   const disabled = status !== "alive" || activeBoss.defeated || activeBoss.expired;
   const buttonRow = new ActionRowBuilder().addComponents(
@@ -355,9 +363,7 @@ const expireBoss = async (client, channelId) => {
           components: [buildBossComponentsV2(activeBoss, "expired")],
           flags: MessageFlags.IsComponentsV2,
         };
-        if (!activeBoss.imageUrl) {
-          payload.files = [getAttachment(activeBoss.boss)];
-        }
+        payload.files = [getAttachment(activeBoss.boss)];
         await bossMessage.edit(payload).catch(() => null);
       }
     }

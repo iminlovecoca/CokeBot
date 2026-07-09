@@ -9,7 +9,9 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MessageFlags
+  MessageFlags,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require("discord.js");
 const config = require("../../data/config");
 const {
@@ -568,9 +570,7 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         components: [buildBossComponentsV2(activeBoss, "defeated")],
         flags: MessageFlags.IsComponentsV2,
       };
-      if (!activeBoss.imageUrl) {
-        payload.files = [getAttachment(activeBoss.boss)];
-      }
+      payload.files = [getAttachment(activeBoss.boss)];
       await bossMessage.edit(payload).catch(() => null);
     }
   }
@@ -709,9 +709,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
               };
-              if (!activeBoss.imageUrl) {
-                editPayload.files = [getAttachment(activeBoss.boss)];
-              }
+              editPayload.files = [getAttachment(activeBoss.boss)];
               const edited = await msg.edit(editPayload).catch(() => null);
               if (edited) {
                 updatedIds.push(msgId);
@@ -764,9 +762,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
             };
-            if (!activeBoss.imageUrl) {
-              editPayload.files = [getAttachment(activeBoss.boss)];
-            }
+            editPayload.files = [getAttachment(activeBoss.boss)];
             await msg.edit(editPayload).catch(() => null);
           }
         }
@@ -777,9 +773,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
           components: [buildBossComponentsV2(activeBoss)],
           flags: MessageFlags.IsComponentsV2,
         };
-        if (!activeBoss.imageUrl) {
-          payload.files = [getAttachment(activeBoss.boss)];
-        }
+        payload.files = [getAttachment(activeBoss.boss)];
         const newMsg = await channel.send(payload).catch(() => null);
         if (newMsg) {
           activeBoss.messageIds.push(newMsg.id);
@@ -1252,9 +1246,7 @@ const showBossPanel = async (message) => {
     flags: MessageFlags.IsComponentsV2,
   };
 
-  if (!activeBoss.imageUrl) {
-    payload.files = [getAttachment(activeBoss.boss)];
-  }
+  payload.files = [getAttachment(activeBoss.boss)];
 
   const replyMsg = await message.reply(payload).catch(() => null);
   if (replyMsg) {
@@ -1604,6 +1596,13 @@ const buildSoulBattleComponents = (playerState, currentTurn) => {
 const makeSoulBattlePayload = (playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile) => {
   const container = renderSoulBattleScreen(playerState, bossState, logs, currentTurn);
   
+  if (hasSoulImage) {
+    const gallery = new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL(`attachment://${soulImageFile}`)
+    );
+    container.addMediaGalleryComponents(gallery);
+  }
+
   const isFinished = playerState.hp <= 0 || bossState.hp <= 0;
   if (!isFinished) {
     const components = buildSoulBattleComponents(playerState, currentTurn);
