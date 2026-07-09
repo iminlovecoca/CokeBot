@@ -15,7 +15,20 @@ const gifs = [
   "https://files.catbox.moe/9fj25w.gif",
   "https://files.catbox.moe/epruvi.gif",
   "https://files.catbox.moe/bqh05o.gif",
-  "https://files.catbox.moe/x4ledc.gif"
+  "https://files.catbox.moe/x4ledc.gif",
+  "https://files.catbox.moe/1k2iau.gif",
+  "https://files.catbox.moe/ne7kaq.gif",
+  "https://files.catbox.moe/evpqb6.gif",
+  "https://files.catbox.moe/xn48da.gif",
+  "https://files.catbox.moe/pn5l17.gif",
+  "https://files.catbox.moe/fjrb1e.gif",
+  "https://files.catbox.moe/jelzdn.gif",
+  "https://files.catbox.moe/izjpnw.gif",
+  "https://files.catbox.moe/6jnfla.gif",
+  "https://files.catbox.moe/be36iu.gif",
+  "https://files.catbox.moe/952ttv.gif",
+  "https://files.catbox.moe/lwsibk.gif",
+  "https://files.catbox.moe/54ndim.gif"
 ];
 
 class HugCommand extends BaseCommand {

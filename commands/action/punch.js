@@ -16,9 +16,22 @@ const gifs = [
   "https://files.catbox.moe/0lf69c.gif",
   "https://files.catbox.moe/e52tfh.gif",
   "https://files.catbox.moe/qrbho8.gif",
-  "https://files.catbox.moe/tkpkfz.gif",
   "https://files.catbox.moe/mrk1xf.gif",
-  "https://files.catbox.moe/admn6j.gif"
+  "https://files.catbox.moe/admn6j.gif",
+  "https://files.catbox.moe/u50uq4.gif",
+  "https://files.catbox.moe/fq337f.gif",
+  "https://files.catbox.moe/b8xte3.gif",
+  "https://files.catbox.moe/yys3l5.gif",
+  "https://files.catbox.moe/dfhrp0.gif",
+  "https://files.catbox.moe/ee0sc2.gif",
+  "https://files.catbox.moe/sv57tv.gif",
+  "https://files.catbox.moe/fgbwb2.gif",
+  "https://files.catbox.moe/gz0qgu.gif",
+  "https://files.catbox.moe/5iahnq.gif",
+  "https://files.catbox.moe/a4b3gp.gif",
+  "https://files.catbox.moe/m32g8n.gif",
+  "https://files.catbox.moe/rlgfqk.gif",
+  "https://files.catbox.moe/8jq10y.gif"
 ];
 
 class PunchCommand extends BaseCommand {

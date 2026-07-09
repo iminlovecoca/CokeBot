@@ -12,7 +12,19 @@ const gifs = [
   "https://files.catbox.moe/fef11d.gif",
   "https://files.catbox.moe/e1jd71.gif",
   "https://files.catbox.moe/a6oc48.gif",
-  "https://files.catbox.moe/h3yu4x.gif"
+  "https://files.catbox.moe/it9hnk.gif",
+  "https://files.catbox.moe/z36pc7.gif",
+  "https://files.catbox.moe/6ju7vr.gif",
+  "https://files.catbox.moe/c0zw52.gif",
+  "https://files.catbox.moe/n7vt0c.gif",
+  "https://files.catbox.moe/u50uq4.gif",
+  "https://files.catbox.moe/o9b1y5.gif",
+  "https://files.catbox.moe/uava1m.gif",
+  "https://files.catbox.moe/ocaq63.gif",
+  "https://files.catbox.moe/xcilvm.gif",
+  "https://files.catbox.moe/9uuf2s.gif",
+  "https://files.catbox.moe/qsj4pu.gif",
+  "https://files.catbox.moe/u7a6dl.gif"
 ];
 
 class SlapCommand extends BaseCommand {

@@ -162,19 +162,19 @@ function buildComponentsV2(game, state) {
 
   const textLines = [
     headerText,
-    `-# Cược: \`${formatNumber(bet)}\`  Mìn: \`${minesCount}\``,
+    `-# **Cược:** \`${formatNumber(bet)}\`  **Mìn:** \`${minesCount}\``,
   ];
 
   if (isFinished) {
     if (state === 'cashout') {
-      textLines.push(`-# ~~Tiền thắng: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`-# **Tiền thắng:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
     } else {
-      textLines.push(`-# ~~Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(`-# ~~**Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
     }
-    textLines.push(`-# ~~Tiếp theo: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    textLines.push(`-# ~~**Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
   } else {
-    textLines.push(`-# Nhận: \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    textLines.push(`-# Tiếp theo: \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    textLines.push(`-# **Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    textLines.push(`-# **Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
   }
 
   const textDisplay = new TextDisplayBuilder().setContent(textLines.join('\n'));

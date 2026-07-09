@@ -18,7 +18,22 @@ const gifs = [
   "https://files.catbox.moe/5392ne.gif",
   "https://files.catbox.moe/4db3v0.gif",
   "https://files.catbox.moe/4dwcnv.gif",
-  "https://files.catbox.moe/c9al40.gif"
+  "https://files.catbox.moe/c9al40.gif",
+  "https://files.catbox.moe/ex60yi.gif",
+  "https://files.catbox.moe/jk8m9n.gif",
+  "https://files.catbox.moe/4o2ryd.gif",
+  "https://files.catbox.moe/zsr73s.gif",
+  "https://files.catbox.moe/vtv2rn.gif",
+  "https://files.catbox.moe/x6o5bb.gif",
+  "https://files.catbox.moe/zj3bcq.gif",
+  "https://files.catbox.moe/u3o2tk.gif",
+  "https://files.catbox.moe/il65p3.gif",
+  "https://files.catbox.moe/7jys4v.gif",
+  "https://files.catbox.moe/nz233w.gif",
+  "https://files.catbox.moe/olkivs.gif",
+  "https://files.catbox.moe/drcgio.gif",
+  "https://files.catbox.moe/q5ucye.gif",
+  "https://files.catbox.moe/tacq9p.gif"
 ];
 
 class BullyCommand extends BaseCommand {

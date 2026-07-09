@@ -20,7 +20,20 @@ const gifs = [
   "https://files.catbox.moe/vekpy8.gif",
   "https://files.catbox.moe/s6i2ut.gif",
   "https://files.catbox.moe/t4ao7p.gif",
-  "https://files.catbox.moe/i773y1.gif"
+  "https://files.catbox.moe/i773y1.gif",
+  "https://files.catbox.moe/wrnnw8.gif",
+  "https://files.catbox.moe/lzv9z5.gif",
+  "https://files.catbox.moe/2m6o13.gif",
+  "https://files.catbox.moe/2mwfze.gif",
+  "https://files.catbox.moe/2udimq.gif",
+  "https://files.catbox.moe/mn7ipn.gif",
+  "https://files.catbox.moe/w0st22.gif",
+  "https://files.catbox.moe/29bmom.gif",
+  "https://files.catbox.moe/md73qe.gif",
+  "https://files.catbox.moe/n1tjvg.gif",
+  "https://files.catbox.moe/s0iniq.gif",
+  "https://files.catbox.moe/sw8zz7.gif",
+  "https://files.catbox.moe/62atow.gif"
 ];
 
 class KissCommand extends BaseCommand {
