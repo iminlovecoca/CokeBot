@@ -6,6 +6,11 @@ const {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
 } = require("discord.js");
 const { DateTime } = require("luxon");
 const config = require("../data/config");
@@ -169,6 +174,126 @@ const buildBossComponents = (activeBoss, status = "alive") => {
   ];
 };
 
+const buildBossComponentsV2 = (activeBoss, status = "alive") => {
+  const boss = activeBoss.boss;
+  const defeated = status === "defeated";
+  const expired = status === "expired";
+  const transitioned = status === "transitioned";
+
+  const title = defeated
+    ? `${boss.emoji} ${boss.name} đã bị hạ`
+    : expired
+      ? `${boss.emoji} ${boss.name} đã rời đi`
+      : transitioned
+        ? `${boss.emoji} ${boss.name} đã chuyển sang Phase 2`
+        : `${boss.emoji} ${boss.name} xuất hiện`;
+
+  const description = defeated
+    ? `Boss đã bị kết liễu bởi <@${activeBoss.lastHitUserId}>.`
+    : expired
+      ? "Không ai hạ được boss trong thời gian tồn tại."
+      : transitioned
+        ? "Boss đã tiến hóa/hồi sinh sang Phase 2. Xem tin nhắn mới nhất để tiếp tục chiến đấu."
+        : `Gõ \`${config.prefix}boss\` để tấn công boss trong channel này.`;
+
+  const top10 = Array.from(activeBoss.participants.entries())
+    .sort((a, b) => b[1].damage - a[1].damage)
+    .slice(0, 10);
+
+  let topDamageField = "*Chưa có người chơi nào gây sát thương.*";
+  if (top10.length > 0) {
+    topDamageField = top10
+      .map(([userId, p], index) => {
+        const rank = index + 1;
+        const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `\`#${rank}\``;
+        return `${medal} **${p.damage.toLocaleString()}** | <@${userId}>`;
+      })
+      .join("\n");
+  }
+
+  let hpLine = `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
+               `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`;
+  
+  const effects = activeBoss.effects || {};
+  const isHealReduced = effects.healReduced && Date.now() < (effects.healReducedUntil || 0);
+  if (isHealReduced) {
+    hpLine += `\n<:healreduction:1523340558855045190> **Giảm 30% Hồi máu**`;
+  }
+  if (effects.armorReduced && effects.armorReduced > 0) {
+    hpLine += `\n🛡️ **Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
+  }
+
+  const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank] || null;
+  const rankLine = bossRank ? `${bossRank.emoji} **${bossRank.label}**` : "";
+  const durationMinutes = Math.round((activeBoss.expiresAt - activeBoss.spawnedAt) / 60000);
+  const timeStr = durationMinutes >= 60
+    ? `${Math.round(durationMinutes / 60)} giờ`
+    : `${durationMinutes} phút`;
+
+  let infoLine = "";
+  if (rankLine) infoLine += `${rankLine}\n`;
+  infoLine += `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
+              `Tồn tại: **${timeStr}**\n` +
+              `Người tham gia: **${activeBoss.participants.size}**`;
+
+  if (activeBoss.lastHitUserId && !expired) {
+    infoLine += `\nLast Hit: <@${activeBoss.lastHitUserId}>`;
+  }
+
+  const accentColor = defeated ? 0x57F287 : (expired || transitioned) ? 0x747F8D : 0xED4245;
+
+  const container = new ContainerBuilder().setAccentColor(accentColor);
+
+  const text1 = new TextDisplayBuilder().setContent(
+    `# ${title}\n` +
+    `${description}`
+  );
+
+  const text2 = new TextDisplayBuilder().setContent(
+    `### ❤️ HP\n` +
+    `${hpLine}`
+  );
+
+  const text3 = new TextDisplayBuilder().setContent(
+    `### 🏆 Top 10 Sát Thương\n` +
+    `${topDamageField}`
+  );
+
+  const text4 = new TextDisplayBuilder().setContent(
+    `### ℹ️ Thông tin\n` +
+    `${infoLine}`
+  );
+
+  const sep1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+
+  container
+    .addTextDisplayComponents(text1)
+    .addSeparatorComponents(sep1)
+    .addTextDisplayComponents(text2)
+    .addSeparatorComponents(sep2)
+    .addTextDisplayComponents(text3)
+    .addSeparatorComponents(sep3)
+    .addTextDisplayComponents(text4)
+    .addSeparatorComponents(sep4);
+
+  const disabled = status !== "alive" || activeBoss.defeated || activeBoss.expired;
+  const buttonRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`rpg_boss_fight:${activeBoss.channelId}`)
+      .setLabel("Fight!")
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("⚔️")
+      .setDisabled(disabled)
+  );
+
+  container.addActionRowComponents(buttonRow);
+
+  return container;
+};
+
 const getNextSpawnDelay = () => {
   const bossConfig = config.rpg.boss || {};
   const timezone = bossConfig.spawn_timezone || "Asia/Ho_Chi_Minh";
@@ -225,8 +350,10 @@ const expireBoss = async (client, channelId) => {
       const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
       if (bossMessage) {
         const payload = {
-          embeds: [buildBossEmbed(activeBoss, "expired")],
-          components: buildBossComponents(activeBoss, "expired"),
+          content: "",
+          embeds: [],
+          components: [buildBossComponentsV2(activeBoss, "expired")],
+          flags: MessageFlags.IsComponentsV2,
         };
         if (!activeBoss.imageUrl) {
           payload.files = [getAttachment(activeBoss.boss)];
@@ -387,9 +514,11 @@ const spawnRandomBoss = async (client, options = {}) => {
     };
 
     const message = await channel.send({
-      embeds: [buildBossEmbed(activeBoss)],
+      content: "",
+      embeds: [],
+      components: [buildBossComponentsV2(activeBoss)],
       files: [getAttachment(boss)],
-      components: buildBossComponents(activeBoss),
+      flags: MessageFlags.IsComponentsV2,
     });
 
     activeBoss.messageId = message.id;
@@ -586,6 +715,7 @@ const initialize = async (client) => {
 module.exports = {
   buildBossEmbed,
   buildBossComponents,
+  buildBossComponentsV2,
   getAttachment,
   healthBar,
   initialize,

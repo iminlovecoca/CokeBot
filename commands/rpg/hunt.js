@@ -80,75 +80,51 @@ class HuntCommand extends BaseCommand {
       await updateQuestProgress(message.author.id, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
     }
 
-    const embed = new EmbedBuilder()
-      .setColor(rpgClass.color)
-      .setTitle(
-        user.rpg.name
-          ? `👤 ${user.rpg.name} (${rpgClass.name}) đã hoàn thành một chuyến hunt`
-          : `${rpgClass.name} đã hoàn thành một chuyến hunt`,
-      )
-      .setDescription(
-        droppedItem
-          ? `${huntGround.emoji} **${huntGround.name}** rơi ra **${droppedItem.name}** ID \`${droppedItem.id}\`. Dùng \`${config.prefix}equip ${droppedItem.id}\` để mặc hoặc \`${config.prefix}sellgear ${droppedItem.id}\` để bán.`
-          : `${huntGround.emoji} **${huntGround.name}** đã bị dọn sạch. Bạn nhận được EXP nhân vật.`,
-      )
-      .addFields(
-        {
-          name: "Nhận được",
-          value:
-            `EXP RPG: **+${expGain.toLocaleString()}**\n` +
-            `Coke: **+${cokeGain.toLocaleString()}**`,
-          inline: true,
-        },
-        {
-          name: "Nhân vật",
-          value:
-            `Level: **${user.rpg.level}**\n` +
-            `Rank: **${user.rpg.rank}**\n` +
-            `Lực chiến: **${Math.floor(user.rpg.power).toLocaleString()}**\n` +
-            `EXP: **${user.rpg.exp}/${getRpgXpNeeded(user.rpg.level)}**`,
-          inline: true,
-        },
-      );
+    const characterName = user.rpg.name || message.member?.displayName || message.author.username;
+    const blankEmo = config.emoji.blank || "";
 
-    const path = require("path");
-    const fs = require("fs");
-    const { AttachmentBuilder } = require("discord.js");
-    let itemAttachment = null;
+    let text = `:bow_and_arrow: **| ${characterName}** đã hoàn thành một chuyến đi săn!\n` +
+      `${blankEmo} **|** ${huntGround.emoji} ${huntGround.name} đã bị dọn sạch\n` +
+      `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()}xp**, **${cokeGain.toLocaleString()} coke**`;
 
     if (droppedItem) {
-      embed.addFields({
-        name: "Trang bị rơi",
-        value:
-          `Slot: **${config.rpg.gear_slot_names[droppedItem.slot]}**\n` +
-          `Rarity: **${droppedItem.rarity}**\n` +
-          `Lực chiến khi mặc: **+${droppedItem.power.toLocaleString()}**\n` +
-          `Giá bán: **${droppedItem.sellPrice.toLocaleString()} Coke**`,
-        inline: true,
-      });
+      const bracketEmoji = {
+        Common: "<:Common:1390024590347997245>",
+        Rare: "<:Rare:1390024624380706916>",
+        Epic: "<:Epic:1390024749517770832>",
+        Legendary: "<:Legendary:1390024772200567026>",
+        Mythic: "<:Mythic:1390024789279772833>",
+        Ancient: "<:Ancient:1390024806535004333>",
+        Divine: "<:Divine:1512512382507683880>",
+      };
+      const slotEmoji = {
+        weapon: "🗡️",
+        armor: "🛡️",
+        helmet: "🪖",
+        boots: "🥾",
+        ring: "💍",
+        necklace: "📿",
+      };
+      const slotVi = {
+        weapon: "vũ khí",
+        armor: "giáp",
+        helmet: "mũ",
+        boots: "giày",
+        ring: "nhẫn",
+        necklace: "dây chuyền"
+      }[droppedItem.slot] || "trang bị";
 
-      const imgKey = droppedItem.imageKey || getItemImageFile(droppedItem);
-      if (imgKey) {
-        const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
-        if (fs.existsSync(itemImagePath)) {
-          itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
-          embed.setThumbnail("attachment://item.png");
-        }
-      }
+      const rank = bracketEmoji[droppedItem.rarity] || "";
+      const emoji = droppedItem.emoji || slotEmoji[droppedItem.slot] || "🛡️";
+
+      text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${emoji} **${droppedItem.subType}** (ID: \`${droppedItem.id}\`)`;
     }
 
     if (levelsGained > 0) {
-      embed.addFields({
-        name: "Level Up",
-        value: `Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`,
-      });
+      text += `\n${blankEmo} **|** 🆙 **LÊN CẤP!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
     }
 
-    const payload = { embeds: [embed] };
-    if (itemAttachment) {
-      payload.files = [itemAttachment];
-    }
-    return message.reply(payload);
+    return message.reply({ content: text });
   }
 }
 

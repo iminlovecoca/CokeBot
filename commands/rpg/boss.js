@@ -5,11 +5,17 @@ const {
   ButtonBuilder,
   ButtonStyle,
   AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags
 } = require("discord.js");
 const config = require("../../data/config");
 const {
   buildBossComponents,
   buildBossEmbed,
+  buildBossComponentsV2,
   getAttachment,
   healthBar,
 } = require("../../features/rpgBossSpawner");
@@ -557,8 +563,10 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
     if (bossMessage) {
       const payload = {
-        embeds: [buildBossEmbed(activeBoss, "defeated")],
-        components: buildBossComponents(activeBoss, "defeated"),
+        content: "",
+        embeds: [],
+        components: [buildBossComponentsV2(activeBoss, "defeated")],
+        flags: MessageFlags.IsComponentsV2,
       };
       if (!activeBoss.imageUrl) {
         payload.files = [getAttachment(activeBoss.boss)];
@@ -685,8 +693,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
           }
 
           const payload = {
-            embeds: [buildBossEmbed(activeBoss)],
-            components: buildBossComponents(activeBoss),
+            content: "",
+            embeds: [],
+            components: [buildBossComponentsV2(activeBoss)],
+            flags: MessageFlags.IsComponentsV2,
           };
 
           const updatedIds = [];
@@ -694,8 +704,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
             const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
             if (msg) {
               const editPayload = {
-                embeds: payload.embeds,
+                content: "",
+                embeds: [],
                 components: payload.components,
+                flags: MessageFlags.IsComponentsV2,
               };
               if (!activeBoss.imageUrl) {
                 editPayload.files = [getAttachment(activeBoss.boss)];
@@ -747,8 +759,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
           const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
             const editPayload = {
-              embeds: [buildBossEmbed(activeBoss, "transitioned")],
-              components: buildBossComponents(activeBoss, "transitioned"),
+              content: "",
+              embeds: [],
+              components: [buildBossComponentsV2(activeBoss, "transitioned")],
+              flags: MessageFlags.IsComponentsV2,
             };
             if (!activeBoss.imageUrl) {
               editPayload.files = [getAttachment(activeBoss.boss)];
@@ -758,8 +772,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
         }
 
         const payload = {
-          embeds: [buildBossEmbed(activeBoss)],
-          components: buildBossComponents(activeBoss),
+          content: "",
+          embeds: [],
+          components: [buildBossComponentsV2(activeBoss)],
+          flags: MessageFlags.IsComponentsV2,
         };
         if (!activeBoss.imageUrl) {
           payload.files = [getAttachment(activeBoss.boss)];
@@ -1230,8 +1246,10 @@ const showBossPanel = async (message) => {
   }
 
   const payload = {
-    embeds: [buildBossEmbed(activeBoss)],
-    components: buildBossComponents(activeBoss),
+    content: "",
+    embeds: [],
+    components: [buildBossComponentsV2(activeBoss)],
+    flags: MessageFlags.IsComponentsV2,
   };
 
   if (!activeBoss.imageUrl) {
@@ -1390,14 +1408,6 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   const userDiscord = await client.users.fetch(userId).catch(() => null);
   const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
 
-  const inviteEmbed = new EmbedBuilder()
-    .setColor("#7C5CFF")
-    .setTitle("✨ CÕI LINH HỒN MỞ RA! ✨")
-    .setDescription(
-      `Người được chọn hãy đưa ra quyết định của mình tiến vào để chiếm hữu linh cửu của Malzareth hoặc rút lui bảo toàn quà tặng.`
-    )
-    .setTimestamp();
-
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`soul_invite_enter:${userId}`)
@@ -1409,7 +1419,21 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
       .setStyle(ButtonStyle.Secondary)
   );
 
-  const inviteMsg = await channel.send({ content: `<@${userId}>`, embeds: [inviteEmbed], components: [row] });
+  const container = new ContainerBuilder()
+    .setAccentColor(0x7C5CFF)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        `# ✨ CÕI LINH HỒN MỞ RA! ✨\n` +
+        `Người được chọn hãy đưa ra quyết định của mình tiến vào để chiếm hữu linh cửu của Malzareth hoặc rút lui bảo toàn quà tặng.`
+      )
+    )
+    .addActionRowComponents(row);
+
+  const inviteMsg = await channel.send({
+    content: `<@${userId}>`,
+    components: [container],
+    flags: MessageFlags.IsComponentsV2
+  });
 
   const filter = (i) => i.user.id === userId && i.customId.startsWith("soul_invite_");
   const collector = inviteMsg.createMessageComponentCollector({ filter, time: 60000 });
@@ -1421,20 +1445,26 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   });
 
   collector.on("end", async (collected, reason) => {
-    
     const disabledRow = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId("soul_invite_enter_dis").setLabel("Tiến vào 🚪").setStyle(ButtonStyle.Primary).setDisabled(true),
       new ButtonBuilder().setCustomId("soul_invite_retreat_dis").setLabel("Rút lui 🏳️").setStyle(ButtonStyle.Secondary).setDisabled(true)
     );
-    await inviteMsg.edit({ components: [disabledRow] }).catch(() => null);
+    const disabledContainer = new ContainerBuilder()
+      .setAccentColor(0x7C5CFF)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `# ✨ CÕI LINH HỒN MỞ RA! ✨\n` +
+          `Người được chọn hãy đưa ra quyết định của mình tiến vào để chiếm hữu linh cửu của Malzareth hoặc rút lui bảo toàn quà tặng.`
+        )
+      )
+      .addActionRowComponents(disabledRow);
+    await inviteMsg.edit({ components: [disabledContainer], flags: MessageFlags.IsComponentsV2 }).catch(() => null);
 
     if (reason === "retreat" || reason === "time") {
-      
       await giveNormalBossRewards(client, channel, activeBoss, escrow);
       await channel.send(`🏳️ **${displayName}** đã quyết định rút lui an toàn và nhận phần thưởng Boss bình thường.`);
     } else if (reason === "enter") {
       await channel.send(`🚪 **${displayName}** đã dũng cảm bước qua cánh cổng để đối mặt với số phận!`);
-      
       await startSoulRealmDialogue(client, channel, userId);
     }
   });
@@ -1466,27 +1496,20 @@ const startSoulRealmDialogue = async (client, channel, userId) => {
   await startSoulRealmBattle(client, channel, userId);
 };
 
-const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile) => {
-  const embed = new EmbedBuilder()
-    .setColor("#7C5CFF")
-    .setTitle("🌌 CHIẾN TRƯỜNG CÕI LINH HỒN 🌌")
-    .setDescription(
-      `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
-      `⚔️ **Trận Đấu Sinh Tử** | 👻 **Linh Hồn Malzareth**\n` +
-      `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`
-    )
-    .setTimestamp();
+const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn) => {
+  const container = new ContainerBuilder().setAccentColor(0x7C5CFF);
 
-  
-  embed.addFields({
-    name: `👹 Kẻ địch: ${bossState.name}`,
-    value: `${healthBar(bossState.hp, bossState.maxHp)}\n❤️ **HP:** **${bossState.hp.toLocaleString()} / ${bossState.maxHp.toLocaleString()}**`
-  });
+  const text1 = new TextDisplayBuilder().setContent(
+    `# 🌌 CHIẾN TRƯỜNG CÕI LINH HỒN 🌌\n` +
+    `⚔️ **Trận Đấu Sinh Tử** | 👻 **Linh Hồn Malzareth**`
+  );
 
-  
-  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
+  const text2 = new TextDisplayBuilder().setContent(
+    `### 👹 Kẻ địch: ${bossState.name}\n` +
+    `${healthBar(bossState.hp, bossState.maxHp)}\n` +
+    `❤️ **HP:** **${bossState.hp.toLocaleString()} / ${bossState.maxHp.toLocaleString()}**`
+  );
 
-  
   let resourceText = "";
   if (playerState.classKey === "mage") {
     resourceText = `🔮 **MP:** **${playerState.mana}/100**`;
@@ -1500,29 +1523,40 @@ const renderSoulBattleScreen = (playerState, bossState, logs, currentTurn, hasSo
     `🧪 **Bình máu:** **${playerState.potions} / 3**\n` +
     `💪 **Lớp:** **${playerState.classKey.toUpperCase()}**`;
 
-  embed.addFields({ name: `👤 ${playerState.name}`, value: playerInfo });
+  const text3 = new TextDisplayBuilder().setContent(
+    `### 👤 ${playerState.name}\n` +
+    `${playerInfo}`
+  );
 
-  
-  embed.addFields({ name: "\u200B", value: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬" });
-
-  
   const recentLogs = logs.slice(-4).join("\n");
-  embed.addFields({ name: "📝 Nhật ký trận đấu", value: recentLogs || "*Chuẩn bị bắt đầu...*" });
+  const text4 = new TextDisplayBuilder().setContent(
+    `### 📝 Nhật ký trận đấu\n` +
+    `${recentLogs || "*Chuẩn bị bắt đầu...*"}`
+  );
 
-  if (currentTurn === "player") {
-    embed.setFooter({ text: "👉 Đến lượt của bạn! Chọn hành động bên dưới." });
-  } else {
-    embed.setFooter({ text: "👹 Lượt của boss..." });
-  }
+  const footerText = currentTurn === "player"
+    ? `👉 Đến lượt của bạn! Chọn hành động bên dưới.`
+    : `👹 Lượt của boss...`;
 
-  const payload = { embeds: [embed] };
-  if (hasSoulImage) {
-    const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
-    payload.files = [new AttachmentBuilder(soulImagePath, { name: soulImageFile })];
-    embed.setImage(`attachment://${soulImageFile}`);
-  }
+  const textFooter = new TextDisplayBuilder().setContent(`-# ${footerText}`);
 
-  return payload;
+  const sep1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const sep4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
+
+  container
+    .addTextDisplayComponents(text1)
+    .addSeparatorComponents(sep1)
+    .addTextDisplayComponents(text2)
+    .addSeparatorComponents(sep2)
+    .addTextDisplayComponents(text3)
+    .addSeparatorComponents(sep3)
+    .addTextDisplayComponents(text4)
+    .addSeparatorComponents(sep4)
+    .addTextDisplayComponents(textFooter);
+
+  return container;
 };
 
 const buildSoulBattleComponents = (playerState, currentTurn) => {
@@ -1565,6 +1599,34 @@ const buildSoulBattleComponents = (playerState, currentTurn) => {
   }
 
   return [row];
+};
+
+const makeSoulBattlePayload = (playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile) => {
+  const container = renderSoulBattleScreen(playerState, bossState, logs, currentTurn);
+  
+  const isFinished = playerState.hp <= 0 || bossState.hp <= 0;
+  if (!isFinished) {
+    const components = buildSoulBattleComponents(playerState, currentTurn);
+    if (components && components.length > 0) {
+      container.addActionRowComponents(components[0]);
+    }
+  }
+
+  const payload = {
+    content: "",
+    embeds: [],
+    components: [container],
+    flags: MessageFlags.IsComponentsV2
+  };
+
+  if (hasSoulImage) {
+    const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
+    if (fs.existsSync(soulImagePath)) {
+      payload.files = [new AttachmentBuilder(soulImagePath, { name: soulImageFile })];
+    }
+  }
+
+  return payload;
 };
 
 const startSoulRealmBattle = async (client, channel, userId) => {
@@ -1610,9 +1672,7 @@ const startSoulRealmBattle = async (client, channel, userId) => {
   const logs = [`🌌 Cõi Linh Hồn đã sẵn sàng. Trận đấu bắt đầu!`];
   let currentTurn = "player";
 
-  const payload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
-  payload.components = buildSoulBattleComponents(playerState, currentTurn);
-
+  const payload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
   const battleMsg = await channel.send(payload);
 
   const runCombatLoop = async () => {
@@ -1626,8 +1686,7 @@ const startSoulRealmBattle = async (client, channel, userId) => {
           if (bossState.hp <= 0) break;
         }
 
-        const editPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
-        editPayload.components = buildSoulBattleComponents(playerState, currentTurn);
+        const editPayload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
         await battleMsg.edit(editPayload).catch(() => null);
 
         const filter = (i) => i.user.id === userId && i.customId.startsWith("soul_combat_");
@@ -1652,8 +1711,7 @@ const startSoulRealmBattle = async (client, channel, userId) => {
         if (bossState.hp <= 0) break;
         currentTurn = "boss";
       } else {
-        const editPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
-        editPayload.components = buildSoulBattleComponents(playerState, currentTurn);
+        const editPayload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
         await battleMsg.edit(editPayload).catch(() => null);
 
         await new Promise(resolve => setTimeout(resolve, 2500));
@@ -1667,15 +1725,13 @@ const startSoulRealmBattle = async (client, channel, userId) => {
 
     if (bossState.hp <= 0) {
       logs.push(`🎉 **${playerState.name}** đã tiêu diệt **Linh Hồn Malzareth**!`);
-      const finalPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
-      finalPayload.components = [];
+      const finalPayload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
       await battleMsg.edit(finalPayload).catch(() => null);
 
       await giveSoulRealmWinReward(client, channel, userId);
     } else {
       logs.push(`🥀 **${playerState.name}** đã gục ngã dưới tay **Linh Hồn Malzareth**.`);
-      const finalPayload = renderSoulBattleScreen(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
-      finalPayload.components = [];
+      const finalPayload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
       await battleMsg.edit(finalPayload).catch(() => null);
 
       await giveSoulRealmDefeatReward(client, channel, userId);
