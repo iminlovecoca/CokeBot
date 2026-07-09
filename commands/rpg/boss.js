@@ -587,6 +587,9 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
       hp: activeBoss.hp,
       lastHitUserId: activeBoss.lastHitUserId,
       participants: participantsObj,
+      poise: activeBoss.poise,
+      poiseMax: activeBoss.poiseMax,
+      poiseBroken: activeBoss.poiseBroken,
     };
     if (activeBoss.dbId) {
       await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
@@ -1047,8 +1050,27 @@ const performBossAttack = async ({ client, channel, userId }) => {
     Math.floor(rawDamage * (1 - mitigation) * finalMult),
   );
 
+  if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
+    damage = Math.max(10, Math.floor(damage * 0.85));
+  }
+
   if (user.rpg?.isGodMode) {
     damage = activeBoss.hp;
+  }
+
+  if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
+    let poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
+    if (cleanSubType === "greatsword") {
+      poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
+      passiveTriggers.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Plaxidusax!`);
+    }
+    activeBoss.poise = Math.max(0, (activeBoss.poise || 0) - poiseDmg);
+    if (activeBoss.poise <= 0) {
+      activeBoss.poiseBroken = true;
+      passiveTriggers.push(`🛡️ **[PHÁ VỠ POISE]** Đòn đánh đã làm **Plaxidusax** bị quỵ ngã! Boss nhận sát thương bình thường từ giờ.`);
+    } else {
+      passiveTriggers.push(`🛡️ **[Poise]** Plaxidusax bị giảm **${poiseDmg}** Poise (Còn **${activeBoss.poise}/${activeBoss.poiseMax}**).`);
+    }
   }
 
   
@@ -1120,6 +1142,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
 
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
+        participant.diedAt = now;
 
         
         if (activeBoss.boss.key === "boss_XI") {
@@ -1177,6 +1200,32 @@ const performBossAttack = async ({ client, channel, userId }) => {
         await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **${bossConfig.name}**!`);
         await updateBossMessage(channel, activeBoss, true);
       }
+    } else if (activeBoss.boss.key === "godzila" && activeBoss.phase !== 2) {
+      const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "godzila_p2");
+      if (bossConfig) {
+        activeBoss.boss = bossConfig;
+        activeBoss.maxHp = bossConfig.hp;
+        activeBoss.hp = bossConfig.hp;
+        activeBoss.phase = 2;
+        activeBoss.imageUrl = null; 
+        killedPhase1 = true;
+
+        await channel.send(`🐉🔥 **[PHASE 2 - TIẾN HÓA]** **Godzila** gầm vang chấn động trời đất, hấp thụ năng lượng hạt nhân **${bossConfig.name}**!`);
+        await updateBossMessage(channel, activeBoss, true);
+      }
+    } else if (activeBoss.boss.key === "diablo" && activeBoss.phase !== 2) {
+      const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "diablo_p2");
+      if (bossConfig) {
+        activeBoss.boss = bossConfig;
+        activeBoss.maxHp = bossConfig.hp;
+        activeBoss.hp = bossConfig.hp;
+        activeBoss.phase = 2;
+        activeBoss.imageUrl = null; 
+        killedPhase1 = true;
+
+        await channel.send(`😈🔥 **[PHASE 2 - TIẾN HÓA]** **Diablo** giải phóng xiềng xích của Địa Ngục, trỗi dậy với hình dạng chân thật **${bossConfig.name}**!`);
+        await updateBossMessage(channel, activeBoss, true);
+      }
     }
   }
 
@@ -1199,6 +1248,9 @@ const performBossAttack = async ({ client, channel, userId }) => {
       lastHitUserId: activeBoss.lastHitUserId,
       participants: participantsObj,
       defeated: activeBoss.hp <= 0,
+      poise: activeBoss.poise,
+      poiseMax: activeBoss.poiseMax,
+      poiseBroken: activeBoss.poiseBroken,
     };
     if (activeBoss.dbId) {
       await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
@@ -1353,6 +1405,16 @@ const handleReviveInteraction = async (interaction) => {
     return interaction.editReply({
       content: "Bạn không ở trạng thái hạ gục.",
     });
+  }
+
+  if (activeBoss.boss.key === "diablo" || activeBoss.boss.key === "diablo_p2") {
+    const elapsed = Date.now() - (participant.diedAt || 0);
+    if (elapsed < 10000) {
+      const waitRemaining = Math.ceil((10000 - elapsed) / 1000);
+      return interaction.editReply({
+        content: `❌ **Sức mạnh hắc ám của Diablo** cấm bạn hồi sinh ngay lập tức! Bạn phải chờ thêm **${waitRemaining}s** mới có thể hồi sinh.`,
+      });
+    }
   }
 
   const reviveCost = user.rpg?.godsetBackup ? 0 : 1000;

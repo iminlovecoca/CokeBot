@@ -216,6 +216,20 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
   let hpLine = `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
                `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`;
   
+  if (boss.key === "plaxidusax") {
+    const poise = activeBoss.poise || 0;
+    const poiseMax = activeBoss.poiseMax || 150;
+    const poiseFilled = Math.max(0, Math.min(10, Math.round((poise / poiseMax) * 10)));
+    const poiseEmpty = 10 - poiseFilled;
+    const poiseBarStr = "▰".repeat(poiseFilled) + "▱".repeat(poiseEmpty);
+    hpLine += `\n🛡️ **Poise:** ${poiseBarStr} [**${poise}/${poiseMax}**]`;
+    if (activeBoss.poiseBroken) {
+      hpLine += ` (⚡ *Bị phá vỡ poise - nhận 100% sát thương*)`;
+    } else {
+      hpLine += ` (*Giảm 15% sát thương nhận vào*)`;
+    }
+  }
+  
   const effects = activeBoss.effects || {};
   const isHealReduced = effects.healReduced && Date.now() < (effects.healReducedUntil || 0);
   if (isHealReduced) {
@@ -517,6 +531,9 @@ const spawnRandomBoss = async (client, options = {}) => {
       messageIds: [],
       allowSoulRealm: options.allowSoulRealm || false,
       triggerEventBoss: triggerEventBoss,
+      poise: boss.poiseMax || 0,
+      poiseMax: boss.poiseMax || 0,
+      poiseBroken: false,
     };
 
     const message = await channel.send({
@@ -552,7 +569,10 @@ const spawnRandomBoss = async (client, options = {}) => {
         phase: 1,
         effects: { armorReduced: 0, healReduced: false },
         allowSoulRealm: activeBoss.allowSoulRealm,
-        triggerEventBoss: activeBoss.triggerEventBoss
+        triggerEventBoss: activeBoss.triggerEventBoss,
+        poise: activeBoss.poise,
+        poiseMax: activeBoss.poiseMax,
+        poiseBroken: activeBoss.poiseBroken
       });
       activeBoss.dbId = dbBoss._id;
     } catch (err) {
@@ -654,7 +674,10 @@ const initialize = async (client) => {
           phase: dbBoss.phase || 1,
           effects: dbBoss.effects || { armorReduced: 0, healReduced: false },
           allowSoulRealm: dbBoss.allowSoulRealm || false,
-          triggerEventBoss: dbBoss.triggerEventBoss || null
+          triggerEventBoss: dbBoss.triggerEventBoss || null,
+          poise: dbBoss.poise || 0,
+          poiseMax: dbBoss.poiseMax || 0,
+          poiseBroken: dbBoss.poiseBroken || false
         };
 
         const msLeft = dbBoss.expiresAt - Date.now();

@@ -20,7 +20,10 @@ const SpawnedBossSchema = new mongoose.Schema({
   phase: { type: Number, default: 1 },
   effects: { type: mongoose.Schema.Types.Mixed, default: {} },
   allowSoulRealm: { type: Boolean, default: false },
-  triggerEventBoss: { type: String, default: null }
+  triggerEventBoss: { type: String, default: null },
+  poise: { type: Number, default: 0 },
+  poiseMax: { type: Number, default: 0 },
+  poiseBroken: { type: Boolean, default: false }
 }, { versionKey: false, timestamps: true });
 
 module.exports = mongoose.model('SpawnedBoss', SpawnedBossSchema);
