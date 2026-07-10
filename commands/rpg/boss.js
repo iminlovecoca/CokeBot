@@ -737,7 +737,6 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
               };
-              editPayload.files = [getAttachment(activeBoss.boss)];
               const edited = await msg.edit(editPayload).catch(() => null);
               if (edited) {
                 updatedIds.push(msgId);
@@ -766,7 +765,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
 
   const isDefeated = activeBoss.hp <= 0 || activeBoss.defeated;
   const now = Date.now();
-  const throttleDuration = 3500; 
+  const throttleDuration = 2000; 
 
   if (forceNewMessage) {
     if (activeBoss.editTimeout) {
@@ -790,7 +789,6 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
             };
-            editPayload.files = [getAttachment(activeBoss.boss)];
             await msg.edit(editPayload).catch(() => null);
           }
         }

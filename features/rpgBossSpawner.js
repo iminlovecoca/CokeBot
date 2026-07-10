@@ -355,7 +355,6 @@ const expireBoss = async (client, channelId) => {
           components: [buildBossComponentsV2(activeBoss, "expired")],
           flags: MessageFlags.IsComponentsV2,
         };
-        payload.files = [getAttachment(activeBoss.boss)];
         await bossMessage.edit(payload).catch(() => null);
       }
     }
@@ -389,7 +388,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     
     const bossesByRank = {};
     for (const b of bossTiers) {
-      if (b.key === "boss_012" || b.key === "boss_XIIa" || b.key === "hexia" || b.key === "godhexa") continue;
+      if (b.key === "boss_012" || b.key === "boss_XIIa" || b.key === "godzila_p2" || b.key === "hexia" || b.key === "godhexa") continue;
       if (!bossesByRank[b.rank]) {
         bossesByRank[b.rank] = [];
       }
@@ -461,7 +460,7 @@ const spawnRandomBoss = async (client, options = {}) => {
       boss =
         selectedRank && bossesByRank[selectedRank]?.length
           ? pick(bossesByRank[selectedRank])
-          : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa" && t.key !== "hexia" && t.key !== "godhexa"));
+          : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa" && t.key !== "godzila_p2" && t.key !== "hexia" && t.key !== "godhexa"));
     }
 
     
