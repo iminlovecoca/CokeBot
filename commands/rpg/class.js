@@ -50,7 +50,9 @@ const statLine = (stats, rpgClass = null) => {
     const baseCrit = (arc * 0.2 + dex * 0.1) + classCritBonus * 100;
     critStr = `   |   **CRIT:** **${baseCrit.toFixed(1)}%**`;
   }
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
+  const part1 = `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}`;
+  const part2 = `${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
+  return `${part1}\n${part2}`;
 };
 
 const statLineWithBonus = (baseStats, effectiveStats, rpgClass = null) => {
@@ -72,7 +74,9 @@ const statLineWithBonus = (baseStats, effectiveStats, rpgClass = null) => {
     const effCrit = (effArc * 0.2 + effDex * 0.1) + classCritBonus * 100;
     critStr = `   |   **CRIT:** **${effCrit.toFixed(1)}%**`;
   }
-  return `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}   |   ${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
+  const part1 = `${format("vigor")}   |   ${format("pr")}   |   ${format("mr")}   |   ${format("str")}`;
+  const part2 = `${format("dex")}   |   ${format("int")}   |   ${format("arc")}${critStr}`;
+  return `${part1}\n${part2}`;
 };
 
 const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = null) => {
@@ -100,49 +104,51 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     .setColor(rpgClass.color)
     .setTitle(title)
     .setImage(`attachment://${assetName}`)
-    .addFields(
-      {
-        name: "Chỉ số",
-        value: statsValue,
-      },
-      {
-        name: "Thiên hướng",
-        value: Object.entries(rpgClass.bonuses || {})
-          .map(([key, value]) => {
-            const labels = {
-              critRate: "Tỷ lệ chí mạng",
-              bossDamage: "Sát thương Boss",
-              pvpDefense: "Phòng thủ PvP",
-              expGain: "Tăng EXP",
-              dropRate: "Tỷ lệ rơi đồ",
-              healReduction: "Giảm hồi máu đối thủ"
-            };
-            const label = labels[key] || key;
-            return typeof value === "number" && value < 1
-              ? `${label}: +${Math.round(value * 100)}%`
-              : `${label}: +${value}`;
-          })
-          .join("\n"),
-        inline: true,
-      },
-    );
+    .addFields({
+      name: "Chỉ số",
+      value: statsValue,
+    });
+
+  const bonusesStr = Object.entries(rpgClass.bonuses || {})
+    .map(([key, value]) => {
+      const labels = {
+        critRate: "Tỷ lệ chí mạng",
+        bossDamage: "Sát thương Boss",
+        pvpDefense: "Phòng thủ PvP",
+        expGain: "Tăng EXP",
+        dropRate: "Tỷ lệ rơi đồ",
+        healReduction: "Giảm hồi máu đối thủ"
+      };
+      const label = labels[key] || key;
+      return typeof value === "number" && value < 1
+        ? `${label}: +${Math.round(value * 100)}%`
+        : `${label}: +${value}`;
+    })
+    .join("\n");
 
   if (userData?.rpg?.classKey === classKey) {
     const nameLine = `Tên nhân vật: **${userData.rpg.name || "Chưa đặt"}**\n`;
     const currentPower = calculateRpgPower(userData);
     const availablePoints = getAvailablePoints(userData);
 
-    embed.addFields({
-      name: "Nhân vật của bạn",
-      value:
-        nameLine +
-        `Level: **${userData.rpg.level}**\n` +
-        `Rank: **${userData.rpg.rank}**\n` +
-        `Lực chiến: **${Math.floor(currentPower).toLocaleString()}**\n` +
-        `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**\n` +
-        `Điểm chưa cộng: **${availablePoints}**`,
-      inline: true,
-    });
+    embed.addFields(
+      {
+        name: "Nhân vật của bạn",
+        value:
+          nameLine +
+          `Level: **${userData.rpg.level}**\n` +
+          `Rank: **${userData.rpg.rank}**\n` +
+          `Lực chiến: **${Math.floor(currentPower).toLocaleString()}**\n` +
+          `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**\n` +
+          `Điểm chưa cộng: **${availablePoints}**`,
+        inline: true,
+      },
+      {
+        name: "Thiên hướng",
+        value: bonusesStr,
+        inline: true,
+      }
+    );
 
     const equippedItems = getEquippedItems(userData);
     const slots = Object.keys(config.rpg.gear_slot_names || {
@@ -169,6 +175,12 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       name: "Trang bị hiện tại",
       value: equipLines,
       inline: false,
+    });
+  } else {
+    embed.addFields({
+      name: "Thiên hướng",
+      value: bonusesStr,
+      inline: true,
     });
   }
 

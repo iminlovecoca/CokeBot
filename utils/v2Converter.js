@@ -70,7 +70,7 @@ function convertToV2(options) {
     }
 
     if (data.title) {
-      contentText += `# ${data.title}\n`;
+      contentText += `### ${data.title}\n`;
     }
     if (data.description) {
       contentText += `${data.description}\n`;
