@@ -645,7 +645,8 @@ const simulatePvP = (p1, p2) => {
     isDraw = true;
   }
 
-  return { winner, loser, isDraw, turns: turn - 1, logs, history };
+  const totalTurns = (p1.hp <= 0 || p2.hp <= 0) ? turn : (turn - 1);
+  return { winner, loser, isDraw, turns: totalTurns, logs, history };
 };
 
 class BattleCommand extends BaseCommand {
