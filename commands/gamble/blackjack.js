@@ -70,7 +70,7 @@ class BlackjackCommand extends BaseCommand {
       embed.footer.text = `🎲 ~ Tiếp tục ván bài cũ!`;
     }
 
-    const sentMessage = await message.reply({ embeds: [embed] });
+    const sentMessage = await message.reply({ embeds: [embed], skipV2: true });
     await sentMessage.react(hitEmoji);
     await sentMessage.react(standEmoji);
 
@@ -143,7 +143,8 @@ class BlackjackCommand extends BaseCommand {
       const gameRepo = locator.get("gameRepository");
       await gameRepo.addCardToPlayer(author.id, card);
       await message.edit({
-        embeds: [this.generateEmbed(author, playerHand, dealerHand, bet)]
+        embeds: [this.generateEmbed(author, playerHand, dealerHand, bet)],
+        skipV2: true
       });
     }
   }
@@ -274,7 +275,8 @@ class BlackjackCommand extends BaseCommand {
 
     const color = net > 0 ? 0x00FF00 : net < 0 ? 0xFF0000 : 0x615F5F;
     await message.edit({
-      embeds: [this.generateEmbed(author, playerHand, dealerHand, bet, false, result, color)]
+      embeds: [this.generateEmbed(author, playerHand, dealerHand, bet, false, result, color)],
+      skipV2: true
     });
     await gameRepo.deleteGame(author.id);
   }

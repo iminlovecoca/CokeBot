@@ -26,6 +26,13 @@ function convertToV2(options) {
     return { content: options };
   }
 
+  // Skip V2 conversion if explicitly requested
+  if (options.skipV2) {
+    const cleanOptions = { ...options };
+    delete cleanOptions.skipV2;
+    return cleanOptions;
+  }
+
   // If there are no embeds, return original options untouched
   if (!options.embeds || options.embeds.length === 0) {
     return options;
