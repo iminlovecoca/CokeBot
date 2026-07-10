@@ -987,18 +987,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}`;
   }
 
-  const logLimit = 6;
-  const recentLogs = result.logs.length > logLimit
-    ? "...\n" + result.logs.slice(-logLimit).join("\n")
-    : result.logs.join("\n");
-
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .setAuthor({
       name: `${memberName} Đang chiến đấu!`,
       iconURL: message.author.displayAvatarURL({ dynamic: true })
     })
-    .setDescription(`⚔️ **Diễn biến trận đấu:**\n${recentLogs}`)
     .addFields(
       {
         name: `${player1.name}${weapon1Emoji} (${player1.classLabel})`,
