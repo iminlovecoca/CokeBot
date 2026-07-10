@@ -405,7 +405,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
 
         
         const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
-        let expGain = Math.floor(
+        expGain = Math.floor(
           baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
         );
         if (isTwoPhaseBoss) {
@@ -416,7 +416,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         }
 
         
-        let cokeGain = isLastHit
+        cokeGain = isLastHit
           ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
           : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
         if (isTwoPhaseBoss) {
