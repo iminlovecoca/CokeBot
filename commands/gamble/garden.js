@@ -206,7 +206,7 @@ function clearActiveEvent(garden) {
   garden.activeEvent = { eventType: null, name: null, emoji: null };
 }
 
-/** Plant a seed of given type in a random empty cell. */
+/** Plant seeds of given type in random empty cells (Quick Plant). */
 function actionPlant(garden, seedType) {
   const seedCfg = SEEDS[seedType];
   if (!seedCfg) return { ok: false, msg: '❌ Loại hạt giống không hợp lệ.' };
@@ -217,38 +217,49 @@ function actionPlant(garden, seedType) {
   const empties = garden.cells.reduce((a, c, i) => { if (!c.plant) a.push(i); return a; }, []);
   if (empties.length === 0) return { ok: false, msg: '❌ Khu vườn đã đầy! Thu hoạch để trồng thêm.' };
 
-  const idx   = empties[Math.floor(Math.random() * empties.length)];
-  const plant = seedCfg.plants[Math.floor(Math.random() * seedCfg.plants.length)];
-  const now   = Date.now();
-  const cell  = garden.cells[idx];
-
-  Object.assign(cell, emptyCell());
-  cell.plant    = plant;
-  cell.seedType = seedType;
-
-  // Rain event: automatically water upon planting
+  const toPlant = Math.min(empties.length, inv);
   const isRain = garden.activeEvent?.eventType === 'rain';
-  if (isRain) {
-    cell.isWatered = true;
-    cell.plantedAt = new Date();
-  } else {
-    cell.isWatered = false;
-    cell.plantedAt = null;
+  const now = Date.now();
+  let plantedCount = 0;
+
+  // Shuffle empty cell indices to plant randomly
+  for (let i = empties.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [empties[i], empties[j]] = [empties[j], empties[i]];
   }
 
-  garden.inventory[seedType] -= 1;
+  for (let i = 0; i < toPlant; i++) {
+    const idx = empties[i];
+    const cell = garden.cells[idx];
+    const plant = seedCfg.plants[Math.floor(Math.random() * seedCfg.plants.length)];
+
+    Object.assign(cell, emptyCell());
+    cell.plant = plant;
+    cell.seedType = seedType;
+
+    if (isRain) {
+      cell.isWatered = true;
+      cell.plantedAt = new Date();
+    } else {
+      cell.isWatered = false;
+      cell.plantedAt = null;
+    }
+
+    if (Math.random() < BUG_CHANCE) {
+      const appearsAt = new Date(now + rand(BUG_APPEAR_MIN, BUG_APPEAR_MAX));
+      cell.hasBug = true;
+      cell.bugType = BUGS[Math.floor(Math.random() * BUGS.length)];
+      cell.bugAppearsAt = appearsAt;
+      cell.bugDestroyAt = new Date(appearsAt.getTime() + rand(BUG_DESTROY_MIN, BUG_DESTROY_MAX));
+    }
+    plantedCount++;
+  }
+
+  garden.inventory[seedType] -= plantedCount;
   garden.markModified('inventory');
-
-  if (Math.random() < BUG_CHANCE) {
-    const appearsAt = new Date(now + rand(BUG_APPEAR_MIN, BUG_APPEAR_MAX));
-    cell.hasBug      = true;
-    cell.bugType     = BUGS[Math.floor(Math.random() * BUGS.length)];
-    cell.bugAppearsAt  = appearsAt;
-    cell.bugDestroyAt  = new Date(appearsAt.getTime() + rand(BUG_DESTROY_MIN, BUG_DESTROY_MAX));
-  }
-
   garden.markModified('cells');
-  return { ok: true, idx, plant, seedType, isRain };
+
+  return { ok: true, count: plantedCount, seedType, isRain };
 }
 
 /** Water all plants — free, no cooldown. */
@@ -432,21 +443,12 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
         .setStyle(canHarvest ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setDisabled(!canHarvest),
       new ButtonBuilder()
-        .setCustomId('garden_shop')
-        .setLabel('🛒 Shop')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
         .setCustomId('garden_refresh')
         .setLabel('🔄')
         .setStyle(ButtonStyle.Secondary)
     );
     actionRow2 = null;
   }
-
-  // ── Legend
-  const legend = new TextDisplayBuilder().setContent(
-    `-# 🌱 Mầm → 🌿 Chồi → 🌾 Nở → 🌸🌽🍎 Sẵn sàng (xanh)  |  🔴 = Sâu, bấm để bắt!`
-  );
 
   // ── Assemble
   const container = new ContainerBuilder()
@@ -457,8 +459,6 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
   for (const gr of gridRows) container.addActionRowComponents(gr);
 
   container
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small))
-    .addTextDisplayComponents(legend)
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addActionRowComponents(actionRow1);
 
@@ -540,8 +540,8 @@ module.exports = {
 
     // ── Collector
     const VALID_IDS = new Set([
-      'garden_plant','garden_water','garden_harvest','garden_shop',
-      'garden_back','garden_refresh','garden_cancel_plant',
+      'garden_plant','garden_water','garden_harvest',
+      'garden_refresh','garden_cancel_plant',
       ...SEED_KEYS.map(k => `garden_select_${k}`),
       ...SEED_KEYS.map(k => `garden_buy_${k}`)
     ]);
@@ -569,13 +569,7 @@ module.exports = {
       let trigEvent = null;
 
       // ── Route action
-      if (cid === 'garden_shop') {
-        await i.followUp({
-          content: `🛒 **Cửa hàng Hạt Giống** đã được gộp vào cửa hàng chung! Hãy gõ lệnh \`${config.prefix}shop\` (Trang 3) để mua hạt giống nhé.`,
-          ephemeral: true
-        }).catch(() => {});
-
-      } else if (cid === 'garden_refresh') {
+      if (cid === 'garden_refresh') {
         // just re-render
 
       } else if (cid === 'garden_plant') {
@@ -584,6 +578,7 @@ module.exports = {
       } else if (cid === 'garden_cancel_plant') {
         mode = 'garden';
 
+
       } else if (cid.startsWith('garden_select_')) {
         const seedType = cid.replace('garden_select_', '');
         const res = actionPlant(garden, seedType);
@@ -591,6 +586,10 @@ module.exports = {
           await i.followUp({ content: res.msg, ephemeral: true }).catch(() => {});
         } else {
           trigEvent = tryTriggerEvent(garden);
+          await i.followUp({
+            content: `🌱 Đã trồng nhanh **${res.count}** hạt **${SEEDS[res.seedType].name}** vào vườn! ${res.isRain ? '🌧️ (Được mưa tự động tưới nước)' : '💧 (Hãy bấm Tưới để cây bắt đầu mọc)'}`,
+            ephemeral: true
+          }).catch(() => {});
         }
         mode = 'garden';
 
