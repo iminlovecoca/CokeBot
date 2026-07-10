@@ -607,6 +607,10 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         skipV2: true,
       };
 
+      if (!activeBoss.imageUrl) {
+        payload.files = [getAttachment(activeBoss.boss)];
+      }
+
       if (interaction && msgId === interaction.message?.id) {
         await interaction.editReply(payload).catch((err) => {
           console.error("[RPG_BOSS] finishBoss interaction.editReply failed:", err);
@@ -858,6 +862,9 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
               attachments: [],
               skipV2: true,
             };
+            if (!activeBoss.imageUrl) {
+              editPayload.files = [getAttachment(activeBoss.boss)];
+            }
             if (interaction && msgId === interaction.message?.id) {
               await interaction.editReply(editPayload).catch(() => null);
             } else {
