@@ -96,8 +96,9 @@ preloadAssets();
 
 const generatePvPImage = async (
   p1Asset, p2Asset,
-  p1Hp, p1MaxHp, p1Rage, p1Weapon,
-  p2Hp, p2MaxHp, p2Rage, p2Weapon
+  p1Hp, p1MaxHp, p1Rage, p1Weapon, p1Effects,
+  p2Hp, p2MaxHp, p2Rage, p2Weapon, p2Effects,
+  resultStatus
 ) => {
   const width = 1024;
   const height = 535;
@@ -162,7 +163,7 @@ const generatePvPImage = async (
     }
   }
 
-  // Draw HP and Rage Bars (Left Side)
+  // Draw HP and Rage Bars (Left Side) - Left to Right
   ctx.fillStyle = "rgb(38,39,44)";
   ctx.fillRect(142, 44, 276, 20);
   const hp1Ratio = Math.max(0, Math.min(1, p1Hp / p1MaxHp));
@@ -179,13 +180,14 @@ const generatePvPImage = async (
     ctx.fillRect(142, 76, Math.floor(276 * rage1Ratio), 20);
   }
 
-  // Draw HP and Rage Bars (Right Side)
+  // Draw HP and Rage Bars (Right Side) - Right to Left
   ctx.fillStyle = "rgb(38,39,44)";
   ctx.fillRect(606, 44, 276, 20);
   const hp2Ratio = Math.max(0, Math.min(1, p2Hp / p2MaxHp));
   if (hp2Ratio > 0) {
     ctx.fillStyle = "rgb(203,63,69)";
-    ctx.fillRect(606, 44, Math.floor(276 * hp2Ratio), 20);
+    const fillWidth = Math.floor(276 * hp2Ratio);
+    ctx.fillRect(882 - fillWidth, 44, fillWidth, 20);
   }
 
   ctx.fillStyle = "rgb(38,39,44)";
@@ -193,11 +195,12 @@ const generatePvPImage = async (
   const rage2Ratio = Math.max(0, Math.min(1, p2Rage / 100));
   if (rage2Ratio > 0) {
     ctx.fillStyle = "rgb(68,144,209)";
-    ctx.fillRect(606, 76, Math.floor(276 * rage2Ratio), 20);
+    const fillWidth = Math.floor(276 * rage2Ratio);
+    ctx.fillRect(882 - fillWidth, 76, fillWidth, 20);
   }
 
   // Draw Text Overlays
-  ctx.font = "bold 13px sans-serif";
+  ctx.font = "bold 16px sans-serif";
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -208,6 +211,27 @@ const generatePvPImage = async (
   ctx.fillText(`${Math.max(0, Math.floor(p2Hp))}/${p2MaxHp}`, 606 + 276 / 2, 44 + 10);
   ctx.fillText(`${Math.floor(p2Rage)}% Nộ`, 606 + 276 / 2, 76 + 10);
 
+
+
+  // Draw K.O. or Time Out Overlay
+  if (resultStatus === "ko") {
+    const koPath = path.join(__dirname, "../../assets/backgrounds/ko.png");
+    if (fs.existsSync(koPath)) {
+      const koImg = await getCachedImage(koPath);
+      if (koImg) {
+        ctx.drawImage(koImg, (1024 - 577) / 2, (535 - 342) / 2, 577, 342);
+      }
+    }
+  } else if (resultStatus === "timeout") {
+    const toPath = path.join(__dirname, "../../assets/backgrounds/timeout.png");
+    if (fs.existsSync(toPath)) {
+      const toImg = await getCachedImage(toPath);
+      if (toImg) {
+        ctx.drawImage(toImg, (1024 - 601) / 2, (535 - 484) / 2, 601, 484);
+      }
+    }
+  }
+
   const buffer = canvas.toBuffer("image/jpeg", { quality: 0.85 });
   const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
   return { buffer, name: filename };
@@ -217,6 +241,7 @@ const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 20;
   const logs = [];
+  const history = [];
 
   p1.effects = { 
     armorReduced: 0, 
@@ -243,6 +268,25 @@ const simulatePvP = (p1, p2) => {
 
   p1.rage = 0;
   p2.rage = 0;
+
+  const saveState = (currentTurn) => {
+    history.push({
+      turn: currentTurn,
+      p1: {
+        hp: p1.hp,
+        rage: p1.rage,
+        effects: { ...p1.effects }
+      },
+      p2: {
+        hp: p2.hp,
+        rage: p2.rage,
+        effects: { ...p2.effects }
+      }
+    });
+  };
+
+  // Save initial state (Turn 0)
+  saveState(0);
 
   let turnOrder =
     (p1.effectiveStats.dex || 0) > (p2.effectiveStats.dex || 0)
@@ -545,12 +589,20 @@ const simulatePvP = (p1, p2) => {
       attacker.rage = Math.min(100, attacker.rage + 25);
     }
 
+    saveState(turn);
+
     if (defender.hp <= 0) {
       break;
     }
 
     turnOrder = [defender, attacker];
     turn += 1;
+  }
+
+  // Save final state
+  const lastState = history[history.length - 1];
+  if (!lastState || lastState.turn !== (turn - 1)) {
+    saveState(turn - 1);
   }
 
   let winner, loser, isDraw = false;
@@ -564,7 +616,7 @@ const simulatePvP = (p1, p2) => {
     isDraw = true;
   }
 
-  return { winner, loser, isDraw, turns: turn - 1, logs };
+  return { winner, loser, isDraw, turns: turn - 1, logs, history };
 };
 
 class BattleCommand extends BaseCommand {
@@ -929,42 +981,9 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   
   await Promise.all([user1.save(), user2.save()]);
 
-  const renderTextBar = (hp, max, power) => {
-    const ratio = Math.max(0, Math.min(1, hp / max));
-    const filled = Math.round(ratio * 10);
-    const bar = "▰".repeat(filled) + "▱".repeat(10 - filled);
-    return `${bar}\n${Math.max(0, hp).toLocaleString()} / ${max.toLocaleString()}\n⚔ Lực chiến: **${(power || 0).toLocaleString()}**`;
-  };
-
   const showImage = !["text", "compact"].includes(
     user1.rpg?.settings?.battleDisplay,
   );
-
-  let imgData = null;
-  if (showImage) {
-    imgData = await generatePvPImage(
-      player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-      player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
-      player1.hp,
-      player1.maxHp,
-      player1.rage || 0,
-      player1.weapon,
-      player2.hp,
-      player2.maxHp,
-      player2.rage || 0,
-      player2.weapon
-    ).catch((err) => {
-      console.error("Failed to generate PvP image:", err);
-      return null;
-    });
-  }
-
-  let attachment = null;
-  if (imgData) {
-    attachment = new AttachmentBuilder(imgData.buffer, {
-      name: imgData.name,
-    });
-  }
 
   const memberName = message.member?.displayName || message.author.displayName || message.author.username;
   const weapon1Emoji = player1.weapon?.emoji ? ` ${player1.weapon.emoji}` : "";
@@ -1006,20 +1025,104 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       },
     );
 
-  if (imgData) {
-    finalEmbed.setImage(`attachment://${imgData.name}`);
-  }
+  const getActiveStatusEmojis = (effects) => {
+    if (!effects) return "";
+    const list = [];
+    if (effects.bleedRounds > 0) list.push("<:bleed:1521938497642958889>");
+    if (effects.healReduced) list.push("<:healreduction:1523340558855045190>");
+    if (effects.armorReduced > 0) list.push("<:break:1521938480337391736>");
+    if (effects.armorBoosted > 0) list.push("<:atkup:1521938477359300648>");
+    return list.length > 0 ? " " + list.join(" ") : "";
+  };
 
-  finalEmbed.setFooter({ text: footerText });
+  if (showImage && result.history && result.history.length > 0) {
+    const history = result.history;
+    const totalStates = history.length;
+    const mid1Index = Math.max(1, Math.min(totalStates - 2, Math.floor(totalStates * 0.33)));
+    const mid2Index = Math.max(mid1Index + 1, Math.min(totalStates - 2, Math.floor(totalStates * 0.66)));
+    
+    const indices = [0];
+    if (totalStates > 2) indices.push(mid1Index);
+    if (totalStates > 3) indices.push(mid2Index);
+    indices.push(totalStates - 1);
 
-  const replyPayload = { embeds: [finalEmbed], skipV2: true };
-  if (attachment) {
-    replyPayload.files = [attachment];
-  }
+    let activeMessage = promptMessage;
 
-  if (promptMessage && promptMessage.editable) {
-    await promptMessage.edit({ ...replyPayload, components: [] }).catch(() => {});
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const state = history[idx];
+      const isFinalFrame = i === indices.length - 1;
+      let finalStatus = null;
+      if (isFinalFrame) {
+        finalStatus = result.isDraw ? "timeout" : "ko";
+      }
+
+      const imgData = await generatePvPImage(
+        player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
+        player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+        state.p1.hp,
+        player1.maxHp,
+        state.p1.rage || 0,
+        player1.weapon,
+        state.p1.effects,
+        state.p2.hp,
+        player2.maxHp,
+        state.p2.rage || 0,
+        player2.weapon,
+        state.p2.effects,
+        finalStatus
+      ).catch((err) => {
+        console.error("Failed to generate PvP image:", err);
+        return null;
+      });
+
+      if (imgData) {
+        const attachment = new AttachmentBuilder(imgData.buffer, { name: imgData.name });
+        
+        const p1Status = getActiveStatusEmojis(state.p1.effects);
+        const p2Status = getActiveStatusEmojis(state.p2.effects);
+
+        const currentEmbed = EmbedBuilder.from(finalEmbed)
+          .setImage(`attachment://${imgData.name}`)
+          .setFields([
+            {
+              name: `${player1.name}${weapon1Emoji} (${player1.classLabel})${p1Status}`,
+              value: `LV. **${player1.level}**\n⚔ Lực chiến: **${Math.floor(player1.gearPower).toLocaleString()}**`,
+              inline: true,
+            },
+            {
+              name: `${player2.name}${weapon2Emoji} (${player2.classLabel})${p2Status}`,
+              value: `LV. **${player2.level}**\n⚔ Lực chiến: **${Math.floor(player2.gearPower).toLocaleString()}**`,
+              inline: true,
+            }
+          ]);
+
+        if (isFinalFrame) {
+          currentEmbed.setFooter({ text: footerText });
+        } else {
+          currentEmbed.setFooter({ text: `Đang chiến đấu... Lượt ${state.turn}/${result.turns}` });
+        }
+
+        const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
+
+        if (activeMessage && activeMessage.editable) {
+          await activeMessage.edit({ ...payload, components: [] }).catch(() => {});
+        } else {
+          activeMessage = await message.reply(payload).catch(() => null);
+        }
+      }
+
+      if (i < indices.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+    }
   } else {
-    await message.reply(replyPayload).catch(() => {});
+    finalEmbed.setFooter({ text: footerText });
+    const payload = { embeds: [finalEmbed], skipV2: true };
+    if (promptMessage && promptMessage.editable) {
+      await promptMessage.edit({ ...payload, components: [] }).catch(() => {});
+    } else {
+      await message.reply(payload).catch(() => {});
+    }
   }
 };
