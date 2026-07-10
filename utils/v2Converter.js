@@ -18,7 +18,7 @@ const {
   ThumbnailBuilder
 } = require("discord.js");
 
-function convertToV2(options, force = false) {
+function convertToV2(options, force = false, existingAttachments = []) {
   if (!options) return options;
   
   // If it's a string, it's just content
@@ -125,7 +125,14 @@ function convertToV2(options, force = false) {
 
     if (mediaUrls.length > 0) {
       const gallery = new MediaGalleryBuilder();
-      for (const url of mediaUrls) {
+      for (let url of mediaUrls) {
+        if (url && url.startsWith("attachment://")) {
+          const filename = url.slice("attachment://".length);
+          const existing = existingAttachments.find((att) => att.name === filename);
+          if (existing) {
+            url = existing.url;
+          }
+        }
         gallery.addItems(new MediaGalleryItemBuilder().setURL(url));
       }
       container.addMediaGalleryComponents(gallery);
@@ -200,10 +207,19 @@ function patchMethod(target, methodName) {
       hasV2 = !!this._hasV2;
     }
 
+    let existingAttachments = [];
+    if (hasV2) {
+      if (isMessage && this.attachments) {
+        existingAttachments = Array.from(this.attachments.values());
+      } else if (isInteraction && this.message?.attachments) {
+        existingAttachments = Array.from(this.message.attachments.values());
+      }
+    }
+
     if (options && typeof options === "object") {
-      convertedOptions = convertToV2(options, hasV2);
+      convertedOptions = convertToV2(options, hasV2, existingAttachments);
     } else if (typeof options === "string" && args[0] && typeof args[0] === "object") {
-      convertedArgs = [convertToV2(args[0], hasV2), ...args.slice(1)];
+      convertedArgs = [convertToV2(args[0], hasV2, existingAttachments), ...args.slice(1)];
     }
 
     // If it has V2 components, we must explicitly clear them if the new payload doesn't provide them
