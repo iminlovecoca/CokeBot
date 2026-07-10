@@ -156,15 +156,16 @@ function patchMethod(target, methodName) {
       convertedArgs = [convertToV2(args[0]), ...args.slice(1)];
     }
 
+    const isInteraction = this.constructor && this.constructor.name.includes("Interaction");
+    const isMessage = this.constructor && this.constructor.name === "Message";
+
     // Determine if the message or interaction has V2 components
     let hasV2 = false;
-    if (this._hasV2) {
-      hasV2 = true;
-    } else if (methodName === "edit") {
+    if (methodName === "edit" && isMessage) {
       hasV2 = (this.flags && this.flags.has && this.flags.has(MessageFlags.IsComponentsV2)) || !!this._hasV2;
-    } else if (methodName === "update" && this.message) {
+    } else if (methodName === "update" && isInteraction && this.message) {
       hasV2 = (this.message.flags && this.message.flags.has && this.message.flags.has(MessageFlags.IsComponentsV2)) || !!this.message._hasV2;
-    } else if (methodName === "editReply") {
+    } else if (methodName === "editReply" && isInteraction) {
       hasV2 = !!this._hasV2;
     }
 
@@ -177,13 +178,26 @@ function patchMethod(target, methodName) {
           components: []
         };
       } else if (convertedOptions && typeof convertedOptions === "object") {
-        // Create a shallow copy to avoid mutating a potentially frozen object
-        convertedOptions = { ...convertedOptions };
-        if (!convertedOptions.components) {
-          convertedOptions.components = [];
-        }
-        if (!convertedOptions.embeds) {
-          convertedOptions.embeds = [];
+        if (convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload") {
+          // It's a MessagePayload instance, modify its options property directly
+          if (!convertedOptions.options) {
+            convertedOptions.options = {};
+          }
+          if (!convertedOptions.options.components) {
+            convertedOptions.options.components = [];
+          }
+          if (!convertedOptions.options.embeds) {
+            convertedOptions.options.embeds = [];
+          }
+        } else {
+          // Create a shallow copy to avoid mutating a potentially frozen object
+          convertedOptions = { ...convertedOptions };
+          if (!convertedOptions.components) {
+            convertedOptions.components = [];
+          }
+          if (!convertedOptions.embeds) {
+            convertedOptions.embeds = [];
+          }
         }
       }
     }
@@ -193,7 +207,11 @@ function patchMethod(target, methodName) {
       ((convertedOptions.flags & MessageFlags.IsComponentsV2) || (convertedOptions.components && convertedOptions.components.length > 0));
 
     if (isSendingV2) {
-      this._hasV2 = true;
+      if (methodName === "edit" && isMessage) {
+        this._hasV2 = true;
+      } else if (isInteraction && (methodName === "reply" || methodName === "editReply" || methodName === "update")) {
+        this._hasV2 = true;
+      }
       if (this.message) {
         this.message._hasV2 = true;
       }
