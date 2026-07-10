@@ -20,6 +20,7 @@ const {
   getEquippedItems,
   dungeonKeys,
   getCharacterAssetPath,
+  getItemImageFile,
 } = require("../../utils/rpgUtil");
 const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs");
@@ -93,14 +94,18 @@ const preloadAssets = async () => {
 };
 preloadAssets();
 
-const generatePvPImage = async (p1Asset, p2Asset) => {
-  const width = 800;
-  const height = 400;
+const generatePvPImage = async (
+  p1Asset, p2Asset,
+  p1Hp, p1MaxHp, p1Rage, p1Weapon,
+  p2Hp, p2MaxHp, p2Rage, p2Weapon
+) => {
+  const width = 1024;
+  const height = 535;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  
-  const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
+  // Load Background template
+  const bgPath = path.join(__dirname, "../../assets/backgrounds/battle_template.png");
   const bg = await getCachedImage(bgPath);
   if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
@@ -109,21 +114,99 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
     ctx.fillRect(0, 0, width, height);
   }
 
+  // Load character images
   const img1 = await getTransparentCharacter(p1Asset);
   if (img1) {
     ctx.save();
-    ctx.translate(0 + 200, 0);
+    // Clip to Left Frame (wooden border)
+    ctx.rect(73 + 4, 136 + 4, 212 - 8, 354 - 8);
+    ctx.clip();
+    // Draw mirrored Player 1
+    ctx.translate(73 + 212 / 2, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(img1, -200, 100);
+    ctx.drawImage(img1, -120, 240, 240, 240);
     ctx.restore();
   }
 
   const img2 = await getTransparentCharacter(p2Asset);
   if (img2) {
     ctx.save();
-    ctx.drawImage(img2, 450, 100);
+    // Clip to Right Frame
+    ctx.rect(735 + 4, 136 + 4, 211 - 8, 354 - 8);
+    ctx.clip();
+    // Draw Player 2
+    ctx.drawImage(img2, 735 + (211 - 240) / 2, 240, 240, 240);
     ctx.restore();
   }
+
+  // Load and Draw Weapons
+  const getWeaponPath = (weapon) => {
+    if (!weapon) return null;
+    const key = weapon.imageKey || getItemImageFile(weapon);
+    return key ? path.join(__dirname, "../../assets/items", key) : null;
+  };
+
+  const w1Path = getWeaponPath(p1Weapon);
+  if (w1Path && fs.existsSync(w1Path)) {
+    const w1Img = await getCachedImage(w1Path);
+    if (w1Img) {
+      ctx.drawImage(w1Img, 27 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
+    }
+  }
+
+  const w2Path = getWeaponPath(p2Weapon);
+  if (w2Path && fs.existsSync(w2Path)) {
+    const w2Img = await getCachedImage(w2Path);
+    if (w2Img) {
+      ctx.drawImage(w2Img, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
+    }
+  }
+
+  // Draw HP and Rage Bars (Left Side)
+  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillRect(142, 44, 276, 20);
+  const hp1Ratio = Math.max(0, Math.min(1, p1Hp / p1MaxHp));
+  if (hp1Ratio > 0) {
+    ctx.fillStyle = "rgb(203,63,69)";
+    ctx.fillRect(142, 44, Math.floor(276 * hp1Ratio), 20);
+  }
+
+  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillRect(142, 76, 276, 20);
+  const rage1Ratio = Math.max(0, Math.min(1, p1Rage / 100));
+  if (rage1Ratio > 0) {
+    ctx.fillStyle = "rgb(68,144,209)";
+    ctx.fillRect(142, 76, Math.floor(276 * rage1Ratio), 20);
+  }
+
+  // Draw HP and Rage Bars (Right Side)
+  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillRect(606, 44, 276, 20);
+  const hp2Ratio = Math.max(0, Math.min(1, p2Hp / p2MaxHp));
+  if (hp2Ratio > 0) {
+    ctx.fillStyle = "rgb(203,63,69)";
+    ctx.fillRect(606, 44, Math.floor(276 * hp2Ratio), 20);
+  }
+
+  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillRect(606, 76, 276, 20);
+  const rage2Ratio = Math.max(0, Math.min(1, p2Rage / 100));
+  if (rage2Ratio > 0) {
+    ctx.fillStyle = "rgb(68,144,209)";
+    ctx.fillRect(606, 76, Math.floor(276 * rage2Ratio), 20);
+  }
+
+  // Draw Text Overlays
+  ctx.font = "bold 13px sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText(`${Math.max(0, Math.floor(p1Hp))}/${p1MaxHp}`, 142 + 276 / 2, 44 + 10);
+  ctx.fillText(`${Math.floor(p1Rage)}% Nộ`, 142 + 276 / 2, 76 + 10);
+
+  ctx.fillText(`${Math.max(0, Math.floor(p2Hp))}/${p2MaxHp}`, 606 + 276 / 2, 44 + 10);
+  ctx.fillText(`${Math.floor(p2Rage)}% Nộ`, 606 + 276 / 2, 76 + 10);
 
   const buffer = canvas.toBuffer("image/jpeg", { quality: 0.85 });
   const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
@@ -133,23 +216,38 @@ const generatePvPImage = async (p1Asset, p2Asset) => {
 const simulatePvP = (p1, p2) => {
   let turn = 1;
   const maxTurns = 20;
+  const logs = [];
 
-  p1.effects = { armorReduced: 0, healReduced: false, healReducedRounds: 0, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
-  p2.effects = { armorReduced: 0, healReduced: false, healReducedRounds: 0, bleedRounds: 0, bleedDamage: 0, shieldhexAbsorbed: 0, shieldhexRounds: 0 };
+  p1.effects = { 
+    armorReduced: 0, 
+    healReduced: false, 
+    healReducedRounds: 0, 
+    bleedRounds: 0, 
+    bleedDamage: 0, 
+    shieldhexAbsorbed: 0, 
+    shieldhexRounds: 0,
+    armorBoosted: 0,
+    armorBoostedRounds: 0
+  };
+  p2.effects = { 
+    armorReduced: 0, 
+    healReduced: false, 
+    healReducedRounds: 0, 
+    bleedRounds: 0, 
+    bleedDamage: 0, 
+    shieldhexAbsorbed: 0, 
+    shieldhexRounds: 0,
+    armorBoosted: 0,
+    armorBoostedRounds: 0
+  };
 
-  
-  const p1SubType = p1.weapon?.subType ? p1.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  const p2SubType = p2.weapon?.subType ? p2.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  p1.rage = 0;
+  p2.rage = 0;
 
-
-
-  
-  let p1Dex = p1.effectiveStats.dex || 0;
-  let p2Dex = p2.effectiveStats.dex || 0;
   let turnOrder =
-    p1Dex > p2Dex
+    (p1.effectiveStats.dex || 0) > (p2.effectiveStats.dex || 0)
       ? [p1, p2]
-      : p1Dex < p2Dex
+      : (p1.effectiveStats.dex || 0) < (p2.effectiveStats.dex || 0)
         ? [p2, p1]
         : Math.random() < 0.5
           ? [p1, p2]
@@ -159,13 +257,15 @@ const simulatePvP = (p1, p2) => {
     const attacker = turnOrder[0];
     const defender = turnOrder[1];
 
-    
+    // Decrement bleed
     if (attacker.effects.bleedRounds > 0) {
       attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
       attacker.effects.bleedRounds -= 1;
+      logs.push(`🩸 **${attacker.name}** bị mất **${attacker.effects.bleedDamage}** HP do chảy máu!`);
       if (attacker.hp <= 0) break;
     }
 
+    // Decrement heal reduce
     if (attacker.effects.healReducedRounds > 0) {
       attacker.effects.healReducedRounds -= 1;
       if (attacker.effects.healReducedRounds <= 0) {
@@ -173,7 +273,59 @@ const simulatePvP = (p1, p2) => {
       }
     }
 
-    
+    // Decrement armor boost
+    if (attacker.effects.armorBoostedRounds > 0) {
+      attacker.effects.armorBoostedRounds -= 1;
+      if (attacker.effects.armorBoostedRounds <= 0) {
+        attacker.effects.armorBoosted = 0;
+      }
+    }
+
+    // Check if casting skill
+    const isCastingSkill = attacker.rage >= 100;
+    let skillName = "";
+    let skillMult = 1.0;
+    let skillIgnoreMR = false;
+    let skillForceCrit = false;
+
+    if (isCastingSkill) {
+      attacker.rage = 0; // Consume rage
+      const classKey = attacker.classKey;
+      if (classKey === "warrior") {
+        skillName = "Đòn Đánh Cuồng Nộ";
+        skillMult = 1.5;
+        attacker.effects.armorBoosted = 0.25;
+        attacker.effects.armorBoostedRounds = 2;
+      } else if (classKey === "archer") {
+        skillName = "Mưa Tên";
+        skillMult = 1.3;
+        if (Math.random() < 0.5) {
+          defender.effects.bleedRounds = 2;
+          defender.effects.bleedDamage = Math.floor(attacker.effectiveStats.dex * 0.3);
+        }
+      } else if (classKey === "mage") {
+        skillName = "Bão Phép Thuật";
+        skillMult = 1.8;
+        skillIgnoreMR = true;
+      } else if (classKey === "assassin") {
+        skillName = "Ám Sát";
+        skillMult = 1.5;
+        skillForceCrit = true;
+      } else if (classKey === "paladin") {
+        skillName = "Thánh Lực Bảo Hộ";
+        skillMult = 1.0;
+        const healAmt = Math.floor(attacker.maxHp * 0.15);
+        let healReduceFactor = 1.0;
+        if (attacker.effects.healReduced) healReduceFactor *= 0.7;
+        if (defender.rpgClass?.bonuses?.healReduction) healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
+        const finalHealAmt = Math.floor(healAmt * healReduceFactor);
+        attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
+      } else if (classKey === "wretch") {
+        skillName = "Cú Đập May Rủi";
+        skillMult = 0.5 + Math.random() * 1.7;
+      }
+    }
+
     const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
 
     let attackerSubType = attacker.weapon?.subType ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
@@ -185,13 +337,13 @@ const simulatePvP = (p1, p2) => {
       defender.hp = Math.max(0, defender.hp - reflectDmg);
       attacker.effects.shieldhexAbsorbed = 0;
       attacker.effects.shieldhexRounds = 0;
+      logs.push(`🛡️ **${attacker.name}** phản lại **${reflectDmg}** sát thương phản đòn lên **${defender.name}**!`);
       if (defender.hp <= 0) break;
     }
 
     const defenderEvasion = Math.min(
       0.15,
-      (defender.effectiveStats.dex * 0.1 + defender.effectiveStats.arc * 0.05) /
-        100,
+      ((defender.effectiveStats.dex || 0) * 0.1 + (defender.effectiveStats.arc || 0) * 0.05) / 100
     );
     const isEvaded = Math.random() < defenderEvasion;
 
@@ -225,7 +377,7 @@ const simulatePvP = (p1, p2) => {
       } else if (cleanSubType === "clawhex") {
         clawhexTriggered = true;
         defender.effects.bleedRounds = 3;
-        defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str * 0.5 + attacker.effectiveStats.dex * 0.5));
+        defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str || 0) * 0.5 + (attacker.effectiveStats.dex || 0) * 0.5);
       } else if (cleanSubType === "spearhex") {
         spearhexTriggered = true;
       } else if (cleanSubType === "shieldhex") {
@@ -276,73 +428,72 @@ const simulatePvP = (p1, p2) => {
       delete attacker.nextAttackMult;
     }
 
-    if (!isEvaded) {
-      const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
-      const attackerCritRate = Math.min(
-        0.5,
-        (attacker.effectiveStats.arc * 0.2 +
-          attacker.effectiveStats.dex * 0.1) /
-          100 +
-          classCritBonus,
-      );
-      const isCrit = Math.random() < attackerCritRate;
-      const critMult = 1.5 + attacker.effectiveStats.dex * 0.002;
+    if (isEvaded) {
+      if (isCastingSkill) {
+        logs.push(`Lượt ${turn}: **${attacker.name}** dùng kỹ năng [${skillName}] nhưng bị **${defender.name}** né mất!`);
+      } else {
+        logs.push(`Lượt ${turn}: **${attacker.name}** tấn công nhưng bị **${defender.name}** né mất!`);
+      }
+    } else {
+      let isCrit = false;
+      if (skillForceCrit) {
+        isCrit = true;
+      } else {
+        const classCritBonus = attacker.rpgClass.bonuses?.critRate || 0;
+        const attackerCritRate = Math.min(
+          0.5,
+          ((attacker.effectiveStats.arc || 0) * 0.2 + (attacker.effectiveStats.dex || 0) * 0.1) / 100 + classCritBonus
+        );
+        isCrit = Math.random() < attackerCritRate;
+      }
+      const critMult = 1.5 + (attacker.effectiveStats.dex || 0) * 0.002;
 
       const isMagical = CLASS_ATTACK_TYPES[attacker.classKey] === "magical";
       const baseAtk = isMagical
-        ? attacker.effectiveStats.int * 3.5 + attacker.effectiveStats.arc * 1.5
-        : attacker.effectiveStats.str * 2.5 + attacker.effectiveStats.dex * 1.5;
+        ? (attacker.effectiveStats.int || 0) * 3.5 + (attacker.effectiveStats.arc || 0) * 1.5
+        : (attacker.effectiveStats.str || 0) * 2.5 + (attacker.effectiveStats.dex || 0) * 1.5;
 
       let rawDamage = baseAtk + attacker.gearPower;
       if (clawhexTriggered) {
         rawDamage *= 1.15;
       }
 
-      rawDamage *= 0.85 + Math.random() * 0.3; 
+      rawDamage *= 0.85 + Math.random() * 0.3;
+      if (isCastingSkill) {
+        rawDamage *= skillMult;
+      }
       if (isCrit) {
         rawDamage *= critMult;
       }
 
       let defenderMitigation = 0;
       if (isMagical) {
-        let mr =
-          defender.effectiveStats.mr * 12.0 + (defender.defensePower || 0);
-        if (blueStaffPierce) {
-          mr *= 0.75;
-        }
-        if (sunbowTriggered) {
-          mr *= 0.90;
-        }
+        let mr = (defender.effectiveStats.mr || 0) * 12.0 + (defender.defensePower || 0);
+        if (blueStaffPierce) mr *= 0.75;
+        if (sunbowTriggered) mr *= 0.90;
+        if (skillIgnoreMR) mr *= 0.75;
         defenderMitigation = mr / (mr + 1000);
       } else {
-        let armor =
-          defender.effectiveStats.pr * 12.0 + (defender.defensePower || 0);
+        let armor = (defender.effectiveStats.pr || 0) * 12.0 + (defender.defensePower || 0);
+        if (defender.effects.armorBoostedRounds > 0) {
+          armor *= (1 + (defender.effects.armorBoosted || 0));
+        }
         if (defender.effects.armorReduced) {
           armor *= 1 - defender.effects.armorReduced;
         }
-        if (crimsonDaggerPierce) {
-          armor *= 0.5;
-        }
-        if (spearhexTriggered) {
-          armor *= 0.90;
-        }
-        if (sunbowTriggered) {
-          armor *= 0.90;
-        }
+        if (crimsonDaggerPierce) armor *= 0.5;
+        if (spearhexTriggered) armor *= 0.90;
+        if (sunbowTriggered) armor *= 0.90;
         defenderMitigation = armor / (armor + 1000);
       }
 
       const defenderPvpDefBonus = defender.rpgClass.bonuses?.pvpDefense || 0;
       let finalMult = (1 - defenderMitigation) * (1 - defenderPvpDefBonus);
-      if (holySwordDouble) {
-        finalMult *= 2.0;
-      }
-      if (poisonMult > 1.0) {
-        finalMult *= poisonMult;
-      }
+      if (holySwordDouble) finalMult *= 2.0;
+      if (poisonMult > 1.0) finalMult *= poisonMult;
       if (attacker.effects.damageReduced) {
         finalMult *= 1 - attacker.effects.damageReduced;
-        delete attacker.effects.damageReduced; 
+        delete attacker.effects.damageReduced;
       }
 
       let damage = Math.max(5, Math.floor((rawDamage * finalMult) / 10));
@@ -358,8 +509,21 @@ const simulatePvP = (p1, p2) => {
       }
 
       defender.hp = Math.max(0, defender.hp - damage);
+      defender.rage = Math.min(100, defender.rage + 10); // Gain rage on taking hit
 
-      
+      let logMsg = "";
+      if (isCastingSkill) {
+        logMsg = `Lượt ${turn}: **${attacker.name}** dùng kỹ năng [${skillName}] gây **${damage}** st`;
+        if (isCrit) logMsg += " (Chí mạng!)";
+        if (attacker.classKey === "warrior") logMsg += " và tăng 25% Giáp";
+        if (attacker.classKey === "archer" && defender.effects.bleedRounds > 0) logMsg += " và gây Chảy máu";
+        if (attacker.classKey === "paladin") logMsg += " và hồi máu";
+      } else {
+        logMsg = `Lượt ${turn}: **${attacker.name}** tấn công thường gây **${damage}** st`;
+        if (isCrit) logMsg += " (Chí mạng!)";
+      }
+      logs.push(logMsg + "!");
+
       if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
         let baseHeal = 0;
         if (riverofbloodTriggered) {
@@ -368,15 +532,17 @@ const simulatePvP = (p1, p2) => {
           baseHeal = Math.floor((attacker.maxHp - attacker.hp) * 0.10);
         }
         let healReduceFactor = 1.0;
-        if (attacker.effects.healReduced) {
-          healReduceFactor *= 0.7;
-        }
-        if (defender.rpgClass?.bonuses?.healReduction) {
-          healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
-        }
+        if (attacker.effects.healReduced) healReduceFactor *= 0.7;
+        if (defender.rpgClass?.bonuses?.healReduction) healReduceFactor *= 1 - defender.rpgClass.bonuses.healReduction;
         const finalHealAmt = Math.floor(baseHeal * healReduceFactor);
         attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
+        logs.push(`✨ **${attacker.name}** hồi **${finalHealAmt}** HP từ hiệu ứng vũ khí!`);
       }
+    }
+
+    // Gain rage on attacking (only if not cast skill)
+    if (!isCastingSkill) {
+      attacker.rage = Math.min(100, attacker.rage + 25);
     }
 
     if (defender.hp <= 0) {
@@ -387,9 +553,7 @@ const simulatePvP = (p1, p2) => {
     turn += 1;
   }
 
-  let winner,
-    loser,
-    isDraw = false;
+  let winner, loser, isDraw = false;
   if (p1.hp <= 0) {
     winner = p2;
     loser = p1;
@@ -400,7 +564,7 @@ const simulatePvP = (p1, p2) => {
     isDraw = true;
   }
 
-  return { winner, loser, isDraw, turns: turn - 1 };
+  return { winner, loser, isDraw, turns: turn - 1, logs };
 };
 
 class BattleCommand extends BaseCommand {
@@ -781,6 +945,14 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     imgData = await generatePvPImage(
       player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
       player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+      player1.hp,
+      player1.maxHp,
+      player1.rage || 0,
+      player1.weapon,
+      player2.hp,
+      player2.maxHp,
+      player2.rage || 0,
+      player2.weapon
     ).catch((err) => {
       console.error("Failed to generate PvP image:", err);
       return null;
@@ -815,21 +987,27 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}`;
   }
 
+  const logLimit = 6;
+  const recentLogs = result.logs.length > logLimit
+    ? "...\n" + result.logs.slice(-logLimit).join("\n")
+    : result.logs.join("\n");
+
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .setAuthor({
       name: `${memberName} Đang chiến đấu!`,
       iconURL: message.author.displayAvatarURL({ dynamic: true })
     })
+    .setDescription(`⚔️ **Diễn biến trận đấu:**\n${recentLogs}`)
     .addFields(
       {
         name: `${player1.name}${weapon1Emoji} (${player1.classLabel})`,
-        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
+        value: `LV. **${player1.level}**\n⚔ Lực chiến: **${Math.floor(player1.gearPower).toLocaleString()}**`,
         inline: true,
       },
       {
         name: `${player2.name}${weapon2Emoji} (${player2.classLabel})`,
-        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
+        value: `LV. **${player2.level}**\n⚔ Lực chiến: **${Math.floor(player2.gearPower).toLocaleString()}**`,
         inline: true,
       },
     );
