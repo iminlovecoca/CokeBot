@@ -99,7 +99,6 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
   const embed = new EmbedBuilder()
     .setColor(rpgClass.color)
     .setTitle(title)
-    .setDescription(rpgClass.description)
     .setImage(`attachment://${assetName}`)
     .addFields(
       {

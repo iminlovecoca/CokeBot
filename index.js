@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./utils/v2Converter");
 const dns = require("dns");
 if (typeof dns.setDefaultResultOrder === "function") {
   dns.setDefaultResultOrder("ipv4first");

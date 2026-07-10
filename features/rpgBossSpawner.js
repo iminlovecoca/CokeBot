@@ -117,26 +117,16 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
         name: "🏆 Top 10 Sát Thương",
         value: topDamageField,
         inline: false,
-      },
-      {
-        name: "Thông tin",
-        value: (() => {
-          const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank] || null;
-          const rankLine = bossRank ? `${bossRank.emoji} **${bossRank.label}**\n` : "";
-          const durationMinutes = Math.round((activeBoss.expiresAt - activeBoss.spawnedAt) / 60000);
-          const timeStr = durationMinutes >= 60
-            ? `${Math.round(durationMinutes / 60)} giờ`
-            : `${durationMinutes} phút`;
-          return (
-            rankLine +
-            `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
-            `Tồn tại: **${timeStr}**\n` +
-            `Người tham gia: **${activeBoss.participants.size}**`
-          );
-        })(),
-        inline: true,
-      },
+      }
     );
+
+  if (activeBoss.lastHitUserId && !expired) {
+    embed.addFields({
+      name: "Last Hit",
+      value: `<@${activeBoss.lastHitUserId}>`,
+      inline: true,
+    });
+  }
 
   if (activeBoss.imageUrl) {
     embed.setImage(activeBoss.imageUrl);
@@ -239,21 +229,9 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
     hpLine += `\n🛡️ **Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
   }
 
-  const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank] || null;
-  const rankLine = bossRank ? `${bossRank.emoji} **${bossRank.label}**` : "";
-  const durationMinutes = Math.round((activeBoss.expiresAt - activeBoss.spawnedAt) / 60000);
-  const timeStr = durationMinutes >= 60
-    ? `${Math.round(durationMinutes / 60)} giờ`
-    : `${durationMinutes} phút`;
-
   let infoLine = "";
-  if (rankLine) infoLine += `${rankLine}\n`;
-  infoLine += `Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**\n` +
-              `Tồn tại: **${timeStr}**\n` +
-              `Người tham gia: **${activeBoss.participants.size}**`;
-
   if (activeBoss.lastHitUserId && !expired) {
-    infoLine += `\nLast Hit: <@${activeBoss.lastHitUserId}>`;
+    infoLine = `Last Hit: <@${activeBoss.lastHitUserId}>`;
   }
 
   const accentColor = defeated ? 0x57F287 : (expired || transitioned) ? 0x747F8D : 0xED4245;
@@ -275,15 +253,9 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
     `${topDamageField}`
   );
 
-  const text4 = new TextDisplayBuilder().setContent(
-    `### ℹ️ Thông tin\n` +
-    `${infoLine}`
-  );
-
   const sep1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const sep2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
   const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const sep4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
 
   const imgFileName = boss.asset || "boss_01.webp";
   const gallery = new MediaGalleryBuilder().addItems(
@@ -295,11 +267,17 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
     .addSeparatorComponents(sep1)
     .addTextDisplayComponents(text2)
     .addSeparatorComponents(sep2)
-    .addTextDisplayComponents(text3)
-    .addSeparatorComponents(sep3)
-    .addTextDisplayComponents(text4)
-    .addSeparatorComponents(sep4)
-    .addMediaGalleryComponents(gallery);
+    .addTextDisplayComponents(text3);
+
+  if (infoLine) {
+    const text4 = new TextDisplayBuilder().setContent(
+      `### ℹ️ Thông tin\n` +
+      `${infoLine}`
+    );
+    container.addSeparatorComponents(sep3).addTextDisplayComponents(text4);
+  }
+
+  container.addMediaGalleryComponents(gallery);
 
   const disabled = status !== "alive" || activeBoss.defeated || activeBoss.expired;
   const buttonRow = new ActionRowBuilder().addComponents(
