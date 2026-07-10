@@ -50,6 +50,24 @@ const getHealthBar = (hp, maxHp) => {
   return `❤️ **HP:** ${filled}${empty} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
 };
 
+const getAttachmentId = (activeDungeon) => {
+  if (!activeDungeon) return null;
+  if (activeDungeon.attachmentId) return activeDungeon.attachmentId;
+  if (activeDungeon.imageUrl) {
+    try {
+      const cleanUrl = activeDungeon.imageUrl.split("?")[0];
+      const parts = cleanUrl.split("/");
+      const index = parts.indexOf("attachments");
+      if (index !== -1 && parts[index + 2]) {
+        return parts[index + 2];
+      }
+    } catch (e) {
+      console.warn("[RPG_DUNGEON] Failed to parse attachmentId from imageUrl:", e.message);
+    }
+  }
+  return null;
+};
+
 
 const getPoiseBar = (poise, poiseMax) => {
   const percentage = Math.max(0, Math.min(1, poise / poiseMax));
@@ -854,19 +872,32 @@ const renderGameScreen = async (channel, activeDungeon) => {
   };
 
   if (activeDungeon.gameMessage) {
+    const attachmentId = getAttachmentId(activeDungeon);
+    const hasImageChanged = imgFileName !== activeDungeon.lastImgFileName;
+
     const editPayload = {
       content: "",
       embeds: [],
       components: payload.components,
       flags: MessageFlags.IsComponentsV2,
-      attachments: activeDungeon.gameMessage.attachments ? activeDungeon.gameMessage.attachments.map((att) => ({ id: att.id })) : [],
       skipV2: true,
     };
 
+    if (hasImageChanged || !attachmentId) {
+      editPayload.files = payload.files;
+      editPayload.attachments = [];
+    } else {
+      editPayload.attachments = [{ id: attachmentId }];
+    }
+
     if (activeDungeon.lastInteraction && activeDungeon.lastInteraction.message.id === activeDungeon.gameMessage.id) {
-      await activeDungeon.lastInteraction.editReply(editPayload).catch((err) => {
+      const editedMsg = await activeDungeon.lastInteraction.editReply(editPayload).catch((err) => {
         console.error("[RPG_DUNGEON] lastInteraction.editReply failed:", err);
+        return null;
       });
+      if (editedMsg) {
+        activeDungeon.gameMessage = editedMsg;
+      }
     } else {
       await activeDungeon.gameMessage.delete().catch(() => null);
       const newMsg = await channel.send({
@@ -883,6 +914,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
   } else {
     activeDungeon.gameMessage = await channel.send(payload);
     setupCollector(channel, activeDungeon);
+  }
+
+  if (activeDungeon.gameMessage) {
+    activeDungeon.lastImgFileName = imgFileName;
+    const attachment = activeDungeon.gameMessage.attachments && typeof activeDungeon.gameMessage.attachments.first === "function"
+      ? activeDungeon.gameMessage.attachments.first()
+      : null;
+    if (attachment) {
+      activeDungeon.attachmentId = attachment.id;
+      activeDungeon.imageUrl = attachment.url;
+    }
   }
 
   

@@ -236,6 +236,33 @@ function patchMethod(target, methodName) {
             convertedOptions.embeds = [];
           }
         }
+
+        // Preserve existing attachments for edit/update V2 payloads if not uploading new files
+        const hasFiles = convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload"
+          ? (convertedOptions.options?.files && convertedOptions.options.files.length > 0)
+          : (convertedOptions.files && convertedOptions.files.length > 0);
+
+        const hasAttachments = convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload"
+          ? !!convertedOptions.options?.attachments
+          : !!convertedOptions.attachments;
+
+        if (!hasFiles && !hasAttachments) {
+          let existingAttachments = [];
+          if (isMessage && this.attachments) {
+            existingAttachments = Array.from(this.attachments.values());
+          } else if (isInteraction && this.message?.attachments) {
+            existingAttachments = Array.from(this.message.attachments.values());
+          }
+
+          if (existingAttachments.length > 0) {
+            const mappedAttachments = existingAttachments.map((att) => ({ id: att.id }));
+            if (convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload") {
+              convertedOptions.options.attachments = mappedAttachments;
+            } else {
+              convertedOptions.attachments = mappedAttachments;
+            }
+          }
+        }
       }
     }
 
