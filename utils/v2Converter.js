@@ -42,7 +42,15 @@ function convertToV2(options) {
   const originalEmbeds = newOptions.embeds;
   delete newOptions.embeds;
 
+  // Extract content if present and delete it from root options to prevent MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2
+  let rootContent = "";
+  if (newOptions.content) {
+    rootContent = newOptions.content;
+    delete newOptions.content;
+  }
+
   const containers = [];
+  let isFirst = true;
 
   for (const embed of originalEmbeds) {
     if (!embed) continue;
@@ -58,6 +66,12 @@ function convertToV2(options) {
     // 1. Author (if has iconURL, render as Section; otherwise prepend to contentText)
     let authorSection = null;
     let contentText = "";
+
+    // Prepend root content to the first container
+    if (isFirst && rootContent) {
+      contentText += `${rootContent}\n\n`;
+      isFirst = false;
+    }
 
     if (data.author?.name) {
       if (data.author.iconURL) {
@@ -117,6 +131,14 @@ function convertToV2(options) {
     }
 
     containers.push(container);
+  }
+
+  if (containers.length === 0) {
+    if (rootContent) {
+      newOptions.content = rootContent;
+    }
+    newOptions.embeds = originalEmbeds;
+    return newOptions;
   }
 
   // 5. Merge existing action rows/components into the first container
