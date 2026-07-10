@@ -736,7 +736,8 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
                 embeds: [],
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
-                attachments: [...msg.attachments.values()],
+                attachments: msg.attachments.map((att) => ({ id: att.id })),
+                skipV2: true,
               };
               const edited = await msg.edit(editPayload).catch((err) => {
                 console.error("[RPG_BOSS] msg.edit failed:", err);
@@ -792,7 +793,8 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
               embeds: [],
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
-              attachments: [...msg.attachments.values()],
+              attachments: msg.attachments.map((att) => ({ id: att.id })),
+              skipV2: true,
             };
             await msg.edit(editPayload).catch((err) => {
               console.error("[RPG_BOSS] transitioned msg.edit failed:", err);
