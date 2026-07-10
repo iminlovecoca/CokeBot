@@ -94,6 +94,37 @@ const preloadAssets = async () => {
 };
 preloadAssets();
 
+const transparentAssetCache = new Map();
+
+const getTransparentAsset = async (imagePath, filterFn) => {
+  if (transparentAssetCache.has(imagePath)) {
+    return transparentAssetCache.get(imagePath);
+  }
+  const img = await getCachedImage(imagePath);
+  if (!img) return null;
+
+  const canvas = createCanvas(img.width, img.height);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
+  const imgData = ctx.getImageData(0, 0, img.width, img.height);
+  const data = imgData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i+1];
+    const b = data[i+2];
+    const a = data[i+3];
+    if (filterFn(r, g, b, a)) {
+      data[i+3] = 0; // Make transparent
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  transparentAssetCache.set(imagePath, canvas);
+  return canvas;
+};
+
 const generatePvPImage = async (
   p1Asset, p2Asset,
   p1Hp, p1MaxHp, p1Rage, p1Weapon, p1Effects,
@@ -105,9 +136,9 @@ const generatePvPImage = async (
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  // Load Background template
+  // Load Background template with transparent background filter
   const bgPath = path.join(__dirname, "../../assets/backgrounds/battle_template.png");
-  const bg = await getCachedImage(bgPath);
+  const bg = await getTransparentAsset(bgPath, (r, g, b) => r === 38 && g === 39 && b === 44);
   if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
   } else {
@@ -164,7 +195,7 @@ const generatePvPImage = async (
   }
 
   // Draw HP and Rage Bars (Left Side) - Left to Right
-  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillStyle = "rgb(30,31,35)";
   ctx.fillRect(142, 44, 276, 20);
   const hp1Ratio = Math.max(0, Math.min(1, p1Hp / p1MaxHp));
   if (hp1Ratio > 0) {
@@ -172,7 +203,7 @@ const generatePvPImage = async (
     ctx.fillRect(142, 44, Math.floor(276 * hp1Ratio), 20);
   }
 
-  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillStyle = "rgb(30,31,35)";
   ctx.fillRect(142, 76, 276, 20);
   const rage1Ratio = Math.max(0, Math.min(1, p1Rage / 100));
   if (rage1Ratio > 0) {
@@ -181,7 +212,7 @@ const generatePvPImage = async (
   }
 
   // Draw HP and Rage Bars (Right Side) - Right to Left
-  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillStyle = "rgb(30,31,35)";
   ctx.fillRect(606, 44, 276, 20);
   const hp2Ratio = Math.max(0, Math.min(1, p2Hp / p2MaxHp));
   if (hp2Ratio > 0) {
@@ -190,7 +221,7 @@ const generatePvPImage = async (
     ctx.fillRect(882 - fillWidth, 44, fillWidth, 20);
   }
 
-  ctx.fillStyle = "rgb(38,39,44)";
+  ctx.fillStyle = "rgb(30,31,35)";
   ctx.fillRect(606, 76, 276, 20);
   const rage2Ratio = Math.max(0, Math.min(1, p2Rage / 100));
   if (rage2Ratio > 0) {
@@ -200,7 +231,7 @@ const generatePvPImage = async (
   }
 
   // Draw Text Overlays
-  ctx.font = "bold 16px sans-serif";
+  ctx.font = "bold 18px sans-serif";
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -211,23 +242,21 @@ const generatePvPImage = async (
   ctx.fillText(`${Math.max(0, Math.floor(p2Hp))}/${p2MaxHp}`, 606 + 276 / 2, 44 + 10);
   ctx.fillText(`${Math.floor(p2Rage)}% Nộ`, 606 + 276 / 2, 76 + 10);
 
-
-
-  // Draw K.O. or Time Out Overlay
+  // Draw K.O. or Time Out Overlay (with black background removed and scaled down to 60%)
   if (resultStatus === "ko") {
     const koPath = path.join(__dirname, "../../assets/backgrounds/ko.png");
     if (fs.existsSync(koPath)) {
-      const koImg = await getCachedImage(koPath);
+      const koImg = await getTransparentAsset(koPath, (r, g, b) => r < 40 && g < 40 && b < 40);
       if (koImg) {
-        ctx.drawImage(koImg, (1024 - 577) / 2, (535 - 342) / 2, 577, 342);
+        ctx.drawImage(koImg, (1024 - 346) / 2, (535 - 205) / 2, 346, 205);
       }
     }
   } else if (resultStatus === "timeout") {
     const toPath = path.join(__dirname, "../../assets/backgrounds/timeout.png");
     if (fs.existsSync(toPath)) {
-      const toImg = await getCachedImage(toPath);
+      const toImg = await getTransparentAsset(toPath, (r, g, b) => r < 40 && g < 40 && b < 40);
       if (toImg) {
-        ctx.drawImage(toImg, (1024 - 601) / 2, (535 - 484) / 2, 601, 484);
+        ctx.drawImage(toImg, (1024 - 360) / 2, (535 - 290) / 2, 360, 290);
       }
     }
   }
