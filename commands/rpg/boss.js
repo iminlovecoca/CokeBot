@@ -736,8 +736,12 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
                 embeds: [],
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
+                attachments: [...msg.attachments.values()],
               };
-              const edited = await msg.edit(editPayload).catch(() => null);
+              const edited = await msg.edit(editPayload).catch((err) => {
+                console.error("[RPG_BOSS] msg.edit failed:", err);
+                return null;
+              });
               if (edited) {
                 updatedIds.push(msgId);
                 if (!activeBoss.imageUrl) {
@@ -788,8 +792,12 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
               embeds: [],
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
+              attachments: [...msg.attachments.values()],
             };
-            await msg.edit(editPayload).catch(() => null);
+            await msg.edit(editPayload).catch((err) => {
+              console.error("[RPG_BOSS] transitioned msg.edit failed:", err);
+              return null;
+            });
           }
         }
 

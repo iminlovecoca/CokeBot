@@ -354,8 +354,12 @@ const expireBoss = async (client, channelId) => {
           embeds: [],
           components: [buildBossComponentsV2(activeBoss, "expired")],
           flags: MessageFlags.IsComponentsV2,
+          attachments: [...bossMessage.attachments.values()],
         };
-        await bossMessage.edit(payload).catch(() => null);
+        await bossMessage.edit(payload).catch((err) => {
+          console.error("[RPG_BOSS] expireBoss msg.edit failed:", err);
+          return null;
+        });
       }
     }
   } catch (error) {
