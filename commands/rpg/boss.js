@@ -597,17 +597,13 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
   for (const msgId of messageIds) {
     const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
     if (bossMessage) {
-      const attachmentId = getAttachmentId(activeBoss);
-      const attachmentsPayload = attachmentId 
-        ? [{ id: attachmentId }] 
-        : (bossMessage.attachments ? bossMessage.attachments.map((att) => ({ id: att.id })) : []);
-
+      // buildBossComponentsV2 uses CDN URL so no attachment ID needed
       const payload = {
         content: "",
         embeds: [],
         components: [buildBossComponentsV2(activeBoss, "defeated")],
         flags: MessageFlags.IsComponentsV2,
-        attachments: attachmentsPayload,
+        attachments: [],
         skipV2: true,
       };
 
@@ -769,17 +765,13 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
           for (const msgId of activeBoss.messageIds) {
             const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
             if (msg) {
-              const attachmentId = getAttachmentId(activeBoss);
-              const attachmentsPayload = attachmentId 
-                ? [{ id: attachmentId }] 
-                : (msg.attachments ? msg.attachments.map((att) => ({ id: att.id })) : []);
-
+              // buildBossComponentsV2 uses activeBoss.imageUrl (CDN) so no need to pass attachment IDs
               const editPayload = {
                 content: "",
                 embeds: [],
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
-                attachments: attachmentsPayload,
+                attachments: [],
                 skipV2: true,
               };
 
@@ -792,16 +784,21 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
               } else {
                 // Delete old message and send a new one since msg.edit V2 fails
                 await msg.delete().catch(() => null);
-                const newPayload = {
+                const newMsg = await channel.send({
                   content: "",
                   embeds: [],
                   components: payload.components,
                   flags: MessageFlags.IsComponentsV2,
                   files: [getAttachment(activeBoss.boss)],
-                };
-                const newMsg = await channel.send(newPayload).catch(() => null);
+                }).catch(() => null);
                 if (newMsg) {
                   edited = newMsg;
+                  // Update CDN URL from new message
+                  const att = newMsg.attachments.first();
+                  if (att) {
+                    activeBoss.imageUrl = att.url;
+                    activeBoss.attachmentId = att.id;
+                  }
                 }
               }
 
@@ -850,17 +847,13 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
         for (const msgId of oldMessageIds) {
           const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
-            const attachmentId = getAttachmentId(activeBoss);
-            const attachmentsPayload = attachmentId 
-              ? [{ id: attachmentId }] 
-              : (msg.attachments ? msg.attachments.map((att) => ({ id: att.id })) : []);
-
+            // Use CDN URL in component so no attachment IDs needed
             const editPayload = {
               content: "",
               embeds: [],
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
-              attachments: attachmentsPayload,
+              attachments: [],
               skipV2: true,
             };
             if (interaction && msgId === interaction.message?.id) {

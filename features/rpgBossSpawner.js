@@ -258,8 +258,10 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
   const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
   const imgFileName = boss.asset || "boss_01.webp";
+  // Use the CDN URL if already uploaded, otherwise use attachment:// for first upload
+  const imageUrl = activeBoss.imageUrl || `attachment://${imgFileName}`;
   const gallery = new MediaGalleryBuilder().addItems(
-    new MediaGalleryItemBuilder().setURL(`attachment://${imgFileName}`)
+    new MediaGalleryItemBuilder().setURL(imageUrl)
   );
 
   container
@@ -528,6 +530,14 @@ const spawnRandomBoss = async (client, options = {}) => {
     if (attachment) {
       activeBoss.imageUrl = attachment.url;
       activeBoss.attachmentId = attachment.id;
+    } else {
+      // Try parsing from message data directly (V2 component messages may not expose attachments)
+      const rawAttachments = message.attachments;
+      if (rawAttachments && rawAttachments.size > 0) {
+        const first = rawAttachments.first();
+        activeBoss.imageUrl = first.url;
+        activeBoss.attachmentId = first.id;
+      }
     }
 
     try {
@@ -544,7 +554,7 @@ const spawnRandomBoss = async (client, options = {}) => {
         expiresAt: activeBoss.expiresAt,
         messageId: activeBoss.messageId,
         messageIds: activeBoss.messageIds,
-        imageUrl: activeBoss.imageUrl,
+        imageUrl: activeBoss.imageUrl || null,
         phase: 1,
         effects: { armorReduced: 0, healReduced: false },
         allowSoulRealm: activeBoss.allowSoulRealm,
