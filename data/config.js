@@ -862,4 +862,67 @@ module.exports = {
       },
     },
   },
+
+  // ─── Garden / Farming Minigame ───────────────────────────────────────────────
+  garden: {
+    // Watering: free, cooldown per X hours (not once-per-day anymore)
+    water_cooldown_hours: 6,   // can water again after 6 hours
+
+    bug_chance: 0.17,          // 17% per planted cell
+    bug_appear_min: 30,        // seconds before bug shows
+    bug_appear_max: 90,
+    bug_destroy_min: 120,      // seconds before bug kills plant
+    bug_destroy_max: 300,
+    event_chance: 0.12,
+    collector_ttl_minutes: 15,
+
+    growth_emojis: ['🌱', '🌿', '🌾'], // stages 0-1-2; stage 3 = plant emoji (ready)
+
+    bugs: ['🐛', '🐞', '🐌'],
+
+    events: [
+      { type: 'rainbow', emoji: '🌈', name: 'Rainbow',   desc: 'Toàn bộ cây tăng +1 cấp ngay lập tức!' },
+      { type: 'sunny',   emoji: '☀️',  name: 'Nắng Đẹp', desc: 'Lần tưới tiếp theo x2 hiệu quả!' },
+      { type: 'rain',    emoji: '🌧️',  name: 'Cơn Mưa',  desc: 'Toàn bộ cây được tưới miễn phí ngay!' },
+      { type: 'lucky',   emoji: '🍀',  name: 'Ngày May',  desc: 'Lần thu hoạch tiếp theo nhân đôi tiền!' },
+    ],
+
+    seeds: {
+      vegetable: {
+        key:         'vegetable',
+        emoji:       '🌿',
+        name:        'Vegetable Seed',
+        pack_size:   10,
+        pack_price:  500,
+        harvest_min: 30,
+        harvest_max: 80,
+        // Time-based growth: total hours from plant → ready (3 stages)
+        growth_hours: 8,       // ~2.67h per stage
+        plants: ['🌽','🥕','🥔','🥒','🍅','🧅','🧄','🥬','🥦','🫑','🌶️','🫘'],
+      },
+      flower: {
+        key:         'flower',
+        emoji:       '🌸',
+        name:        'Flower Seed',
+        pack_size:   10,
+        pack_price:  1500,
+        harvest_min: 80,
+        harvest_max: 180,
+        growth_hours: 10,      // ~3.33h per stage
+        plants: ['🌷','🌹','🌺','🌸','🪻','🌼','🌻','🪷','💐'],
+      },
+      fruit: {
+        key:         'fruit',
+        emoji:       '🍎',
+        name:        'Fruit Seed',
+        pack_size:   10,
+        pack_price:  3000,
+        harvest_min: 200,
+        harvest_max: 400,
+        growth_hours: 12,      // 4h per stage
+        plants: ['🍎','🍏','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🥭','🍍','🥥','🥝'],
+      },
+    },
+  },
 };
+
