@@ -69,7 +69,7 @@ const formatCards = (hand, hide=false) => {
   } else {
     cards = cards.map(c => emoji[c])
   }
-  return cards.join(' ')
+  return "## " + cards.join(' ')
 }
 
 const getGame = async userId => {

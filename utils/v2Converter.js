@@ -13,7 +13,9 @@ const {
   SeparatorSpacingSize,
   MessageFlags,
   MediaGalleryBuilder,
-  MediaGalleryItemBuilder
+  MediaGalleryItemBuilder,
+  SectionBuilder,
+  ThumbnailBuilder
 } = require("discord.js");
 
 function convertToV2(options) {
@@ -46,11 +48,20 @@ function convertToV2(options) {
       container.setAccentColor(data.color);
     }
 
-    // 1. Author, Title, Description
+    // 1. Author (if has iconURL, render as Section; otherwise prepend to contentText)
+    let authorSection = null;
     let contentText = "";
+
     if (data.author?.name) {
-      contentText += `**${data.author.name}**\n`;
+      if (data.author.iconURL) {
+        authorSection = new SectionBuilder();
+        authorSection.setThumbnailAccessory(new ThumbnailBuilder().setURL(data.author.iconURL));
+        authorSection.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**${data.author.name}**`));
+      } else {
+        contentText += `**${data.author.name}**\n`;
+      }
     }
+
     if (data.title) {
       contentText += `# ${data.title}\n`;
     }
@@ -58,6 +69,10 @@ function convertToV2(options) {
       contentText += `${data.description}\n`;
     }
     contentText = contentText.trim();
+
+    if (authorSection) {
+      container.addSectionComponents(authorSection);
+    }
     if (contentText) {
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(contentText));
     }
