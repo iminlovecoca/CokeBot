@@ -125,6 +125,26 @@ const getTransparentAsset = async (imagePath, filterFn) => {
   return canvas;
 };
 
+const emojiCanvasCache = new Map();
+
+const getEmojiImage = async (emojiStr) => {
+  if (emojiCanvasCache.has(emojiStr)) {
+    return emojiCanvasCache.get(emojiStr);
+  }
+  const match = emojiStr.match(/:(\d+)>/);
+  if (!match) return null;
+  const emojiId = match[1];
+  const url = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
+  try {
+    const img = await loadImage(url);
+    emojiCanvasCache.set(emojiStr, img);
+    return img;
+  } catch (err) {
+    console.error(`Failed to load emoji image from ${url}:`, err);
+    return null;
+  }
+};
+
 const generatePvPImage = async (
   p1Asset, p2Asset,
   p1Hp, p1MaxHp, p1Rage, p1Weapon, p1Effects,
@@ -241,6 +261,28 @@ const generatePvPImage = async (
 
   ctx.fillText(`${Math.max(0, Math.floor(p2Hp))}/${p2MaxHp}`, 606 + 276 / 2, 44 + 10);
   ctx.fillText(`${Math.floor(p2Rage)}% Nộ`, 606 + 276 / 2, 76 + 10);
+
+  // Draw active passive emojis on the Canvas inside the empty spaces (y = 103)
+  const drawEmojiList = async (effects, xStart) => {
+    if (!effects) return;
+    const emojis = [];
+    if (effects.bleedRounds > 0) emojis.push("<:bleed:1521938497642958889>");
+    if (effects.healReduced) emojis.push("<:healreduction:1523340558855045190>");
+    if (effects.armorReduced > 0) emojis.push("<:break:1521938480337391736>");
+    if (effects.armorBoosted > 0) emojis.push("<:atkup:1521938477359300648>");
+
+    let currentX = xStart;
+    for (const em of emojis) {
+      const emImg = await getEmojiImage(em);
+      if (emImg) {
+        ctx.drawImage(emImg, currentX, 103, 24, 24);
+        currentX += 30; // spacing
+      }
+    }
+  };
+
+  await drawEmojiList(p1Effects, 142);
+  await drawEmojiList(p2Effects, 606);
 
   // Draw K.O. or Time Out Overlay (with black background removed and scaled down to 60%)
   if (resultStatus === "ko") {
