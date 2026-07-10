@@ -240,15 +240,12 @@ class DungeonCommand extends BaseCommand {
         return message.reply("❌ Dungeon Chương 7 trở đi hiện đang tạm thời đóng để bảo trì phát triển!");
       }
       
-      await askBlessing(message, selectMsg, guild, chapter);
+      await askBlessing(message, selectMsg, guild, chapter, i);
     });
 
     collector.on("end", (collected, reason) => {
       if (reason !== "selected") {
-        selectMsg.edit({
-          content: "⏳ Hết thời gian lựa chọn phó bản.",
-          components: [],
-        }).catch(() => {});
+        selectMsg.delete().catch(() => {});
       }
     });
   }
@@ -256,7 +253,7 @@ class DungeonCommand extends BaseCommand {
 
 module.exports = new DungeonCommand();
 
-const askBlessing = async (message, selectMsg, guild, chapter) => {
+const askBlessing = async (message, selectMsg, guild, chapter, startInteraction = null) => {
   const userId = message.author.id;
   
   const container = new ContainerBuilder()
@@ -271,12 +268,21 @@ const askBlessing = async (message, selectMsg, guild, chapter) => {
     )
     .addActionRowComponents(row);
 
-  await selectMsg.edit({
+  const payload = {
     content: "",
     embeds: [],
     components: [container],
     flags: MessageFlags.IsComponentsV2,
-  }).catch(() => {});
+    skipV2: true,
+  };
+
+  if (startInteraction) {
+    await startInteraction.editReply(payload).catch((err) => {
+      console.error("[RPG_DUNGEON] askBlessing editReply failed:", err);
+    });
+  } else {
+    await selectMsg.edit(payload).catch(() => {});
+  }
 
   const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_blessing_");
   const blessingCollector = selectMsg.createMessageComponentCollector({ filter, time: 30000 });
@@ -292,11 +298,7 @@ const askBlessing = async (message, selectMsg, guild, chapter) => {
 
   blessingCollector.on("end", (collected, reason) => {
     if (reason !== "selected") {
-      selectMsg.edit({
-        content: "⏳ Hết thời gian lựa chọn phước lành. Dungeon đã được hủy.",
-        embeds: [],
-        components: [],
-      }).catch(() => {});
+      selectMsg.delete().catch(() => {});
     }
   });
 };
@@ -852,7 +854,32 @@ const renderGameScreen = async (channel, activeDungeon) => {
   };
 
   if (activeDungeon.gameMessage) {
-    await activeDungeon.gameMessage.edit(payload).catch(() => {});
+    const editPayload = {
+      content: "",
+      embeds: [],
+      components: payload.components,
+      flags: MessageFlags.IsComponentsV2,
+      attachments: activeDungeon.gameMessage.attachments ? activeDungeon.gameMessage.attachments.map((att) => ({ id: att.id })) : [],
+      skipV2: true,
+    };
+
+    if (activeDungeon.lastInteraction && activeDungeon.lastInteraction.message.id === activeDungeon.gameMessage.id) {
+      await activeDungeon.lastInteraction.editReply(editPayload).catch((err) => {
+        console.error("[RPG_DUNGEON] lastInteraction.editReply failed:", err);
+      });
+    } else {
+      await activeDungeon.gameMessage.delete().catch(() => null);
+      const newMsg = await channel.send({
+        content: "",
+        embeds: [],
+        components: payload.components,
+        flags: MessageFlags.IsComponentsV2,
+        files: payload.files,
+      }).catch(() => null);
+      if (newMsg) {
+        activeDungeon.gameMessage = newMsg;
+      }
+    }
   } else {
     activeDungeon.gameMessage = await channel.send(payload);
     setupCollector(channel, activeDungeon);
@@ -907,6 +934,8 @@ const setupCollector = (channel, activeDungeon) => {
     if (!i.isButton()) return;
     if (!i.customId.startsWith("rpg_dungeon_action_") && !i.customId.startsWith("rpg_dungeon_coin_")) return;
     if (!activeDungeon.gameMessage || i.message.id !== activeDungeon.gameMessage.id) return;
+
+    activeDungeon.lastInteraction = i;
 
     try {
       const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
@@ -1104,11 +1133,11 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
   await comp.deferUpdate();
   const guess = comp.customId === "rpg_dungeon_coin_heads" ? "h" : "t";
 
-  await coinMsg.edit({
+  await comp.editReply({
     content: `🪙 Đồng xu đang quay... ${config.emoji.coinflip}`,
     embeds: [],
     components: [],
-  });
+  }).catch(() => {});
 
   setTimeout(async () => {
     const isHeads = Math.random() < 0.5;

@@ -143,7 +143,7 @@ const sendRewardDm = async ({
   await discordUser.send({ embeds: [embed] }).catch(() => null);
 };
 
-const finishBoss = async ({ client, channel, activeBoss }) => {
+const finishBoss = async ({ client, channel, activeBoss, interaction = null }) => {
   if (activeBoss.rewarded) return;
   activeBoss.rewarded = true;
   activeBoss.defeated = true;
@@ -584,9 +584,24 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
         embeds: [],
         components: [buildBossComponentsV2(activeBoss, "defeated")],
         flags: MessageFlags.IsComponentsV2,
+        attachments: bossMessage.attachments.map((att) => ({ id: att.id })),
+        skipV2: true,
       };
-      payload.files = [getAttachment(activeBoss.boss)];
-      await bossMessage.edit(payload).catch(() => null);
+
+      if (interaction && msgId === interaction.message?.id) {
+        await interaction.editReply(payload).catch((err) => {
+          console.error("[RPG_BOSS] finishBoss interaction.editReply failed:", err);
+        });
+      } else {
+        await bossMessage.delete().catch(() => null);
+        await channel.send({
+          content: "",
+          embeds: [],
+          components: payload.components,
+          flags: MessageFlags.IsComponentsV2,
+          files: [getAttachment(activeBoss.boss)],
+        }).catch(() => null);
+      }
     }
   }
 
@@ -704,7 +719,7 @@ const buildAttackResultEmbed = ({
     );
 };
 
-const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) => {
+const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, interaction = null) => {
   if (!activeBoss.updateQueue) {
     activeBoss.updateQueue = Promise.resolve();
   }
@@ -739,12 +754,32 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
                 attachments: msg.attachments.map((att) => ({ id: att.id })),
                 skipV2: true,
               };
-              const edited = await msg.edit(editPayload).catch((err) => {
-                console.error("[RPG_BOSS] msg.edit failed:", err);
-                return null;
-              });
+
+              let edited = null;
+              if (interaction && msgId === interaction.message?.id) {
+                edited = await interaction.editReply(editPayload).catch((err) => {
+                  console.error("[RPG_BOSS] updateBossMessage interaction.editReply failed:", err);
+                  return null;
+                });
+              } else {
+                // Delete old message and send a new one since msg.edit V2 fails
+                await msg.delete().catch(() => null);
+                const newPayload = {
+                  content: "",
+                  embeds: [],
+                  components: payload.components,
+                  flags: MessageFlags.IsComponentsV2,
+                  files: [getAttachment(activeBoss.boss)],
+                };
+                const newMsg = await channel.send(newPayload).catch(() => null);
+                if (newMsg) {
+                  edited = newMsg;
+                }
+              }
+
               if (edited) {
-                updatedIds.push(msgId);
+                updatedIds.push(edited.id);
+                activeBoss.messageId = edited.id;
                 if (!activeBoss.imageUrl) {
                   const attachment = edited.attachments.first();
                   if (attachment) {
@@ -784,7 +819,6 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
         const oldMessageIds = [...(activeBoss.messageIds || [])];
         activeBoss.messageIds = [];
 
-        
         for (const msgId of oldMessageIds) {
           const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
@@ -796,10 +830,11 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
               attachments: msg.attachments.map((att) => ({ id: att.id })),
               skipV2: true,
             };
-            await msg.edit(editPayload).catch((err) => {
-              console.error("[RPG_BOSS] transitioned msg.edit failed:", err);
-              return null;
-            });
+            if (interaction && msgId === interaction.message?.id) {
+              await interaction.editReply(editPayload).catch(() => null);
+            } else {
+              await msg.delete().catch(() => null);
+            }
           }
         }
 
@@ -858,7 +893,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false) =
   }
 };
 
-const performBossAttack = async ({ client, channel, userId }) => {
+const performBossAttack = async ({ client, channel, userId, interaction = null }) => {
   const { updateQuestProgress } = require("../../utils/questUtil");
   const activeBoss = client.rpgBosses?.get(channel.id);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
@@ -1218,7 +1253,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         killedPhase1 = true;
 
         await channel.send(`🎄🔥 **[PHASE 2 - TIẾN HÓA]** **Erdtree Avatar** gầm lên giận dữ, rũ bỏ lớp vỏ gỗ khô héo và tiến hóa sang **Phase 2: ${bossConfig.name}**! Sức mạnh của nó đã gia tăng vượt trội!`);
-        await updateBossMessage(channel, activeBoss, true);
+        await updateBossMessage(channel, activeBoss, true, interaction);
       }
     } else if (activeBoss.boss.key === "boss_XII" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "boss_XIIa");
@@ -1231,7 +1266,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         killedPhase1 = true;
 
         await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **${bossConfig.name}**!`);
-        await updateBossMessage(channel, activeBoss, true);
+        await updateBossMessage(channel, activeBoss, true, interaction);
       }
     } else if (activeBoss.boss.key === "godzila" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "godzila_p2");
@@ -1244,7 +1279,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
         killedPhase1 = true;
 
         await channel.send(`🐉🔥 **[PHASE 2 - TIẾN HÓA]** **Godzila** gầm vang chấn động trời đất, hấp thụ năng lượng hạt nhân **${bossConfig.name}**!`);
-        await updateBossMessage(channel, activeBoss, true);
+        await updateBossMessage(channel, activeBoss, true, interaction);
       }
     } else if (activeBoss.boss.key === "diablo" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "diablo_p2");
@@ -1257,14 +1292,14 @@ const performBossAttack = async ({ client, channel, userId }) => {
         killedPhase1 = true;
 
         await channel.send(`😈🔥 **[PHASE 2 - TIẾN HÓA]** **Diablo** giải phóng xiềng xích của Địa Ngục, trỗi dậy với hình dạng chân thật **${bossConfig.name}**!`);
-        await updateBossMessage(channel, activeBoss, true);
+        await updateBossMessage(channel, activeBoss, true, interaction);
       }
     }
   }
 
   await user.save();
   await updateQuestProgress(userId, "boss_damage", damage, channel);
-  await updateBossMessage(channel, activeBoss);
+  await updateBossMessage(channel, activeBoss, false, interaction);
 
   try {
     const SpawnedBoss = require("../../models/SpawnedBoss");
@@ -1315,7 +1350,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
   });
 
   if (activeBoss.hp <= 0) {
-    await finishBoss({ client, channel, activeBoss });
+    await finishBoss({ client, channel, activeBoss, interaction });
   }
 
   return { ok: true, embeds: [embed] };
@@ -1396,6 +1431,7 @@ const handleFightInteraction = async (interaction) => {
         client: interaction.client,
         channel,
         userId: interaction.user.id,
+        interaction,
       });
 
       if (!result.ok) {

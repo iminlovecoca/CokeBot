@@ -349,18 +349,14 @@ const expireBoss = async (client, channelId) => {
     for (const msgId of messageIds) {
       const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
       if (bossMessage) {
-        const payload = {
+        await bossMessage.delete().catch(() => null);
+        await channel.send({
           content: "",
           embeds: [],
           components: [buildBossComponentsV2(activeBoss, "expired")],
           flags: MessageFlags.IsComponentsV2,
-          attachments: bossMessage.attachments.map((att) => ({ id: att.id })),
-          skipV2: true,
-        };
-        await bossMessage.edit(payload).catch((err) => {
-          console.error("[RPG_BOSS] expireBoss msg.edit failed:", err);
-          return null;
-        });
+          files: [getAttachment(activeBoss.boss)],
+        }).catch(() => null);
       }
     }
   } catch (error) {
