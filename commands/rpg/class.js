@@ -507,7 +507,8 @@ class ClassCommand extends BaseCommand {
             };
           };
 
-          await interaction.update(renderChangePayload(false));
+          await interaction.deferUpdate().catch(() => {});
+          await interaction.editReply(renderChangePayload(false));
           collector.stop("sub-collector");
 
           const changeCollector = prompt.createMessageComponentCollector({
@@ -524,7 +525,8 @@ class ClassCommand extends BaseCommand {
               } else if (i.customId === "rpg_avatar_select_menu") {
                 currentAvatar = i.values[0];
               }
-              await i.update(renderChangePayload(false));
+              await i.deferUpdate().catch(() => {});
+              await i.editReply(renderChangePayload(false));
             } else if (i.isButton()) {
               await i.deferUpdate().catch(() => {});
               if (i.customId === "rpg_class_change_accept") {
