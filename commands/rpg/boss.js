@@ -765,7 +765,6 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
           for (const msgId of activeBoss.messageIds) {
             const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
             if (msg) {
-              // buildBossComponentsV2 uses activeBoss.imageUrl (CDN) so no need to pass attachment IDs
               const editPayload = {
                 content: "",
                 embeds: [],
@@ -774,6 +773,13 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
                 attachments: [],
                 skipV2: true,
               };
+
+              // If imageUrl not yet known (old boss or first edit after restart),
+              // upload the file so Discord can resolve the attachment:// reference.
+              // After upload, save the CDN URL so future edits don't need to upload again.
+              if (!activeBoss.imageUrl) {
+                editPayload.files = [getAttachment(activeBoss.boss)];
+              }
 
               let edited = null;
               if (interaction && msgId === interaction.message?.id) {
@@ -793,22 +799,18 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
                 }).catch(() => null);
                 if (newMsg) {
                   edited = newMsg;
-                  // Update CDN URL from new message
-                  const att = newMsg.attachments.first();
-                  if (att) {
-                    activeBoss.imageUrl = att.url;
-                    activeBoss.attachmentId = att.id;
-                  }
                 }
               }
 
               if (edited) {
                 updatedIds.push(edited.id);
                 activeBoss.messageId = edited.id;
+                // Save CDN URL from the uploaded attachment for future edits
                 if (!activeBoss.imageUrl) {
                   const attachment = edited.attachments.first();
                   if (attachment) {
                     activeBoss.imageUrl = attachment.url;
+                    activeBoss.attachmentId = attachment.id;
                   }
                 }
               }
