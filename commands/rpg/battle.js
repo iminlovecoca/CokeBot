@@ -136,9 +136,9 @@ const generatePvPImage = async (
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
-  // Load Background template with transparent background filter
+  // Load Background template
   const bgPath = path.join(__dirname, "../../assets/backgrounds/battle_template.png");
-  const bg = await getTransparentAsset(bgPath, (r, g, b) => r === 38 && g === 39 && b === 44);
+  const bg = await getCachedImage(bgPath);
   if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
   } else {
