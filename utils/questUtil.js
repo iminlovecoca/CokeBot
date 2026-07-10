@@ -144,7 +144,6 @@ const checkAndResetDailyQuests = async (user) => {
 
 const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraData = {}) => {
   const User = require("../models/User");
-  const Event = require("../models/Event");
   const config = require("../data/config");
   
   const triggeredTypes = QUEST_GROUPS[type] || [type];
@@ -160,57 +159,6 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   await checkAndResetDailyQuests(user);
 
   let modified = false;
-
-  const activeEvents = await Event.find({
-    expiresAt: { $gt: new Date() },
-    active: true,
-    "requirement.type": { $in: triggeredTypes }
-  });
-
-  if (activeEvents.length > 0) {
-    if (!user.rpg.eventProgress) {
-      user.rpg.eventProgress = {};
-    }
-    const claimedEvents = user.rpg.claimedEvents || [];
-    let eventProgressModified = false;
-
-    for (const ev of activeEvents) {
-      const eventIdStr = String(ev._id);
-      if (claimedEvents.includes(eventIdStr)) continue;
-
-      if (type === "dungeon_win" && ev.requirement.chapter && ev.requirement.chapter !== extraData?.chapter) {
-        continue;
-      }
-
-      const currentProgress = user.rpg.eventProgress[eventIdStr] || 0;
-      const target = ev.requirement.target || 1;
-      if (currentProgress >= target) continue;
-
-      const newProgress = Math.min(target, currentProgress + amount);
-      user.rpg.eventProgress[eventIdStr] = newProgress;
-      eventProgressModified = true;
-
-      if (newProgress >= target && currentProgress < target) {
-        if (channel && channel.send) {
-          const embed = new (require("discord.js").EmbedBuilder)()
-            .setColor("#F1C40F")
-            .setTitle("🎉 Hoàn Thành Mục Tiêu Sự Kiện!")
-            .setDescription(
-              `Chúc mừng <@${userId}> đã hoàn thành yêu cầu sự kiện:\n` +
-              `🌟 **${ev.name}**\n\n` +
-              `Hãy sử dụng lệnh \`${config.prefix}event\` để nhận phần thưởng!`
-            )
-            .setTimestamp();
-          await channel.send({ embeds: [embed] }).catch(() => null);
-        }
-      }
-    }
-
-    if (eventProgressModified) {
-      user.markModified("rpg");
-      modified = true;
-    }
-  }
   
   const activeQuests = user.rpg.quests.active || [];
   const completedQuests = [];

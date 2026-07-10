@@ -156,7 +156,62 @@ function patchMethod(target, methodName) {
       convertedArgs = [convertToV2(args[0]), ...args.slice(1)];
     }
 
-    return original.call(this, convertedOptions, ...convertedArgs);
+    // Determine if the message or interaction has V2 components
+    let hasV2 = false;
+    if (this._hasV2) {
+      hasV2 = true;
+    } else if (methodName === "edit") {
+      hasV2 = (this.flags && this.flags.has && this.flags.has(MessageFlags.IsComponentsV2)) || !!this._hasV2;
+    } else if (methodName === "update" && this.message) {
+      hasV2 = (this.message.flags && this.message.flags.has && this.message.flags.has(MessageFlags.IsComponentsV2)) || !!this.message._hasV2;
+    } else if (methodName === "editReply") {
+      hasV2 = !!this._hasV2;
+    }
+
+    // If it has V2 components, we must explicitly clear them if the new payload doesn't provide them
+    if (hasV2) {
+      if (typeof convertedOptions === "string") {
+        convertedOptions = {
+          content: convertedOptions,
+          embeds: [],
+          components: []
+        };
+      } else if (convertedOptions && typeof convertedOptions === "object") {
+        // Create a shallow copy to avoid mutating a potentially frozen object
+        convertedOptions = { ...convertedOptions };
+        if (!convertedOptions.components) {
+          convertedOptions.components = [];
+        }
+        if (!convertedOptions.embeds) {
+          convertedOptions.embeds = [];
+        }
+      }
+    }
+
+    // Check if the current payload is sending V2 components
+    const isSendingV2 = convertedOptions && typeof convertedOptions === "object" && 
+      ((convertedOptions.flags & MessageFlags.IsComponentsV2) || (convertedOptions.components && convertedOptions.components.length > 0));
+
+    if (isSendingV2) {
+      this._hasV2 = true;
+      if (this.message) {
+        this.message._hasV2 = true;
+      }
+    }
+
+    const result = original.call(this, convertedOptions, ...convertedArgs);
+
+    // If it resolves to a Message, pass down the V2 flag
+    if (isSendingV2 && result instanceof Promise) {
+      return result.then((res) => {
+        if (res) {
+          res._hasV2 = true;
+        }
+        return res;
+      });
+    }
+
+    return result;
   };
 }
 
@@ -167,12 +222,18 @@ patchMethod(BaseGuildTextChannel, "send");
 patchMethod(DMChannel, "send");
 patchMethod(ThreadChannel, "send");
 patchMethod(User, "send");
+
 patchMethod(CommandInteraction, "reply");
 patchMethod(CommandInteraction, "followUp");
+patchMethod(CommandInteraction, "editReply");
+
 patchMethod(MessageComponentInteraction, "reply");
 patchMethod(MessageComponentInteraction, "followUp");
+patchMethod(MessageComponentInteraction, "editReply");
 patchMethod(MessageComponentInteraction, "update");
+
 patchMethod(ModalSubmitInteraction, "reply");
 patchMethod(ModalSubmitInteraction, "followUp");
+patchMethod(ModalSubmitInteraction, "editReply");
 
 console.log("🛠️ Component V2 Global Converter successfully initialized!");

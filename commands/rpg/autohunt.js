@@ -479,7 +479,7 @@ class XautohuntCommand extends BaseCommand {
           user.rpg.level
         );
 
-        return message.reply({ content: `🎉 **Auto Hunt Hoàn Thành!**`, embeds: [embed] });
+        return message.reply({ content: `🎉 **Auto Hunt Hoàn Thành!**`, embeds: [embed], skipV2: true });
       }
     }
 
@@ -686,7 +686,7 @@ class XautohuntCommand extends BaseCommand {
         user.rpg.level
       );
 
-      return message.reply({ embeds: [embed] });
+      return message.reply({ embeds: [embed], skipV2: true });
     }
 
     
@@ -883,7 +883,7 @@ class XautohuntCommand extends BaseCommand {
     }
 
     
-    return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)] });
+    return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)], skipV2: true });
   }
 }
 

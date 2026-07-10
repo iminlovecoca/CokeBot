@@ -108,7 +108,7 @@ class QuestCommand extends BaseCommand {
       .setThumbnail("https://i.imgur.com/PZcZpZg.png")
       .setDescription(description);
 
-    return message.reply({ embeds: [embed] });
+    return message.reply({ embeds: [embed], skipV2: true });
   }
 }
 

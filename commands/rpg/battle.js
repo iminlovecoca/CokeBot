@@ -505,6 +505,7 @@ class BattleCommand extends BaseCommand {
       const prompt = await message.reply({
         embeds: [challengeEmbed],
         components: [row],
+        skipV2: true,
       });
 
       const collector = prompt.createMessageComponentCollector({
@@ -832,7 +833,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     );
   }
 
-  const replyPayload = { embeds: [finalEmbed] };
+  const replyPayload = { embeds: [finalEmbed], skipV2: true };
   if (attachment) {
     replyPayload.files = [attachment];
   }

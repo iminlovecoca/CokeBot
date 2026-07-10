@@ -52,7 +52,7 @@ class InventoryCommand extends BaseCommand {
         embed.addFields({ name: `${item.emoji}${item.name} (x${item.quantity})`, value: `\`${item.item_id}\``, inline: true });
       });
       embed.addFields({ name: '\u200B', value: '\u200B', inline: true });
-      return { embeds: [embed] };
+      return { embeds: [embed], skipV2: true };
     };
 
     await initPage(message, generateDisplay, totalPages, `${config.prefix}inventory`);

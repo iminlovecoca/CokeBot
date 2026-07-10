@@ -85,7 +85,7 @@ class ShopCommand extends BaseCommand {
             inline: false
           }
         );
-        return { embeds: [embed] };
+        return { embeds: [embed], skipV2: true };
       }
 
       const embed = new EmbedBuilder()
@@ -101,7 +101,7 @@ class ShopCommand extends BaseCommand {
           inline: false
         });
       });
-      return { embeds: [embed] };
+      return { embeds: [embed], skipV2: true };
     };
     
     await initPage(message, generateDisplay, totalPages, `${config.prefix}shop`);
