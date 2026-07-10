@@ -986,7 +986,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
       shieldhexTriggered = true;
       passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
     } else {
-      const res = triggerWorldBossPassive(cleanSubType, participant, activeBoss, passiveTriggers, damage = 0);
+      const res = triggerWorldBossPassive(cleanSubType, participant, activeBoss, passiveTriggers, 0);
       blueStaffPierce = res.blueStaffPierce;
       crimsonDaggerPierce = res.crimsonDaggerPierce;
       holySwordDouble = res.holySwordDouble;
@@ -1968,7 +1968,6 @@ const giveSoulRealmWinReward = async (client, channel, userId) => {
 
     await channel.send({ content: `<@${userId}>`, embeds: [winEmbed] });
 
-    const discordUser = await client.users.fetch(userId).catch(() => null);
     if (discordUser) {
       await discordUser.send({ embeds: [winEmbed] }).catch(() => null);
     }
