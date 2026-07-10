@@ -893,9 +893,9 @@ module.exports = {
         emoji:       '🌿',
         name:        'Vegetable Seed',
         pack_size:   10,
-        pack_price:  500,
-        harvest_min: 30,
-        harvest_max: 80,
+        pack_price:  1000,       // 1,000 coke
+        harvest_min: 250,        // 250 - 450 per plant
+        harvest_max: 450,
         // Time-based growth: total hours from plant → ready (3 stages)
         growth_hours: 8,       // ~2.67h per stage
         plants: ['🌽','🥕','🥔','🥒','🍅','🧅','🧄','🥬','🥦','🫑','🌶️','🫘'],
@@ -905,9 +905,9 @@ module.exports = {
         emoji:       '🌸',
         name:        'Flower Seed',
         pack_size:   10,
-        pack_price:  1500,
-        harvest_min: 80,
-        harvest_max: 180,
+        pack_price:  2500,       // 2,500 coke
+        harvest_min: 800,        // 800 - 1,200 per plant
+        harvest_max: 1200,
         growth_hours: 10,      // ~3.33h per stage
         plants: ['🌷','🌹','🌺','🌸','🪻','🌼','🌻','🪷','💐'],
       },
@@ -916,9 +916,9 @@ module.exports = {
         emoji:       '🍎',
         name:        'Fruit Seed',
         pack_size:   10,
-        pack_price:  3000,
-        harvest_min: 200,
-        harvest_max: 400,
+        pack_price:  5000,       // 5,000 coke
+        harvest_min: 2000,       // 2,000 - 2,500 per plant
+        harvest_max: 2500,
         growth_hours: 12,      // 4h per stage
         plants: ['🍎','🍏','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍒','🥭','🍍','🥥','🥝'],
       },

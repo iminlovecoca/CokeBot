@@ -306,25 +306,7 @@ function actionCatchBug(garden, cellIdx) {
   return { ok: true, plant: cell.plant };
 }
 
-/** Buy seeds from shop. Deduct coke from User. */
-async function actionBuySeeds(garden, userId, seedType) {
-  const seedCfg = SEEDS[seedType];
-  if (!seedCfg) return { ok: false, msg: '❌ Loại hạt giống không hợp lệ.' };
-
-  const user = await User.findOne({ userId });
-  if (!user) return { ok: false, msg: '❌ Không tìm thấy tài khoản.' };
-
-  const price = seedCfg.pack_price;
-  if (user.coke < price) {
-    return { ok: false, msg: `❌ Không đủ ${config.emoji.money}! Cần **${price.toLocaleString()}** để mua **${seedCfg.name} x${seedCfg.pack_size}**.` };
-  }
-
-  await User.updateOne({ userId }, { $inc: { coke: -price } });
-  garden.inventory[seedType] = (garden.inventory[seedType] || 0) + seedCfg.pack_size;
-  garden.markModified('inventory');
-
-  return { ok: true, seedCfg, cokeLeft: user.coke - price };
-}
+// ─── Random Event ──────────────────────────────────────────────────────────────
 
 // ─── Random Event ──────────────────────────────────────────────────────────────
 
@@ -371,7 +353,7 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
   const headerLines = [
     `### 🌻 ${username}'s Garden  •  📅 Ngày **${garden.totalDays || 1}**`,
     ``,
-    `${config.emoji.money} **Coke:** \`${cokeBalance.toLocaleString()}\`  🌱 **Đất:** \`${plantCount}/25\`  🌾 **Sẵn sàng:** \`${readyCount}\``,
+    `${config.emoji.money} **Coke:** \`${cokeBalance.toLocaleString()}\`  🌱 **Đất:** \`${plantCount}/20\`  🌾 **Sẵn sàng:** \`${readyCount}\``,
     `🌿 \`${inv.vegetable || 0}\`  🌸 \`${inv.flower || 0}\`  🍎 \`${inv.fruit || 0}\``,
   ];
 
@@ -391,9 +373,9 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
 
   const textHeader = new TextDisplayBuilder().setContent(headerLines.join('\n'));
 
-  // ── Grid (5×5)
+  // ── Grid (4×5)
   const gridRows = [];
-  for (let row = 0; row < 5; row++) {
+  for (let row = 0; row < 4; row++) {
     const ar = new ActionRowBuilder();
     for (let col = 0; col < 5; col++) {
       const idx  = row * 5 + col;
@@ -441,19 +423,24 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
         .setDisabled(!hasEmpty || !hasSeeds),
       new ButtonBuilder()
         .setCustomId('garden_water')
-        .setLabel('💧 Tưới nước')
+        .setLabel('💧 Tưới')
         .setStyle(hasUnwatered ? ButtonStyle.Primary : ButtonStyle.Secondary)
         .setDisabled(!hasUnwatered),
       new ButtonBuilder()
         .setCustomId('garden_harvest')
         .setLabel(canHarvest ? `🚩 Thu hoạch (${readyCount})` : '🚩 Thu hoạch')
         .setStyle(canHarvest ? ButtonStyle.Success : ButtonStyle.Secondary)
-        .setDisabled(!canHarvest)
+        .setDisabled(!canHarvest),
+      new ButtonBuilder()
+        .setCustomId('garden_shop')
+        .setLabel('🛒 Shop')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('garden_refresh')
+        .setLabel('🔄')
+        .setStyle(ButtonStyle.Secondary)
     );
-    actionRow2 = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId('garden_shop').setLabel('🛒 Cửa hàng').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('garden_refresh').setLabel('🔄 Làm mới').setStyle(ButtonStyle.Secondary)
-    );
+    actionRow2 = null;
   }
 
   // ── Legend
@@ -480,45 +467,7 @@ function buildGardenUI(garden, username, cokeBalance, opts = {}) {
   return container;
 }
 
-function buildShopUI(garden, cokeBalance) {
-  const lines = [
-    `### 🛒 Cửa hàng Hạt Giống`,
-    ``,
-    `${config.emoji.money} **Coke của bạn:** \`${cokeBalance.toLocaleString()}\``,
-    ``,
-    ...SEED_KEYS.map(key => {
-      const s   = SEEDS[key];
-      const inv = garden.inventory[key] || 0;
-      return `${s.emoji} **${s.name}**  •  x${s.pack_size} gói — **${s.pack_price.toLocaleString()}** ${config.emoji.money}  *(đang có: ${inv})*`;
-    }),
-    ``,
-    `-# Mỗi lần mua = +${SEEDS.vegetable.pack_size} hạt của loại đó.`,
-  ];
 
-  const text = new TextDisplayBuilder().setContent(lines.join('\n'));
-
-  const buyRow = new ActionRowBuilder().addComponents(
-    ...SEED_KEYS.map(key => {
-      const s = SEEDS[key];
-      return new ButtonBuilder()
-        .setCustomId(`garden_buy_${key}`)
-        .setLabel(`${s.emoji} Mua (${s.pack_price.toLocaleString()}💰)`)
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(cokeBalance < s.pack_price);
-    })
-  );
-
-  const backRow = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('garden_back').setLabel('↩️ Quay lại').setStyle(ButtonStyle.Secondary)
-  );
-
-  return new ContainerBuilder()
-    .setAccentColor(0xFEE75C)
-    .addTextDisplayComponents(text)
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
-    .addActionRowComponents(buyRow)
-    .addActionRowComponents(backRow);
-}
 
 // ─── Command Export ─────────────────────────────────────────────────────────────
 
@@ -542,9 +491,17 @@ module.exports = {
     if (!garden) {
       garden = new Garden({
         userId,
-        cells: Array(25).fill(null).map(() => emptyCell()),
+        cells: Array(20).fill(null).map(() => emptyCell()),
         inventory: { vegetable: 0, flower: 0, fruit: 0 }
       });
+    } else if (garden.cells.length !== 20) {
+      // Migrate cells to 20
+      garden.cells = garden.cells.slice(0, 20);
+      while (garden.cells.length < 20) {
+        garden.cells.push(emptyCell());
+      }
+      garden.markModified('cells');
+      await garden.save();
     }
 
     // ── Load user coke balance
@@ -613,10 +570,10 @@ module.exports = {
 
       // ── Route action
       if (cid === 'garden_shop') {
-        mode = 'shop';
-
-      } else if (cid === 'garden_back') {
-        mode = 'garden';
+        await i.followUp({
+          content: `🛒 **Cửa hàng Hạt Giống** đã được gộp vào cửa hàng chung! Hãy gõ lệnh \`${config.prefix}shop\` (Trang 3) để mua hạt giống nhé.`,
+          ephemeral: true
+        }).catch(() => {});
 
       } else if (cid === 'garden_refresh') {
         // just re-render
@@ -661,19 +618,6 @@ module.exports = {
           }
         }
 
-      } else if (cid.startsWith('garden_buy_')) {
-        const seedType = cid.replace('garden_buy_', '');
-        const res = await actionBuySeeds(garden, userId, seedType);
-        if (!res.ok) {
-          await i.followUp({ content: res.msg, ephemeral: true }).catch(() => {});
-        } else {
-          userDoc = await User.findOne({ userId });
-          await i.followUp({
-            content: `✅ Đã mua **${res.seedCfg.name} x${res.seedCfg.pack_size}**! Còn lại: \`${(res.cokeLeft).toLocaleString()}\` ${config.emoji.money}`,
-            ephemeral: true
-          }).catch(() => {});
-        }
-
       } else if (cid.startsWith('garden_cell_')) {
         const idx = parseInt(cid.split('_')[2]);
         const res = actionCatchBug(garden, idx);
@@ -689,13 +633,7 @@ module.exports = {
       await garden.save().catch(console.error);
 
       // ── Re-render
-      let container;
-      if (mode === 'shop') {
-        container = buildShopUI(garden, userDoc?.coke ?? 0);
-      } else {
-        container = buildGardenUI(garden, username, userDoc?.coke ?? 0, { triggerEvent: trigEvent, mode });
-      }
-
+      const container = buildGardenUI(garden, username, userDoc?.coke ?? 0, { triggerEvent: trigEvent, mode });
       await i.editReply(payload(container)).catch(() => {});
     });
   }

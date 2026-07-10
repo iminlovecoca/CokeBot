@@ -109,6 +109,54 @@ class BuyCommand extends BaseCommand {
       }
     }
 
+    const seedMap = {
+      vegetableseed: 'vegetable',
+      vegetable: 'vegetable',
+      flowerseed: 'flower',
+      flower: 'flower',
+      fruitseed: 'fruit',
+      fruit: 'fruit'
+    };
+
+    const seedType = seedMap[cleanId];
+    if (seedType) {
+      const Garden = require("../../models/Garden");
+      const User = require("../../models/User");
+      const seedCfg = config.garden.seeds[seedType];
+      const packPrice = seedCfg.pack_price;
+      const packSize = seedCfg.pack_size;
+      const totalCost = packPrice * quantity;
+
+      const user = await User.findOne({ userId: message.author.id });
+      if (!user || user.coke < totalCost) {
+        throw new UserFriendlyError(
+          `❌ Bạn không đủ tiền! Bạn cần **${totalCost.toLocaleString()}** coke nhưng chỉ có **${(user?.coke || 0).toLocaleString()}** coke.`,
+        );
+      }
+
+      let garden = await Garden.findOne({ userId: message.author.id });
+      if (!garden) {
+        garden = new Garden({
+          userId: message.author.id,
+          cells: Array(20).fill(null).map(() => ({
+            plant: null, growth: 0, seedType: null, hasBug: false,
+            bugType: null, bugAppearsAt: null, bugDestroyAt: null,
+            immune: false, plantedAt: null, isWatered: false
+          })),
+          inventory: { vegetable: 0, flower: 0, fruit: 0 }
+        });
+      }
+
+      await User.updateOne({ userId: message.author.id }, { $inc: { coke: -totalCost } });
+      garden.inventory[seedType] = (garden.inventory[seedType] || 0) + (packSize * quantity);
+      garden.markModified('inventory');
+      await garden.save();
+
+      return message.reply(
+        `✅ Đã mua thành công **${quantity}x gói ${seedCfg.name}** (nhận **${packSize * quantity}** hạt) với giá **${totalCost.toLocaleString()} coke**!`
+      );
+    }
+
     const { item } = await buyItem(message.client, message.author.id, cleanId, quantity);
 
     if (item) {
