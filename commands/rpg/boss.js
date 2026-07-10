@@ -55,6 +55,24 @@ const formatRemaining = (ms) => {
   return `${minutes}m ${restSeconds}s`;
 };
 
+const getAttachmentId = (activeBoss) => {
+  if (!activeBoss) return null;
+  if (activeBoss.attachmentId) return activeBoss.attachmentId;
+  if (activeBoss.imageUrl) {
+    try {
+      const cleanUrl = activeBoss.imageUrl.split("?")[0];
+      const parts = cleanUrl.split("/");
+      const index = parts.indexOf("attachments");
+      if (index !== -1 && parts[index + 2]) {
+        return parts[index + 2];
+      }
+    } catch (e) {
+      console.warn("[RPG_BOSS] Failed to parse attachmentId from imageUrl:", e.message);
+    }
+  }
+  return null;
+};
+
 const sendRewardDm = async ({
   client,
   userId,
@@ -579,12 +597,17 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
   for (const msgId of messageIds) {
     const bossMessage = await channel.messages.fetch(msgId).catch(() => null);
     if (bossMessage) {
+      const attachmentId = getAttachmentId(activeBoss);
+      const attachmentsPayload = attachmentId 
+        ? [{ id: attachmentId }] 
+        : (bossMessage.attachments ? bossMessage.attachments.map((att) => ({ id: att.id })) : []);
+
       const payload = {
         content: "",
         embeds: [],
         components: [buildBossComponentsV2(activeBoss, "defeated")],
         flags: MessageFlags.IsComponentsV2,
-        attachments: bossMessage.attachments.map((att) => ({ id: att.id })),
+        attachments: attachmentsPayload,
         skipV2: true,
       };
 
@@ -746,12 +769,17 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
           for (const msgId of activeBoss.messageIds) {
             const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
             if (msg) {
+              const attachmentId = getAttachmentId(activeBoss);
+              const attachmentsPayload = attachmentId 
+                ? [{ id: attachmentId }] 
+                : (msg.attachments ? msg.attachments.map((att) => ({ id: att.id })) : []);
+
               const editPayload = {
                 content: "",
                 embeds: [],
                 components: payload.components,
                 flags: MessageFlags.IsComponentsV2,
-                attachments: msg.attachments.map((att) => ({ id: att.id })),
+                attachments: attachmentsPayload,
                 skipV2: true,
               };
 
@@ -822,12 +850,17 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
         for (const msgId of oldMessageIds) {
           const msg = channel.messages.cache.get(msgId) || await channel.messages.fetch(msgId).catch(() => null);
           if (msg) {
+            const attachmentId = getAttachmentId(activeBoss);
+            const attachmentsPayload = attachmentId 
+              ? [{ id: attachmentId }] 
+              : (msg.attachments ? msg.attachments.map((att) => ({ id: att.id })) : []);
+
             const editPayload = {
               content: "",
               embeds: [],
               components: [buildBossComponentsV2(activeBoss, "transitioned")],
               flags: MessageFlags.IsComponentsV2,
-              attachments: msg.attachments.map((att) => ({ id: att.id })),
+              attachments: attachmentsPayload,
               skipV2: true,
             };
             if (interaction && msgId === interaction.message?.id) {

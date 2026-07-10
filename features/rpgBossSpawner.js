@@ -527,6 +527,7 @@ const spawnRandomBoss = async (client, options = {}) => {
     const attachment = message.attachments.first();
     if (attachment) {
       activeBoss.imageUrl = attachment.url;
+      activeBoss.attachmentId = attachment.id;
     }
 
     try {
