@@ -261,8 +261,8 @@ const generatePvPImage = async (
     }
   }
 
-  const buffer = canvas.toBuffer("image/jpeg", { quality: 0.85 });
-  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+  const buffer = canvas.toBuffer("image/png");
+  const filename = `pvp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
   return { buffer, name: filename };
 };
 
@@ -975,8 +975,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       user1.markModified("rpg");
     }
 
-    cokeWinner = 50 + Math.floor(Math.random() * 125);
-    winUser.coke += cokeWinner;
+    // No coke reward for pvp battles
     addRpgExp(winUser.rpg, 200);
     winUser.rpg.power = calculateRpgPower(winUser);
     winUser.markModified("rpg");
@@ -1032,7 +1031,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       const streak = isP1Winner ? user1.rpg.pvpStreak : 0;
       streakText = `Chuỗi thắng: ${streak}`;
     }
-    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}`;
+    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}`;
   }
 
   const finalEmbed = new EmbedBuilder()
