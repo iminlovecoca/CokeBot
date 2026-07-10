@@ -18,11 +18,19 @@ const {
   ThumbnailBuilder
 } = require("discord.js");
 
-function convertToV2(options) {
+function convertToV2(options, force = false) {
   if (!options) return options;
   
   // If it's a string, it's just content
   if (typeof options === "string") {
+    if (force) {
+      const container = new ContainerBuilder();
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(options));
+      return {
+        components: [container],
+        flags: MessageFlags.IsComponentsV2
+      };
+    }
     return { content: options };
   }
 
@@ -33,13 +41,14 @@ function convertToV2(options) {
     return cleanOptions;
   }
 
-  // If there are no embeds, return original options untouched
-  if (!options.embeds || options.embeds.length === 0) {
+  // If there are no embeds, return original options untouched, UNLESS forced V2 is required
+  const hasEmbeds = options.embeds && options.embeds.length > 0;
+  if (!force && !hasEmbeds) {
     return options;
   }
 
   const newOptions = { ...options };
-  const originalEmbeds = newOptions.embeds;
+  const originalEmbeds = newOptions.embeds || [];
   delete newOptions.embeds;
 
   // Extract content if present and delete it from root options to prevent MESSAGE_CANNOT_USE_LEGACY_FIELDS_WITH_COMPONENTS_V2
@@ -135,10 +144,16 @@ function convertToV2(options) {
 
   if (containers.length === 0) {
     if (rootContent) {
-      newOptions.content = rootContent;
+      const container = new ContainerBuilder();
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(rootContent));
+      containers.push(container);
+    } else if (newOptions.components && newOptions.components.length > 0) {
+      const container = new ContainerBuilder();
+      containers.push(container);
+    } else {
+      newOptions.embeds = originalEmbeds;
+      return newOptions;
     }
-    newOptions.embeds = originalEmbeds;
-    return newOptions;
   }
 
   // 5. Merge existing action rows/components into the first container
@@ -172,12 +187,6 @@ function patchMethod(target, methodName) {
     let convertedOptions = options;
     let convertedArgs = args;
 
-    if (options && typeof options === "object") {
-      convertedOptions = convertToV2(options);
-    } else if (typeof options === "string" && args[0] && typeof args[0] === "object") {
-      convertedArgs = [convertToV2(args[0]), ...args.slice(1)];
-    }
-
     const isInteraction = this.constructor && this.constructor.name.includes("Interaction");
     const isMessage = this.constructor && this.constructor.name === "Message";
 
@@ -189,6 +198,12 @@ function patchMethod(target, methodName) {
       hasV2 = (this.message.flags && this.message.flags.has && this.message.flags.has(MessageFlags.IsComponentsV2)) || !!this.message._hasV2;
     } else if (methodName === "editReply" && isInteraction) {
       hasV2 = !!this._hasV2;
+    }
+
+    if (options && typeof options === "object") {
+      convertedOptions = convertToV2(options, hasV2);
+    } else if (typeof options === "string" && args[0] && typeof args[0] === "object") {
+      convertedArgs = [convertToV2(args[0], hasV2), ...args.slice(1)];
     }
 
     // If it has V2 components, we must explicitly clear them if the new payload doesn't provide them
