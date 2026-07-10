@@ -476,7 +476,7 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
       const dbUser = await User.findOne({ userId: user.id });
       const gears = [];
       for (let i = 0; i < quantityToUse; i++) {
-        const gear = await generateRpgGearDrop(dbUser, { forceDrop: true });
+        const gear = await generateRpgGearDrop(dbUser, { forceDrop: true, fromWc: true });
         if (gear) {
           addRpgGearToUser(dbUser, gear);
           gears.push(gear);

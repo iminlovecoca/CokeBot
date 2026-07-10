@@ -87,6 +87,10 @@ const sendRewardDm = async ({
 
   const embed = new EmbedBuilder()
     .setColor(topBonus ? topBonus.color : isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
+    .setAuthor({
+      name: discordUser.displayName || discordUser.username,
+      iconURL: discordUser.displayAvatarURL({ dynamic: true })
+    })
     .setTitle(`${boss.emoji} Thưởng đánh boss: ${boss.name}`)
     .setDescription(
       isLastHit
@@ -160,6 +164,10 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   }
   const rewardedUserIds = dbBoss?.rewardedUserIds || [];
 
+  const TWO_PHASE_BOSS_KEYS = ["erdtree-avatar", "boss_XII", "godzila", "diablo"];
+  const isTwoPhaseBoss = TWO_PHASE_BOSS_KEYS.includes(activeBoss.boss.key);
+  const twoPhaseRewardMult = isTwoPhaseBoss ? 1.2 : 1.0;
+
   const bossRankKey = activeBoss.boss.rank || "thuong";
   const rankReward = config.rpg.boss?.bossRankRewards?.[bossRankKey] || {
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
@@ -173,38 +181,39 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
   const rollRarityForBoss = (rankKey, type) => {
     const r = Math.random() * 100;
     const typeLower = String(type || "").toLowerCase();
+    const effectiveR = isTwoPhaseBoss ? r * 0.8 : r;
+
     if (rankKey === "thuong" || rankKey === "than") {
-      return r < 10 ? "Legendary" : "Epic";
+      return effectiveR < 10 ? "Legendary" : "Epic";
     }
     if (rankKey === "rong") {
-      if (r < 5) return "Mythic";
-      if (r < 25) return "Legendary";
+      if (effectiveR < 5) return "Mythic";
+      if (effectiveR < 25) return "Legendary";
       return "Epic";
     }
     if (rankKey === "thuongnhan") {
       if (typeLower === "participant") {
-        if (r < 1) return "Ancient";
-        if (r < 15) return "Mythic";
+        if (effectiveR < 1) return "Ancient";
+        if (effectiveR < 15) return "Mythic";
         return "Legendary";
       }
       if (typeLower === "lasthit") {
-        if (r < 1) return "Divine";
-        if (r < 5) return "Ancient";
-        if (r < 25) return "Mythic";
+        if (effectiveR < 1) return "Divine";
+        if (effectiveR < 5) return "Ancient";
+        if (effectiveR < 25) return "Mythic";
         return "Legendary";
       }
     }
     return null;
   };
 
-  
   const baseExp = activeBoss.boss.exp || 100;
   const sortedByDamage = [...activeBoss.participants.entries()]
     .sort(([, a], [, b]) => b.damage - a.damage);
 
   const topDamageConfigs = rankReward.topDamageRewards || [
-    { rank: 1, cokeBonus: 3000, wcBonus: 5 },
-    { rank: 2, cokeBonus: 1500, wcBonus: 2 },
+    { rank: 1, cokeBonus: 3000, wcBonus: 0 },
+    { rank: 2, cokeBonus: 1500, wcBonus: 0 },
     { rank: 3, cokeBonus: 800, wcBonus: 0 },
   ];
 
@@ -212,24 +221,24 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
     {
       rank: 1,
       label: "🥇 Top 1 Sát Thương",
-      expBonus: Math.floor(baseExp * 0.5),
-      cokeBonus: topDamageConfigs[0]?.cokeBonus ?? 3000,
+      expBonus: Math.floor(baseExp * 0.5 * twoPhaseRewardMult),
+      cokeBonus: Math.floor((topDamageConfigs[0]?.cokeBonus ?? 3000) * twoPhaseRewardMult),
       wcBonus: topDamageConfigs[0]?.wcBonus ?? 5,
       color: "#FFD700",
     },
     {
       rank: 2,
       label: "🥈 Top 2 Sát Thương",
-      expBonus: Math.floor(baseExp * 0.25),
-      cokeBonus: topDamageConfigs[1]?.cokeBonus ?? 1500,
+      expBonus: Math.floor(baseExp * 0.25 * twoPhaseRewardMult),
+      cokeBonus: Math.floor((topDamageConfigs[1]?.cokeBonus ?? 1500) * twoPhaseRewardMult),
       wcBonus: topDamageConfigs[1]?.wcBonus ?? 2,
       color: "#C0C0C0",
     },
     {
       rank: 3,
       label: "🥉 Top 3 Sát Thương",
-      expBonus: Math.floor(baseExp * 0.1),
-      cokeBonus: topDamageConfigs[2]?.cokeBonus ?? 800,
+      expBonus: Math.floor(baseExp * 0.1 * twoPhaseRewardMult),
+      cokeBonus: Math.floor((topDamageConfigs[2]?.cokeBonus ?? 800) * twoPhaseRewardMult),
       wcBonus: topDamageConfigs[2]?.wcBonus ?? 0,
       color: "#CD7F32",
     },
@@ -378,17 +387,23 @@ const finishBoss = async ({ client, channel, activeBoss }) => {
 
         
         const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
-        expGain = Math.floor(
+        let expGain = Math.floor(
           baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
         );
+        if (isTwoPhaseBoss) {
+          expGain = Math.floor(expGain * 1.2);
+        }
         if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
           addRpgExp(user.rpg, expGain);
         }
 
         
-        cokeGain = isLastHit
+        let cokeGain = isLastHit
           ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
           : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
+        if (isTwoPhaseBoss) {
+          cokeGain = Math.floor(cokeGain * 1.2);
+        }
         if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
           user.coke += cokeGain;
         }
@@ -623,6 +638,7 @@ const buildAttackResultEmbed = ({
   bossHealed,
   killedPhase1,
   passiveTriggers,
+  discordUser,
 }) => {
   let battleLog = "";
   if (passiveTriggers && passiveTriggers.length > 0) {
@@ -655,10 +671,19 @@ const buildAttackResultEmbed = ({
     }
   }
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(activeBoss.hp <= 0 ? "#57F287" : participant.hp <= 0 ? "#ED4245" : rpgClass.color)
     .setTitle(`${activeBoss.boss.emoji} ${activeBoss.boss.name} - Nhật Ký Trận Đấu`)
-    .setDescription(battleLog)
+    .setDescription(battleLog);
+
+  if (discordUser) {
+    embed.setAuthor({
+      name: discordUser.displayName || discordUser.username,
+      iconURL: discordUser.displayAvatarURL({ dynamic: true })
+    });
+  }
+
+  return embed
     .addFields(
       {
         name: "Nhân vật",
@@ -1261,6 +1286,8 @@ const performBossAttack = async ({ client, channel, userId }) => {
     console.error("[RPG_BOSS] Failed to update boss attack state in DB:", err);
   }
 
+  const userDiscord = await client.users.fetch(userId).catch(() => null);
+
   const embed = buildAttackResultEmbed({
     activeBoss,
     damage,
@@ -1276,6 +1303,7 @@ const performBossAttack = async ({ client, channel, userId }) => {
     bossHealed: bossHealedAmount,
     killedPhase1,
     passiveTriggers,
+    discordUser: userDiscord,
   });
 
   if (activeBoss.hp <= 0) {
@@ -1921,8 +1949,14 @@ const giveSoulRealmWinReward = async (client, channel, userId) => {
     user.rpg.power = calculateRpgPower(user);
     await user.save();
 
+    const discordUser = await client.users.fetch(userId).catch(() => null);
+
     const winEmbed = new EmbedBuilder()
       .setColor("#FF007F")
+      .setAuthor({
+        name: discordUser ? discordUser.displayName || discordUser.username : "Player",
+        iconURL: discordUser ? discordUser.displayAvatarURL({ dynamic: true }) : undefined
+      })
       .setTitle("🏆 CHIẾN THẮNG HUYỀN THOẠI! 🏆")
       .setDescription(
         `🎉 Chúc mừng <@${userId}> đã chiến thắng **Linh Hồn Malzareth** tại Cõi Linh Hồn!\n\n` +
@@ -1954,8 +1988,14 @@ const giveSoulRealmDefeatReward = async (client, channel, userId) => {
     user.rpg.power = calculateRpgPower(user);
     await user.save();
 
+    const discordUser = await client.users.fetch(userId).catch(() => null);
+
     const loseEmbed = new EmbedBuilder()
       .setColor("#747F8D")
+      .setAuthor({
+        name: discordUser ? discordUser.displayName || discordUser.username : "Player",
+        iconURL: discordUser ? discordUser.displayAvatarURL({ dynamic: true }) : undefined
+      })
       .setTitle("🥀 THẤT BẠI TẠI CÕI LINH HỒN 🥀")
       .setDescription(
         `Ngươi đã gục ngã trước sức mạnh hắc ám của Malzareth.\n` +
@@ -1967,7 +2007,6 @@ const giveSoulRealmDefeatReward = async (client, channel, userId) => {
 
     await channel.send({ content: `<@${userId}>`, embeds: [loseEmbed] });
 
-    const discordUser = await client.users.fetch(userId).catch(() => null);
     if (discordUser) {
       await discordUser.send({ embeds: [loseEmbed] }).catch(() => null);
     }

@@ -14,11 +14,20 @@ const checkAndSetCooldown = (userId, commandName, seconds) => {
 }
 
 const notifyCooldown = (message, cooldown) => {
-  message.reply(`⏱ | Vui lòng chờ **${cooldown}s** để dùng lại.`).then(msg => {
-    setTimeout(() => {
-      msg.delete().catch(() => {})
-    }, cooldown * 1000)
-  }).catch(() => {})
+  let remaining = cooldown;
+  message.reply(`⏱ | Vui lòng chờ **${remaining}s** để dùng lại.`).then(msg => {
+    const interval = setInterval(async () => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        msg.delete().catch(() => {});
+      } else {
+        await msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để dùng lại.`).catch(() => {
+          clearInterval(interval);
+        });
+      }
+    }, 1000);
+  }).catch(() => {});
 }
 
 module.exports = { checkAndSetCooldown, notifyCooldown }

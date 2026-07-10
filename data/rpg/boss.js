@@ -8,7 +8,7 @@ module.exports = {
   lifetime_ms: 10 * 60 * 1000,
   attack_cooldown_ms: 15 * 1000,
   free_attacks_per_user: 3,
-  paid_attack_cost: 10000,
+  paid_attack_cost: 7500,
   reward_rarities: ["Epic"],
   last_hit_bonus_gear: 2,
   
@@ -28,8 +28,8 @@ module.exports = {
       expMult: 0.7,
       lastHitExpMult: 1.0,
       topDamageRewards: [
-        { rank: 1, cokeBonus: 4000, wcBonus: 3 },
-        { rank: 2, cokeBonus: 2000, wcBonus: 1 },
+        { rank: 1, cokeBonus: 4000, wcBonus: 0 },
+        { rank: 2, cokeBonus: 2000, wcBonus: 0 },
         { rank: 3, cokeBonus: 1000, wcBonus: 0 },
       ],
     },
@@ -48,8 +48,8 @@ module.exports = {
       expMult: 0.9,
       lastHitExpMult: 1.3,
       topDamageRewards: [
-        { rank: 1, cokeBonus: 8000, wcBonus: 4 },
-        { rank: 2, cokeBonus: 4000, wcBonus: 2 },
+        { rank: 1, cokeBonus: 8000, wcBonus: 0 },
+        { rank: 2, cokeBonus: 4000, wcBonus: 0 },
         { rank: 3, cokeBonus: 2000, wcBonus: 0 },
       ],
     },
@@ -69,9 +69,9 @@ module.exports = {
       expMult: 1.2,
       lastHitExpMult: 1.8,
       topDamageRewards: [
-        { rank: 1, cokeBonus: 25000, wcBonus: 6 },
-        { rank: 2, cokeBonus: 12000, wcBonus: 3 },
-        { rank: 3, cokeBonus: 6000, wcBonus: 1 },
+        { rank: 1, cokeBonus: 25000, wcBonus: 0 },
+        { rank: 2, cokeBonus: 12000, wcBonus: 0 },
+        { rank: 3, cokeBonus: 6000, wcBonus: 0 },
       ],
     },
   },

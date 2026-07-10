@@ -913,11 +913,23 @@ const generateRpgGearDrop = async (user, options = {}) => {
     rarity = "Ancient";
     rarityConfig = config.rpg.gear_rarities["Ancient"];
   } else {
-    const rarityEntries = Object.entries(config.rpg.gear_rarities).filter(
+    let rarityConfigMap = config.rpg.gear_rarities;
+    if (options.fromWc) {
+      rarityConfigMap = {
+        Common: { rate: 50, power: 45, sell: 120, stat: 1 },
+        Rare: { rate: 35, power: 90, sell: 350, stat: 2 },
+        Epic: { rate: 13.5, power: 180, sell: 1100, stat: 4 },
+        Legendary: { rate: 1.2, power: 380, sell: 4200, stat: 7 },
+        Mythic: { rate: 0.2, power: 780, sell: 15000, stat: 11 },
+        Ancient: { rate: 0.08, power: 1450, sell: 65000, stat: 16 },
+        Divine: { rate: 0.02, power: 2800, sell: 250000, stat: 24 },
+      };
+    }
+    const rarityEntries = Object.entries(rarityConfigMap).filter(
       ([r]) => !options.allowedRarities || options.allowedRarities.includes(r),
     );
     const result = weightedPick(
-      rarityEntries.length ? rarityEntries : Object.entries(config.rpg.gear_rarities),
+      rarityEntries.length ? rarityEntries : Object.entries(rarityConfigMap),
       ([, value]) => value.rate ?? value.weight ?? 0,
     );
     rarity = result[0];

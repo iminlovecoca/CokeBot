@@ -1,5 +1,5 @@
 const BaseCommand = require("../../core/BaseCommand");
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const config = require("../../data/config");
 const User = require("../../models/User");
 const { checkAndResetDailyQuests, generateRandomQuest } = require("../../utils/questUtil");
@@ -102,13 +102,15 @@ class QuestCommand extends BaseCommand {
     description += `**Next quest in:** \`${countdownStr}\`\n`;
     description += `*Lượt đổi nhiệm vụ hôm nay:* \`${user.rpg.quests.rerollsLeft || 0} lượt còn lại*`;
 
+    const file = new AttachmentBuilder("./assets/rpgevent/quest.png");
+
     const embed = new EmbedBuilder()
       .setColor("#5865F2")
       .setTitle(`${memberName}'s Quest Log`)
-      .setThumbnail("https://i.imgur.com/PZcZpZg.png")
+      .setThumbnail("attachment://quest.png")
       .setDescription(description);
 
-    return message.reply({ embeds: [embed], skipV2: true });
+    return message.reply({ embeds: [embed], files: [file], skipV2: true });
   }
 }
 

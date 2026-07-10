@@ -794,29 +794,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     });
   }
 
-  const finalEmbed = new EmbedBuilder()
-    .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
-    .addFields(
-      {
-        name: `${player1.name} (${player1.classLabel})`,
-        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
-        inline: true,
-      },
-      {
-        name: `${player2.name} (${player2.classLabel})`,
-        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
-        inline: true,
-      },
-    );
+  const memberName = message.member?.displayName || message.author.displayName || message.author.username;
+  const weapon1Emoji = player1.weapon?.emoji ? ` ${player1.weapon.emoji}` : "";
+  const weapon2Emoji = player2.weapon?.emoji ? ` ${player2.weapon.emoji}` : "";
 
-  if (imgData) {
-    finalEmbed.setImage(`attachment://${imgData.name}`);
-  }
-
+  let footerText = "";
   if (result.isDraw) {
-    finalEmbed.setDescription(
-      `**Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | 🔥 Chuỗi thắng được giữ nguyên**`,
-    );
+    footerText = `Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | Chuỗi thắng được giữ nguyên`;
   } else {
     const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
     const xpGained = isP1Winner ? 200 : 50;
@@ -826,12 +810,35 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       streakText = "Không tính chuỗi";
     } else {
       const streak = isP1Winner ? user1.rpg.pvpStreak : 0;
-      streakText = `🔥 Chuỗi thắng: ${streak}`;
+      streakText = `Chuỗi thắng: ${streak}`;
     }
-    finalEmbed.setDescription(
-      `**${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}**`,
-    );
+    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | +${isP1Winner ? cokeWinner : 0} Coke | ${streakText}`;
   }
+
+  const finalEmbed = new EmbedBuilder()
+    .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
+    .setAuthor({
+      name: `${memberName} Đang chiến đấu!`,
+      iconURL: message.author.displayAvatarURL({ dynamic: true })
+    })
+    .addFields(
+      {
+        name: `${player1.name}${weapon1Emoji} (${player1.classLabel})`,
+        value: renderTextBar(finalHp1, maxHp1, player1.gearPower),
+        inline: true,
+      },
+      {
+        name: `${player2.name}${weapon2Emoji} (${player2.classLabel})`,
+        value: renderTextBar(finalHp2, maxHp2, player2.gearPower),
+        inline: true,
+      },
+    );
+
+  if (imgData) {
+    finalEmbed.setImage(`attachment://${imgData.name}`);
+  }
+
+  finalEmbed.setFooter({ text: footerText });
 
   const replyPayload = { embeds: [finalEmbed], skipV2: true };
   if (attachment) {

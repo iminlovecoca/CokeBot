@@ -165,6 +165,14 @@ const formatDuration = (ms) => {
   return `${hrs}H ${mins}M`;
 };
 
+const getEmojiCdnUrl = (emojiStr) => {
+  const match = emojiStr.match(/:(\d+)>/);
+  if (match) {
+    return `https://cdn.discordapp.com/emojis/${match[1]}.png`;
+  }
+  return "https://i.imgur.com/PZcZpZg.png";
+};
+
 const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
   const xp = user.rpg.autohunt.xp;
   const essence = user.rpg.autohunt.essence || 0;
@@ -191,7 +199,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
   const embed = new EmbedBuilder()
     .setColor("#5865F2")
     .setTitle(`${memberName}'s HuntBot`)
-    .setThumbnail("https://i.imgur.com/PZcZpZg.png")
+    .setThumbnail(getEmojiCdnUrl(botInfo.emoji))
     .setDescription(
       `\`BEEP. BOOP. I AM HUNTBOT. I WILL HUNT FOR YOU MASTER.\`\n` +
         `Use the command \`${config.prefix}xautohunt {Coke | duration}\` to get started.\n` +

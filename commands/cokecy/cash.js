@@ -38,7 +38,7 @@ class CashCommand extends BaseCommand {
     const userRepository = message.client.services.get('userRepository');
     const user = await userRepository.getOrCreate(targetId);
     
-    await message.reply(`${config.emoji.money} **|** **${displayName}**, hiện có **${formatVNCurrency(user.coke || 0)} coke**.`);
+    await message.reply(`${config.emoji.money} **|** **${displayName}**, hiện có **__${formatVNCurrency(user.coke || 0)}__ coke**!`);
   }
 }
 
