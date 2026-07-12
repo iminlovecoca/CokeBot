@@ -12,7 +12,9 @@ const {
   ContainerBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
-  SeparatorSpacingSize
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require("discord.js");
 const { createCanvas } = require("canvas");
 const TaixiuState = require("../models/TaixiuState");
