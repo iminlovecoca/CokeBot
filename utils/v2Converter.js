@@ -216,11 +216,22 @@ function patchMethod(target, methodName) {
       }
     }
 
+    const cleanContentNull = (obj) => {
+      if (obj && typeof obj === "object") {
+        if (obj.content === null) obj.content = "";
+        if (obj.options && typeof obj.options === "object") {
+          if (obj.options.content === null) obj.options.content = "";
+        }
+      }
+      return obj;
+    };
+
     if (options && typeof options === "object") {
-      convertedOptions = convertToV2(options, hasV2, existingAttachments);
+      convertedOptions = cleanContentNull(convertToV2(options, hasV2, existingAttachments));
     } else if (typeof options === "string" && args[0] && typeof args[0] === "object") {
-      convertedArgs = [convertToV2(args[0], hasV2, existingAttachments), ...args.slice(1)];
+      convertedArgs = [cleanContentNull(convertToV2(args[0], hasV2, existingAttachments)), ...args.slice(1)];
     }
+
 
     // If it has V2 components, we must explicitly clear them if the new payload doesn't provide them
     if (hasV2) {
