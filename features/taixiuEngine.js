@@ -845,20 +845,45 @@ async function initializeTaixiu(client) {
 
           const amt = pendingBets.get(userId) || 0;
           if (amt <= 0) {
-            return;
+            return interaction.followUp({
+              content: "❌ Bạn chưa chọn mức cược! Hãy bấm nút **Đặt mức cược 💰** hoặc các nút cược nhanh ở dưới.",
+              ephemeral: true
+            }).catch(() => {});
           }
 
           if (amt > 250000) {
-            return;
+            return interaction.followUp({
+              content: "❌ Mức cược tối đa là **250,000** coke!",
+              ephemeral: true
+            }).catch(() => {});
+          }
+
+          const side = cid === "taixiu_bet_tai" ? "tai" : "xiu";
+          const currentBet = (side === "tai" ? state.playersTai.get(userId) : state.playersXiu.get(userId)) || 0;
+          
+          if (currentBet + amt > 250000) {
+            const maxAllowed = 250000 - currentBet;
+            if (maxAllowed <= 0) {
+              return interaction.followUp({
+                content: `❌ Bạn đã đặt tối đa **250,000** coke cho cửa này ở vòng này rồi!`,
+                ephemeral: true
+              }).catch(() => {});
+            } else {
+              return interaction.followUp({
+                content: `❌ Bạn chỉ có thể đặt thêm tối đa **${maxAllowed.toLocaleString()}** coke cho cửa này (Tổng giới hạn 250K mỗi bên)!`,
+                ephemeral: true
+              }).catch(() => {});
+            }
           }
 
           // Validate balance
           const userDoc = await User.findOne({ userId });
           if (!userDoc || userDoc.coke < amt) {
-            return;
+            return interaction.followUp({
+              content: `❌ Số dư Coke hiện có không đủ để cược **${amt.toLocaleString()}**!`,
+              ephemeral: true
+            }).catch(() => {});
           }
-
-          const side = cid === "taixiu_bet_tai" ? "tai" : "xiu";
           
           // Deduct balance and update state
           try {
