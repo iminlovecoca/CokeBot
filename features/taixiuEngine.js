@@ -8,7 +8,11 @@ const {
   TextInputStyle,
   ModalBuilder,
   MessageFlags,
-  EmbedBuilder
+  EmbedBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize
 } = require("discord.js");
 const { createCanvas } = require("canvas");
 const TaixiuState = require("../models/TaixiuState");
@@ -28,7 +32,7 @@ function drawDie(ctx, x, y, size, value) {
   const radius = 6;
   ctx.save();
   ctx.fillStyle = '#FFFFFF';
-  ctx.strokeStyle = '#475569';
+  ctx.strokeStyle = '#0F172A';
   ctx.lineWidth = 2;
   
   ctx.beginPath();
@@ -45,7 +49,7 @@ function drawDie(ctx, x, y, size, value) {
   ctx.fill();
   ctx.stroke();
   
-  ctx.fillStyle = value === 1 || value === 4 ? '#E11D48' : '#0F172A'; // Red for 1/4, dark for others
+  ctx.fillStyle = value === 1 || value === 4 ? '#DC2626' : '#0F172A'; // Red for 1/4, dark for others
   const cx = x + size / 2;
   const cy = y + size / 2;
   const dotRadius = size * 0.08;
@@ -58,7 +62,7 @@ function drawDie(ctx, x, y, size, value) {
   };
   
   if (value === 1) {
-    ctx.fillStyle = '#E11D48';
+    ctx.fillStyle = '#DC2626';
     ctx.beginPath();
     ctx.arc(cx, cy, dotRadius * 1.6, 0, Math.PI * 2);
     ctx.fill();
@@ -70,7 +74,7 @@ function drawDie(ctx, x, y, size, value) {
     drawDot(cx, cy);
     drawDot(cx + offset, cy + offset);
   } else if (value === 4) {
-    ctx.fillStyle = '#E11D48';
+    ctx.fillStyle = '#DC2626';
     drawDot(cx - offset, cy - offset);
     drawDot(cx + offset, cy - offset);
     drawDot(cx - offset, cy + offset);
@@ -92,17 +96,17 @@ function drawDie(ctx, x, y, size, value) {
   ctx.restore();
 }
 
-// Generate the fully visual game board Canvas
+// Generate the fully visual game board Canvas (Green Felt Casino style)
 function drawTaixiuBoard(state) {
   const canvas = createCanvas(600, 180);
   const ctx = canvas.getContext('2d');
   
-  // Background (Premium Light Slate)
-  ctx.fillStyle = '#F1F5F9';
+  // Background (Dark Green Felt)
+  ctx.fillStyle = '#065F46';
   ctx.fillRect(0, 0, 600, 180);
   
-  // Border
-  ctx.strokeStyle = '#CBD5E1';
+  // Border (Luxurious Gold border)
+  ctx.strokeStyle = '#F59E0B';
   ctx.lineWidth = 3;
   ctx.strokeRect(5, 5, 590, 170);
   
@@ -119,59 +123,56 @@ function drawTaixiuBoard(state) {
     rXiu = xiuPool / totalPool;
   }
   
-  // 1. TÀI Section (Left) - Color: Black/Dark Slate
-  ctx.fillStyle = '#0F172A';
+  // 1. TÀI Section (Left) - Color: Red
+  ctx.fillStyle = '#EF4444';
   ctx.font = 'bold 26px "Arial"';
   ctx.fillText('TÀI', 65, 45);
   
-  // Draw Black Circle Indicator next to TÀI
+  // Draw Red Circle Indicator next to TÀI
   ctx.beginPath();
   ctx.arc(38, 36, 10, 0, Math.PI * 2);
   ctx.fill();
   
-  ctx.fillStyle = '#475569';
+  ctx.fillStyle = '#E2E8F0';
   ctx.font = '13px "Arial"';
   ctx.fillText('TỔNG ĐẶT CƯỢC', 30, 75);
   
-  ctx.fillStyle = '#0F172A';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 18px "Arial"';
   ctx.fillText(`${taiPool.toLocaleString()} coke`, 30, 105);
   
-  // Tai Pool Bar (Dark Slate)
-  ctx.fillStyle = '#E2E8F0'; // Bar background
+  // Tai Pool Bar (Red with dark forest green backing)
+  ctx.fillStyle = '#064E3B'; // Bar background
   ctx.fillRect(30, 125, 200, 18);
-  ctx.fillStyle = '#0F172A'; // Dark slate bar fill
+  ctx.fillStyle = '#EF4444'; // Red bar fill
   ctx.fillRect(30, 125, Math.floor(rTai * 200), 18);
   
-  // 2. XỈU Section (Right) - Color: Dark Slate with White Dot
+  // 2. XỈU Section (Right) - Color: White
   ctx.save();
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#0F172A';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 26px "Arial"';
   ctx.fillText('XỈU', 535, 45);
   
   // Draw White Circle Indicator next to XỈU
   ctx.fillStyle = '#FFFFFF';
-  ctx.strokeStyle = '#94A3B8';
-  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(558, 36, 10, 0, Math.PI * 2);
   ctx.fill();
-  ctx.stroke();
   ctx.restore();
   
-  ctx.fillStyle = '#475569';
+  ctx.fillStyle = '#E2E8F0';
   ctx.font = '13px "Arial"';
   ctx.fillText('TỔNG ĐẶT CƯỢC', 370, 75);
   
-  ctx.fillStyle = '#0F172A';
+  ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 18px "Arial"';
   ctx.fillText(`${xiuPool.toLocaleString()} coke`, 370, 105);
   
-  // Xiu Pool Bar (White/Light Slate Accent)
-  ctx.fillStyle = '#E2E8F0'; // Bar background
+  // Xiu Pool Bar (White with dark forest green backing)
+  ctx.fillStyle = '#064E3B'; // Bar background
   ctx.fillRect(370, 125, 200, 18);
-  ctx.fillStyle = '#94A3B8'; // Slate/white-ish bar fill
+  ctx.fillStyle = '#FFFFFF'; // White bar fill
   const xiuWidth = Math.floor(rXiu * 200);
   ctx.fillRect(570 - xiuWidth, 125, xiuWidth, 18);
   
@@ -181,19 +182,19 @@ function drawTaixiuBoard(state) {
   ctx.textBaseline = 'middle';
   
   if (status === 'betting') {
-    ctx.fillStyle = '#D97706'; // Amber Gold
+    ctx.fillStyle = '#F59E0B'; // Gold
     ctx.font = 'bold 36px "Arial"';
     ctx.fillText(`${state.countdown}s`, 300, 75);
     
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 11px "Arial"';
     ctx.fillText('ĐANG CƯỢC', 300, 115);
   } else if (status === 'rolling') {
-    ctx.fillStyle = '#2563EB'; // Blue
+    ctx.fillStyle = '#60A5FA'; // Light Blue
     ctx.font = 'bold 22px "Arial"';
     ctx.fillText('LẮC...', 300, 75);
     
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 11px "Arial"';
     ctx.fillText('CHỜ KẾT QUẢ', 300, 115);
   } else if (status === 'result') {
@@ -210,11 +211,11 @@ function drawTaixiuBoard(state) {
     const total = dice.reduce((a, b) => a + b, 0);
     const outcome = total >= 11 ? 'tai' : 'xiu';
     
-    ctx.fillStyle = '#0F172A';
+    ctx.fillStyle = outcome === 'tai' ? '#EF4444' : '#FFFFFF';
     ctx.font = 'bold 18px "Arial"';
     ctx.fillText(outcome === 'tai' ? 'TÀI' : 'XỈU', 300, 114);
     
-    ctx.fillStyle = '#0F172A';
+    ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 12px "Arial"';
     ctx.fillText(`Tổng: ${total}`, 300, 138);
   }
@@ -223,35 +224,35 @@ function drawTaixiuBoard(state) {
   return canvas.toBuffer('image/png');
 }
 
-// Render the entire game room payload
+// Render the entire game room payload using V2 Component card and local attachment
 function renderTaixiuRoom(state, boardBuffer) {
   const round = state.round;
   const status = state.status;
   const countdown = state.countdown;
   
-  // Format history to black/white emojis: Tai = ⚫ (black), Xiu = ⚪ (white)
+  // Format history: Tai = 🔴, Xiu = ⚪
   const historyList = (state.history || []).slice(-15);
-  const historyStr = historyList.map(h => h === 'tai' ? '⚫' : '⚪').join(' ') || 'Chưa có dữ liệu';
+  const historyStr = historyList.map(h => h === 'tai' ? '🔴' : '⚪').join(' ') || 'Chưa có dữ liệu';
   
   let timeStr = "";
-  let color = 0xF59E0B; // Warning Amber for Betting
   if (status === 'rolling') {
     timeStr = `🎰 **Đang lắc bát...**`;
-    color = 0x3B82F6; // Blue for Rolling
   } else if (status === 'result') {
     timeStr = `🏁 **Vòng kết thúc!**`;
-    color = 0x10B981; // Green for Result
   } else {
     timeStr = `⌛ Thời gian cược: **${countdown}s**`;
   }
+
+  const headerText = `### 🎲 COKE CASINO — TÀI XỈU  |  *Vòng #${round}*\n` +
+                     `⏳ **Trạng thái:** ${timeStr}\n` +
+                     `📊 **Lịch sử gần đây:**\n${historyStr}`;
   
-  const embed = new EmbedBuilder()
-    .setTitle(`🎲 COKE CASINO — TÀI XỈU`)
-    .setDescription(`### Vòng #${round}\n⏳ **Trạng thái:** ${timeStr}\n📊 **Lịch sử gần đây:** ${historyStr}`)
-    .setColor(color)
-    .setImage('attachment://board.png')
-    .setFooter({ text: "Chúc các bạn may mắn! 🍀" })
-    .setTimestamp();
+  const textHeader = new TextDisplayBuilder().setContent(headerText);
+
+  const container = new ContainerBuilder()
+    .setAccentColor(status === 'betting' ? 0xF59E0B : status === 'rolling' ? 0x3B82F6 : 0x10B981)
+    .addTextDisplayComponents(textHeader)
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
 
   // Add Action buttons
   const isBettings = status === 'betting';
@@ -277,12 +278,14 @@ function renderTaixiuRoom(state, boardBuffer) {
       .setStyle(ButtonStyle.Secondary)
   );
 
+  container.addActionRowComponents(row);
+
   const payload = {
     content: "",
-    embeds: [embed],
-    components: [row],
+    embeds: [],
+    components: [container],
     files: [new AttachmentBuilder(boardBuffer, { name: 'board.png' })],
-    skipV2: true // CRITICAL: Skip V2 layout to let standard Embed render the board.png perfectly!
+    flags: MessageFlags.IsComponentsV2
   };
 
   return payload;
@@ -458,7 +461,7 @@ async function initializeTaixiu(client) {
 
         if (cid === "taixiu_history") {
           const list = (state.history || []).slice(-20);
-          const formatted = list.map(h => h === 'tai' ? '⚫ Tài' : '⚪ Xỉu').join(' → ');
+          const formatted = list.map(h => h === 'tai' ? '🔴 Tài' : '⚪ Xỉu').join(' → ');
           await interaction.reply({
             content: `📊 **Lịch sử 20 vòng gần nhất:**\n${formatted || "Chưa có vòng đấu nào diễn ra."}`,
             ephemeral: true
