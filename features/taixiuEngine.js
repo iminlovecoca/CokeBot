@@ -12,7 +12,9 @@ const {
   ContainerBuilder,
   TextDisplayBuilder,
   SeparatorBuilder,
-  SeparatorSpacingSize
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder
 } = require("discord.js");
 const { createCanvas } = require("canvas");
 const TaixiuState = require("../models/TaixiuState");
@@ -224,15 +226,15 @@ function drawTaixiuBoard(state) {
   return canvas.toBuffer('image/png');
 }
 
-// Render the entire game room payload using V2 Component card and local attachment
+// Render the entire game room payload using V2 Container manually
 function renderTaixiuRoom(state, boardBuffer) {
   const round = state.round;
   const status = state.status;
   const countdown = state.countdown;
   
-  // Format history: Tai = 🔴, Xiu = ⚪
+  // Format history: Tai = ⚫, Xiu = ⚪
   const historyList = (state.history || []).slice(-15);
-  const historyStr = historyList.map(h => h === 'tai' ? '🔴' : '⚪').join(' ') || 'Chưa có dữ liệu';
+  const historyStr = historyList.map(h => h === 'tai' ? '⚫' : '⚪').join(' ') || 'Chưa có dữ liệu';
   
   let timeStr = "";
   if (status === 'rolling') {
@@ -248,11 +250,15 @@ function renderTaixiuRoom(state, boardBuffer) {
                      `📊 **Lịch sử gần đây:**\n${historyStr}`;
   
   const textHeader = new TextDisplayBuilder().setContent(headerText);
+  
+  const gallery = new MediaGalleryBuilder()
+    .addItems(new MediaGalleryItemBuilder().setURL('attachment://board.png'));
 
   const container = new ContainerBuilder()
     .setAccentColor(status === 'betting' ? 0xF59E0B : status === 'rolling' ? 0x3B82F6 : 0x10B981)
     .addTextDisplayComponents(textHeader)
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
+    .addMediaGalleryComponents(gallery);
 
   // Add Action buttons
   const isBettings = status === 'betting';
@@ -285,7 +291,8 @@ function renderTaixiuRoom(state, boardBuffer) {
     embeds: [],
     components: [container],
     files: [new AttachmentBuilder(boardBuffer, { name: 'board.png' })],
-    flags: MessageFlags.IsComponentsV2
+    flags: MessageFlags.IsComponentsV2,
+    skipV2: true // CRITICAL: Skip v2Converter so it does not corrupt our pre-built V2 layout!
   };
 
   return payload;
@@ -461,7 +468,7 @@ async function initializeTaixiu(client) {
 
         if (cid === "taixiu_history") {
           const list = (state.history || []).slice(-20);
-          const formatted = list.map(h => h === 'tai' ? '🔴 Tài' : '⚪ Xỉu').join(' → ');
+          const formatted = list.map(h => h === 'tai' ? '⚫ Tài' : '⚪ Xỉu').join(' → ');
           await interaction.reply({
             content: `📊 **Lịch sử 20 vòng gần nhất:**\n${formatted || "Chưa có vòng đấu nào diễn ra."}`,
             ephemeral: true
