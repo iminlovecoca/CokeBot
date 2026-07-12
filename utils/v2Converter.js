@@ -325,8 +325,13 @@ function patchMethod(target, methodName) {
 }
 
 // Apply patches
-patchMethod(Message, "reply");
+Message.prototype.reply = function (options, ...args) {
+  return this.channel.send(options, ...args);
+};
+
 patchMethod(Message, "edit");
+
+
 patchMethod(BaseGuildTextChannel, "send");
 patchMethod(DMChannel, "send");
 patchMethod(ThreadChannel, "send");
