@@ -310,8 +310,9 @@ const generatePvPImage = async (
 
 const simulatePvP = (p1, p2) => {
   let turn = 1;
-  const maxTurns = 20;
+  const maxTurns = 12;
   const logs = [];
+
   const history = [];
 
   p1.effects = { 
@@ -657,8 +658,9 @@ const simulatePvP = (p1, p2) => {
 
     // Gain rage on attacking (only if not cast skill)
     if (!isCastingSkill) {
-      attacker.rage = Math.min(100, attacker.rage + 25);
+      attacker.rage = Math.min(100, attacker.rage + 50);
     }
+
 
     saveState(turn);
 

@@ -1,153 +1,146 @@
-const BaseCommand = require("../../core/BaseCommand");
-const random = require("random-number-csprng");
-const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
-const { incBalance } = require("../../utils/userUtil");
-const { getBetAmount } = require("../../utils/gameUtil");
+const {
+  SlashCommandBuilder,
+  PermissionFlagsBits,
+  ChannelType
+} = require("discord.js");
+const TaixiuState = require("../../models/TaixiuState");
+const { startTaixiuLoop } = require("../../features/taixiuEngine");
 const config = require("../../data/config");
-const emoji = config.emoji;
 
-const diceEmojis = [
-  emoji.dice_1,
-  emoji.dice_2,
-  emoji.dice_3,
-  emoji.dice_4,
-  emoji.dice_5,
-  emoji.dice_6,
-];
-const moving = emoji.dice_rolling;
+module.exports = {
+  name: "taixiu",
+  aliases: ["tx", "sicbo"],
+  category: "gamble",
+  data: new SlashCommandBuilder()
+    .setName("taixiu")
+    .setDescription("Quản lý phòng Casino Tài Xỉu 24/7.")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("setchannel")
+        .setDescription("Thiết lập kênh làm phòng cược Tài Xỉu 24/7.")
+        .addChannelOption(option =>
+          option
+            .setName("channel")
+            .setDescription("Kênh Discord muốn thiết lập làm phòng cược.")
+            .addChannelTypes(ChannelType.GuildText)
+            .setRequired(false)
+        )
+    ),
 
-class TaiXiuCommand extends BaseCommand {
-  constructor() {
-    super({
-      name: "taixiu",
-      aliases: ["tx", "doden"],
-      description: "🎲 Chơi tài xỉu bằng coke!",
-      usage: `${config.prefix}tx <t/x> [tiền cược|all]`,
-      examples: [
-        {
-          intent: "Cược tài (t) với tất cả tiền",
-          command: `${config.prefix}tx t all`,
-        },
-        {
-          intent: "Cược xỉu (x) với 100,000 coke",
-          command: `${config.prefix}tx x 100000`,
-        },
-      ],
-      category: "gamble"
-    });
-  }
+  async execute(context, args = [], client) {
+    const isSlash = !context.author;
+    const userId = isSlash ? context.user.id : context.author.id;
+    const guild = isSlash ? context.guild : context.guild;
+    const member = isSlash ? context.member : context.member;
 
-  async execute(message, args, client, locator) {
-    const settings = config.gamble_settings;
-    const userId = message.author.id;
-    const remainingCooldown = checkAndSetCooldown(
-      userId,
-      "tx",
-      settings.cooldown_second,
-    );
-    if (remainingCooldown > 0) {
-      return notifyCooldown(message, remainingCooldown);
+    if (!guild) {
+      return context.reply({
+        content: "❌ Lệnh này chỉ có thể sử dụng trong Server Discord.",
+        ephemeral: true
+      });
     }
 
-    const isChoice = (str) => {
-      if (!str) return false;
-      return ["tai", "t", "xiu", "x"].includes(str.toLowerCase());
-    };
+    // Permission Check: Owner or Administrator
+    const isDev = config.permissions?.dev_ids?.includes(userId) || userId === process.env.OWNER_ID;
+    const isOwner = userId === guild.ownerId;
+    const isAdmin = member?.permissions.has(PermissionFlagsBits.Administrator);
 
-    let choice = "tai";
-    let bet = "min";
-
-    if (args.length === 1) {
-      if (isChoice(args[0])) {
-        choice = ["xiu", "x"].includes(args[0].toLowerCase()) ? "xiu" : "tai";
-        bet = "min";
-      } else {
-        choice = "tai";
-        bet = args[0];
-      }
-    } else if (args.length >= 2) {
-      if (isChoice(args[0])) {
-        choice = ["xiu", "x"].includes(args[0].toLowerCase()) ? "xiu" : "tai";
-        bet = args[1];
-      } else {
-        choice = "tai";
-        bet = args[0];
-      }
+    if (!isDev && !isOwner && !isAdmin) {
+      return context.reply({
+        content: "❌ Chỉ Quản trị viên (Administrator) mới có quyền thiết lập kênh cược Tài Xỉu.",
+        ephemeral: true
+      });
     }
 
-    const amount = await getBetAmount(
-      bet,
-      userId,
-      settings.max_bet,
-      settings.min_bet,
-    );
+    // Determine subcommand
+    let sub = "";
+    if (isSlash) {
+      sub = context.options.getSubcommand();
+    } else {
+      sub = (args[0] || "").toLowerCase();
+    }
 
-    
-    const gambleService = locator.get("gambleService");
-    const debuffPercentage = await gambleService.getDebuffPercentage(userId);
+    if (sub !== "setchannel") {
+      return context.reply({
+        content: `💡 Hướng dẫn sử dụng:\n- Gõ \`/taixiu setchannel [channel]\` hoặc \`${config.prefix}taixiu setchannel\` để tạo phòng cược Tài Xỉu 24/7 tại kênh hiện tại.`,
+        ephemeral: true
+      });
+    }
 
-    const rollDice = async () => {
-      const r1 = await random(1, 6);
-      const r2 = await random(1, 6);
-      const r3 = await random(1, 6);
-      const sum = r1 + r2 + r3;
-      const isTriple = r1 === r2 && r2 === r3;
-      const outcome = sum >= 11 ? "tai" : "xiu";
-      return { rolls: [r1, r2, r3], sum, isTriple, outcome };
-    };
-
-    let result = await rollDice();
-    let playerWins = !result.isTriple && (result.outcome === choice);
-
-    
-    if (playerWins && debuffPercentage > 0) {
-      if (Math.random() < debuffPercentage) {
-        
-        while (playerWins) {
-          result = await rollDice();
-          playerWins = !result.isTriple && (result.outcome === choice);
+    // Get target channel
+    let targetChannel = null;
+    if (isSlash) {
+      targetChannel = context.options.getChannel("channel") || context.channel;
+    } else {
+      const mention = context.mentions.channels.first();
+      if (mention) {
+        targetChannel = mention;
+      } else {
+        const idArg = args[1];
+        if (idArg) {
+          targetChannel = guild.channels.cache.get(idArg) || null;
         }
       }
+      if (!targetChannel) {
+        targetChannel = context.channel;
+      }
     }
 
-    const { rolls, sum, isTriple, outcome } = result;
-    const rollEmoji = rolls.map((i) => diceEmojis[i - 1]);
-
-    let win = 0;
-    let multiplier = 0;
-    if (playerWins) {
-      multiplier = 2;
-      win = amount * multiplier;
+    if (!targetChannel || targetChannel.type !== ChannelType.GuildText) {
+      return context.reply({
+        content: "❌ Kênh được chọn phải là kênh văn bản thông thường (Text Channel).",
+        ephemeral: true
+      });
     }
 
-    await incBalance(userId, win - amount);
-    const member = await message.guild.members.fetch(userId).catch(() => null);
-    const name = member?.displayName || message.author.username;
+    await context.reply({
+      content: `⏳ Đang thiết lập phòng Tài Xỉu tại kênh <#${targetChannel.id}>...`,
+      ephemeral: true
+    }).catch(() => {});
 
-    const betText = `${emoji.money} ${amount.toLocaleString()}`;
-    const winText =
-      win > 0
-        ? `${emoji.money} ${win.toLocaleString()} (x${multiplier})`
-        : "trắng... 😢";
+    try {
+      let state = await TaixiuState.findOne({ channelId: targetChannel.id });
+      if (!state) {
+        state = new TaixiuState({
+          channelId: targetChannel.id,
+          round: 1,
+          status: "betting",
+          countdown: 60
+        });
+      } else {
+        // Reset state
+        state.status = "betting";
+        state.countdown = 60;
+        state.taiPool = 0;
+        state.xiuPool = 0;
+        state.playersTai = new Map();
+        state.playersXiu = new Map();
+      }
 
-    const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      // Initial clean-up of messageId to let the engine send a fresh post
+      state.messageId = null;
+      await state.save();
 
-    let display = `**  \`__TÀI XỈU__\`**\n\` \` ${moving} ${moving} ${moving} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
-    const msg = await message.channel.send(display);
+      // Start loop
+      startTaixiuLoop(client, targetChannel.id);
 
-    await wait(1000);
-    display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${moving} ${moving} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
-    await msg.edit(display);
+      if (isSlash) {
+        await context.followUp({
+          content: `✅ Đã khởi tạo thành công phòng cược Tài Xỉu 24/7 tại kênh <#${targetChannel.id}>!`,
+          ephemeral: true
+        }).catch(() => {});
+      } else {
+        await context.channel.send(`✅ Đã khởi tạo thành công phòng cược Tài Xỉu 24/7 tại kênh <#${targetChannel.id}>!`);
+      }
 
-    await wait(700);
-    display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${moving} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`\n  \`|   COKE  |\``;
-    await msg.edit(display);
-
-    await wait(1000);
-
-    display = `**  \`__TÀI XỈU__\`**\n\` \` ${rollEmoji[0]} ${rollEmoji[1]} ${rollEmoji[2]} \` \` ${name} cược ${betText}\n  \`|         |\`  ${sum} điểm → **${isTriple ? `BÃO (${rolls[0]}-${rolls[1]}-${rolls[2]})` : outcome.toUpperCase()}**\n  \`|   COKE  |\`  Bạn ${win > 0 ? "thắng" : "thua"} ${winText}`;
-    await msg.edit(display);
+    } catch (err) {
+      console.error("Lỗi khi thiết lập kênh Tài Xỉu:", err);
+      if (isSlash) {
+        await context.followUp({
+          content: "❌ Đã có lỗi xảy ra trong quá trình thiết lập. Vui lòng kiểm tra log.",
+          ephemeral: true
+        }).catch(() => {});
+      }
+    }
   }
-}
-
-module.exports = new TaiXiuCommand();
+};

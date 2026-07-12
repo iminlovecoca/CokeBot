@@ -44,54 +44,32 @@ function formatNumber(num) {
   return Math.round(num).toLocaleString();
 }
 
-function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 5, sprintHorse = null) {
+function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 5) {
   const lines = [];
   const trackLength = 15;
   
   for (let h = 1; h <= 3; h++) {
     let pos = trackLength; // far right (start)
     let suffix = "";
-    let isSprintActive = false;
     
     if (roundState === 'pending') {
       pos = trackLength;
     } else if (roundState === 'running') {
-      const isSprinting = h === sprintHorse;
-      if (isSprinting && step >= 3) {
-        isSprintActive = true;
-      }
-
       if (h === winningHorse) {
-        if (isSprinting) {
-          if (step === 1) pos = 13;      // starts behind
-          else if (step === 2) pos = 11; // still behind
-          else if (step === 3) pos = 3;  // bursts ahead!
-          else if (step === 4) pos = 1;  // close to finish
-        } else {
-          if (step === 1) pos = 11;
-          else if (step === 2) pos = 8;
-          else if (step === 3) pos = 4;
-          else if (step === 4) pos = 1;
-        }
+        if (step === 1) pos = 11;
+        else if (step === 2) pos = 8;
+        else if (step === 3) pos = 4;
+        else if (step === 4) pos = 1;
       } else {
-        const isOtherSprinting = h === sprintHorse;
-        if (step === 1) {
-          pos = isOtherSprinting ? 13 : Math.floor(Math.random() * 2) + 11; // 11 to 12
-        } else if (step === 2) {
-          pos = isOtherSprinting ? 11 : Math.floor(Math.random() * 3) + 8;  // 8 to 10
-        } else if (step === 3) {
-          pos = isOtherSprinting ? 3 : Math.floor(Math.random() * 3) + 5;   // 5 to 7
-        } else if (step === 4) {
-          pos = isOtherSprinting ? 1 : Math.floor(Math.random() * 3) + 2;   // 2 to 4
-        }
+        if (step === 1) pos = Math.floor(Math.random() * 2) + 11; // 11 to 12
+        else if (step === 2) pos = Math.floor(Math.random() * 3) + 8;  // 8 to 10
+        else if (step === 3) pos = Math.floor(Math.random() * 3) + 5;  // 5 to 7
+        else if (step === 4) pos = Math.floor(Math.random() * 3) + 2;  // 2 to 4
       }
     } else if (roundState === 'won' || roundState === 'lost') {
       if (h === winningHorse) {
         pos = 0; // at finish line
         suffix = " (Thắng!)";
-        if (h === sprintHorse) {
-          suffix += " 💨";
-        }
       } else if (roundState === 'lost' && h === chosenHorse) {
         pos = Math.floor(Math.random() * 3) + 3; // 3 to 5
         suffix = " (Bạn chọn)";
@@ -104,7 +82,7 @@ function drawRaceTrack(winningHorse, chosenHorse, roundState, step = 5, sprintHo
     const trackSlots = [];
     for (let i = 0; i < trackLength; i++) {
       if (i === pos) {
-        trackSlots.push(isSprintActive ? "🏇💨" : "🏇");
+        trackSlots.push("🏇");
       } else {
         trackSlots.push("—");
       }
@@ -168,8 +146,9 @@ function buildComponentsV2(game, state, optionInfo = {}) {
   const winningHorse = optionInfo.winningHorse || (game.winningHorses && game.winningHorses[round - 1]) || 0;
   const chosenHorse = optionInfo.chosenHorse || (game.selectedHorses && game.selectedHorses[round - 1]) || 0;
 
-  const trackText = drawRaceTrack(winningHorse, chosenHorse, trackState, optionInfo.step || 5, optionInfo.sprintHorse);
+  const trackText = drawRaceTrack(winningHorse, chosenHorse, trackState, optionInfo.step || 5);
   const textDisplayTrack = new TextDisplayBuilder().setContent(trackText);
+
 
   let bottomText = "";
   if (state === 'play' || state === 'start' || state === 'resume' || state === 'win_round') {
@@ -294,21 +273,12 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
       return otherHorses[Math.floor(Math.random() * otherHorses.length)];
     })();
 
-    // Sprint is purely visual (20% chance) — does not affect outcome
-    // Creates drama: winner appears to lag behind then bursts forward
-    let sprintHorse = null;
-    if (Math.random() < 0.20) {
-      // The actual winner gets a sprint — creates come-from-behind drama
-      sprintHorse = winningHorse;
-    }
-
     // Play 4-second running animation
     for (let step = 1; step <= 4; step++) {
       const animContainer = buildComponentsV2(game, 'running', { 
         step, 
         chosenHorse: horseIdx, 
-        winningHorse,
-        sprintHorse
+        winningHorse
       });
       await i.editReply({
         embeds: [],
@@ -318,6 +288,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
       }).catch(() => {});
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
+
 
     if (won) {
       const nextRound = currentRound + 1;
@@ -348,7 +319,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
             isWon: true
           };
 
-          const finishedContainer = buildComponentsV2(wonData, 'won', { winningHorse, chosenHorse: horseIdx, sprintHorse });
+          const finishedContainer = buildComponentsV2(wonData, 'won', { winningHorse, chosenHorse: horseIdx });
           await i.editReply({
             embeds: [],
             content: "",
@@ -380,7 +351,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
           { new: true }
         );
 
-        const winRoundContainer = buildComponentsV2(updatedGame, 'win_round', { winningHorse, chosenHorse: horseIdx, sprintHorse });
+        const winRoundContainer = buildComponentsV2(updatedGame, 'win_round', { winningHorse, chosenHorse: horseIdx });
         await i.editReply({
           embeds: [],
           content: "",
@@ -401,7 +372,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
         winningHorses: [...game.winningHorses, winningHorse]
       };
 
-      const lostContainer = buildComponentsV2(lostData, 'lost', { winningHorse, chosenHorse: horseIdx, sprintHorse });
+      const lostContainer = buildComponentsV2(lostData, 'lost', { winningHorse, chosenHorse: horseIdx });
       await i.editReply({
         embeds: [],
         content: "",

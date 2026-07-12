@@ -332,7 +332,15 @@ client.once(Events.ClientReady, async () => {
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);
 
+    try {
+      const { initializeTaixiu } = require("./features/taixiuEngine");
+      await initializeTaixiu(client);
+    } catch (txError) {
+      console.error("❌ Taixiu Engine initialization error:", txError);
+    }
+
     await performStartupCleanup(client);
+
 
     
     try {
