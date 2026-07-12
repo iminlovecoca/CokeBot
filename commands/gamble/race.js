@@ -263,7 +263,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
         const finishedContainer = buildComponentsV2(game, 'cashout');
         await i.editReply({
           embeds: [],
-          content: null,
+          content: "",
           components: [finishedContainer],
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
@@ -312,7 +312,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
       });
       await i.editReply({
         embeds: [],
-        content: null,
+        content: "",
         components: [animContainer],
         flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
@@ -351,7 +351,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
           const finishedContainer = buildComponentsV2(wonData, 'won', { winningHorse, chosenHorse: horseIdx, sprintHorse });
           await i.editReply({
             embeds: [],
-            content: null,
+            content: "",
             components: [finishedContainer],
             flags: MessageFlags.IsComponentsV2
           }).catch(() => {});
@@ -383,7 +383,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
         const winRoundContainer = buildComponentsV2(updatedGame, 'win_round', { winningHorse, chosenHorse: horseIdx, sprintHorse });
         await i.editReply({
           embeds: [],
-          content: null,
+          content: "",
           components: [winRoundContainer],
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
@@ -404,7 +404,7 @@ function setupCollector(collector, replyMsg, activeGame, userId, isSlash, contex
       const lostContainer = buildComponentsV2(lostData, 'lost', { winningHorse, chosenHorse: horseIdx, sprintHorse });
       await i.editReply({
         embeds: [],
-        content: null,
+        content: "",
         components: [lostContainer],
         flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
@@ -439,7 +439,7 @@ module.exports = {
       if (isSlash) {
         replyMsg = await context.reply({
           embeds: [],
-          content: null,
+          content: "",
           components: [container],
           flags: MessageFlags.IsComponentsV2,
           fetchReply: true
@@ -447,7 +447,7 @@ module.exports = {
       } else {
         replyMsg = await context.reply({
           embeds: [],
-          content: null,
+          content: "",
           components: [container],
           flags: MessageFlags.IsComponentsV2
         });
@@ -524,7 +524,7 @@ module.exports = {
     if (isSlash) {
       replyMsg = await context.reply({
         embeds: [],
-        content: null,
+        content: "",
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         fetchReply: true
@@ -532,7 +532,7 @@ module.exports = {
     } else {
       replyMsg = await context.reply({
         embeds: [],
-        content: null,
+        content: "",
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });

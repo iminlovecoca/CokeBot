@@ -521,7 +521,7 @@ module.exports = {
     // ── Initial render
     let mode = 'garden';
     const payload = (container) => ({
-      embeds: [], content: null,
+      embeds: [], content: "",
       components: [container],
       flags: MessageFlags.IsComponentsV2,
       skipV2: true

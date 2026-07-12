@@ -277,7 +277,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         const finishedContainer = buildComponentsV2(game, 'cashout');
         await i.editReply({
-          content: null,
+          content: "",
           attachments: [],
           embeds: [],
           components: [finishedContainer],
@@ -340,7 +340,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
       const nextContainer = buildComponentsV2(updatedGame, 'correct', { guess });
       await i.editReply({
-        content: null,
+        content: "",
         attachments: [],
         embeds: [],
         components: [nextContainer],
@@ -353,7 +353,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
       const lostContainer = buildComponentsV2(game, 'incorrect', { guess, lostCard: nextCard });
       await i.editReply({
-        content: null,
+        content: "",
         attachments: [],
         embeds: [],
         components: [lostContainer],
@@ -390,7 +390,7 @@ module.exports = {
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
-          content: null,
+          content: "",
           embeds: [],
           components: [container],
           flags: MessageFlags.IsComponentsV2,
@@ -398,7 +398,7 @@ module.exports = {
         });
       } else {
         replyMsg = await context.reply({
-          content: null,
+          content: "",
           embeds: [],
           components: [container],
           flags: MessageFlags.IsComponentsV2
@@ -470,7 +470,7 @@ module.exports = {
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
-        content: null,
+        content: "",
         embeds: [],
         components: [container],
         flags: MessageFlags.IsComponentsV2,
@@ -478,7 +478,7 @@ module.exports = {
       });
     } else {
       replyMsg = await context.reply({
-        content: null,
+        content: "",
         embeds: [],
         components: [container],
         flags: MessageFlags.IsComponentsV2

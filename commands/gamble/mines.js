@@ -233,7 +233,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         const finishedContainer = buildComponentsV2(game, 'cashout');
         await i.editReply({
           embeds: [],
-          content: null,
+          content: "",
           components: [finishedContainer],
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
@@ -276,7 +276,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
       const lostContainer = buildComponentsV2(updatedData, 'lost');
       await i.editReply({
         embeds: [],
-        content: null,
+        content: "",
         components: [lostContainer],
         flags: MessageFlags.IsComponentsV2
       }).catch(() => {});
@@ -312,7 +312,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
           const finishedContainer = buildComponentsV2(wonData, 'cashout');
           await i.editReply({
             embeds: [],
-            content: null,
+            content: "",
             components: [finishedContainer],
             flags: MessageFlags.IsComponentsV2
           }).catch(() => {});
@@ -340,7 +340,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
         const playContainer = buildComponentsV2(updatedGame, 'play');
         await i.editReply({
           embeds: [],
-          content: null,
+          content: "",
           components: [playContainer],
           flags: MessageFlags.IsComponentsV2
         }).catch(() => {});
@@ -402,7 +402,7 @@ module.exports = {
       if (isSlash) {
         replyMsg = await context.reply({
           embeds: [],
-          content: null,
+          content: "",
           components: [container],
           flags: MessageFlags.IsComponentsV2,
           fetchReply: true
@@ -410,7 +410,7 @@ module.exports = {
       } else {
         replyMsg = await context.reply({
           embeds: [],
-          content: null,
+          content: "",
           components: [container],
           flags: MessageFlags.IsComponentsV2
         });
@@ -481,7 +481,7 @@ module.exports = {
     if (isSlash) {
       replyMsg = await context.reply({
         embeds: [],
-        content: null,
+        content: "",
         components: [container],
         flags: MessageFlags.IsComponentsV2,
         fetchReply: true
@@ -489,7 +489,7 @@ module.exports = {
     } else {
       replyMsg = await context.reply({
         embeds: [],
-        content: null,
+        content: "",
         components: [container],
         flags: MessageFlags.IsComponentsV2
       });
