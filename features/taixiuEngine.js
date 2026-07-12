@@ -7,11 +7,10 @@ const {
   TextInputBuilder,
   TextInputStyle,
   ModalBuilder,
-  MessageFlags
+  MessageFlags,
+  EmbedBuilder
 } = require("discord.js");
 const { createCanvas } = require("canvas");
-const path = require("path");
-const fs = require("fs");
 const TaixiuState = require("../models/TaixiuState");
 const User = require("../models/User");
 const config = require("../data/config");
@@ -26,10 +25,10 @@ const activeGames = new Map();
 
 // Custom dice drawing helper
 function drawDie(ctx, x, y, size, value) {
-  const radius = 10;
+  const radius = 6;
   ctx.save();
   ctx.fillStyle = '#FFFFFF';
-  ctx.strokeStyle = '#2F3C4F';
+  ctx.strokeStyle = '#475569';
   ctx.lineWidth = 2;
   
   ctx.beginPath();
@@ -93,120 +92,146 @@ function drawDie(ctx, x, y, size, value) {
   ctx.restore();
 }
 
-// Generate the final result Canvas PNG
-function drawTaixiuResult(dice, outcome) {
-  const canvas = createCanvas(500, 160);
+// Generate the fully visual game board Canvas
+function drawTaixiuBoard(state) {
+  const canvas = createCanvas(600, 180);
   const ctx = canvas.getContext('2d');
   
   // Background
-  ctx.fillStyle = '#0F172A'; // Premium Slate-900 background
-  ctx.fillRect(0, 0, 500, 160);
+  ctx.fillStyle = '#0F172A'; // Deep Slate-900
+  ctx.fillRect(0, 0, 600, 180);
   
-  // Draw dice
-  const diceSize = 75;
-  const startX = 30;
-  const startY = 42;
-  const spacing = 95;
+  // Border
+  ctx.strokeStyle = '#1E293B';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(5, 5, 590, 170);
   
-  for (let i = 0; i < dice.length; i++) {
-    drawDie(ctx, startX + i * spacing, startY, diceSize, dice[i]);
+  const status = state.status;
+  const taiPool = state.taiPool || 0;
+  const xiuPool = state.xiuPool || 0;
+  const totalPool = taiPool + xiuPool;
+  
+  // Calculate ratios
+  let rTai = 0.5;
+  let rXiu = 0.5;
+  if (totalPool > 0) {
+    rTai = taiPool / totalPool;
+    rXiu = xiuPool / totalPool;
   }
   
-  // Draw vertical separator
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(330, 20);
-  ctx.lineTo(330, 140);
-  ctx.stroke();
-  
-  const total = dice.reduce((a, b) => a + b, 0);
+  // 1. TÀI Section (Left)
+  ctx.fillStyle = '#E11D48'; // Red for Tai
+  ctx.font = 'bold 24px "Arial"';
+  ctx.fillText('🐉 TÀI', 30, 45);
   
   ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 14px "Arial"';
-  ctx.fillText('TỔNG ĐIỂM', 360, 48);
+  ctx.font = '13px "Arial"';
+  ctx.fillText('TỔNG ĐẶT CƯỢC', 30, 75);
   
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 36px "Arial"';
-  ctx.fillText(total.toString(), 360, 88);
+  ctx.font = 'bold 18px "Arial"';
+  ctx.fillText(`${taiPool.toLocaleString()} coke`, 30, 105);
   
-  // Draw Outcome Badge
+  // Tai Pool Bar
+  ctx.fillStyle = '#334155'; // Bar background
+  ctx.fillRect(30, 125, 200, 18);
+  ctx.fillStyle = '#E11D48'; // Red bar fill
+  ctx.fillRect(30, 125, Math.floor(rTai * 200), 18);
+  
+  // 2. XỈU Section (Right)
   ctx.save();
-  const badgeX = 360;
-  const badgeY = 104;
-  const badgeW = 115;
-  const badgeH = 34;
-  const radius = 6;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#2563EB'; // Blue for Xiu
+  ctx.font = 'bold 24px "Arial"';
+  ctx.fillText('🐢 XỈU', 570, 45);
   
-  ctx.fillStyle = outcome === 'tai' ? '#E11D48' : '#2563EB'; // Red for Tai, Blue for Xiu
-  ctx.beginPath();
-  ctx.moveTo(badgeX + radius, badgeY);
-  ctx.lineTo(badgeX + badgeW - radius, badgeY);
-  ctx.quadraticCurveTo(badgeX + badgeW, badgeY, badgeX + badgeW, badgeY + radius);
-  ctx.lineTo(badgeX + badgeW, badgeY + badgeH - radius);
-  ctx.quadraticCurveTo(badgeX + badgeW, badgeY + badgeH, badgeX + badgeW - radius, badgeY + badgeH);
-  ctx.lineTo(badgeX + radius, badgeY + badgeH);
-  ctx.quadraticCurveTo(badgeX, badgeY + badgeH, badgeX, badgeY + badgeH - radius);
-  ctx.lineTo(badgeX, badgeY + radius);
-  ctx.quadraticCurveTo(badgeX, badgeY, badgeX + radius, badgeY);
-  ctx.closePath();
-  ctx.fill();
+  ctx.fillStyle = '#94A3B8';
+  ctx.font = '13px "Arial"';
+  ctx.fillText('TỔNG ĐẶT CƯỢC', 570, 75);
   
   ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 15px "Arial"';
+  ctx.font = 'bold 18px "Arial"';
+  ctx.fillText(`${xiuPool.toLocaleString()} coke`, 570, 105);
+  
+  // Xiu Pool Bar
+  ctx.fillStyle = '#334155'; // Bar background
+  ctx.fillRect(370, 125, 200, 18);
+  ctx.fillStyle = '#2563EB'; // Blue bar fill
+  const xiuWidth = Math.floor(rXiu * 200);
+  ctx.fillRect(570 - xiuWidth, 125, xiuWidth, 18);
+  ctx.restore();
+  
+  // 3. Center Section (Status / Result)
+  ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(outcome === 'tai' ? '🐉 TÀI' : '🐢 XỈU', badgeX + badgeW / 2, badgeY + badgeH / 2);
+  
+  if (status === 'betting') {
+    ctx.fillStyle = '#F59E0B'; // Amber
+    ctx.font = 'bold 36px "Arial"';
+    ctx.fillText(`${state.countdown}s`, 300, 75);
+    
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = 'bold 11px "Arial"';
+    ctx.fillText('ĐANG CƯỢC', 300, 115);
+  } else if (status === 'rolling') {
+    ctx.fillStyle = '#3B82F6'; // Blue
+    ctx.font = 'bold 22px "Arial"';
+    ctx.fillText('🎰 LẮC...', 300, 75);
+    
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = 'bold 11px "Arial"';
+    ctx.fillText('CHỜ KẾT QUẢ', 300, 115);
+  } else if (status === 'result') {
+    // Draw the 3 dice in the center
+    const dice = state.lastRoll || [1, 2, 3];
+    const dSize = 42;
+    const startDiceX = 300 - (3 * dSize + 2 * 8) / 2;
+    const diceY = 48;
+    
+    for (let i = 0; i < dice.length; i++) {
+      drawDie(ctx, startDiceX + i * (dSize + 8), diceY, dSize, dice[i]);
+    }
+    
+    const total = dice.reduce((a, b) => a + b, 0);
+    const outcome = total >= 11 ? 'tai' : 'xiu';
+    
+    ctx.fillStyle = outcome === 'tai' ? '#E11D48' : '#2563EB';
+    ctx.font = 'bold 18px "Arial"';
+    ctx.fillText(outcome === 'tai' ? '🐉 TÀI' : '🐢 XỈU', 300, 114);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 12px "Arial"';
+    ctx.fillText(`Tổng: ${total}`, 300, 138);
+  }
   ctx.restore();
   
   return canvas.toBuffer('image/png');
 }
 
 // Render the entire game room payload
-function renderTaixiuRoom(state, resultBuffer = null) {
+function renderTaixiuRoom(state, boardBuffer) {
   const round = state.round;
   const status = state.status;
-  const countdown = state.countdown;
-  const taiPool = state.taiPool;
-  const xiuPool = state.xiuPool;
-  
-  const playersTaiCount = state.playersTai ? state.playersTai.size : 0;
-  const playersXiuCount = state.playersXiu ? state.playersXiu.size : 0;
   
   // Format history to emojis
   const historyList = (state.history || []).slice(-15);
   const historyStr = historyList.map(h => h === 'tai' ? '🔴' : '⚪').join(' ') || 'Chưa có dữ liệu';
   
-  let titleText = `🎲 **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*`;
-  let timeStr = "";
-  
-  if (status === 'betting') {
-    timeStr = `⌛ Thời gian cược còn lại: **${countdown} giây**`;
-  } else if (status === 'rolling') {
-    timeStr = `🎰 **Đang lắc bát... Vui lòng đợi kết quả!**`;
-  } else {
-    timeStr = `🏁 **Vòng kết thúc! Chuẩn bị vòng mới...**`;
+  let color = 0xF59E0B; // Warning Amber for Betting
+  if (status === 'rolling') {
+    color = 0x3B82F6; // Blue for Rolling
+  } else if (status === 'result') {
+    color = 0x10B981; // Green for Result
   }
   
-  const contentLines = [
-    titleText,
-    timeStr,
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `🔴 **🐉 TÀI (11-17)**`,
-    `👤 Người chơi: \`${playersTaiCount.toLocaleString()}\`  |  💰 Tổng cược: \`${taiPool.toLocaleString()}\` coke`,
-    `━━━━━━━━━━━━`,
-    `⚪ **🐢 XỈU (4-10)**`,
-    `👤 Người chơi: \`${playersXiuCount.toLocaleString()}\`  |  💰 Tổng cược: \`${xiuPool.toLocaleString()}\` coke`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `📊 **Lịch sử gần đây:** ${historyStr}`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━`
-  ];
-
-  const payload = {
-    content: contentLines.join('\n'),
-    embeds: [],
-    components: []
-  };
+  const embed = new EmbedBuilder()
+    .setTitle(`🎲 COKE CASINO — TÀI XỈU`)
+    .setDescription(`### Vòng #${round}\n📊 **Lịch sử gần đây:** ${historyStr}`)
+    .setColor(color)
+    .setImage('attachment://board.png')
+    .setFooter({ text: "Chúc các bạn may mắn! 🍀" })
+    .setTimestamp();
 
   // Add Action buttons
   const isBettings = status === 'betting';
@@ -232,26 +257,19 @@ function renderTaixiuRoom(state, resultBuffer = null) {
       .setStyle(ButtonStyle.Secondary)
   );
 
-  payload.components = [row];
-
-  // Set visual attachment
-  if (status === 'result' && resultBuffer) {
-    payload.files = [new AttachmentBuilder(resultBuffer, { name: 'result.png' })];
-    // Attachments will show automatically in channel as images
-  } else {
-    // Show the infinite dice rolling GIF using normal embed/file or just linking to it
-    // To make it look extremely premium, we can add it as a link inside message content or simple embed
-    payload.embeds = [{
-      image: { url: 'https://i.imgur.com/x0c7g78.gif' },
-      color: 0x0F172A
-    }];
-  }
+  const payload = {
+    content: "",
+    embeds: [embed],
+    components: [row],
+    files: [new AttachmentBuilder(boardBuffer, { name: 'board.png' })],
+    skipV2: true // CRITICAL: bypass V2 converter to keep normal embed layout and horizontal buttons!
+  };
 
   return payload;
 }
 
 // Edit the casino room message safely
-async function updateRoomMessage(client, state, resultBuffer = null) {
+async function updateRoomMessage(client, state) {
   try {
     const channel = await client.channels.fetch(state.channelId).catch(() => null);
     if (!channel) return;
@@ -261,13 +279,10 @@ async function updateRoomMessage(client, state, resultBuffer = null) {
       msg = await channel.messages.fetch(state.messageId).catch(() => null);
     }
     
-    const payload = renderTaixiuRoom(state, resultBuffer);
+    const boardBuffer = drawTaixiuBoard(state);
+    const payload = renderTaixiuRoom(state, boardBuffer);
     
     if (msg) {
-      // Clear previous files if status transitioned back
-      if (state.status !== 'result') {
-        payload.files = [];
-      }
       await msg.edit(payload).catch(console.error);
     } else {
       const newMsg = await channel.send(payload).catch(console.error);
@@ -286,8 +301,6 @@ function startTaixiuLoop(client, channelId) {
   if (activeGames.has(channelId)) {
     clearInterval(activeGames.get(channelId));
   }
-
-  let updateCooldown = 0;
 
   const intervalId = setInterval(async () => {
     try {
@@ -347,11 +360,8 @@ function startTaixiuLoop(client, channelId) {
           }
           await Promise.all(payoutPromises).catch(console.error);
 
-          // Clear active state pools
-          const resultBuffer = drawTaixiuResult(state.lastRoll, outcome);
-          
           await state.save();
-          await updateRoomMessage(client, state, resultBuffer);
+          await updateRoomMessage(client, state);
 
         } else {
           await state.save();
