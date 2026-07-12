@@ -131,19 +131,19 @@ function drawChip(ctx, x, y, radius, label) {
   ctx.restore();
 }
 
-// Generate the fully visual game board Canvas (Green Felt Casino style) - Width expanded to 700
+// Generate the fully visual game board Canvas (Green Felt Casino style) - Height expanded to 220
 function drawTaixiuBoard(state) {
-  const canvas = createCanvas(700, 180);
+  const canvas = createCanvas(700, 220);
   const ctx = canvas.getContext('2d');
   
   // Background (Dark Green Felt)
   ctx.fillStyle = '#065F46';
-  ctx.fillRect(0, 0, 700, 180);
+  ctx.fillRect(0, 0, 700, 220);
   
   // Border (Luxurious Gold border)
   ctx.strokeStyle = '#F59E0B';
   ctx.lineWidth = 3;
-  ctx.strokeRect(5, 5, 690, 170);
+  ctx.strokeRect(5, 5, 690, 210);
   
   const status = state.status;
   const taiPool = state.taiPool || 0;
@@ -161,61 +161,61 @@ function drawTaixiuBoard(state) {
   // 1. TÀI Section (Left) - Color: Red
   ctx.fillStyle = '#EF4444';
   ctx.font = 'bold 26px "Arial"';
-  ctx.fillText('TÀI', 65, 45);
+  ctx.fillText('TÀI', 65, 55);
   
   // Draw Red Circle Indicator next to TÀI
   ctx.beginPath();
-  ctx.arc(38, 36, 10, 0, Math.PI * 2);
+  ctx.arc(38, 46, 10, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.fillStyle = '#E2E8F0';
   ctx.font = '13px "Arial"';
-  ctx.fillText('TỔNG ĐẶT CƯỢC', 30, 75);
+  ctx.fillText('TỔNG ĐẶT CƯỢC', 30, 90);
   
   // Draw Casino Chip next to pool labels
-  drawChip(ctx, 160, 71, 10, 'C');
+  drawChip(ctx, 160, 86, 10, 'C');
   
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 18px "Arial"';
-  ctx.fillText(`${taiPool.toLocaleString()} coke`, 30, 105);
+  ctx.fillText(`${taiPool.toLocaleString()} coke`, 30, 125);
   
   // Tai Pool Bar (Red with dark forest green backing)
   ctx.fillStyle = '#064E3B'; // Bar background
-  ctx.fillRect(30, 125, 230, 18);
+  ctx.fillRect(30, 155, 230, 18);
   ctx.fillStyle = '#EF4444'; // Red bar fill
-  ctx.fillRect(30, 125, Math.floor(rTai * 230), 18);
+  ctx.fillRect(30, 155, Math.floor(rTai * 230), 18);
   
   // 2. XỈU Section (Right) - Color: White
   ctx.save();
   ctx.textAlign = 'right';
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 26px "Arial"';
-  ctx.fillText('XỈU', 635, 45);
+  ctx.fillText('XỈU', 635, 55);
   
   // Draw White Circle Indicator next to XỈU
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  ctx.arc(658, 36, 10, 0, Math.PI * 2);
+  ctx.arc(658, 46, 10, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   
   ctx.fillStyle = '#E2E8F0';
   ctx.font = '13px "Arial"';
-  ctx.fillText('TỔNG ĐẶT CƯỢC', 440, 75);
+  ctx.fillText('TỔNG ĐẶT CƯỢC', 440, 90);
   
   // Draw Casino Chip next to pool labels
-  drawChip(ctx, 570, 71, 10, 'C');
+  drawChip(ctx, 570, 86, 10, 'C');
   
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 18px "Arial"';
-  ctx.fillText(`${xiuPool.toLocaleString()} coke`, 440, 105);
+  ctx.fillText(`${xiuPool.toLocaleString()} coke`, 440, 125);
   
   // Xiu Pool Bar (White with dark forest green backing)
   ctx.fillStyle = '#064E3B'; // Bar background
-  ctx.fillRect(440, 125, 230, 18);
+  ctx.fillRect(440, 155, 230, 18);
   ctx.fillStyle = '#FFFFFF'; // White bar fill
   const xiuWidth = Math.floor(rXiu * 230);
-  ctx.fillRect(670 - xiuWidth, 125, xiuWidth, 18);
+  ctx.fillRect(670 - xiuWidth, 155, xiuWidth, 18);
   
   // 3. Center Section (Status / Result)
   ctx.save();
@@ -225,25 +225,25 @@ function drawTaixiuBoard(state) {
   if (status === 'betting') {
     ctx.fillStyle = '#F59E0B'; // Gold
     ctx.font = 'bold 36px "Arial"';
-    ctx.fillText(`${state.countdown}s`, 350, 75);
+    ctx.fillText(`${state.countdown}s`, 350, 90);
     
     ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 11px "Arial"';
-    ctx.fillText('ĐANG CƯỢC', 350, 115);
+    ctx.fillText('ĐANG CƯỢC', 350, 135);
   } else if (status === 'rolling') {
     ctx.fillStyle = '#60A5FA'; // Light Blue
     ctx.font = 'bold 22px "Arial"';
-    ctx.fillText('LẮC...', 350, 75);
+    ctx.fillText('LẮC...', 350, 90);
     
     ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 11px "Arial"';
-    ctx.fillText('CHỜ KẾT QUẢ', 350, 115);
+    ctx.fillText('CHỜ KẾT QUẢ', 350, 135);
   } else if (status === 'result') {
     // Draw the 3 dice in the center
     const dice = state.lastRoll || [1, 2, 3];
     const dSize = 42;
     const startDiceX = 350 - (3 * dSize + 2 * 8) / 2;
-    const diceY = 48;
+    const diceY = 60;
     
     for (let i = 0; i < dice.length; i++) {
       drawDie(ctx, startDiceX + i * (dSize + 8), diceY, dSize, dice[i]);
@@ -259,16 +259,16 @@ function drawTaixiuBoard(state) {
     if (outcome === 'bao') {
       ctx.fillStyle = '#F59E0B'; // Gold for Bao
       ctx.font = 'bold 18px "Arial"';
-      ctx.fillText('BÃO 💥', 350, 114);
+      ctx.fillText('BÃO 💥', 350, 138);
     } else {
       ctx.fillStyle = outcome === 'tai' ? '#EF4444' : '#FFFFFF';
       ctx.font = 'bold 18px "Arial"';
-      ctx.fillText(outcome === 'tai' ? 'TÀI' : 'XỈU', 350, 114);
+      ctx.fillText(outcome === 'tai' ? 'TÀI' : 'XỈU', 350, 138);
     }
     
     ctx.fillStyle = '#E2E8F0';
     ctx.font = 'bold 12px "Arial"';
-    ctx.fillText(`Tổng: ${total}`, 350, 138);
+    ctx.fillText(`Tổng: ${total}`, 350, 165);
   }
   ctx.restore();
   
@@ -287,7 +287,7 @@ function renderTaixiuRoom(state, boardBuffer) {
   const cokeEmoji = config.emoji.money || "🪙";
 
   const headerText = `${cokeEmoji} **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*\n\n` +
-                     `📊 **Lịch sử:**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
+                     `📊 **Lịch sử**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
   
   const textHeader = new TextDisplayBuilder().setContent(headerText);
   
@@ -295,7 +295,7 @@ function renderTaixiuRoom(state, boardBuffer) {
     .addItems(new MediaGalleryItemBuilder().setURL('attachment://board.png'));
 
   const container = new ContainerBuilder()
-    .setAccentColor(0xEF4444) // Left icon/border color is always Red
+    .setAccentColor(state.status === 'result' ? 0x10B981 : 0x8E9AA7) // Green for result, Grey for betting/rolling
     .addTextDisplayComponents(textHeader)
     .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
     .addMediaGalleryComponents(gallery);
@@ -305,23 +305,19 @@ function renderTaixiuRoom(state, boardBuffer) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('taixiu_bet_tai')
-      .setLabel('Bet Tài')
+      .setLabel('Tài')
       .setStyle(ButtonStyle.Danger)
       .setDisabled(!isBettings),
     new ButtonBuilder()
       .setCustomId('taixiu_bet_xiu')
-      .setLabel('Bet Xỉu')
+      .setLabel('Xỉu')
       .setStyle(ButtonStyle.Primary)
       .setDisabled(!isBettings),
     new ButtonBuilder()
       .setCustomId('taixiu_bet_amount')
-      .setLabel('Đặt mức cược 💰')
+      .setLabel('Nạp chip')
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!isBettings),
-    new ButtonBuilder()
-      .setCustomId('taixiu_history')
-      .setLabel('Xem Lịch Sử 📜')
-      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!isBettings)
   );
 
   container.addActionRowComponents(row);
@@ -520,25 +516,25 @@ async function initializeTaixiu(client) {
         }
 
         if (cid === "taixiu_bet_tai" || cid === "taixiu_bet_xiu") {
-          await interaction.deferReply({ ephemeral: true }).catch(() => {});
+          await interaction.deferUpdate().catch(() => {});
 
           if (state.status !== "betting") {
-            return interaction.editReply({ content: "❌ Vòng cược đã đóng! Hãy đợi vòng sau." }).catch(() => {});
+            return;
           }
 
           const amt = pendingBets.get(userId) || 0;
           if (amt <= 0) {
-            return interaction.editReply({ content: "❌ Bạn chưa chọn mức cược! Hãy bấm nút **Đặt mức cược 💰** trước." }).catch(() => {});
+            return;
           }
 
           if (amt > 250000) {
-            return interaction.editReply({ content: "❌ Mức cược tối đa là **250,000** coke một lần!" }).catch(() => {});
+            return;
           }
 
           // Validate balance
           const userDoc = await User.findOne({ userId });
           if (!userDoc || userDoc.coke < amt) {
-            return interaction.editReply({ content: `❌ Số dư Coke hiện có không đủ để cược **${amt.toLocaleString()}**!` }).catch(() => {});
+            return;
           }
 
           const side = cid === "taixiu_bet_tai" ? "tai" : "xiu";
@@ -564,10 +560,8 @@ async function initializeTaixiu(client) {
             await runTransactionWithRetry(betTxn);
           } catch (err) {
             console.error("Giao dịch đặt cược Tài Xỉu lỗi:", err);
-            return interaction.editReply({ content: "❌ Lỗi hệ thống khi ghi nhận cược. Thử lại!" }).catch(() => {});
+            return;
           }
-
-          await interaction.editReply({ content: `✅ Đã đặt cược thành công **${amt.toLocaleString()}** coke vào cửa **${side === 'tai' ? '🐉 TÀI' : '🐢 XỈU'}**!` }).catch(() => {});
           
           // Immediately update message to show new bet pools
           await updateRoomMessage(client, state);
