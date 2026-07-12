@@ -669,21 +669,21 @@ function startTaixiuLoop(client, channelId) {
           let targetOutcome = null;
           const diff = Math.abs(taiPool - xiuPool);
           
-          // Pool imbalance protection: target the side with LESS money (or Bão) 70% of the time if difference > 10,000
-          if (diff > 10000 && Math.random() < 0.70) {
+          // Pool imbalance protection: target the side with LESS money (or Bão) 58% of the time if difference > 10,000
+          if (diff > 10000 && Math.random() < 0.58) {
             targetOutcome = taiPool > xiuPool ? 'xiu' : 'tai';
           }
           
-          // Anti-streak protection: break streaks of 5+ of the same outcome 85% of the time
+          // Anti-streak protection: break streaks of 5+ of the same outcome 65% of the time
           const history = state.history || [];
           if (history.length >= 5) {
             const last5 = history.slice(-5);
             const allTai = last5.every(h => h === 'tai');
             const allXiu = last5.every(h => h === 'xiu');
             
-            if (allTai && Math.random() < 0.85) {
+            if (allTai && Math.random() < 0.65) {
               targetOutcome = 'xiu';
-            } else if (allXiu && Math.random() < 0.85) {
+            } else if (allXiu && Math.random() < 0.65) {
               targetOutcome = 'tai';
             }
           }
