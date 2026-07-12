@@ -287,7 +287,7 @@ function renderTaixiuRoom(state, boardBuffer) {
   const cokeEmoji = config.emoji.money || "🪙";
 
   const headerText = `${cokeEmoji} **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*\n\n` +
-                     `📊 **Lịch sử gần đây:**\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
+                     `📊 **Lịch sử:**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
   
   const textHeader = new TextDisplayBuilder().setContent(headerText);
   
