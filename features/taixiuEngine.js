@@ -163,6 +163,21 @@ function drawCapsule(ctx, x, y, width, height, text, isTai) {
   ctx.restore();
 }
 
+// Draw a user silhouette icon on Canvas
+function drawUserIcon(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = '#94A3B8'; // Slate 400
+  // Head
+  ctx.beginPath();
+  ctx.arc(x, y - 4, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Body (shoulders)
+  ctx.beginPath();
+  ctx.arc(x, y + 4, 6, Math.PI, 0, false);
+  ctx.fill();
+  ctx.restore();
+}
+
 // Generate the fully visual game board Canvas (Premium Dark Green theme - Scaled up for readability)
 function drawTaixiuBoard(state) {
   const canvas = createCanvas(800, 500);
@@ -265,7 +280,11 @@ function drawTaixiuBoard(state) {
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
-  ctx.fillText(`👤 ${playersTai} NGƯỜI`, 170, 175);
+  ctx.textAlign = 'center';
+  const textTai = `${playersTai} NGƯỜI`;
+  ctx.fillText(textTai, 170, 175);
+  const widthTai = ctx.measureText(textTai).width;
+  drawUserIcon(ctx, 170 - widthTai / 2 - 10, 169);
   
   // Bet labels
   ctx.fillStyle = '#94A3B8';
@@ -329,7 +348,11 @@ function drawTaixiuBoard(state) {
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
-  ctx.fillText(`👤 ${playersXiu} NGƯỜI`, 630, 175);
+  ctx.textAlign = 'right';
+  const textXiu = `${playersXiu} NGƯỜI`;
+  ctx.fillText(textXiu, 630, 175);
+  const widthXiu = ctx.measureText(textXiu).width;
+  drawUserIcon(ctx, 630 - widthXiu - 10, 169);
   
   // Bet labels
   ctx.textAlign = 'left';
