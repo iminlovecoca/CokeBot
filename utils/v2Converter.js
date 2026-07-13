@@ -306,6 +306,17 @@ function patchMethod(target, methodName) {
       if (this.message) {
         this.message._hasV2 = true;
       }
+
+      // Discord API forbids sending embeds (even empty array) in V2 components payload
+      if (convertedOptions && typeof convertedOptions === "object") {
+        if (convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload") {
+          if (convertedOptions.options) {
+            delete convertedOptions.options.embeds;
+          }
+        } else {
+          delete convertedOptions.embeds;
+        }
+      }
     }
 
     const result = original.call(this, convertedOptions, ...convertedArgs);

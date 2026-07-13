@@ -887,32 +887,46 @@ async function initializeTaixiu(client) {
             }).catch(() => {});
           }
           
-          // Deduct balance and update state
-          try {
-            const betTxn = async (session) => {
-              await User.updateOne({ userId }, { $inc: { coke: -amt } }).session(session);
-              
-              if (side === "tai") {
-                const prev = state.playersTai.get(userId) || 0;
-                state.playersTai.set(userId, prev + amt);
-                state.taiPool += amt;
-              } else {
-                const prev = state.playersXiu.get(userId) || 0;
-                state.playersXiu.set(userId, prev + amt);
-                state.xiuPool += amt;
+          // Deduct balance atomatically
+          const updatedUser = await User.findOneAndUpdate(
+            { userId, coke: { $gte: amt } },
+            { $inc: { coke: -amt } },
+            { new: true }
+          );
+
+          if (!updatedUser) {
+            return interaction.followUp({
+              content: `❌ Số dư Coke hiện có không đủ để cược **${amt.toLocaleString()}**!`,
+              ephemeral: true
+            }).catch(() => {});
+          }
+
+          const poolField = side === "tai" ? "taiPool" : "xiuPool";
+          const updateField = side === "tai" ? "playersTai" : "playersXiu";
+
+          // Update Tài Xỉu state atomatically
+          const updatedState = await TaixiuState.findOneAndUpdate(
+            { channelId, status: "betting" },
+            {
+              $inc: {
+                [poolField]: amt,
+                [`${updateField}.${userId}`]: amt
               }
-              state.markModified("playersTai");
-              state.markModified("playersXiu");
-              await state.save({ session });
-            };
-            await runTransactionWithRetry(betTxn);
-          } catch (err) {
-            console.error("Giao dịch đặt cược Tài Xỉu lỗi:", err);
-            return;
+            },
+            { new: true }
+          );
+
+          if (!updatedState) {
+            // Refund the user if the betting phase closed in this millisecond
+            await User.updateOne({ userId }, { $inc: { coke: amt } }).catch(console.error);
+            return interaction.followUp({
+              content: "❌ Vòng cược đã đóng! Số tiền cược đã được hoàn trả.",
+              ephemeral: true
+            }).catch(() => {});
           }
           
           // Immediately update message to show new bet pools
-          await updateRoomMessage(client, state);
+          await updateRoomMessage(client, updatedState);
           return;
         }
       }
