@@ -277,13 +277,13 @@ function drawTaixiuBoard(state) {
   ctx.fillStyle = '#EF4444';
   ctx.font = 'bold 42px "Arial"';
   ctx.textAlign = 'center';
-  ctx.fillText('TÀI', 170, 140);
+  ctx.fillText('TÀI', 210, 140);
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
   ctx.textAlign = 'left';
-  ctx.fillText(`${playersTai} NGƯỜI`, 140, 175);
-  drawUserIcon(ctx, 125, 169);
+  ctx.fillText(`${playersTai} NGƯỜI`, 190, 175);
+  drawUserIcon(ctx, 175, 169);
   
   // Bet labels
   ctx.fillStyle = '#94A3B8';
@@ -343,13 +343,13 @@ function drawTaixiuBoard(state) {
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 42px "Arial"';
   ctx.textAlign = 'center';
-  ctx.fillText('XỈU', 630, 140);
+  ctx.fillText('XỈU', 590, 140);
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${playersXiu} NGƯỜI`, 600, 175);
-  drawUserIcon(ctx, 585, 169);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${playersXiu} NGƯỜI`, 610, 175);
+  drawUserIcon(ctx, 625, 169);
   
   // Bet labels
   ctx.textAlign = 'left';
@@ -691,7 +691,7 @@ function startTaixiuLoop(client, channelId) {
       } else if (state.status === 'rolling') {
         state.countdown -= 1;
         if (state.countdown <= 0) {
-          // Roll dice with House Control algorithm (anti-streak, pool-balancing)
+          // Roll dice with Smart Casino RNG algorithm (dynamic anti-streak, scaled pool-balancing, alternating-pattern breaker)
           const getOutcomeOf = (r1, r2, r3) => {
             if (r1 === r2 && r2 === r3) return 'bao';
             const sum = r1 + r2 + r3;
@@ -700,6 +700,8 @@ function startTaixiuLoop(client, channelId) {
 
           const taiPool = state.taiPool || 0;
           const xiuPool = state.xiuPool || 0;
+          const totalPool = taiPool + xiuPool;
+          const diff = Math.abs(taiPool - xiuPool);
           
           let d1 = Math.floor(Math.random() * 6) + 1;
           let d2 = Math.floor(Math.random() * 6) + 1;
@@ -709,24 +711,70 @@ function startTaixiuLoop(client, channelId) {
           let outcome = isBao ? 'bao' : (total >= 11 ? 'tai' : 'xiu');
 
           let targetOutcome = null;
-          const diff = Math.abs(taiPool - xiuPool);
-          
-          // Pool imbalance protection: target the side with LESS money (or Bão) 58% of the time if difference > 10,000
-          if (diff > 10000 && Math.random() < 0.58) {
-            targetOutcome = taiPool > xiuPool ? 'xiu' : 'tai';
-          }
-          
-          // Anti-streak protection: break streaks of 5+ of the same outcome 65% of the time
-          const history = state.history || [];
-          if (history.length >= 5) {
-            const last5 = history.slice(-5);
-            const allTai = last5.every(h => h === 'tai');
-            const allXiu = last5.every(h => h === 'xiu');
+
+          // 1. SMART POOL BALANCING (Can thiệp tăng dần dựa trên độ chênh lệch)
+          if (totalPool > 20000 && diff > 30000) {
+            let balanceChance = 0;
+            if (diff > 300000) {
+              balanceChance = 0.65; // Chênh lệch cực lớn (>300k): 65% cân cược
+            } else if (diff > 150000) {
+              balanceChance = 0.50; // Chênh lệch lớn (>150k): 50% cân cược
+            } else if (diff > 50000) {
+              balanceChance = 0.30; // Chênh lệch vừa (>50k): 30% cân cược
+            }
             
-            if (allTai && Math.random() < 0.65) {
-              targetOutcome = 'xiu';
-            } else if (allXiu && Math.random() < 0.65) {
-              targetOutcome = 'tai';
+            if (Math.random() < balanceChance) {
+              targetOutcome = taiPool > xiuPool ? 'xiu' : 'tai';
+            }
+          }
+
+          // 2. DYNAMIC ANTI-STREAK (Chống cầu bệt linh hoạt theo cấp độ bệt)
+          const history = state.history || [];
+          if (history.length >= 4) {
+            const last4 = history.slice(-4);
+            const last5 = history.slice(-5);
+            const last6 = history.slice(-6);
+
+            let streakType = null;
+            let streakLength = 0;
+
+            if (last6.length === 6 && last6.every(h => h === last6[0])) {
+              streakType = last6[0];
+              streakLength = 6;
+            } else if (last5.length === 5 && last5.every(h => h === last5[0])) {
+              streakType = last5[0];
+              streakLength = 5;
+            } else if (last4.length === 4 && last4.every(h => h === last4[0])) {
+              streakType = last4[0];
+              streakLength = 4;
+            }
+
+            if (streakType && streakType !== 'bao') {
+              let breakChance = 0;
+              if (streakLength === 4) breakChance = 0.25; // Bệt 4: 25% cơ hội bẻ
+              else if (streakLength === 5) breakChance = 0.45; // Bệt 5: 45% cơ hội bẻ
+              else if (streakLength === 6) breakChance = 0.70; // Bệt 6: 70% cơ hội bẻ
+              else breakChance = 0.85; // Bệt dài hơn: 85% cơ hội bẻ
+
+              if (Math.random() < breakChance) {
+                targetOutcome = streakType === 'tai' ? 'xiu' : 'tai';
+              }
+            }
+
+            // 3. ANTI-PATTERN (Bẻ cầu nhảy 1-1 nếu lặp lại quá 6 lần liên tục)
+            if (history.length >= 6) {
+              const last6Pattern = history.slice(-6);
+              let isAlternating = true;
+              for (let i = 1; i < 6; i++) {
+                if (last6Pattern[i] === last6Pattern[i - 1] || last6Pattern[i] === 'bao' || last6Pattern[i - 1] === 'bao') {
+                  isAlternating = false;
+                  break;
+                }
+              }
+              // Nếu cầu dạng T-X-T-X-T-X, có 45% cơ hội bẻ (giữ nguyên kết quả cuối thay vì nhảy tiếp)
+              if (isAlternating && Math.random() < 0.45) {
+                targetOutcome = last6Pattern[5];
+              }
             }
           }
 
