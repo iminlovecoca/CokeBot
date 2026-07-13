@@ -208,8 +208,14 @@ function drawTaixiuBoard(state) {
   const totalPool = taiPool + xiuPool;
   
   // Players counts
-  const playersTai = state.playersTai ? state.playersTai.size : 0;
-  const playersXiu = state.playersXiu ? state.playersXiu.size : 0;
+  const getMapSize = (map) => {
+    if (!map) return 0;
+    if (typeof map.size === 'number') return map.size;
+    if (typeof map.get === 'function') return 0;
+    return Object.keys(map).length;
+  };
+  const playersTai = getMapSize(state.playersTai);
+  const playersXiu = getMapSize(state.playersXiu);
   
   // Ratios
   let rTai = 0.5;
@@ -500,15 +506,15 @@ function drawTaixiuBoard(state) {
 function renderTaixiuRoom(state, boardBuffer) {
   const round = state.round;
   
-  // Format history: Tai = ⚫, Xiu = ⚪, Bao = 🔵 (Blue dot for triple)
+  // Format history: Tai = 🔴, Xiu = ⚪, Bao = 🔵 (Blue dot for triple)
   const historyList = (state.history || []).slice(-15);
-  const historyStr = historyList.map(h => h === 'tai' ? '⚫' : h === 'bao' ? '🔵' : '⚪').join(' ') || 'Chưa có dữ liệu';
+  const historyStr = historyList.map(h => h === 'tai' ? '🔴' : h === 'bao' ? '🔵' : '⚪').join(' ') || 'Chưa có dữ liệu';
 
   // Get Coke Money Emoji
   const cokeEmoji = config.emoji.money || "🪙";
 
   const headerText = `${cokeEmoji} **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*\n\n` +
-                     `📊 **Lịch sử gần đây:**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
+                     `📊 **Lịch sử**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
   
   const textHeader = new TextDisplayBuilder().setContent(headerText);
   
@@ -719,9 +725,14 @@ function startTaixiuLoop(client, channelId) {
           // Distribute payouts: If outcome is 'bao', nobody wins (house takes all)
           if (outcome !== 'bao') {
             const winnersMap = outcome === 'tai' ? state.playersTai : state.playersXiu;
+            const getMapEntries = (map) => {
+              if (!map) return [];
+              if (typeof map.entries === 'function') return Array.from(map.entries());
+              return Object.entries(map);
+            };
             
             const payoutPromises = [];
-            for (const [userId, betAmt] of winnersMap.entries()) {
+            for (const [userId, betAmt] of getMapEntries(winnersMap)) {
               // Payout: Double the bet amount (x2 return)
               payoutPromises.push(incBalance(userId, betAmt * 2));
             }
@@ -806,7 +817,7 @@ async function initializeTaixiu(client) {
 
         if (cid === "taixiu_history") {
           const list = (state.history || []).slice(-20);
-          const formatted = list.map(h => h === 'tai' ? '⚫ Tài' : h === 'bao' ? '🔵 Bão' : '⚪ Xỉu').join(' → ');
+          const formatted = list.map(h => h === 'tai' ? '🔴 Tài' : h === 'bao' ? '🔵 Bão' : '⚪ Xỉu').join(' → ');
           await interaction.reply({
             content: `📊 **Lịch sử 20 vòng gần nhất:**\n${formatted || "Chưa có vòng đấu nào diễn ra."}`,
             ephemeral: true
@@ -861,7 +872,14 @@ async function initializeTaixiu(client) {
           }
 
           const side = cid === "taixiu_bet_tai" ? "tai" : "xiu";
-          const currentBet = (side === "tai" ? state.playersTai.get(userId) : state.playersXiu.get(userId)) || 0;
+          const getPlayerBet = (map, uId) => {
+            if (!map) return 0;
+            if (typeof map.get === "function") return map.get(uId) || 0;
+            return map[uId] || 0;
+          };
+          const currentBet = side === "tai" 
+            ? getPlayerBet(state.playersTai, userId) 
+            : getPlayerBet(state.playersXiu, userId);
           
           if (currentBet + amt > 250000) {
             const maxAllowed = 250000 - currentBet;
