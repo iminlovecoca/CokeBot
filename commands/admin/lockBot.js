@@ -8,9 +8,9 @@ const BaseCommand = require('../../core/BaseCommand');
 class LockBotCommand extends BaseCommand {
   constructor() {
     super({
-  name: 'lock',
-  description: 'Khóa bot toàn bộ hoặc khóa một tính năng/lệnh cụ thể',
-        cooldown: 0
+      name: 'lock',
+      description: 'Khóa bot toàn bộ hoặc khóa một tính năng/lệnh cụ thể',
+      cooldown: 0
     });
   }
 
@@ -21,25 +21,26 @@ class LockBotCommand extends BaseCommand {
 
     let doc = await BotLock.findById('singleton');
     if (!doc) {
-      doc = await BotLock.create({ _id: 'singleton', locked: false, lockedFeatures: [] });
+      doc = await BotLock.create({ _id: 'singleton', locked: false, lockedFeatures: [], allowedUsers: [] });
     }
 
     const feature = args.join(' ').trim().toLowerCase();
 
     if (!feature) {
-      
       doc.locked = !doc.locked;
       await doc.save();
       message.client.botLocked = doc.locked;
-      message.client.allowedIds = config.permissions.dev_ids;
+      message.client.allowedIds = Array.from(new Set([
+        ...(config.permissions.dev_ids || []),
+        ...(doc.allowedUsers || [])
+      ]));
 
       if (message.client.botLocked) {
-        await message.reply('🔒 Bot đã bị **khóa**. Chỉ Admin có thể sử dụng lệnh.');
+        await message.reply('🔒 Bot đã bị **khóa**. Chỉ Admin và những người dùng được cấp phép mới có thể sử dụng.');
       } else {
         await message.reply('🔓 Bot đã được **mở khóa**, mọi người có thể sử dụng lệnh.');
       }
     } else {
-      
       if (doc.lockedFeatures.includes(feature)) {
         return message.reply(`⚠️ Tính năng/lệnh **${feature}** đã được khóa từ trước.`);
       }
@@ -49,7 +50,7 @@ class LockBotCommand extends BaseCommand {
 
       await message.reply(`🔒 Tính năng/lệnh **${feature}** đã bị **khóa**. Người dùng thông thường không thể sử dụng.`);
     }
-    }
+  }
 }
 
 module.exports = new LockBotCommand();
