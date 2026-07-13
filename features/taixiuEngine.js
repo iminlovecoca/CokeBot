@@ -631,16 +631,19 @@ async function updateRoomMessage(client, state) {
       }
     }
     
-    const boardBuffer = drawTaixiuBoard(state);
-    const payload = renderTaixiuRoom(state, boardBuffer);
+    const latestState = activeStates.get(state.channelId) || state;
+    
+    const boardBuffer = drawTaixiuBoard(latestState);
+    const payload = renderTaixiuRoom(latestState, boardBuffer);
     
     if (msg) {
       await msg.edit(payload).catch(console.error);
     } else {
       const newMsg = await channel.send(payload).catch(console.error);
       if (newMsg) {
+        latestState.messageId = newMsg.id;
         state.messageId = newMsg.id;
-        await state.save();
+        await latestState.save();
       }
     }
   } catch (err) {
@@ -690,7 +693,10 @@ function startTaixiuLoop(client, channelId) {
         }
 
         if (needsUpdate) {
-          await state.save();
+          await TaixiuState.updateOne(
+            { channelId },
+            { $set: { countdown: state.countdown, status: state.status } }
+          ).catch(console.error);
           await updateRoomMessage(client, state);
         }
 
