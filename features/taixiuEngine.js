@@ -575,7 +575,6 @@ function renderTaixiuRoom(state, boardBuffer) {
   container.addActionRowComponents(row2);
 
   const payload = {
-    content: "",
     embeds: [],
     components: [container],
     files: [new AttachmentBuilder(boardBuffer, { name: imageName })],
