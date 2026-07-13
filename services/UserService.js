@@ -1,5 +1,6 @@
 const BaseService = require('./BaseService');
 const config = require('../data/config');
+const { isDev, isAdmin } = require('../utils/userUtil');
 
 class UserService extends BaseService {
   constructor(locator) {
@@ -15,13 +16,11 @@ class UserService extends BaseService {
   }
 
   isDev(userId) {
-    const ownerId = "745950731638407210";
-    return userId === ownerId || config.permissions.dev_ids.includes(userId) || userId === process.env.OWNER_ID;
+    return isDev(userId);
   }
 
   isAdmin(userId) {
-    const ownerId = "745950731638407210";
-    return userId === ownerId || config.permissions.admin_ids.includes(userId) || userId === process.env.OWNER_ID;
+    return isAdmin(userId);
   }
 
   getUserXpNeeded(level) {

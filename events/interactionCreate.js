@@ -6,7 +6,6 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
-      
       const user = await getOrCreateUser(interaction.user.id);
       if (user.bannedUntil && user.bannedUntil > new Date()) {
         const remainingMs = new Date(user.bannedUntil).getTime() - Date.now();
@@ -36,28 +35,6 @@ module.exports = {
       }
 
       if (interaction.isChatInputCommand()) {
-        const originalReply = interaction.reply.bind(interaction);
-        const originalFollowUp = interaction.followUp.bind(interaction);
-        interaction.reply = async (options) => {
-          const payload =
-            options && typeof options === "object" && options.ephemeral
-              ? { ...options, flags: 64, ephemeral: undefined }
-              : options;
-
-          if (interaction.replied || interaction.deferred) {
-            return originalFollowUp(payload);
-          }
-
-          try {
-            return await originalReply(payload);
-          } catch (error) {
-            if (error?.code === 40060 || error?.code === 10062) {
-              return originalFollowUp(payload).catch(() => {});
-            }
-            throw error;
-          }
-        };
-
         const command =
           client.commands.get(interaction.commandName) ||
           client.noituCommands.get(interaction.commandName);

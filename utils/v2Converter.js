@@ -38,16 +38,29 @@ function convertToV2(options, force = false, existingAttachments = []) {
   if (options.skipV2) {
     const cleanOptions = { ...options };
     delete cleanOptions.skipV2;
+    if (cleanOptions.ephemeral) {
+      cleanOptions.flags = (cleanOptions.flags || 0) | MessageFlags.Ephemeral;
+      delete cleanOptions.ephemeral;
+    }
     return cleanOptions;
   }
 
   // If there are no embeds, return original options untouched, UNLESS forced V2 is required
   const hasEmbeds = options.embeds && options.embeds.length > 0;
   if (!force && !hasEmbeds) {
-    return options;
+    const cleanOptions = { ...options };
+    if (cleanOptions.ephemeral) {
+      cleanOptions.flags = (cleanOptions.flags || 0) | MessageFlags.Ephemeral;
+      delete cleanOptions.ephemeral;
+    }
+    return cleanOptions;
   }
 
   const newOptions = { ...options };
+  if (newOptions.ephemeral) {
+    newOptions.flags = (newOptions.flags || 0) | MessageFlags.Ephemeral;
+    delete newOptions.ephemeral;
+  }
   const originalEmbeds = newOptions.embeds || [];
   delete newOptions.embeds;
 
@@ -318,17 +331,41 @@ function patchMethod(target, methodName) {
         }
       }
     }
+    // If the message has V2 components, but the new payload doesn't, we must clear the IsComponentsV2 flag
+    if (hasV2 && !isSendingV2) {
+      if (convertedOptions && typeof convertedOptions === "object") {
+        if (convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload") {
+          if (!convertedOptions.options) {
+            convertedOptions.options = {};
+          }
+          const currentFlags = convertedOptions.options.flags || 0;
+          convertedOptions.options.flags = currentFlags & ~MessageFlags.IsComponentsV2;
+        } else {
+          const currentFlags = convertedOptions.flags || 0;
+          convertedOptions.flags = currentFlags & ~MessageFlags.IsComponentsV2;
+        }
+      }
+    }
 
     const result = original.call(this, convertedOptions, ...convertedArgs);
 
-    // If it resolves to a Message, pass down the V2 flag
-    if (isSendingV2 && result instanceof Promise) {
-      return result.then((res) => {
-        if (res) {
-          res._hasV2 = true;
+    if (result instanceof Promise) {
+      let promise = result.catch((error) => {
+        if (isInteraction && (error?.code === 40060 || error?.code === 10062) && methodName === "reply") {
+          return this.followUp(convertedOptions, ...convertedArgs).catch(() => {});
         }
-        return res;
+        throw error;
       });
+
+      if (isSendingV2) {
+        promise = promise.then((res) => {
+          if (res) {
+            res._hasV2 = true;
+          }
+          return res;
+        });
+      }
+      return promise;
     }
 
     return result;

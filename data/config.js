@@ -312,6 +312,7 @@ module.exports = {
   },
 
   permissions: {
+    owner_id: "745950731638407210",
     dev_ids: [process.env.OWNER_ID, "690168451255631934"],
     admin_ids: [],
     anticheat_immune_ids: [],

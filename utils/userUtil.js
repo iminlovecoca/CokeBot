@@ -45,13 +45,11 @@ const getUser = async (userId, session = null) => {
 };
 
 const isDev = (userId) => {
-  const ownerId = "745950731638407210";
-  return userId === ownerId || config.permissions.dev_ids.includes(userId) || userId === process.env.OWNER_ID;
+  return userId === config.permissions.owner_id || config.permissions.dev_ids.includes(userId) || userId === process.env.OWNER_ID;
 };
 
 const isAdmin = (userId) => {
-  const ownerId = "745950731638407210";
-  return userId === ownerId || config.permissions.admin_ids.includes(userId) || userId === process.env.OWNER_ID;
+  return userId === config.permissions.owner_id || config.permissions.admin_ids.includes(userId) || userId === process.env.OWNER_ID;
 };
 
 const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {

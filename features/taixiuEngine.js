@@ -29,6 +29,9 @@ const pendingBets = new Map();
 // Track active timers per channelId
 const activeGames = new Map();
 
+// Track active game states in memory (key: channelId, value: TaixiuState document)
+const activeStates = new Map();
+
 // Custom dice drawing helper
 function drawDie(ctx, x, y, size, value) {
   const radius = 6;
@@ -625,10 +628,20 @@ function startTaixiuLoop(client, channelId) {
     clearInterval(activeGames.get(channelId));
   }
 
+  // Force reload state from DB on next tick when starting/resuming loop
+  activeStates.delete(channelId);
+
   const intervalId = setInterval(async () => {
     try {
-      const state = await TaixiuState.findOne({ channelId });
-      if (!state) return;
+      // 1. Get state from RAM first
+      let state = activeStates.get(channelId);
+      
+      // 2. If not in RAM, fetch from DB and store it
+      if (!state) {
+        state = await TaixiuState.findOne({ channelId });
+        if (!state) return;
+        activeStates.set(channelId, state);
+      }
 
       // Handle states
       if (state.status === 'betting') {
@@ -649,8 +662,8 @@ function startTaixiuLoop(client, channelId) {
           }
         }
 
-        await state.save();
         if (needsUpdate) {
+          await state.save();
           await updateRoomMessage(client, state);
         }
 
@@ -741,9 +754,6 @@ function startTaixiuLoop(client, channelId) {
 
           await state.save();
           await updateRoomMessage(client, state);
-
-        } else {
-          await state.save();
         }
 
       } else if (state.status === 'result') {
@@ -760,8 +770,6 @@ function startTaixiuLoop(client, channelId) {
           
           await state.save();
           await updateRoomMessage(client, state);
-        } else {
-          await state.save();
         }
       }
 
@@ -942,6 +950,9 @@ async function initializeTaixiu(client) {
               ephemeral: true
             }).catch(() => {});
           }
+          
+          // Sync with the in-memory cache
+          activeStates.set(channelId, updatedState);
           
           // Immediately update message to show new bet pools
           await updateRoomMessage(client, updatedState);
