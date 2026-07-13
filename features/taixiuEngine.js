@@ -502,18 +502,21 @@ function renderTaixiuRoom(state, boardBuffer) {
   
   // Format history: Tai = ⚫, Xiu = ⚪, Bao = 🔵 (Blue dot for triple)
   const historyList = (state.history || []).slice(-15);
-  const historyStr = historyList.map(h => h === 'tai' ? '🔴' : h === 'bao' ? '🔵' : '⚪').join(' ') || 'Chưa có dữ liệu';
+  const historyStr = historyList.map(h => h === 'tai' ? '⚫' : h === 'bao' ? '🔵' : '⚪').join(' ') || 'Chưa có dữ liệu';
 
   // Get Coke Money Emoji
   const cokeEmoji = config.emoji.money || "🪙";
 
   const headerText = `${cokeEmoji} **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*\n\n` +
-                     `📊 **Lịch sử**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
+                     `📊 **Lịch sử gần đây:**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
   
   const textHeader = new TextDisplayBuilder().setContent(headerText);
   
+  // Use a unique name for the board attachment to bypass Discord's CDN cache
+  const imageName = `board_${Date.now()}.png`;
+  
   const gallery = new MediaGalleryBuilder()
-    .addItems(new MediaGalleryItemBuilder().setURL('attachment://board.png'));
+    .addItems(new MediaGalleryItemBuilder().setURL(`attachment://${imageName}`));
 
   const container = new ContainerBuilder()
     .setAccentColor(state.status === 'result' ? 0x10B981 : 0x8E9AA7) // Green for result, Grey for betting/rolling
@@ -575,7 +578,7 @@ function renderTaixiuRoom(state, boardBuffer) {
     content: "",
     embeds: [],
     components: [container],
-    files: [new AttachmentBuilder(boardBuffer, { name: 'board.png' })],
+    files: [new AttachmentBuilder(boardBuffer, { name: imageName })],
     flags: MessageFlags.IsComponentsV2,
     skipV2: true // CRITICAL: Skip v2Converter so it does not corrupt our pre-built V2 layout!
   };
