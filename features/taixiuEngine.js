@@ -276,15 +276,14 @@ function drawTaixiuBoard(state) {
   // Text Title (Bigger and bold)
   ctx.fillStyle = '#EF4444';
   ctx.font = 'bold 42px "Arial"';
+  ctx.textAlign = 'center';
   ctx.fillText('TÀI', 170, 140);
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
-  ctx.textAlign = 'center';
-  const textTai = `${playersTai} NGƯỜI`;
-  ctx.fillText(textTai, 170, 175);
-  const widthTai = ctx.measureText(textTai).width;
-  drawUserIcon(ctx, 170 - widthTai / 2 - 10, 169);
+  ctx.textAlign = 'left';
+  ctx.fillText(`${playersTai} NGƯỜI`, 140, 175);
+  drawUserIcon(ctx, 125, 169);
   
   // Bet labels
   ctx.fillStyle = '#94A3B8';
@@ -343,16 +342,14 @@ function drawTaixiuBoard(state) {
   // Text Title
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 42px "Arial"';
-  ctx.textAlign = 'right';
+  ctx.textAlign = 'center';
   ctx.fillText('XỈU', 630, 140);
   
   ctx.fillStyle = '#94A3B8';
   ctx.font = 'bold 16px "Arial"';
-  ctx.textAlign = 'right';
-  const textXiu = `${playersXiu} NGƯỜI`;
-  ctx.fillText(textXiu, 630, 175);
-  const widthXiu = ctx.measureText(textXiu).width;
-  drawUserIcon(ctx, 630 - widthXiu - 10, 169);
+  ctx.textAlign = 'left';
+  ctx.fillText(`${playersXiu} NGƯỜI`, 600, 175);
+  drawUserIcon(ctx, 585, 169);
   
   // Bet labels
   ctx.textAlign = 'left';
@@ -675,6 +672,7 @@ function startTaixiuLoop(client, channelId) {
           state.status = 'rolling';
           state.countdown = 5;
           needsUpdate = true;
+          pendingBets.clear();
         } else {
           // Rule: Countdown only updates every 5 seconds (60, 55, 50...)
           // Except for the last 10 seconds: updates every second
@@ -874,9 +872,13 @@ async function initializeTaixiu(client) {
 
           pendingBets.set(userId, amount);
           await interaction.reply({
-            content: `💵 Đã thiết lập mức cược nhanh: **${amount.toLocaleString()}** coke.\nNhấn nút **Bet Tài** hoặc **Bet Xỉu** để đặt cược!`,
+            content: `💵 Đã thiết lập mức cược nhanh: **${amount.toLocaleString()}** coke.\nNhấn nút **Bet Tài** hoặc **Bet Xỉu** để đặt cược! *(Thông báo này sẽ tự động ẩn sau 15 giây)*`,
             ephemeral: true
           }).catch(() => {});
+
+          setTimeout(() => {
+            interaction.deleteReply().catch(() => {});
+          }, 15000);
           return;
         }
 
@@ -979,6 +981,19 @@ async function initializeTaixiu(client) {
           
           // Immediately update message to show new bet pools
           await updateRoomMessage(client, updatedState);
+
+          // Ephemeral reply to confirm bet placement
+          const sideText = side === "tai" ? "🔴 TÀI" : "⚪ XỈU";
+          const followUpMsg = await interaction.followUp({
+            content: `✅ Bạn đã đặt cược thành công **${amt.toLocaleString()}** coke vào cửa **${sideText}**! *(Thông báo này sẽ tự động ẩn sau 10 giây)*`,
+            ephemeral: true
+          }).catch(() => {});
+
+          if (followUpMsg) {
+            setTimeout(() => {
+              interaction.deleteReply(followUpMsg.id).catch(() => {});
+            }, 10000);
+          }
           return;
         }
       }
@@ -1006,9 +1021,13 @@ async function initializeTaixiu(client) {
 
           pendingBets.set(userId, amount);
           await interaction.reply({
-            content: `💵 Đã thiết lập mức cược: **${amount.toLocaleString()}** coke.\nNhấn nút **Bet Tài** hoặc **Bet Xỉu** để chính thức đặt cược!`,
+            content: `💵 Đã thiết lập mức cược: **${amount.toLocaleString()}** coke.\nNhấn nút **Bet Tài** hoặc **Bet Xỉu** để chính thức đặt cược! *(Thông báo này sẽ tự động ẩn sau 15 giây)*`,
             ephemeral: true
           }).catch(() => {});
+
+          setTimeout(() => {
+            interaction.deleteReply().catch(() => {});
+          }, 15000);
           return;
         }
       }
