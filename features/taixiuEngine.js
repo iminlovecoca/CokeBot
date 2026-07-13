@@ -617,12 +617,18 @@ function renderTaixiuRoom(state, boardBuffer) {
 // Edit the casino room message safely
 async function updateRoomMessage(client, state) {
   try {
-    const channel = await client.channels.fetch(state.channelId).catch(() => null);
+    let channel = client.channels.cache.get(state.channelId);
+    if (!channel) {
+      channel = await client.channels.fetch(state.channelId).catch(() => null);
+    }
     if (!channel) return;
     
     let msg = null;
     if (state.messageId) {
-      msg = await channel.messages.fetch(state.messageId).catch(() => null);
+      msg = channel.messages.cache.get(state.messageId);
+      if (!msg) {
+        msg = await channel.messages.fetch(state.messageId).catch(() => null);
+      }
     }
     
     const boardBuffer = drawTaixiuBoard(state);
