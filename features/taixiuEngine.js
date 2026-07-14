@@ -277,7 +277,7 @@ function renderTaixiuRoom(state, boardBuffer) {
   // Set up Embed
   const embed = new EmbedBuilder()
     .setColor(state.status === 'result' ? "#10B981" : "#D97706") // Green for result, gold/orange for betting
-    .setTitle(`COKE CASINO — TÀI XỈU | Vòng #${round}`);
+    .setTitle(`🎰 COKE CASINO — TÀI XỈU | Vòng #${round}`);
 
   // Set status description
   let countdownText = "";
@@ -292,24 +292,25 @@ function renderTaixiuRoom(state, boardBuffer) {
     const d2 = dice[1];
     const d3 = dice[2];
     const isBao = (d1 === d2 && d2 === d3);
-    const outcomeText = isBao ? 'Bão' : (total >= 11 ? 'Tài' : 'Xỉu');
+    const outcomeText = isBao ? 'Bão 💥' : (total >= 11 ? 'Tài 🐉' : 'Xỉu 🐢');
     countdownText = `🎉 Kết quả: **${outcomeText}** (${total} điểm)`;
   }
 
-  embed.setDescription(`${countdownText}\n\n**Cầu :** ${historyStr}`);
+  const blankEmoji = config.emoji.blank || "";
+  const headsEmoji = config.emoji.heads || "🪙";
+  const tailsEmoji = config.emoji.tails || "🪙";
 
-  // Add side-by-side Fields for Tài and Xỉu
-  embed.addFields(
-    {
-      name: "🪙 TÀI",
-      value: `${cokeEmoji} **${state.taiPool.toLocaleString()}** coke\n${userEmoji} **${playersTai} người**`,
-      inline: true
-    },
-    {
-      name: "🪙 XỈU",
-      value: `${cokeEmoji} **${state.xiuPool.toLocaleString()}** coke\n${userEmoji} **${playersXiu} người**`,
-      inline: true
-    }
+  const line1 = `${headsEmoji} **TÀI**${blankEmoji.repeat(16)}${tailsEmoji} **XỈU**`;
+  const line2 = `${cokeEmoji} **${state.taiPool.toLocaleString()}** coke${blankEmoji.repeat(12)}${cokeEmoji} **${state.xiuPool.toLocaleString()}** coke`;
+  const line3 = `👤 **${playersTai} người**${blankEmoji.repeat(15)}👤 **${playersXiu} người**`;
+
+  embed.setDescription(
+    `${line1}\n` +
+    `${line2}\n` +
+    `${line3}\n\n` +
+    `──────────────────────────\n\n` +
+    `${countdownText}\n\n` +
+    `**Cầu :** ${historyStr}`
   );
 
   const imageName = `board_${Date.now()}.png`;
