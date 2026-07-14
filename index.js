@@ -321,8 +321,13 @@ client.once(Events.ClientReady, async () => {
     const slashCommands = buildSlashCommandsForRegistration();
 
     if (client.application) {
-      await client.application.commands.set(slashCommands);
-      console.log(`✅ Registered ${slashCommands.length} slash commands.`);
+      client.application.commands.set(slashCommands)
+        .then(() => {
+          console.log(`✅ Registered ${slashCommands.length} slash commands.`);
+        })
+        .catch(err => {
+          console.error("❌ Failed to register slash commands:", err);
+        });
     }
 
     await loadBotLock(client);
