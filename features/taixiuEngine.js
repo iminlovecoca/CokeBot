@@ -296,21 +296,22 @@ function renderTaixiuRoom(state, boardBuffer) {
     countdownText = `🎉 Kết quả: **${outcomeText}** (${total} điểm)`;
   }
 
-  const blankEmoji = config.emoji.blank || "";
   const headsEmoji = config.emoji.heads || "🪙";
   const tailsEmoji = config.emoji.tails || "🪙";
 
-  const line1 = `${headsEmoji} **TÀI**${blankEmoji.repeat(16)}${tailsEmoji} **XỈU**`;
-  const line2 = `${cokeEmoji} **${state.taiPool.toLocaleString()}** coke${blankEmoji.repeat(12)}${cokeEmoji} **${state.xiuPool.toLocaleString()}** coke`;
-  const line3 = `👤 **${playersTai} người**${blankEmoji.repeat(15)}👤 **${playersXiu} người**`;
+  embed.setDescription(`${countdownText}\n\n**Cầu :** ${historyStr}`);
 
-  embed.setDescription(
-    `${line1}\n` +
-    `${line2}\n` +
-    `${line3}\n\n` +
-    `──────────────────────────\n\n` +
-    `${countdownText}\n\n` +
-    `**Cầu :** ${historyStr}`
+  embed.addFields(
+    {
+      name: `${headsEmoji} TÀI`,
+      value: `${cokeEmoji} **${state.taiPool.toLocaleString()}** coke\n👤 **${playersTai} người**`,
+      inline: true
+    },
+    {
+      name: `${tailsEmoji} XỈU`,
+      value: `${cokeEmoji} **${state.xiuPool.toLocaleString()}** coke\n👤 **${playersXiu} người**`,
+      inline: true
+    }
   );
 
   const imageName = `board_${Date.now()}.png`;
