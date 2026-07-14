@@ -180,347 +180,74 @@ function drawUserIcon(ctx, x, y) {
 
 // Generate the fully visual game board Canvas (Premium Dark Green theme - Scaled up for readability)
 function drawTaixiuBoard(state) {
-  const canvas = createCanvas(800, 500);
+  // Mini board: 400 x 180
+  const canvas = createCanvas(400, 180);
   const ctx = canvas.getContext('2d');
   
   // 1. Background (Dark Royal Green Felt)
-  const gradBg = ctx.createRadialGradient(400, 250, 80, 400, 250, 500);
+  const gradBg = ctx.createRadialGradient(200, 90, 40, 200, 90, 250);
   gradBg.addColorStop(0, '#064E3B');
   gradBg.addColorStop(1, '#022C22');
   ctx.fillStyle = gradBg;
-  ctx.fillRect(0, 0, 800, 500);
+  ctx.fillRect(0, 0, 400, 180);
   
   // Gold Ornate Outer Border
   ctx.strokeStyle = '#D97706';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(8, 8, 784, 484);
+  ctx.lineWidth = 4;
+  ctx.strokeRect(6, 6, 388, 168);
   
   ctx.strokeStyle = '#EAB308';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(13, 13, 774, 474);
-  
-  // Top Title Plate "TÀI XỈU"
-  ctx.save();
-  ctx.fillStyle = '#022C22';
-  ctx.strokeStyle = '#D97706';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(300, 13);
-  ctx.lineTo(340, 53);
-  ctx.lineTo(460, 53);
-  ctx.lineTo(500, 13);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  
-  ctx.fillStyle = '#F59E0B'; // Rich Gold Title
-  ctx.font = 'bold 24px "Arial"';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('TÀI XỈU', 400, 33);
-  ctx.restore();
+  ctx.lineWidth = 1;
+  ctx.strokeRect(10, 10, 380, 160);
   
   const status = state.status;
-  const taiPool = state.taiPool || 0;
-  const xiuPool = state.xiuPool || 0;
-  const totalPool = taiPool + xiuPool;
-  
-  // Players counts
-  const getMapSize = (map) => {
-    if (!map) return 0;
-    if (typeof map.size === 'number') return map.size;
-    if (typeof map.get === 'function') return 0;
-    return Object.keys(map).length;
-  };
-  const playersTai = getMapSize(state.playersTai);
-  const playersXiu = getMapSize(state.playersXiu);
-  
-  // Ratios
-  let rTai = 0.5;
-  let rXiu = 0.5;
-  if (totalPool > 0) {
-    rTai = taiPool / totalPool;
-    rXiu = xiuPool / totalPool;
-  }
-  
-  // ── LEFT PANEL (TÀI) ──
-  ctx.save();
-  // Draw Dragon circular shield badge
-  const cxDragon = 110;
-  const cyDragon = 145;
-  const gradDragon = ctx.createRadialGradient(cxDragon, cyDragon, 5, cxDragon, cyDragon, 45);
-  gradDragon.addColorStop(0, '#EF4444');
-  gradDragon.addColorStop(1, '#7F1D1D');
-  ctx.fillStyle = gradDragon;
-  ctx.beginPath();
-  ctx.arc(cxDragon, cyDragon, 45, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#D97706';
-  ctx.lineWidth = 3.5;
-  ctx.stroke();
-  
-  // Abstract Gold Dragon emblem shape inside
-  ctx.strokeStyle = '#F59E0B';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(cxDragon, cyDragon + 5, 18, Math.PI * 1.1, Math.PI * 1.9);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(cxDragon, cyDragon - 12);
-  ctx.lineTo(cxDragon - 8, cyDragon + 8);
-  ctx.lineTo(cxDragon + 8, cyDragon + 8);
-  ctx.closePath();
-  ctx.fillStyle = '#F59E0B';
-  ctx.fill();
-  
-  // Text Title (Bigger and bold)
-  ctx.fillStyle = '#EF4444';
-  ctx.font = 'bold 42px "Arial"';
-  ctx.textAlign = 'center';
-  ctx.fillText('TÀI', 210, 140);
-  
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${playersTai} NGƯỜI`, 190, 175);
-  drawUserIcon(ctx, 175, 169);
-  
-  // Bet labels
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.fillText('TỔNG ĐẶT CƯỢC', 65, 230);
-  
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 28px "Arial"';
-  const taiStr = taiPool.toLocaleString();
-  ctx.fillText(taiStr, 65, 270);
-  drawChip(ctx, 65 + ctx.measureText(taiStr).width + 18, 262, 11, 'C');
-  
-  // Percentage Capsule
-  const pctTai = totalPool > 0 ? Math.round(rTai * 100) : 50;
-  drawCapsule(ctx, 180, 325, 180, 34, `${pctTai}%`, true);
-  ctx.restore();
-  
-  // ── RIGHT PANEL (XỈU) ──
-  ctx.save();
-  // Draw Turtle circular shield badge
-  const cxTurtle = 690;
-  const cyTurtle = 145;
-  const gradTurtle = ctx.createRadialGradient(cxTurtle, cyTurtle, 5, cxTurtle, cyTurtle, 45);
-  gradTurtle.addColorStop(0, '#CBD5E1');
-  gradTurtle.addColorStop(1, '#334155');
-  ctx.fillStyle = gradTurtle;
-  ctx.beginPath();
-  ctx.arc(cxTurtle, cyTurtle, 45, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = '#94A3B8';
-  ctx.lineWidth = 3.5;
-  ctx.stroke();
-  
-  // Draw Turtle Shell Hexagon inside
-  ctx.strokeStyle = '#0F172A';
-  ctx.lineWidth = 2;
-  const rT = 22;
-  ctx.beginPath();
-  for (let a = 0; a < 6; a++) {
-    const angle = (a * Math.PI) / 3;
-    const hx = cxTurtle + Math.cos(angle) * rT;
-    const hy = cyTurtle + Math.sin(angle) * rT;
-    if (a === 0) ctx.moveTo(hx, hy);
-    else ctx.lineTo(hx, hy);
-  }
-  ctx.closePath();
-  ctx.stroke();
-  for (let a = 0; a < 6; a++) {
-    const angle = (a * Math.PI) / 3;
-    ctx.beginPath();
-    ctx.moveTo(cxTurtle + Math.cos(angle) * rT, cyTurtle + Math.sin(angle) * rT);
-    ctx.lineTo(cxTurtle + Math.cos(angle) * 36, cyTurtle + Math.sin(angle) * 36);
-    ctx.stroke();
-  }
-  
-  // Text Title
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 42px "Arial"';
-  ctx.textAlign = 'center';
-  ctx.fillText('XỈU', 590, 140);
-  
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.textAlign = 'right';
-  ctx.fillText(`${playersXiu} NGƯỜI`, 610, 175);
-  drawUserIcon(ctx, 625, 169);
-  
-  // Bet labels
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.fillText('TỔNG ĐẶT CƯỢC', 530, 230);
-  
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 28px "Arial"';
-  const xiuStr = xiuPool.toLocaleString();
-  ctx.fillText(xiuStr, 530, 270);
-  drawChip(ctx, 530 + ctx.measureText(xiuStr).width + 18, 262, 11, 'C');
-  
-  // Percentage Capsule
-  const pctXiu = totalPool > 0 ? Math.round(rXiu * 100) : 50;
-  drawCapsule(ctx, 620, 325, 180, 34, `${pctXiu}%`, false);
-  ctx.restore();
-  
-  // ── CENTER PANEL (Countdown / Dice / Status) ──
-  ctx.save();
-  // Ornate Gold arch box
-  ctx.fillStyle = '#022C22';
-  ctx.strokeStyle = '#D97706';
-  ctx.lineWidth = 3;
-  const boxX = 310;
-  const boxY = 85;
-  const boxW = 180;
-  const boxH = 190;
-  const rB = 12;
-  ctx.beginPath();
-  ctx.moveTo(boxX + rB, boxY);
-  ctx.lineTo(boxX + boxW - rB, boxY);
-  ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + rB);
-  ctx.lineTo(boxX + boxW, boxY + boxH - rB);
-  ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - rB, boxY + boxH);
-  ctx.lineTo(boxX + rB, boxY + boxH);
-  ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - rB);
-  ctx.lineTo(boxX, boxY + rB);
-  ctx.quadraticCurveTo(boxX, boxY, boxX + rB, boxY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
   
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   
-  // Round text
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.fillText(`VÒNG #${state.round}`, 400, 110);
-  
   if (status === 'betting') {
-    ctx.fillStyle = '#F59E0B'; // Gold
-    ctx.font = 'bold 56px "Arial"';
-    ctx.fillText(`${state.countdown}s`, 400, 165);
-    
-    // Status capsule "ĐANG NHẬN CƯỢC"
-    drawCapsule(ctx, 400, 235, 150, 30, 'ĐANG NHẬN CƯỢC', false);
-  } else if (status === 'rolling') {
-    ctx.fillStyle = '#60A5FA'; // Light Blue
-    ctx.font = 'bold 26px "Arial"';
-    ctx.fillText('LẮC BÁT...', 400, 165);
-    
-    drawCapsule(ctx, 400, 235, 150, 30, 'ĐANG LẮC...', false);
-  } else if (status === 'result') {
-    // Draw dice inside the center box
+    // Draw last roll dice
     const dice = state.lastRoll || [1, 2, 3];
-    const dSize = 44;
-    const startDiceX = 400 - (3 * dSize + 2 * 8) / 2;
-    const diceY = 135;
+    const dSize = 50;
+    const startDiceX = 200 - (3 * dSize + 2 * 12) / 2;
+    const diceY = 90;
+    
+    // Draw label "VÒNG TRƯỚC"
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = 'bold 12px "Arial"';
+    ctx.fillText('KẾT QUẢ VÒNG TRƯỚC', 200, 30);
     
     for (let i = 0; i < dice.length; i++) {
-      drawDie(ctx, startDiceX + i * (dSize + 8), diceY, dSize, dice[i]);
+      drawDie(ctx, startDiceX + i * (dSize + 12), diceY, dSize, dice[i]);
     }
+  } else if (status === 'rolling') {
+    // Draw shaking cup / Lắc bát
+    ctx.fillStyle = '#60A5FA';
+    ctx.font = 'bold 24px "Arial"';
+    ctx.fillText('🎲 ĐANG LẮC BÁT... 🎲', 200, 90);
+  } else if (status === 'result') {
+    // Draw current roll dice
+    const dice = state.lastRoll || [1, 2, 3];
+    const dSize = 50;
+    const startDiceX = 200 - (3 * dSize + 2 * 12) / 2;
+    const diceY = 85;
     
+    const total = dice.reduce((a, b) => a + b, 0);
     const d1 = dice[0];
     const d2 = dice[1];
     const d3 = dice[2];
     const isBao = (d1 === d2 && d2 === d3);
-    const total = dice.reduce((a, b) => a + b, 0);
-    const outcome = isBao ? 'bao' : (total >= 11 ? 'tai' : 'xiu');
+    const outcomeText = isBao ? 'BÃO' : (total >= 11 ? 'TÀI' : 'XỈU');
     
-    if (outcome === 'bao') {
-      drawCapsule(ctx, 400, 235, 150, 30, 'BÃO 💥', false);
-    } else {
-      drawCapsule(ctx, 400, 235, 150, 30, outcome === 'tai' ? '🐉 TÀI' : '🐢 XỈU', outcome === 'tai');
+    // Draw outcome label
+    ctx.fillStyle = isBao ? '#3B82F6' : (total >= 11 ? '#EF4444' : '#CBD5E1');
+    ctx.font = 'bold 20px "Arial"';
+    ctx.fillText(`${outcomeText} (${total} điểm)`, 200, 30);
+    
+    for (let i = 0; i < dice.length; i++) {
+      drawDie(ctx, startDiceX + i * (dSize + 12), diceY, dSize, dice[i]);
     }
   }
-  
-  // TỔNG POOL (Below center box)
-  ctx.fillStyle = '#022C22';
-  ctx.strokeStyle = '#D97706';
-  ctx.lineWidth = 2;
-  const poolX = 310;
-  const poolY = 285;
-  const poolW = 180;
-  const poolH = 45;
-  ctx.beginPath();
-  ctx.moveTo(poolX + 8, poolY);
-  ctx.lineTo(poolX + poolW - 8, poolY);
-  ctx.quadraticCurveTo(poolX + poolW, poolY, poolX + poolW, poolY + 8);
-  ctx.lineTo(poolX + poolW, poolY + poolH - 8);
-  ctx.quadraticCurveTo(poolX + poolW, poolY + poolH, poolX + poolW - 8, poolY + poolH);
-  ctx.lineTo(poolX + 8, poolY + poolH);
-  ctx.quadraticCurveTo(poolX, poolY + poolH, poolX, poolY + poolH - 8);
-  ctx.lineTo(poolX, poolY + 8);
-  ctx.quadraticCurveTo(poolX, poolY, poolX + 8, poolY);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  
-  ctx.fillStyle = '#94A3B8';
-  ctx.font = 'bold 13px "Arial"';
-  ctx.fillText('TỔNG POOL', 400, 298);
-  
-  ctx.fillStyle = '#F59E0B';
-  ctx.font = 'bold 20px "Arial"';
-  ctx.fillText(`${totalPool.toLocaleString()}`, 400, 317);
-  ctx.restore();
-  
-  // ── 4. HISTORY PANEL (Bottom) ──
-  ctx.save();
-  ctx.strokeStyle = '#064E3B';
-  ctx.fillStyle = '#022C22';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(30, 375, 740, 100);
-  ctx.fillRect(30, 375, 740, 100);
-  
-  ctx.strokeStyle = '#D97706';
-  ctx.strokeRect(33, 378, 734, 94);
-  
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#F59E0B';
-  ctx.font = 'bold 16px "Arial"';
-  ctx.fillText('LỊCH SỬ KẾT QUẢ', 400, 395);
-  
-  // Draw beads
-  const historyList = (state.history || []).slice(-15);
-  const beadSpacing = 40;
-  const startBeadX = 400 - ((historyList.length - 1) * beadSpacing) / 2;
-  const beadY = 438;
-  
-  for (let i = 0; i < historyList.length; i++) {
-    const h = historyList[i];
-    const bx = startBeadX + i * beadSpacing;
-    
-    ctx.beginPath();
-    ctx.arc(bx, beadY, 12, 0, Math.PI * 2);
-    
-    if (h === 'tai') {
-      ctx.fillStyle = '#EF4444'; // Red circle for Tài
-      ctx.fill();
-      ctx.strokeStyle = '#7F1D1D';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (h === 'bao') {
-      ctx.fillStyle = '#F59E0B'; // Gold circle for Bão
-      ctx.fill();
-      ctx.strokeStyle = '#B45309';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#FFFFFF'; // White circle for Xỉu
-      ctx.fill();
-      ctx.strokeStyle = '#94A3B8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
   
   return canvas.toBuffer('image/png');
 }
@@ -535,27 +262,62 @@ function renderTaixiuRoom(state, boardBuffer) {
 
   // Get Coke Money Emoji
   const cokeEmoji = config.emoji.money || "🪙";
+  const userEmoji = "👥";
 
-  const headerText = `${cokeEmoji} **COKE CASINO — TÀI XỈU**  |  *Vòng #${round}*\n\n` +
-                     `📊 **Lịch sử**\n\n${historyStr}\n\u200b`; // added \u200b (blank line spacing)
-  
-  const textHeader = new TextDisplayBuilder().setContent(headerText);
-  
-  // Use a unique name for the board attachment to bypass Discord's CDN cache
+  // Calculate players
+  const getMapSize = (map) => {
+    if (!map) return 0;
+    if (typeof map.size === 'number') return map.size;
+    if (typeof map.get === 'function') return 0;
+    return Object.keys(map).length;
+  };
+  const playersTai = getMapSize(state.playersTai);
+  const playersXiu = getMapSize(state.playersXiu);
+
+  // Set up Embed
+  const embed = new EmbedBuilder()
+    .setColor(state.status === 'result' ? "#10B981" : "#D97706") // Green for result, gold/orange for betting
+    .setTitle(`COKE CASINO — TÀI XỈU | Vòng #${round}`);
+
+  // Set status description
+  let countdownText = "";
+  if (state.status === "betting") {
+    countdownText = `⏳ **${state.countdown} giây**`;
+  } else if (state.status === "rolling") {
+    countdownText = `🎲 **Đang lắc bát...**`;
+  } else if (state.status === "result") {
+    const dice = state.lastRoll || [1, 2, 3];
+    const total = dice.reduce((a, b) => a + b, 0);
+    const d1 = dice[0];
+    const d2 = dice[1];
+    const d3 = dice[2];
+    const isBao = (d1 === d2 && d2 === d3);
+    const outcomeText = isBao ? 'Bão' : (total >= 11 ? 'Tài' : 'Xỉu');
+    countdownText = `🎉 Kết quả: **${outcomeText}** (${total} điểm)`;
+  }
+
+  embed.setDescription(`${countdownText}\n\n**Cầu :** ${historyStr}`);
+
+  // Add side-by-side Fields for Tài and Xỉu
+  embed.addFields(
+    {
+      name: "🪙 TÀI",
+      value: `${cokeEmoji} **${state.taiPool.toLocaleString()}** coke\n${userEmoji} **${playersTai} người**`,
+      inline: true
+    },
+    {
+      name: "🪙 XỈU",
+      value: `${cokeEmoji} **${state.xiuPool.toLocaleString()}** coke\n${userEmoji} **${playersXiu} người**`,
+      inline: true
+    }
+  );
+
   const imageName = `board_${Date.now()}.png`;
-  
-  const gallery = new MediaGalleryBuilder()
-    .addItems(new MediaGalleryItemBuilder().setURL(`attachment://${imageName}`));
+  embed.setImage(`attachment://${imageName}`);
 
-  const container = new ContainerBuilder()
-    .setAccentColor(state.status === 'result' ? 0x10B981 : 0x8E9AA7) // Green for result, Grey for betting/rolling
-    .addTextDisplayComponents(textHeader)
-    .addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small))
-    .addMediaGalleryComponents(gallery);
-
-  // Add Action buttons
+  // Action Buttons
   const isBettings = state.status === 'betting';
-  const row = new ActionRowBuilder().addComponents(
+  const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('taixiu_bet_tai')
       .setLabel('TÀI')
@@ -565,11 +327,6 @@ function renderTaixiuRoom(state, boardBuffer) {
       .setCustomId('taixiu_bet_xiu')
       .setLabel('XỈU')
       .setStyle(ButtonStyle.Primary)
-      .setDisabled(!isBettings),
-    new ButtonBuilder()
-      .setCustomId('taixiu_bet_amount')
-      .setLabel('Tuỳ chọn')
-      .setStyle(ButtonStyle.Secondary)
       .setDisabled(!isBettings),
     new ButtonBuilder()
       .setCustomId('taixiu_history')
@@ -597,18 +354,18 @@ function renderTaixiuRoom(state, boardBuffer) {
       .setCustomId('taixiu_quick_250k')
       .setLabel('250K 🪙')
       .setStyle(ButtonStyle.Success)
+      .setDisabled(!isBettings),
+    new ButtonBuilder()
+      .setCustomId('taixiu_bet_amount')
+      .setLabel('Tuỳ chọn 💰')
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(!isBettings)
   );
 
-  container.addActionRowComponents(row);
-  container.addActionRowComponents(row2);
-
   const payload = {
-    embeds: [],
-    components: [container],
-    files: [new AttachmentBuilder(boardBuffer, { name: imageName })],
-    flags: MessageFlags.IsComponentsV2,
-    skipV2: true // CRITICAL: Skip v2Converter so it does not corrupt our pre-built V2 layout!
+    embeds: [embed],
+    components: [row1, row2],
+    files: [new AttachmentBuilder(boardBuffer, { name: imageName })]
   };
 
   return payload;
