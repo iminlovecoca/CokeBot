@@ -12,7 +12,7 @@ const {
 } = require("discord.js");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
-const { getBetAmount } = require("../../utils/gameUtil");
+const { getBetAmount, checkAndClearExpiredGame } = require("../../utils/gameUtil");
 const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const HorseRaceGame = require("../../models/HorseRaceGame");
@@ -402,7 +402,7 @@ module.exports = {
     const userId = isSlash ? context.user.id : context.author.id;
     
     let betInput = isSlash ? context.options.getString("bet") : (arg2[0] || null);
-    let activeGame = await HorseRaceGame.findOne({ userId });
+    let activeGame = await checkAndClearExpiredGame(userId, HorseRaceGame);
 
     if (activeGame) {
       const container = buildComponentsV2(activeGame, 'resume');

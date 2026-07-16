@@ -51,11 +51,12 @@ class BlackjackCommand extends BaseCommand {
       const deck = game.deck;
       await this.blackjack(message, playerHand, dealerHand, deck, game.bet, true, locator);
     } else {
-      await this.startNewGame(message, args, userId, settings, gameRepo, locator);
+      await this.startNewGame(message, args, userId, settings, locator);
     }
   }
 
-  async startNewGame(message, args, userId, settings, gameRepo, locator) {
+  async startNewGame(message, args, userId, settings, locator) {
+    const gameRepo = locator.get("gameRepository");
     let bet = args.length == 0 ? "min" : args[0];
     const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet);
     const deck = createNewDeck();
