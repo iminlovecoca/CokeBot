@@ -12,7 +12,7 @@ const {
 } = require("discord.js");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
-const { getBetAmount } = require("../../utils/gameUtil");
+const { getBetAmount, checkAndClearExpiredGame } = require("../../utils/gameUtil");
 const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const MinesGame = require("../../models/MinesGame");
@@ -394,7 +394,7 @@ module.exports = {
       });
     }
 
-    let activeGame = await MinesGame.findOne({ userId });
+    let activeGame = await checkAndClearExpiredGame(userId, MinesGame);
 
     if (activeGame) {
       const container = buildComponentsV2(activeGame, 'resume');

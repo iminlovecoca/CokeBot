@@ -12,7 +12,8 @@ const {
 } = require("../../utils/blackJackUtil.js");
 const { checkAndSetCooldown, notifyCooldown } = require("../../utils/cooldown");
 const { decBalance, incBalance } = require("../../utils/userUtil");
-const { getBetAmount } = require("../../utils/gameUtil");
+const { getBetAmount, checkAndClearExpiredGame } = require("../../utils/gameUtil");
+const BlackJackGame = require("../../models/BlackJackGame");
 const config = require("../../data/config");
 const emoji = config.emoji;
 const settings = config.gamble_settings;
@@ -37,8 +38,7 @@ class BlackjackCommand extends BaseCommand {
 
   async execute(message, args, client, locator) {
     const userId = message.author.id;
-    const gameRepo = locator.get("gameRepository");
-    const game = await gameRepo.getActiveGame(userId);
+    const game = await checkAndClearExpiredGame(userId, BlackJackGame);
 
     const remainingCooldown = checkAndSetCooldown(userId, "bj", settings.cooldown_second);
     if (remainingCooldown > 0) {
@@ -51,15 +51,19 @@ class BlackjackCommand extends BaseCommand {
       const deck = game.deck;
       await this.blackjack(message, playerHand, dealerHand, deck, game.bet, true, locator);
     } else {
-      let bet = args.length == 0 ? "min" : args[0];
-      const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet);
-      const deck = createNewDeck();
-      const playerHand = [drawNewCard(deck), drawNewCard(deck)];
-      const dealerHand = [drawNewCard(deck), drawNewCard(deck)];
-      await decBalance(userId, betAmount);
-      await gameRepo.createGame(userId, betAmount, playerHand, dealerHand, deck);
-      await this.blackjack(message, playerHand, dealerHand, deck, betAmount, false, locator);
+      await this.startNewGame(message, args, userId, settings, gameRepo, locator);
     }
+  }
+
+  async startNewGame(message, args, userId, settings, gameRepo, locator) {
+    let bet = args.length == 0 ? "min" : args[0];
+    const betAmount = await getBetAmount(bet, userId, settings.max_bet, settings.min_bet);
+    const deck = createNewDeck();
+    const playerHand = [drawNewCard(deck), drawNewCard(deck)];
+    const dealerHand = [drawNewCard(deck), drawNewCard(deck)];
+    await decBalance(userId, betAmount);
+    await gameRepo.createGame(userId, betAmount, playerHand, dealerHand, deck);
+    await this.blackjack(message, playerHand, dealerHand, deck, betAmount, false, locator);
   }
 
   async blackjack(message, playerHand, dealerHand, deck, bet, resume, locator) {
@@ -76,16 +80,26 @@ class BlackjackCommand extends BaseCommand {
 
     const collector = sentMessage.createReactionCollector({ filter, time: 60000 });
     const gameRepo = locator.get("gameRepository");
+    let isProcessing = false;
 
     collector.on("collect", async (react) => {
+      if (isProcessing) {
+        await react.users.remove(message.author.id).catch(() => {});
+        return;
+      }
+      isProcessing = true;
+
       const game = await gameRepo.getActiveGame(message.author.id);
       if (!game) {
         collector.stop();
-        return sentMessage.edit(`${emoji.no} Ván bài đã kết thúc!`);
+        await sentMessage.edit(`${emoji.no} Ván bài đã kết thúc!`).catch(() => {});
+        isProcessing = false;
+        return;
       }
 
       if (react.emoji.name === hitEmoji) {
         await this.handleHit(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector, locator);
+        isProcessing = false;
       } else {
         collector.stop();
         await this.handleStand(sentMessage, message.author, playerHand, dealerHand, deck, bet, collector, locator);

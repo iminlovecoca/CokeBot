@@ -28,6 +28,19 @@ const getBetAmount = async (bet, userId, maxBet, minBet) => {
 	return Math.min(amount, maxBet)
 }
 
+const checkAndClearExpiredGame = async (userId, model, timeoutMs = 10 * 60 * 1000) => {
+	const activeGame = await model.findOne({ userId });
+	if (activeGame) {
+		const age = Date.now() - new Date(activeGame.date || Date.now()).getTime();
+		if (age > timeoutMs) {
+			await model.deleteOne({ userId });
+			return null;
+		}
+	}
+	return activeGame;
+}
+
 module.exports = {
-	getBetAmount
+	getBetAmount,
+	checkAndClearExpiredGame
 }

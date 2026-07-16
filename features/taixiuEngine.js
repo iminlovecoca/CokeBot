@@ -592,7 +592,17 @@ function startTaixiuLoop(client, channelId) {
             await Promise.all(payoutPromises).catch(console.error);
           }
 
-          await state.save();
+          await TaixiuState.updateOne(
+            { channelId },
+            {
+              $set: {
+                status: 'result',
+                countdown: 5,
+                lastRoll: state.lastRoll,
+                history: state.history
+              }
+            }
+          ).catch(console.error);
           await updateRoomMessage(client, state);
         }
 
@@ -608,7 +618,20 @@ function startTaixiuLoop(client, channelId) {
           state.playersXiu = new Map();
           state.round += 1;
           
-          await state.save();
+          await TaixiuState.updateOne(
+            { channelId },
+            {
+              $set: {
+                status: 'betting',
+                countdown: 60,
+                taiPool: 0,
+                xiuPool: 0,
+                playersTai: {},
+                playersXiu: {},
+                round: state.round
+              }
+            }
+          ).catch(console.error);
           await updateRoomMessage(client, state);
         }
       }

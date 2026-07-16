@@ -13,7 +13,7 @@ const {
 const path = require("path");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
-const { getBetAmount } = require("../../utils/gameUtil");
+const { getBetAmount, checkAndClearExpiredGame } = require("../../utils/gameUtil");
 const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const HigherLowerGame = require("../../models/HigherLowerGame");
@@ -382,7 +382,7 @@ module.exports = {
     const userId = isSlash ? context.user.id : context.author.id;
     const betInput = isSlash ? context.options.getString("bet") : (arg2[0] || null);
 
-    let activeGame = await HigherLowerGame.findOne({ userId });
+    let activeGame = await checkAndClearExpiredGame(userId, HigherLowerGame);
     
     if (activeGame) {
       const container = buildComponentsV2(activeGame, 'resume');
