@@ -321,13 +321,27 @@ client.once(Events.ClientReady, async () => {
     const slashCommands = buildSlashCommandsForRegistration();
 
     if (client.application) {
-      client.application.commands.set(slashCommands)
-        .then(() => {
-          console.log(`✅ Registered ${slashCommands.length} slash commands.`);
-        })
-        .catch(err => {
+      (async () => {
+        try {
+          const existingCommands = await client.application.commands.fetch();
+          const entryPointCommand = existingCommands.find(
+            (cmd) => cmd.type === 4 || cmd.type === 'PRIMARY_ENTRY_POINT'
+          );
+          const finalCommands = [...slashCommands];
+          if (entryPointCommand) {
+            console.log(`ℹ️ Retaining Entry Point command "${entryPointCommand.name}" to prevent bulk overwrite rejection.`);
+            finalCommands.push({
+              name: entryPointCommand.name,
+              type: entryPointCommand.type,
+              description: entryPointCommand.description || '',
+            });
+          }
+          await client.application.commands.set(finalCommands);
+          console.log(`✅ Registered ${finalCommands.length} slash commands.`);
+        } catch (err) {
           console.error("❌ Failed to register slash commands:", err);
-        });
+        }
+      })();
     }
 
     await loadBotLock(client);

@@ -43,7 +43,7 @@ function getMinesMultiplier(minesCount, revealedCount) {
   if (revealedCount > diamondsCount) return 0.0;
 
   if (minesCount === 3) {
-    const lut = [0.0, 1.40, 2.20, 3.90, 7.80, 19.50, 78.00];
+    const lut = [0.0, 1.41, 2.22, 3.93, 7.82, 19.55, 78.22];
     return lut[revealedCount] || 0.0;
   }
 
