@@ -1,9 +1,16 @@
+const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ComponentType
+} = require("discord.js");
 const BaseCommand = require('../../core/BaseCommand');
 const { getGame, addGame, delGame, claimGame } = require('../../utils/rpsUtil');
 const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown');
 const { decBalance, incBalance } = require('../../utils/userUtil');
-const { getBetAmount } = require('../../utils/gameUtil');
+const { getBetAmount, checkAndClearExpiredGame } = require('../../utils/gameUtil');
 const { getDebuffPercentage } = require('../../utils/miscUtil');
+const RPSGame = require('../../models/RPSGame');
 const config = require('../../data/config');
 const emoji = config.emoji;
 const currency = emoji.money;
@@ -17,7 +24,7 @@ class RpsCommand extends BaseCommand {
     super({
       name: 'rps',
       aliases: ['keobuabao', 'kbb'],
-      description: 'Chơi kéo-búa-bao có cược, react emoji để chơi',
+      description: 'Chơi kéo-búa-bao có cược sử dụng nút bấm tương tác',
       usage: `${config.prefix}rps [tiền cược|all]`,
       examples: [
         { intent: 'Chơi kéo-búa-bao cược tất cả tiền', command: `${config.prefix}rps all` },
@@ -29,7 +36,7 @@ class RpsCommand extends BaseCommand {
 
   async execute(message, args) {
     const userId = message.author.id;
-    const game = await getGame(userId);
+    const game = await checkAndClearExpiredGame(userId, RPSGame);
 
     const remainingCooldown = checkAndSetCooldown(userId, 'rps', settings.cooldown_second);
     if (remainingCooldown > 0) {
@@ -51,31 +58,55 @@ class RpsCommand extends BaseCommand {
   async rps(message, bet, botChoice, resume = false) {
     const userId = message.author.id;
     const displayName = message.member?.displayName || message.author.username || 'Bạn';
-    const botEmoji = EMOJIS[botChoice];
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('rps_keo')
+        .setLabel('Kéo ✌️')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('rps_bua')
+        .setLabel('Búa 👊')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('rps_bao')
+        .setLabel('Bao 🖐️')
+        .setStyle(ButtonStyle.Primary)
+    );
 
     let text = `${config.emoji.dice} **|** **${displayName}** cược ${currency} **${bet.toLocaleString()}** và chọn ...`;
     if (resume) text = '▷ Tiếp tục ván chơi cũ\n' + text;
 
-    const sentMessage = await message.reply(text);
-    for (const em of Object.values(EMOJIS)) {
-      await sentMessage.react(em).catch(() => {});
-    }
+    const sentMessage = await message.reply({
+      content: text,
+      components: [row]
+    });
 
-    const filter = (reaction, user) =>
-      Object.values(EMOJIS).includes(reaction.emoji.name) && user.id === userId;
-    const collector = sentMessage.createReactionCollector({ filter, time: 60000, max: 1 });
+    const filter = (i) => i.user.id === userId && ['rps_keo', 'rps_bua', 'rps_bao'].includes(i.customId);
+    const collector = sentMessage.createMessageComponentCollector({ filter, componentType: ComponentType.Button, time: 60000 });
 
-    collector.on('collect', async (reaction) => {
-      collector.stop();
-      const game = await claimGame(message.author.id);
+    let isProcessing = false;
+
+    collector.on('collect', async (i) => {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      await i.deferUpdate().catch(() => {});
+
+      const game = await claimGame(userId);
       if (!game) {
-        return sentMessage.edit(`${emoji.no} Ván chơi đã kết thúc!`).catch(() => {});
+        collector.stop('claimed');
+        await sentMessage.edit({
+          content: `${emoji.no} Ván chơi đã kết thúc!`,
+          components: []
+        }).catch(() => {});
+        isProcessing = false;
+        return;
       }
-      const { bet } = game;
-      let currentBotChoice = game.botChoice;
 
-      const playerChoice = Object.entries(EMOJIS).find(([k, v]) => v === reaction.emoji.name)[0];
+      const playerChoice = i.customId.replace('rps_', '');
       const playerEmoji = EMOJIS[playerChoice];
+      let currentBotChoice = game.botChoice;
 
       let resultText = '';
       let reward = 0;
@@ -106,13 +137,44 @@ class RpsCommand extends BaseCommand {
       if (reward > 0) await incBalance(userId, reward);
       await delGame(userId);
 
-      await sentMessage.edit(`${config.emoji.dice} **| ${displayName}** cược ${currency} **${bet.toLocaleString()}** và chọn ${playerEmoji}\n${resultText}`).catch(() => {});
+      const disabledRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('rps_keo')
+          .setLabel('Kéo ✌️')
+          .setStyle(playerChoice === 'keo' ? ButtonStyle.Success : ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId('rps_bua')
+          .setLabel('Búa 👊')
+          .setStyle(playerChoice === 'bua' ? ButtonStyle.Success : ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId('rps_bao')
+          .setLabel('Bao 🖐️')
+          .setStyle(playerChoice === 'bao' ? ButtonStyle.Success : ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+
+      await sentMessage.edit({
+        content: `${config.emoji.dice} **| ${displayName}** cược ${currency} **${bet.toLocaleString()}** và chọn ${playerEmoji}\n${resultText}`,
+        components: [disabledRow]
+      }).catch(() => {});
+
+      collector.stop('finished');
     });
 
-    collector.on('end', async (collected) => {
-      if (collected.size === 0) {
+    collector.on('end', async (_, reason) => {
+      if (reason === 'time') {
         await delGame(userId);
-        await sentMessage.edit(`${emoji.no} Hết thời gian. Trò chơi đã kết thúc và bạn bị trừ ${currency} **${bet.toLocaleString()}**.`).catch(() => {});
+        const timeoutRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId('rps_keo').setLabel('Kéo ✌️').setStyle(ButtonStyle.Secondary).setDisabled(true),
+          new ButtonBuilder().setCustomId('rps_bua').setLabel('Búa 👊').setStyle(ButtonStyle.Secondary).setDisabled(true),
+          new ButtonBuilder().setCustomId('rps_bao').setLabel('Bao 🖐️').setStyle(ButtonStyle.Secondary).setDisabled(true)
+        );
+        await sentMessage.edit({
+          content: `${emoji.no} Hết thời gian. Trò chơi đã kết thúc và bạn bị trừ ${currency} **${bet.toLocaleString()}**.`,
+          components: [timeoutRow]
+        }).catch(() => {});
       }
     });
   }
