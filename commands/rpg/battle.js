@@ -166,6 +166,13 @@ const generatePvPImage = async (
     ctx.fillRect(0, 0, width, height);
   }
 
+  // Helper to check if asset faces right by default (e.g. GIF skins like WarriorMecha)
+  const facesRightByDefault = (assetName) => {
+    if (!assetName) return false;
+    const lower = assetName.toLowerCase();
+    return lower.endsWith(".gif") || lower.includes("mecha");
+  };
+
   // Load character images
   const img1 = await getTransparentCharacter(p1Asset);
   if (img1) {
@@ -173,10 +180,15 @@ const generatePvPImage = async (
     // Clip to Left Frame (wooden border)
     ctx.rect(73 + 4, 136 + 4, 212 - 8, 354 - 8);
     ctx.clip();
-    // Draw mirrored Player 1
-    ctx.translate(73 + 212 / 2, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(img1, -120, 240, 240, 240);
+    if (facesRightByDefault(p1Asset)) {
+      // Already faces right naturally, draw without flipping
+      ctx.drawImage(img1, 73 + (212 - 240) / 2, 240, 240, 240);
+    } else {
+      // Native left-facing image, mirror it to face right
+      ctx.translate(73 + 212 / 2, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img1, -120, 240, 240, 240);
+    }
     ctx.restore();
   }
 
@@ -186,8 +198,15 @@ const generatePvPImage = async (
     // Clip to Right Frame
     ctx.rect(735 + 4, 136 + 4, 211 - 8, 354 - 8);
     ctx.clip();
-    // Draw Player 2
-    ctx.drawImage(img2, 735 + (211 - 240) / 2, 240, 240, 240);
+    if (facesRightByDefault(p2Asset)) {
+      // Native right-facing image, mirror it to face left towards Player 1
+      ctx.translate(735 + 211 / 2, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img2, -120, 240, 240, 240);
+    } else {
+      // Already faces left naturally, draw without flipping
+      ctx.drawImage(img2, 735 + (211 - 240) / 2, 240, 240, 240);
+    }
     ctx.restore();
   }
 
