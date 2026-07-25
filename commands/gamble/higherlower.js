@@ -91,12 +91,12 @@ function formatNumber(num) {
 
 
 
-function getDisplayedCards(cardHistory, isFinished, isLost, lostCard) {
+function getDisplayedCards(cardHistory, isFinished, revealedNextCard) {
   if (isFinished) {
-    if (isLost && lostCard) {
+    if (revealedNextCard) {
       const tempHistory = [...cardHistory];
-      if (tempHistory[tempHistory.length - 1] !== lostCard) {
-        tempHistory.push(lostCard);
+      if (tempHistory[tempHistory.length - 1] !== revealedNextCard) {
+        tempHistory.push(revealedNextCard);
       }
       return tempHistory.slice(-3);
     }
@@ -203,14 +203,27 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   const separator3 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
   const separator4 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
+  const revealedNextCard = optionInfo.lostCard || optionInfo.nextCard;
   const displayedCards = getDisplayedCards(
     gameData.cardHistory,
     isFinished,
-    state === 'incorrect',
-    optionInfo.lostCard
+    revealedNextCard
   );
 
-  const cardStrings = displayedCards.map(c => {
+  const cardStrings = displayedCards.map((c, idx) => {
+    // 1. Khi thua (incorrect) hoặc rút tiền (cashout): Lá bài mới lật ở cuối cùng dùng GIF
+    if (isFinished && idx === displayedCards.length - 1 && revealedNextCard && c === revealedNextCard) {
+      const flipKey = `${c}f`;
+      return config.emoji[flipKey] || config.emoji[c] || `\`[ ${c} ]\``;
+    }
+
+    // 2. Khi đoán đúng (correct): Lá bài mới rút vừa lật ngửa (ngay trước lá 'back') dùng GIF
+    if (state === 'correct' && idx === displayedCards.length - 2 && c !== 'back') {
+      const flipKey = `${c}f`;
+      return config.emoji[flipKey] || config.emoji[c] || `\`[ ${c} ]\``;
+    }
+
+    // 3. Các lá bài cũ đã chọn xong từ trước hoặc lá bài úp 'back' đều dùng ảnh thường (tĩnh)
     return config.emoji[c] || `\`[ ${c} ]\``;
   });
 
@@ -272,7 +285,8 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         await runTransactionWithRetry(cashOutTxn);
 
-        const finishedContainer = buildComponentsV2(game, 'cashout');
+        const nextCard = drawNextCard(game.currentCard);
+        const finishedContainer = buildComponentsV2(game, 'cashout', { nextCard });
         await i.editReply({
           content: "",
           attachments: [],
