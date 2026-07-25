@@ -217,8 +217,8 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
       return config.emoji[flipKey] || config.emoji[c] || `\`[ ${c} ]\``;
     }
 
-    // 2. Khi đoán đúng (correct): Lá bài mới rút vừa lật ngửa (ngay trước lá 'back') dùng GIF
-    if (state === 'correct' && idx === displayedCards.length - 2 && c !== 'back') {
+    // 2. Khi bắt đầu game (start) hoặc đoán đúng (correct): Lá bài mới lật ngửa (ngay trước lá 'back') dùng GIF
+    if ((state === 'start' || state === 'correct') && idx === displayedCards.length - 2 && c !== 'back') {
       const flipKey = `${c}f`;
       return config.emoji[flipKey] || config.emoji[c] || `\`[ ${c} ]\``;
     }
