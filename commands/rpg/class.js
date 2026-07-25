@@ -327,7 +327,7 @@ class ClassCommand extends BaseCommand {
           let skinFiles = [];
           if (fs.existsSync(skinsDir)) {
             skinFiles = fs.readdirSync(skinsDir)
-              .filter(file => file.endsWith(".png"));
+              .filter(file => file.endsWith(".png") || file.endsWith(".gif"));
           }
 
           const selectMenu = new StringSelectMenuBuilder()
@@ -345,7 +345,7 @@ class ClassCommand extends BaseCommand {
           const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
 
           for (const file of skinFiles) {
-            const label = file.replace(".png", "");
+            const label = file.replace(/\.(png|gif)$/i, "");
             let isLocked = false;
             let suffix = "";
             const isUX = file.toLowerCase().includes("ux");
@@ -393,8 +393,8 @@ class ClassCommand extends BaseCommand {
             if (!isUserAdmin && !owned) {
               return interaction.reply({
                 content: isUX
-                  ? `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(".png", "")}**! Skin này là skin Hữu hạn chỉ có thể sở hữu từ Gacha.`
-                  : `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(".png", "")}**! Bạn cần mua skin này trong cửa hàng bằng lệnh \`skin\`.`,
+                  ? `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Skin này là skin Hữu hạn chỉ có thể sở hữu từ Gacha.`
+                  : `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Bạn cần mua skin này trong cửa hàng bằng lệnh \`skin\`.`,
                 flags: 64
               });
             }
@@ -408,7 +408,7 @@ class ClassCommand extends BaseCommand {
           const attachment = new AttachmentBuilder(assetPath, { name: selectedSkin });
 
           await interaction.update({
-            content: `🎉 Đã áp dụng skin **${selectedSkin.replace(".png", "")}** thành công!`,
+            content: `🎉 Đã áp dụng skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}** thành công!`,
             embeds: [buildClassEmbed(user.rpg.classKey, rpgClass, user, selectedSkin)],
             files: [attachment],
             components: [actionRow]
