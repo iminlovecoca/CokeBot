@@ -89,10 +89,7 @@ function formatNumber(num) {
   return Math.round(num).toLocaleString();
 }
 
-function getCardDisplayValue(card) {
-  const rank = card.slice(0, -1);
-  return rankValues[rank] || rank;
-}
+
 
 function getDisplayedCards(cardHistory, isFinished, isLost, lostCard) {
   if (isFinished) {
@@ -192,11 +189,11 @@ function buildComponentsV2(gameData, state, optionInfo = {}) {
   let footerText = "";
   if (state === 'incorrect') {
     const guessDisplay = { 'Higher': 'Cao hơn', 'Lower': 'Thấp hơn', 'Same': 'Bằng nhau' }[optionInfo.guess] || optionInfo.guess;
-    footerText = `-# Bạn đã đoán \`${guessDisplay}\` và đã thua.\n-# Lá bài hiện tại: ${getCardDisplayValue(optionInfo.lostCard || currentCard)}`;
+    footerText = `-# Bạn đã đoán \`${guessDisplay}\` và đã thua.`;
   } else if (state === 'cashout') {
-    footerText = `-# Bạn đã rút tiền và nhận được **${formatNumber(cashOut)}** coke!\n-# Lá bài hiện tại: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# Bạn đã rút tiền và nhận được **${formatNumber(cashOut)}** coke!`;
   } else {
-    footerText = `-# Lá tiếp theo sẽ cao hơn, thấp hơn hay bằng lá hiện tại?\n-# Lá bài hiện tại: ${getCardDisplayValue(currentCard)}`;
+    footerText = `-# Lá tiếp theo sẽ cao hơn, thấp hơn hay bằng lá hiện tại?`;
   }
 
   const textDisplayBottom = new TextDisplayBuilder().setContent(footerText);
