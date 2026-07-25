@@ -6,7 +6,7 @@ const SKIN_PRICES = {
   "Warrior_02.png": 250000,
   "Warrior_03.png": 300000,
   "Warrior_04.png": 350000,
-  "WarriorMecha.png": { coke: 3500000, souls: 120 },
+  "WarriorMecha.gif": { coke: 3500000, souls: 125 },
   
   "Assassin_13.png": 250000,
   "Assassin_14.png": 280000,
