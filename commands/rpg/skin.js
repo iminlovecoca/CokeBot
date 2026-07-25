@@ -33,7 +33,7 @@ class SkinCommand extends BaseCommand {
 
     let skinFiles = [];
     if (fs.existsSync(skinsDir)) {
-      skinFiles = fs.readdirSync(skinsDir).filter(file => file.endsWith(".png"));
+      skinFiles = fs.readdirSync(skinsDir).filter(file => file.endsWith(".png") || file.endsWith(".gif"));
     }
 
     if (skinFiles.length === 0) {
@@ -50,7 +50,7 @@ class SkinCommand extends BaseCommand {
           `Số Coke hiện tại: **${currentUser.coke.toLocaleString()} Coke**\n\n` +
           `**Danh sách skin:**\n` +
           skinFiles.map(file => {
-            const skinName = file.replace(".png", "");
+            const skinName = file.replace(/\.(png|gif)$/i, "");
             const isUX = file.toLowerCase().includes("ux");
             const price = getSkinPrice(file);
             const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
@@ -60,6 +60,8 @@ class SkinCommand extends BaseCommand {
               statusStr = "✅ *Đã sở hữu*";
             } else if (isUX) {
               statusStr = "⭐ *Hữu hạn*";
+            } else if (typeof price === "object" && price !== null) {
+              statusStr = `💰 **${price.coke.toLocaleString()} Coke** + **${price.souls} L.Hồn**`;
             } else {
               statusStr = `💰 **${price.toLocaleString()} Coke**`;
             }
@@ -75,7 +77,7 @@ class SkinCommand extends BaseCommand {
         .setPlaceholder("Chọn một skin để xem chi tiết...");
 
       const options = skinFiles.map(file => {
-        const skinName = file.replace(".png", "");
+        const skinName = file.replace(/\.(png|gif)$/i, "");
         const isUX = file.toLowerCase().includes("ux");
         const price = getSkinPrice(file);
         const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
@@ -85,6 +87,8 @@ class SkinCommand extends BaseCommand {
           desc = "Đã sở hữu skin này";
         } else if (isUX) {
           desc = "Skin Hữu hạn - Chỉ có từ Gacha";
+        } else if (typeof price === "object" && price !== null) {
+          desc = `Giá: ${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Souls`;
         } else {
           desc = `Giá: ${price.toLocaleString()} Coke`;
         }
@@ -116,7 +120,7 @@ class SkinCommand extends BaseCommand {
 
       if (interaction.customId === "skin_shop_select") {
         selectedFile = interaction.values[0];
-        const skinName = selectedFile.replace(".png", "");
+        const skinName = selectedFile.replace(/\.(png|gif)$/i, "");
         const isUX = selectedFile.toLowerCase().includes("ux");
         const price = getSkinPrice(selectedFile);
         const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
@@ -229,7 +233,7 @@ class SkinCommand extends BaseCommand {
         u.markModified("rpg");
         await u.save();
 
-        const skinName = selectedFile.replace(".png", "");
+        const skinName = selectedFile.replace(/\.(png|gif)$/i, "");
         const successEmbed = new EmbedBuilder()
           .setColor("#57F287")
           .setTitle("🎉 MUA SKIN THÀNH CÔNG! 🎉")
