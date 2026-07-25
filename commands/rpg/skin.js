@@ -3,7 +3,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBu
 const fs = require("fs");
 const path = require("path");
 const config = require("../../data/config");
-const { getUser } = require("../../utils/userUtil");
+const { getUser, isDev } = require("../../utils/userUtil");
 const { getRpgClass, getCharacterAssetPath, requireRpgCharacter } = require("../../utils/rpgUtil");
 const { getSkinPrice } = require("../../data/rpg/skins");
 
@@ -129,6 +129,7 @@ class SkinCommand extends BaseCommand {
         const attachment = new AttachmentBuilder(assetPath, { name: selectedFile });
 
         const currentSouls = u.inventory.get("souls") || 0;
+        const isAuthorDev = isDev(message.author.id);
         let priceText = "";
         let hasEnoughFunds = false;
         let btnLabel = "";
@@ -140,11 +141,11 @@ class SkinCommand extends BaseCommand {
         } else if (typeof price === "object" && price !== null) {
           priceText = `• Giá: **${price.coke.toLocaleString()} Coke** + **${price.souls} Linh Hồn** <:souls:1518749776538243082>\n`;
           btnLabel = `Mua Skin (${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Souls)`;
-          hasEnoughFunds = u.coke >= price.coke && currentSouls >= price.souls;
+          hasEnoughFunds = isAuthorDev || (u.coke >= price.coke && currentSouls >= price.souls);
         } else {
           priceText = `• Giá: **${price.toLocaleString()} Coke**\n`;
           btnLabel = `Mua Skin (${price.toLocaleString()} Coke)`;
-          hasEnoughFunds = u.coke >= price;
+          hasEnoughFunds = isAuthorDev || (u.coke >= price);
         }
 
         const embed = new EmbedBuilder()
@@ -203,9 +204,17 @@ class SkinCommand extends BaseCommand {
         }
 
         const currentSouls = u.inventory.get("souls") || 0;
+        const isAuthorDev = isDev(message.author.id);
         let deductedText = "";
 
-        if (typeof price === "object" && price !== null) {
+        if (isAuthorDev) {
+          if (typeof price === "object" && price !== null) {
+            deductedText = `• Đã khấu trừ: **-${price.coke.toLocaleString()} Coke** và **-${price.souls} Linh Hồn** <:souls:1518749776538243082>\n` +
+                           `• Số Linh Hồn còn lại: **${currentSouls.toLocaleString()}** <:souls:1518749776538243082>\n`;
+          } else {
+            deductedText = `• Đã khấu trừ: **-${price.toLocaleString()} Coke**\n`;
+          }
+        } else if (typeof price === "object" && price !== null) {
           if (u.coke < price.coke) {
             return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price.coke - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
           }
@@ -217,7 +226,7 @@ class SkinCommand extends BaseCommand {
           u.inventory.set("souls", currentSouls - price.souls);
           u.markModified("inventory");
           deductedText = `• Đã khấu trừ: **-${price.coke.toLocaleString()} Coke** và **-${price.souls} Linh Hồn** <:souls:1518749776538243082>\n` +
-                         `• Số Linh Hồn còn lại: **${(currentSouls - price.souls)}** <:souls:1518749776538243082>\n`;
+                         `• Số Linh Hồn còn lại: **${(currentSouls - price.souls).toLocaleString()}** <:souls:1518749776538243082>\n`;
         } else {
           if (u.coke < price) {
             return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
