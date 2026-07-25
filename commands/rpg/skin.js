@@ -124,14 +124,34 @@ class SkinCommand extends BaseCommand {
         const assetPath = getCharacterAssetPath(selectedFile);
         const attachment = new AttachmentBuilder(assetPath, { name: selectedFile });
 
+        const currentSouls = u.inventory.get("souls") || 0;
+        let priceText = "";
+        let hasEnoughFunds = false;
+        let btnLabel = "";
+
+        if (isUX) {
+          priceText = `• **Chỉ có thể sở hữu từ Gacha (Hữu hạn)**\n`;
+          btnLabel = "Hữu hạn (Gacha)";
+          hasEnoughFunds = false;
+        } else if (typeof price === "object" && price !== null) {
+          priceText = `• Giá: **${price.coke.toLocaleString()} Coke** + **${price.souls} Linh Hồn** <:souls:1518749776538243082>\n`;
+          btnLabel = `Mua Skin (${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Souls)`;
+          hasEnoughFunds = u.coke >= price.coke && currentSouls >= price.souls;
+        } else {
+          priceText = `• Giá: **${price.toLocaleString()} Coke**\n`;
+          btnLabel = `Mua Skin (${price.toLocaleString()} Coke)`;
+          hasEnoughFunds = u.coke >= price;
+        }
+
         const embed = new EmbedBuilder()
           .setColor(rpgClass.color || "#FFD700")
           .setTitle(`✨ Chi Tiết Skin: ${skinName} ✨`)
           .setDescription(
             `• Class: **${className}**\n` +
             `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : (isUX ? "⭐ Hữu hạn" : "🛒 Đang bán")}\n` +
-            (isUX ? `• **Chỉ có thể sở hữu từ Gacha (Hữu hạn)**\n` : `• Giá: **${price.toLocaleString()} Coke**\n`) +
-            `• Số Coke bạn có: **${u.coke.toLocaleString()} Coke**`
+            priceText +
+            `• Số Coke bạn có: **${u.coke.toLocaleString()} Coke**\n` +
+            `• Số Linh Hồn bạn có: **${currentSouls}** <:souls:1518749776538243082>`
           )
           .setImage(`attachment://${selectedFile}`)
           .setTimestamp();
@@ -140,9 +160,9 @@ class SkinCommand extends BaseCommand {
 
         const buyBtn = new ButtonBuilder()
           .setCustomId("skin_shop_buy")
-          .setLabel(isOwned ? "Đã sở hữu" : (isUX ? "Hữu hạn (Gacha)" : `Mua Skin (${price.toLocaleString()} Coke)`))
+          .setLabel(isOwned ? "Đã sở hữu" : btnLabel)
           .setStyle(ButtonStyle.Success)
-          .setDisabled(isOwned || isUX || u.coke < price);
+          .setDisabled(isOwned || isUX || !hasEnoughFunds);
 
         const backBtn = new ButtonBuilder()
           .setCustomId("skin_shop_back")
@@ -178,12 +198,30 @@ class SkinCommand extends BaseCommand {
           return interaction.reply({ content: "❌ Skin này là skin Hữu hạn, chỉ có thể sở hữu từ Gacha!", flags: 64 });
         }
 
-        if (u.coke < price) {
-          return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
+        const currentSouls = u.inventory.get("souls") || 0;
+        let deductedText = "";
+
+        if (typeof price === "object" && price !== null) {
+          if (u.coke < price.coke) {
+            return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price.coke - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
+          }
+          if (currentSouls < price.souls) {
+            return interaction.reply({ content: `❌ Bạn không đủ Linh Hồn! Cần thêm **${price.souls - currentSouls} Linh Hồn** <:souls:1518749776538243082> để mua.`, flags: 64 });
+          }
+
+          u.coke -= price.coke;
+          u.inventory.set("souls", currentSouls - price.souls);
+          u.markModified("inventory");
+          deductedText = `• Đã khấu trừ: **-${price.coke.toLocaleString()} Coke** và **-${price.souls} Linh Hồn** <:souls:1518749776538243082>\n` +
+                         `• Số Linh Hồn còn lại: **${(currentSouls - price.souls)}** <:souls:1518749776538243082>\n`;
+        } else {
+          if (u.coke < price) {
+            return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
+          }
+          u.coke -= price;
+          deductedText = `• Đã khấu trừ: **-${price.toLocaleString()} Coke**\n`;
         }
 
-        
-        u.coke -= price;
         if (!u.rpg.ownedSkins) {
           u.rpg.ownedSkins = [];
         }
@@ -197,7 +235,7 @@ class SkinCommand extends BaseCommand {
           .setTitle("🎉 MUA SKIN THÀNH CÔNG! 🎉")
           .setDescription(
             `Chúc mừng bạn đã mua thành công skin **${skinName}**!\n` +
-            `• Đã khấu trừ: **-${price.toLocaleString()} Coke**\n` +
+            deductedText +
             `• Số Coke còn lại: **${u.coke.toLocaleString()} Coke**\n\n` +
             `*Bạn có thể dùng lệnh \`class\` -> nhấn nút **Skins** để đổi sang skin mới.*`
           )

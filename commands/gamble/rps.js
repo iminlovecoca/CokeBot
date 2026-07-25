@@ -145,7 +145,7 @@ class RpsCommand extends BaseCommand {
       const game = await claimGame(userId);
       if (!game) {
         collector.stop('claimed');
-        await sentMessage.edit({
+        await i.editReply({
           content: `${emoji.no} Ván chơi đã kết thúc!`,
           components: []
         }).catch(() => {});
@@ -198,7 +198,7 @@ class RpsCommand extends BaseCommand {
         resultText
       );
 
-      await sentMessage.edit({
+      await i.editReply({
         content: "",
         components: [finishedContainer],
         flags: MessageFlags.IsComponentsV2
