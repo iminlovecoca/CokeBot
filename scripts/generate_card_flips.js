@@ -11,10 +11,10 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 }
 
 async function createFlipGif(cardName, backImg, cardImg) {
-  const width = 262;
-  const height = 372;
-  const totalFrames = 16;
-  const fps = 24;
+  const width = 120;
+  const height = 170;
+  const totalFrames = 10;
+  const fps = 20;
   const outputFile = path.join(OUTPUT_DIR, `${cardName}f.gif`);
 
   const canvas = createCanvas(width, height);
@@ -27,7 +27,7 @@ async function createFlipGif(cardName, backImg, cardImg) {
     '-s', `${width}x${height}`,
     '-r', `${fps}`,
     '-i', '-',
-    '-vf', 'split[s0][s1];[s0]palettegen=reserve_transparent=1[p];[s1][p]paletteuse=alpha_threshold=128',
+    '-vf', 'split[s0][s1];[s0]palettegen=max_colors=128:reserve_transparent=1[p];[s1][p]paletteuse=alpha_threshold=128',
     '-loop', '-1',
     outputFile
   ]);

@@ -37,13 +37,14 @@ client.once('ready', async () => {
     try {
       // Check if emoji already exists on guild
       let existing = guild.emojis.cache.find(e => e.name === name);
-      if (!existing) {
-        existing = await guild.emojis.create({ attachment: filePath, name: name });
-        console.log(`[${i + 1}/${files.length}] ✅ Đã tạo emoji động: ${name} -> <a:${existing.name}:${existing.id}>`);
-      } else {
-        console.log(`[${i + 1}/${files.length}] ℹ️ Emoji ${name} đã tồn tại -> <a:${existing.name}:${existing.id}>`);
+      if (existing) {
+        await existing.delete().catch(() => {});
+        console.log(`[${i + 1}/${files.length}] 🔄 Đã xóa emoji cũ: ${name}`);
       }
-      emojiMap[name] = `<a:${existing.name}:${existing.id}>`;
+
+      const created = await guild.emojis.create({ attachment: filePath, name: name });
+      console.log(`[${i + 1}/${files.length}] ✅ Đã tải lên emoji mới: ${name} -> <a:${created.name}:${created.id}>`);
+      emojiMap[name] = `<a:${created.name}:${created.id}>`;
     } catch (err) {
       console.error(`[${i + 1}/${files.length}] ❌ Lỗi upload emoji ${name}:`, err.message);
     }
