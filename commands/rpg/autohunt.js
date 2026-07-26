@@ -510,12 +510,6 @@ class XautohuntCommand extends BaseCommand {
         );
 
         return message.reply({ content: reportText, skipV2: true });
-      } else {
-        const remainingMs = Math.max(0, durationMs - elapsedMs);
-        return message.reply({
-          content: `:robot: **|** \`BEEP BOOP. I AM STILL HUNTING. I WILL BE BACK IN ${formatDuration(remainingMs)}\``,
-          skipV2: true
-        });
       }
     }
 
@@ -732,6 +726,11 @@ class XautohuntCommand extends BaseCommand {
       }
 
       if (requestedHours !== null && !isNaN(requestedHours) && requestedHours > 0) {
+        if (user.rpg.autohunt.isActive) {
+          return message.reply(
+            `${config.emoji.warning} HuntBot của bạn hiện đang đi săn rồi! Gõ \`${config.prefix}xautohunt\` để xem thông tin tiến trình.`
+          );
+        }
         const actualDurationHours = Math.min(requestedHours, maxDurationHours);
         const effInfo = getLvl(user.rpg.autohunt.xp.efficiency, 0, 'efficiency');
         const gainInfo = getLvl(user.rpg.autohunt.xp.gain, 0, 'gain');
