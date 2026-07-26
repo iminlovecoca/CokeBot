@@ -346,14 +346,24 @@ function patchMethod(target, methodName) {
         }
       }
     }
-    // Discord API forbids sending flags (including IsComponentsV2) in edit, editReply, and update requests
+    // For edit, editReply, and update requests:
+    // If sending V2 components, we MUST send MessageFlags.IsComponentsV2 flag.
+    // Otherwise, delete flags to avoid invalid flag modification errors on edit.
     if ((methodName === "edit" || methodName === "editReply" || methodName === "update") && convertedOptions && typeof convertedOptions === "object") {
       if (convertedOptions.constructor && convertedOptions.constructor.name === "MessagePayload") {
         if (convertedOptions.options) {
-          delete convertedOptions.options.flags;
+          if (isSendingV2) {
+            convertedOptions.options.flags = MessageFlags.IsComponentsV2;
+          } else {
+            delete convertedOptions.options.flags;
+          }
         }
       } else {
-        delete convertedOptions.flags;
+        if (isSendingV2) {
+          convertedOptions.flags = MessageFlags.IsComponentsV2;
+        } else {
+          delete convertedOptions.flags;
+        }
       }
     }
     const result = original.call(this, convertedOptions, ...convertedArgs);
