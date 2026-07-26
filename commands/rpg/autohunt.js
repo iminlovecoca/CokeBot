@@ -94,13 +94,13 @@ const getXpForMax = (traitName) => {
 
 
 const bots = [
-  { emoji: '<:Common:1390024590347997245>', label: 'Common Bot' },
-  { emoji: '<:Rare:1390024624380706916>', label: 'Uncommon Bot' },
-  { emoji: '<:Epic:1390024749517770832>', label: 'Rare Bot' },
-  { emoji: '<:Legendary:1390024772200567026>', label: 'Epic Bot' },
-  { emoji: '<:Mythic:1390024789279772833>', label: 'Mythical Bot' },
-  { emoji: '<:Ancient:1390024806535004333>', label: 'Legendary Bot' },
-  { emoji: '<:Divine:1512512382507683880>', label: 'Founder Bot' },
+  { emoji: '<:common:1530878565489311826>', label: 'Common Bot' },
+  { emoji: '<:rare:1530878574104547378>', label: 'Rare Bot' },
+  { emoji: '<:epic:1530878567955566642>', label: 'Epic Bot' },
+  { emoji: '<:legendary:1530878570858287205>', label: 'Legendary Bot' },
+  { emoji: '<a:mythic:1530878614843686912>', label: 'Mythic Bot' },
+  { emoji: '<a:ancient:1530878606656540814>', label: 'Ancient Bot' },
+  { emoji: '<a:divine:1530878610515165365>', label: 'Divine Bot' },
 ];
 
 const getBot = (rank, totalBots) => {
@@ -288,17 +288,17 @@ const toSuperscript = (num, minDigits = 3) => {
 };
 
 const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo) => {
-  const ebotEmoji = botInfo?.emoji || "<:Common:1390024590347997245>";
+  const ebotEmoji = botInfo?.emoji || "<:common:1530878565489311826>";
   const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
 
   const rarityEmojis = {
-    Common: "<:Common:1390024590347997245>",
-    Rare: "<:Rare:1390024624380706916>",
-    Epic: "<:Epic:1390024749517770832>",
-    Legendary: "<:Legendary:1390024772200567026>",
-    Mythic: "<:Mythic:1390024789279772833>",
-    Ancient: "<:Ancient:1390024806535004333>",
-    Divine: "<:Divine:1512512382507683880>",
+    Common: "<:common:1530878565489311826>",
+    Rare: "<:rare:1530878574104547378>",
+    Epic: "<:epic:1530878567955566642>",
+    Legendary: "<:legendary:1530878570858287205>",
+    Mythic: "<a:mythic:1530878614843686912>",
+    Ancient: "<a:ancient:1530878606656540814>",
+    Divine: "<a:divine:1530878610515165365>",
   };
 
   const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
@@ -318,8 +318,8 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
   }
 
   const lines = [
-    `${ebotEmoji} | \`BEEP BOOP. I AM BACK WITH ${huntsCount} HUNTS,\``,
-    `${blankEmoji} | \`${essenceGain} ESSENCE, AND ${xpGain} EXPERIENCE\``
+    `${ebotEmoji} **|** \`BEEP BOOP. I AM BACK WITH ${huntsCount} HUNTS,\``,
+    `${blankEmoji} **|** \`${essenceGain} ESSENCE, AND ${xpGain} EXPERIENCE\``
   ];
 
   for (const rarity of rarityOrder) {
@@ -329,7 +329,7 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
       const itemStrings = Object.entries(itemsMap).map(([emoji, count]) => {
         return `${emoji}${toSuperscript(count, 3)}`;
       });
-      lines.push(`${rarityEmoji} | ${itemStrings.join("   ")}`);
+      lines.push(`${rarityEmoji} **|** ${itemStrings.join("   ")}`);
     }
   }
 
@@ -651,269 +651,63 @@ class XautohuntCommand extends BaseCommand {
         return message.reply(
           `${config.emoji.warning} HuntBot mới đi săn được ít phút, hãy đợi thêm chút nữa để thu hoạch.`,
         );
-      }
+        let gearsDropped = [];
+        const {
+          generateRpgGearDrop,
+          addRpgGearToUser,
+        } = require("../../utils/rpgUtil");
 
-      const xp = user.rpg.autohunt.xp;
-      const effInfo = getLvl(xp.efficiency, 0, 'efficiency');
-      const gainInfo = getLvl(xp.gain, 0, 'gain');
-      const expInfo = getLvl(xp.experience, 0, 'experience');
-      const radInfo = getLvl(xp.radar, 0, 'radar');
-
-      const huntsCount = Math.floor(elapsedHours * effInfo.stat);
-      const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
-      const xpGain = Math.floor(elapsedHours * expInfo.stat);
-
-      let gearsDropped = [];
-      const {
-        generateRpgGearDrop,
-        addRpgGearToUser,
-      } = require("../../utils/rpgUtil");
-
-      
-      for (let i = 0; i < huntsCount; i++) {
-        const droppedItem = await generateRpgGearDrop(user, {
-          forceDrop: false,
-          dropRateBonus: radInfo.stat / 100,
-        });
-        if (droppedItem) {
-          gearsDropped.push(droppedItem);
-          addRpgGearToUser(user, droppedItem);
+        for (let i = 0; i < huntsCount; i++) {
+          const droppedItem = await generateRpgGearDrop(user, {
+            forceDrop: false,
+            dropRateBonus: radInfo.stat / 100,
+          });
+          if (droppedItem) {
+            gearsDropped.push(droppedItem);
+            addRpgGearToUser(user, droppedItem);
+          }
         }
-      }
 
-      
-      user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
-      user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
-      const previousLevel = user.rpg.level;
-      const levelsGained = addRpgExp(user.rpg, xpGain);
-      user.rpg.power = calculateRpgPower(user);
+        user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
+        user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
+        const previousLevel = user.rpg.level;
+        const levelsGained = addRpgExp(user.rpg, xpGain);
+        user.rpg.power = calculateRpgPower(user);
 
-      
-      const { updateQuestProgress } = require("../../utils/questUtil");
-      if (xpGain > 0) {
-        await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
-      }
-      
+        
+        const { updateQuestProgress } = require("../../utils/questUtil");
+        if (xpGain > 0) {
+          await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+        }
+        
 
-      
-      user.rpg.autohunt.isActive = false;
-      user.rpg.autohunt.startTime = null;
-      user.rpg.autohunt.durationHours = 0;
-      user.rpg.autohunt.captchaCode = null;
-      user.rpg.autohunt.pendingDuration = 0;
-      user.rpg.autohunt.dmReminder = false;
-      user.markModified("rpg");
-      await user.save();
 
-      const reportText = renderHarvestReport(
-        elapsedHours,
-        huntsCount,
-        xpGain,
-        essenceGain,
-        gearsDropped,
-        levelsGained,
-        previousLevel,
-        user.rpg.level,
-        botInfo
-      );
-
-      return message.reply({ content: reportText, skipV2: true });
-    }
-
-    
-    let cokeAmount = null;
-    let durationHours = null;
-    let captchaInput = null;
-
-    const arg0 = args[0]?.trim();
-    const arg1 = args[1]?.trim();
-
-    const isDuration = (str) => {
-      if (!str) return false;
-      if (/^\d+(\.\d+)?[hH]$/.test(str)) return true;
-      const val = parseFloat(str);
-      return !isNaN(val) && val > 0 && val <= 48;
-    };
-
-    const parseDuration = (str) => {
-      const match = str.match(/^(\d+(\.\d+)?)[hH]?$/);
-      return match ? parseFloat(match[1]) : null;
-    };
-
-    if (arg0 && isDuration(arg0)) {
-      durationHours = parseDuration(arg0);
-      captchaInput = arg1;
-    } else if (arg1 && isDuration(arg1)) {
-      durationHours = parseDuration(arg1);
-      captchaInput = arg0;
-    } else if (arg0 && !isNaN(parseInt(arg0))) {
-      cokeAmount = parseInt(arg0);
-      captchaInput = arg1;
-    } else if (arg1 && !isNaN(parseInt(arg1))) {
-      cokeAmount = parseInt(arg1);
-      captchaInput = arg0;
-    }
-
-    if (durationHours !== null || cokeAmount !== null) {
-      if (user.rpg.autohunt.isActive) {
-        return message.reply(
-          `${config.emoji.warning} HuntBot của bạn đang đi săn! Gõ \`${config.prefix}xautohunt\` để xem trạng thái hoặc \`${config.prefix}xautohunt claim\` để nhận thưởng sớm.`,
-        );
-      }
-
-      const xp = user.rpg.autohunt.xp;
-      const effInfo = getLvl(xp.efficiency, 0, 'efficiency');
-      const durInfo = getLvl(xp.duration, 0, 'duration');
-      const costInfo = getLvl(xp.cost, 0, 'cost');
-      const gainInfo = getLvl(xp.gain, 0, 'gain');
-      const expInfo = getLvl(xp.experience, 0, 'experience');
-
-      const maxDuration = durInfo.stat;
-      const efficiency = effInfo.stat;
-      const costPerHunt = costInfo.stat;
-
-      let duration = durationHours;
-      if (cokeAmount !== null) {
-        duration = cokeAmount / (efficiency * costPerHunt);
-      }
-
-      if (duration < 0.1) {
-        return message.reply(
-          `${config.emoji.no} Thời gian Auto Hunt hoặc số lượng Coke không hợp lệ! Vui lòng chọn thời gian dài hơn.`,
-        );
-      }
-
-      if (duration > maxDuration) {
-        duration = maxDuration;
-      }
-
-      
-      const totalCost = Math.round(duration * efficiency * costPerHunt);
-
-      if (user.coke < totalCost) {
-        return message.reply(
-          `${config.emoji.no} Bạn không có đủ Coke để trả chi phí thuê HuntBot.\n` +
-            `Chi phí yêu cầu: **${totalCost.toLocaleString()} Coke** | Số dư của bạn: **${user.coke.toLocaleString()} Coke**`,
-        );
-      }
-
-      
-      if (!captchaInput) {
-        const captchaCode = generateVerificationCode();
-        user.rpg.autohunt.captchaCode = captchaCode;
-        user.rpg.autohunt.pendingDuration = duration;
+        
+        user.rpg.autohunt.isActive = false;
+        user.rpg.autohunt.startTime = null;
+        user.rpg.autohunt.durationHours = 0;
+        user.rpg.autohunt.captchaCode = null;
+        user.rpg.autohunt.pendingDuration = 0;
+        user.rpg.autohunt.dmReminder = false;
         user.markModified("rpg");
         await user.save();
 
-        const buffer = generateCaptchaImage(captchaCode);
-        const attachment = new AttachmentBuilder(buffer, {
-          name: "captcha.png",
-        });
-
-        const durHrs = Math.floor(duration);
-        const durMins = Math.round((duration - durHrs) * 60);
-        const durationStr = durHrs > 0 ? `${durHrs}h` : `${durMins}m`;
-
-        return message.reply({
-          content: `🤖 | **${memberName}**, Here is your password!\n| Use the command \`xautohunt ${durationStr} {password}\``,
-          files: [attachment],
-        });
-      }
-
-      
-      const expectedCaptcha = user.rpg.autohunt.captchaCode;
-      const expectedDuration = user.rpg.autohunt.pendingDuration;
-
-      if (!expectedCaptcha || Math.abs(expectedDuration - duration) > 0.02) {
-        const durHrs = Math.floor(duration);
-        const durMins = Math.round((duration - durHrs) * 60);
-        const durationStr = durHrs > 0 ? `${durHrs}h` : `${durMins}m`;
-
-        return message.reply(
-          `${config.emoji.no} Mã bảo mật hoặc số giờ không khớp với phiên hiện tại. Vui lòng gõ \`xautohunt ${durationStr}\` để lấy captcha mới.`,
+        const reportText = renderHarvestReport(
+          elapsedHours,
+          huntsCount,
+          xpGain,
+          essenceGain,
+          gearsDropped,
+          levelsGained,
+          previousLevel,
+          user.rpg.level,
+          botInfo
         );
+
+        return message.reply({ content: reportText, skipV2: true });
       }
-
-      if (captchaInput.toUpperCase() !== expectedCaptcha.toUpperCase()) {
-        return message.reply(
-          `${config.emoji.no} Mã captcha không chính xác. Vui lòng gõ lại hoặc lấy mã mới!`,
-        );
-      }
-
-      
-      user.coke -= totalCost;
-      user.rpg.autohunt.isActive = true;
-      user.rpg.autohunt.startTime = new Date();
-      user.rpg.autohunt.durationHours = duration;
-      user.rpg.autohunt.captchaCode = null; 
-      user.rpg.autohunt.pendingDuration = 0;
-      user.rpg.autohunt.dmReminder = false; 
-      user.markModified("rpg");
-      await user.save();
-
-      const hrs = Math.floor(duration);
-      const mins = Math.round((duration - hrs) * 60);
-      const timeStr = `${hrs}H ${mins}M`;
-
-      const huntsCount = Math.floor(duration * efficiency);
-
-      const replyMsg = await message.reply(
-        `🤖 | **BEEP BOOP.** **${memberName}** , YOU SPENT **${totalCost.toLocaleString()}** Coke\n` +
-          `| **I WILL BE BACK IN ${timeStr} WITH ${huntsCount.toLocaleString()} HUNTS,**\n` +
-          `| **${Math.floor(duration * gainInfo.stat).toLocaleString()} ESSENCE, AND ${Math.floor(duration * expInfo.stat).toLocaleString()} EXPERIENCE**`,
-      );
-
-      
-      await replyMsg.react("⏰").catch(() => {});
-
-      
-      const collector = replyMsg.createReactionCollector({
-        filter: (reaction, u) => reaction.emoji.name === "⏰" && u.id === message.author.id,
-        time: 5 * 60 * 1000,
-        max: 1,
-      });
-
-      collector.on("collect", async (reaction, u) => {
-        try {
-          const refreshedUser = await User.findOne({ userId: message.author.id });
-          if (refreshedUser && refreshedUser.rpg?.autohunt?.isActive) {
-            refreshedUser.rpg.autohunt.dmReminder = true;
-            refreshedUser.markModified("rpg");
-            await refreshedUser.save();
-
-            await message.reply(`${config.emoji.yes || "✅"} Đã cài đặt nhắc nhở gửi qua DM khi autohunt kết thúc!`).catch(() => {});
-
-            const elapsedMs = Date.now() - new Date(refreshedUser.rpg.autohunt.startTime).getTime();
-            const totalDurationMs = refreshedUser.rpg.autohunt.durationHours * 60 * 60 * 1000;
-            const remainingMs = Math.max(0, totalDurationMs - elapsedMs);
-
-            setTimeout(async () => {
-              try {
-                const checkUser = await User.findOne({ userId: message.author.id });
-                if (checkUser && checkUser.rpg?.autohunt?.isActive && checkUser.rpg?.autohunt?.dmReminder) {
-                  const discordUser = await message.client.users.fetch(message.author.id).catch(() => null);
-                  if (discordUser) {
-                    const dmChannel = await discordUser.createDM();
-                    await dmChannel.send(`⏰ **[HuntBot]** Autohunt của bạn đã kết thúc! Hãy dùng lệnh \`${config.prefix}xautohunt\` để nhận thưởng.`);
-                  }
-                  checkUser.rpg.autohunt.dmReminder = false;
-                  checkUser.markModified("rpg");
-                  await checkUser.save();
-                }
-              } catch (err) {
-                console.error(`Failed to send autohunt DM reminder to user ${message.author.id}:`, err);
-              }
-            }, remainingMs);
-          }
-        } catch (err) {
-          console.error("Error setting up autohunt reminder:", err);
-        }
-      });
-
-      return replyMsg;
     }
 
-    
     return message.reply({ embeds: [renderAutohuntPanel(user, memberName, rank, totalUsers, botInfo)], skipV2: true });
   }
 }

@@ -810,13 +810,13 @@ const generateGearStats = (slot, rarity, quality, subType = "") => {
 const getGearDisplayName = (item) => {
   if (!item) return "";
   const bracketEmoji = {
-    Common: "<:Common:1390024590347997245>",
-    Rare: "<:Rare:1390024624380706916>",
-    Epic: "<:Epic:1390024749517770832>",
-    Legendary: "<:Legendary:1390024772200567026>",
-    Mythic: "<:Mythic:1390024789279772833>",
-    Ancient: "<:Ancient:1390024806535004333>",
-    Divine: "<:Divine:1512512382507683880>",
+    Common: "<:common:1530878565489311826>",
+    Rare: "<:rare:1530878574104547378>",
+    Epic: "<:epic:1530878567955566642>",
+    Legendary: "<:legendary:1530878570858287205>",
+    Mythic: "<a:mythic:1530878614843686912>",
+    Ancient: "<a:ancient:1530878606656540814>",
+    Divine: "<a:divine:1530878610515165365>",
   };
   const slotEmoji = {
     weapon: "🗡️",

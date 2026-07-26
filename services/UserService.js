@@ -28,13 +28,13 @@ class UserService extends BaseService {
   }
 
   getRankEmoji(level) {
-    if (level <= 10) return "<:Common:1390024512774471902>";
-    if (level <= 20) return "<:Uncommon:1390024590347997245>";
-    if (level <= 30) return "<:Rare:1390024624380706916>";
-    if (level <= 40) return "<:Epic:1390024749517770832>";
-    if (level <= 50) return "<:Mysthic:1390024772200567026>";
-    if (level <= 60) return "<:Legendary:1390024789279772833>";
-    return "<:Ancient:1390024806535004333>";
+    if (level <= 10) return "<:common:1530878565489311826>";
+    if (level <= 20) return "<:rare:1530878574104547378>";
+    if (level <= 30) return "<:epic:1530878567955566642>";
+    if (level <= 40) return "<:legendary:1530878570858287205>";
+    if (level <= 50) return "<a:mythic:1530878614843686912>";
+    if (level <= 60) return "<a:ancient:1530878606656540814>";
+    return "<a:divine:1530878610515165365>";
   }
 }
 
