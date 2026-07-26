@@ -288,7 +288,7 @@ const toSuperscript = (num, minDigits = 3) => {
 };
 
 const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo) => {
-  const ebotEmoji = botInfo?.emoji || "<:common:1530878565489311826>";
+  const ebotEmoji = ":robot:";
   const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
 
   const rarityEmojis = {
@@ -329,7 +329,12 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
       const itemStrings = Object.entries(itemsMap).map(([emoji, count]) => {
         return `${emoji}${toSuperscript(count, 3)}`;
       });
-      lines.push(`${rarityEmoji} **|** ${itemStrings.join("   ")}`);
+      const chunkSize = 5;
+      for (let i = 0; i < itemStrings.length; i += chunkSize) {
+        const chunk = itemStrings.slice(i, i + chunkSize);
+        const prefixEmoji = i === 0 ? rarityEmoji : blankEmoji;
+        lines.push(`${prefixEmoji} **|** ${chunk.join("   ")}`);
+      }
     }
   }
 
