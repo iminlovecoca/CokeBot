@@ -275,13 +275,23 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
   return embed;
 };
 
-const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel) => {
-  const countsByRarity = {};
-  for (const item of gearsDropped) {
-    countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
+const toSuperscript = (num, minDigits = 3) => {
+  const map = {
+    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+    '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+  };
+  let str = String(num);
+  if (str.length < minDigits) {
+    str = '0'.repeat(minDigits - str.length) + str;
   }
+  return str.split('').map(c => map[c] || c).join('');
+};
 
-  const bracketEmoji = {
+const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo) => {
+  const ebotEmoji = botInfo?.emoji || "<:Common:1390024590347997245>";
+  const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
+
+  const rarityEmojis = {
     Common: "<:Common:1390024590347997245>",
     Rare: "<:Rare:1390024624380706916>",
     Epic: "<:Epic:1390024749517770832>",
@@ -292,27 +302,38 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
   };
 
   const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
-  const detailParts = rarityOrder
-    .filter(r => countsByRarity[r] > 0)
-    .map(r => `${bracketEmoji[r] || ""} **x${countsByRarity[r]}**`);
 
-  const gearDetailLine = detailParts.length > 0 ? detailParts.join("   ") : "*Không tìm thấy trang bị nào*";
+  const groupedByRarity = {};
+  for (const r of rarityOrder) {
+    groupedByRarity[r] = {};
+  }
 
-  const embed = new EmbedBuilder()
-    .setColor("#57F287")
-    .setTitle("🤖 HuntBot Báo Cáo Kết Quả Đi Săn")
-    .setDescription(
-      `Chào chủ nhân, tôi đã hoàn thành đi săn tự động!\n` +
-        `⏱️ **Thời gian**: \`${elapsedHours.toFixed(1)} giờ\`  |  🎯 **Lượt săn**: \`${huntsCount.toLocaleString()}\`\n\n` +
-        `💎 **Phần thưởng:**\n` +
-        `• ⚔️ EXP Nhân vật: **+${xpGain.toLocaleString()}** ${levelsGained > 0 ? `(🎉 **Lên cấp ${newLevel}!**)` : ""}\n` +
-        `• <:Essence:1517230428828995594> Coke Essence: **+${essenceGain.toLocaleString()}**\n` +
-        `• 🎒 Trang bị nhặt: **${gearsDropped.length}** món\n\n` +
-        `📦 **Chi tiết trang bị:**\n` +
-        `${gearDetailLine}`
-    );
+  for (const item of gearsDropped) {
+    const rarity = item.rarity || "Common";
+    const itemEmoji = item.emoji || (item.subType === "Staff" ? "<:staff:1514231936581898240>" : "<:longsword:1514231939865903104>");
+    if (!groupedByRarity[rarity]) {
+      groupedByRarity[rarity] = {};
+    }
+    groupedByRarity[rarity][itemEmoji] = (groupedByRarity[rarity][itemEmoji] || 0) + 1;
+  }
 
-  return embed;
+  const lines = [
+    `${ebotEmoji} | \`BEEP BOOP. I AM BACK WITH ${huntsCount} HUNTS,\``,
+    `${blankEmoji} | \`${essenceGain} ESSENCE, AND ${xpGain} EXPERIENCE\``
+  ];
+
+  for (const rarity of rarityOrder) {
+    const itemsMap = groupedByRarity[rarity];
+    if (itemsMap && Object.keys(itemsMap).length > 0) {
+      const rarityEmoji = rarityEmojis[rarity] || "";
+      const itemStrings = Object.entries(itemsMap).map(([emoji, count]) => {
+        return `${emoji}${toSuperscript(count, 3)}`;
+      });
+      lines.push(`${rarityEmoji} | ${itemStrings.join("   ")}`);
+    }
+  }
+
+  return lines.join("\n");
 };
 
 class XautohuntCommand extends BaseCommand {
@@ -476,7 +497,7 @@ class XautohuntCommand extends BaseCommand {
         user.markModified("rpg");
         await user.save();
 
-        const embed = renderHarvestReport(
+        const reportText = renderHarvestReport(
           elapsedHours,
           huntsCount,
           xpGain,
@@ -484,10 +505,11 @@ class XautohuntCommand extends BaseCommand {
           gearsDropped,
           levelsGained,
           previousLevel,
-          user.rpg.level
+          user.rpg.level,
+          botInfo
         );
 
-        return message.reply({ content: `🎉 **Auto Hunt Hoàn Thành!**`, embeds: [embed], skipV2: true });
+        return message.reply({ content: reportText, skipV2: true });
       }
     }
 
@@ -683,7 +705,7 @@ class XautohuntCommand extends BaseCommand {
       user.markModified("rpg");
       await user.save();
 
-      const embed = renderHarvestReport(
+      const reportText = renderHarvestReport(
         elapsedHours,
         huntsCount,
         xpGain,
@@ -691,10 +713,11 @@ class XautohuntCommand extends BaseCommand {
         gearsDropped,
         levelsGained,
         previousLevel,
-        user.rpg.level
+        user.rpg.level,
+        botInfo
       );
 
-      return message.reply({ embeds: [embed], skipV2: true });
+      return message.reply({ content: reportText, skipV2: true });
     }
 
     

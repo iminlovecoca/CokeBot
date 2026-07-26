@@ -853,34 +853,28 @@ class BattleCommand extends BaseCommand {
           .catch(() => {});
       });
     } else {
-      const count = await User.countDocuments({
-        "rpg.classKey": { $ne: null },
-        userId: { $ne: senderId, $regex: /^\d+$/ },
-        "rpg.godsetBackup": null,
-      });
+      const opponents = await User.aggregate([
+        {
+          $match: {
+            "rpg.classKey": { $ne: null },
+            userId: { $ne: senderId, $regex: /^\d+$/ },
+            "rpg.godsetBackup": null,
+          }
+        },
+        { $sample: { size: 5 } }
+      ]).catch(() => []);
 
-      if (count === 0) {
+      if (!opponents || opponents.length === 0) {
         return message.reply(
           `${config.emoji.no} Không tìm thấy người chơi nào khác có nhân vật RPG trong dữ liệu game để thách đấu.`,
         );
       }
 
       let randomOpponent = null;
-      let attempts = 0;
-      while (attempts < 15) {
-        attempts++;
-        const randomIndex = Math.floor(Math.random() * count);
-        const opp = await User.findOne({
-          "rpg.classKey": { $ne: null },
-          userId: { $ne: senderId, $regex: /^\d+$/ },
-          "rpg.godsetBackup": null,
-        }).skip(randomIndex);
-
-        if (!opp) break;
-
-        const discordUser = await message.client.users.fetch(opp.userId).catch(() => null);
+      for (const oppRaw of opponents) {
+        const discordUser = await message.client.users.fetch(oppRaw.userId).catch(() => null);
         if (discordUser && !discordUser.bot) {
-          randomOpponent = opp;
+          randomOpponent = await User.findOne({ userId: oppRaw.userId });
           break;
         }
       }
@@ -1073,9 +1067,11 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   
   await Promise.all([user1.save(), user2.save()]);
 
-  const showImage = !["text", "compact"].includes(
-    user1.rpg?.settings?.battleDisplay,
-  );
+  const battleDisplay = user1.rpg?.settings?.battleDisplay || "image";
+  const battleSpeed = user1.rpg?.settings?.battleSpeed || "instant";
+  const battleLogs = user1.rpg?.settings?.battleLogs || "false";
+
+  const showImage = !["text", "compact"].includes(battleDisplay);
 
   const memberName = message.member?.displayName || message.author.displayName || message.author.username;
   const weapon1Emoji = player1.weapon?.emoji ? ` ${player1.weapon.emoji}` : "";
@@ -1117,6 +1113,21 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       },
     );
 
+  if (battleLogs === "true" && result.logs && result.logs.length > 0) {
+    const logSnippet = result.logs.slice(-8).join("\n");
+    finalEmbed.addFields({
+      name: "📜 Nhật ký trận đấu",
+      value: logSnippet.length > 1024 ? logSnippet.substring(0, 1021) + "..." : logSnippet,
+      inline: false,
+    });
+  } else if (battleLogs === "link" && result.logs && result.logs.length > 0) {
+    finalEmbed.addFields({
+      name: "📜 Nhật ký trận đấu",
+      value: `*Trận đấu diễn ra trong ${result.turns} lượt.*`,
+      inline: false,
+    });
+  }
+
   const getActiveStatusEmojis = (effects) => {
     if (!effects) return "";
     const list = [];
@@ -1130,13 +1141,18 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   if (showImage && result.history && result.history.length > 0) {
     const history = result.history;
     const totalStates = history.length;
-    const mid1Index = Math.max(1, Math.min(totalStates - 2, Math.floor(totalStates * 0.33)));
-    const mid2Index = Math.max(mid1Index + 1, Math.min(totalStates - 2, Math.floor(totalStates * 0.66)));
-    
-    const indices = [0];
-    if (totalStates > 2) indices.push(mid1Index);
-    if (totalStates > 3) indices.push(mid2Index);
-    indices.push(totalStates - 1);
+
+    let indices = [totalStates - 1]; // Default "instant": show only final frame immediately
+    if (battleSpeed === "short") {
+      indices = totalStates > 1 ? [0, totalStates - 1] : [0];
+    } else if (battleSpeed === "lengthy") {
+      const mid1Index = Math.max(1, Math.min(totalStates - 2, Math.floor(totalStates * 0.33)));
+      const mid2Index = Math.max(mid1Index + 1, Math.min(totalStates - 2, Math.floor(totalStates * 0.66)));
+      indices = [0];
+      if (totalStates > 2) indices.push(mid1Index);
+      if (totalStates > 3) indices.push(mid2Index);
+      indices.push(totalStates - 1);
+    }
 
     let activeMessage = promptMessage;
 
@@ -1188,6 +1204,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
               inline: true,
             }
           ]);
+
+        if (battleLogs === "true" && result.logs && result.logs.length > 0) {
+          const logSnippet = result.logs.slice(-8).join("\n");
+          currentEmbed.addFields({
+            name: "📜 Nhật ký trận đấu",
+            value: logSnippet.length > 1024 ? logSnippet.substring(0, 1021) + "..." : logSnippet,
+            inline: false,
+          });
+        }
 
         if (isFinalFrame) {
           currentEmbed.setFooter({ text: footerText });
