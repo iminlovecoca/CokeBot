@@ -26,7 +26,7 @@ async function getCachedImage(filePath) {
 }
 
 /**
- * Fetch and memory-cache Discord Emoji image (static & animated GIFs/PNGs) as Canvas Image.
+ * Fetch and memory-cache Discord Custom Emoji image (static & animated GIFs/PNGs) as Canvas Image.
  */
 async function getEmojiImage(emojiStr) {
   if (!emojiStr) return null;
@@ -59,7 +59,48 @@ async function getEmojiImage(emojiStr) {
 }
 
 /**
- * Load equipped pet image (supports Legendary assets, Discord emojis, and Unicode emojis).
+ * Calculate Twemoji hex codepoint for standard Unicode emojis (e.g., 🐒 -> 1f412).
+ */
+function getEmojiCodePoint(emojiStr) {
+  if (!emojiStr) return "";
+  const codePoints = [];
+  for (const char of emojiStr) {
+    codePoints.push(char.codePointAt(0).toString(16));
+  }
+  return codePoints.filter((cp) => cp !== "fe0f").join("-");
+}
+
+/**
+ * Fetch high-resolution 72x72 PNG of standard Unicode emojis via Twemoji CDN.
+ */
+async function getUnicodeEmojiImage(emojiStr) {
+  if (!emojiStr) return null;
+  if (emojiCache.has(emojiStr)) {
+    return emojiCache.get(emojiStr);
+  }
+  const codePoint = getEmojiCodePoint(emojiStr);
+  if (!codePoint) return null;
+
+  const twemojiUrl = `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${codePoint}.png`;
+  try {
+    const img = await loadImage(twemojiUrl);
+    emojiCache.set(emojiStr, img);
+    return img;
+  } catch (err) {
+    try {
+      const fallbackUrl = `https://abs.twimg.com/emoji/v2/72x72/${codePoint}.png`;
+      const img = await loadImage(fallbackUrl);
+      emojiCache.set(emojiStr, img);
+      return img;
+    } catch (e2) {
+      console.error(`Failed to load Twemoji for ${emojiStr} (${codePoint}):`, e2);
+      return null;
+    }
+  }
+}
+
+/**
+ * Load equipped pet image (supports Legendary PNGs, Discord custom emojis, and Unicode Twemoji PNGs).
  */
 async function getPetCanvasImage(petInput) {
   if (!petInput) return null;
@@ -91,23 +132,10 @@ async function getPetCanvasImage(petInput) {
     if (discordImg) return discordImg;
   }
 
-  // 3. Render Unicode emoji or fallback text on a 74x74 Canvas
+  // 3. Fetch high-res Twemoji PNG for Unicode emojis (e.g. 🐒 -> 1f412.png)
   if (emoji) {
-    if (emojiCache.has(emoji)) {
-      return emojiCache.get(emoji);
-    }
-    try {
-      const c = createCanvas(74, 74);
-      const ctx = c.getContext("2d");
-      ctx.font = '50px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(emoji, 37, 37);
-      emojiCache.set(emoji, c);
-      return c;
-    } catch (err) {
-      console.error(`Failed to create canvas for emoji ${emoji}:`, err);
-    }
+    const unicodeImg = await getUnicodeEmojiImage(emoji);
+    if (unicodeImg) return unicodeImg;
   }
 
   return null;
