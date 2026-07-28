@@ -668,9 +668,14 @@ class XautohuntCommand extends BaseCommand {
       const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
       const xpGain = Math.floor(elapsedHours * expInfo.stat);
 
-      const { rollHuntPetDrop, generatePetStats } = require("../../data/pets");
+      const {
+        generateRpgGearDrop,
+        addRpgGearToUser,
+      } = require("../../utils/rpgUtil");
+      const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../data/pets");
       const { getHuntXp, getXpRequired, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
 
+      let gearsDropped = [];
       let petsCaught = [];
       let totalDuplicatePetExp = 0;
 

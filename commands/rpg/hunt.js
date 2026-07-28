@@ -86,7 +86,7 @@ class HuntCommand extends BaseCommand {
       `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()}xp**, **${cokeGain.toLocaleString()} coke**`;
 
     // Check for Pet Catch during hunt
-    const { rollHuntPetDrop, generatePetStats } = require("../../data/pets");
+    const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../data/pets");
     const { getHuntXp, getXpRequired, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
 
     // 1. Award Base Hunt XP to equipped pet based on creature/loot rarity
