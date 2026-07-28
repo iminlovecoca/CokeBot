@@ -374,11 +374,11 @@ function generatePetStats(species) {
 }
 
 /**
- * Get EXP needed for a pet to reach next level (Max Level 100)
+ * Get EXP needed for a pet to reach next level (Max Level 101)
  */
 function getPetXpNeeded(level) {
-  if (level >= 100) return 9999999; // Cap at Max Level 100
-  return Math.floor(50 * Math.pow(level, 1.8));
+  if (level >= 101) return 9999999;
+  return Math.floor((1000 + Math.pow(level, 4)) * 0.8);
 }
 
 /**
@@ -397,21 +397,24 @@ function findPetSpecies(query) {
 }
 
 /**
- * Roll for Pet Catch during xhunt according to independent rates
+ * Roll for Pet Catch during hunt according to independent rates.
+ * @param {boolean} [isAutohunt=false] - If true, applies 50% lower rate penalty for AFK autohunt
  */
-function rollHuntPetDrop() {
+function rollHuntPetDrop(isAutohunt = false) {
+  const mult = isAutohunt ? 0.5 : 1.0; // 50% lower catch rate for autohunt
+
   const getRandomSpecies = (tier) => {
     const list = PET_SPECIES.filter((s) => s.tier === tier);
     return list[Math.floor(Math.random() * list.length)];
   };
 
-  if (Math.random() < 0.000001) return getRandomSpecies("Divine");      // 0.0001%
-  if (Math.random() < 0.00001)  return getRandomSpecies("Ancient");     // 0.001%
-  if (Math.random() < 0.0001)   return getRandomSpecies("Mythic");      // 0.01%
-  if (Math.random() < 0.0005)   return getRandomSpecies("Legendary");   // 0.05%
-  if (Math.random() < 0.01)     return getRandomSpecies("Epic");        // 1%
-  if (Math.random() < 0.05)     return getRandomSpecies("Rare");        // 5%
-  if (Math.random() < 0.15)     return getRandomSpecies("Common");      // 15%
+  if (Math.random() < 0.000001 * mult) return getRandomSpecies("Divine");      // 0.0001%
+  if (Math.random() < 0.00001 * mult)  return getRandomSpecies("Ancient");     // 0.001%
+  if (Math.random() < 0.0001 * mult)   return getRandomSpecies("Mythic");      // 0.01%
+  if (Math.random() < 0.0005 * mult)   return getRandomSpecies("Legendary");   // 0.05%
+  if (Math.random() < 0.01 * mult)     return getRandomSpecies("Epic");        // 1%
+  if (Math.random() < 0.05 * mult)     return getRandomSpecies("Rare");        // 5%
+  if (Math.random() < 0.15 * mult)     return getRandomSpecies("Common");      // 15%
 
   return null;
 }

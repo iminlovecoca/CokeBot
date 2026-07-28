@@ -287,7 +287,7 @@ const toSuperscript = (num, minDigits = 3) => {
   return str.split('').map(c => map[c] || c).join('');
 };
 
-const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo) => {
+const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
   const ebotEmoji = ":robot:";
   const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
 
@@ -321,6 +321,15 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
     `${ebotEmoji} **|** \`BEEP BOOP. I AM BACK WITH ${huntsCount} HUNTS,\``,
     `${blankEmoji} **|** \`${essenceGain} ESSENCE, AND ${xpGain} EXPERIENCE\``
   ];
+
+  if (petsCaught.length > 0) {
+    const petStr = petsCaught.map((p) => `${p.emoji} **${p.name}**`).join(", ");
+    lines.push(`🔮 **|** 🎉 **THU PHỤC LINH THÚ MỚI:** ${petStr}!`);
+  }
+
+  if (totalDuplicatePetExp > 0) {
+    lines.push(`🐾 **|** Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** trùng pet!`);
+  }
 
   for (const rarity of rarityOrder) {
     const itemsMap = groupedByRarity[rarity];
@@ -659,11 +668,11 @@ class XautohuntCommand extends BaseCommand {
       const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
       const xpGain = Math.floor(elapsedHours * expInfo.stat);
 
-      let gearsDropped = [];
-      const {
-        generateRpgGearDrop,
-        addRpgGearToUser,
-      } = require("../../utils/rpgUtil");
+      const { rollHuntPetDrop, generatePetStats } = require("../../data/pets");
+      const { getHuntXp, getXpRequired, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
+
+      let petsCaught = [];
+      let totalDuplicatePetExp = 0;
 
       for (let i = 0; i < huntsCount; i++) {
         const droppedItem = await generateRpgGearDrop(user, {
@@ -673,6 +682,47 @@ class XautohuntCommand extends BaseCommand {
         if (droppedItem) {
           gearsDropped.push(droppedItem);
           addRpgGearToUser(user, droppedItem);
+        }
+
+        // Award Base Hunt XP to equipped pet for each hunt tick
+        if (user.rpg.equippedPet) {
+          const rarity = droppedItem ? droppedItem.rarity : "Common";
+          const petHuntXp = getHuntXp(rarity);
+          addPetXpUtil(user.rpg.equippedPet, petHuntXp);
+        }
+
+        // Roll for Pet Catch during autohunt (applies 50% lower rate penalty)
+        const caughtSpecies = rollHuntPetDrop(true);
+        if (caughtSpecies) {
+          user.rpg.pets = user.rpg.pets || [];
+          const isAlreadyOwned = user.rpg.pets.some((p) => p.key === caughtSpecies.key);
+
+          if (isAlreadyOwned) {
+            if (user.rpg.equippedPet) {
+              const neededExp = getXpRequired(user.rpg.equippedPet.level || 1);
+              const expBonus = Math.max(10, Math.floor(neededExp * 0.35));
+              addPetXpUtil(user.rpg.equippedPet, expBonus);
+              totalDuplicatePetExp += expBonus;
+            }
+          } else {
+            const newPet = {
+              id: `pet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              key: caughtSpecies.key,
+              name: caughtSpecies.name,
+              nickname: caughtSpecies.name,
+              tier: caughtSpecies.tier,
+              emoji: caughtSpecies.emoji,
+              level: 1,
+              exp: 0,
+              stats: generatePetStats(caughtSpecies),
+              createdAt: new Date(),
+            };
+            user.rpg.pets.push(newPet);
+            if (!user.rpg.equippedPet) {
+              user.rpg.equippedPet = newPet;
+            }
+            petsCaught.push(newPet);
+          }
         }
       }
 

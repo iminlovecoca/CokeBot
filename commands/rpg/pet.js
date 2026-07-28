@@ -110,36 +110,25 @@ class PetCommand extends BaseCommand {
     const defPct = (level * 0.35).toFixed(2);
 
     const aliasesStr = (targetSpecies?.aliases || [petData.key]).join(", ");
-    const desc =
-      targetSpecies?.description || "*Linh thú huyền bí mang sức mạnh bổ trợ.*";
+    const desc = targetSpecies?.description || "*Linh thú huyền bí mang sức mạnh bổ trợ.*";
+    const expStr = typeof neededExp === "number" && Number.isFinite(neededExp) ? `${currentExp}/${neededExp}` : "MAX";
 
-    // Embed formatting matching OwO reference card
+    // Compact Embed with Large Header Emoji & Inline Grid Fields
     const embed = new EmbedBuilder()
       .setColor(isEquipped ? 0x9b59b6 : 0x2b2d31)
-      .setTitle(`${petData.emoji} ${petData.name} ${isEquipped ? "⭐ (Đang Trang Bị)" : ""}`)
-      .setDescription(`*${desc}*`)
+      .setDescription(
+        `# ${petData.emoji} ${petData.name} ${isEquipped ? "⭐" : ""}\n` +
+        `*${desc}*`
+      )
       .addFields(
-        { name: "Nickname", value: `**${petData.nickname || petData.name}**`, inline: true },
-        { name: "Level", value: `**${level}** (${currentExp}/${typeof neededExp === "number" ? neededExp : "MAX"} EXP)`, inline: true },
-        { name: "Rank", value: `${tierConfig.emoji} **${petData.tier}**`, inline: true },
+        { name: "Level", value: `\`${level}\` (${expStr} XP)`, inline: true },
+        { name: "Rank", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
+        { name: "Points", value: `⚡ +${powerPoints.toLocaleString()}`, inline: true },
+        { name: "❤️ HP", value: `+${hpVal} (+${hpPct}%)`, inline: true },
+        { name: "⚔️ ATK", value: `+${atkVal} (+${atkPct}%)`, inline: true },
+        { name: "🛡️ DEF", value: `+${defVal} (+${defPct}%)`, inline: true },
         { name: "Alias", value: `\`${aliasesStr}\``, inline: true },
-        { name: "Points", value: `⚡ **+${powerPoints.toLocaleString()}** Power`, inline: true },
-        { name: "Trạng thái", value: isOwned ? (isEquipped ? "✅ Đã trang bị" : "📦 Trong kho") : "❌ Chưa sở hữu", inline: true },
-        {
-          name: "❤️ Máu (HP)",
-          value: `+${hpVal} (+${hpPct}% / lvl)`,
-          inline: true,
-        },
-        {
-          name: "⚔️ Tấn Công (ATK)",
-          value: `+${atkVal} (+${atkPct}% / lvl)`,
-          inline: true,
-        },
-        {
-          name: "🛡️ Phòng Thủ (DEF)",
-          value: `+${defVal} (+${defPct}% / lvl)`,
-          inline: true,
-        }
+        { name: "Trạng thái", value: isOwned ? (isEquipped ? "✅ Trang bị" : "📦 Trong kho") : "❌ Chưa có", inline: true }
       );
 
     return message.channel.send({ embeds: [embed] });

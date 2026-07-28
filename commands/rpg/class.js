@@ -19,6 +19,7 @@ const {
   classEntries,
   calculateRpgPower,
   getEquippedItems,
+  getEquippedPet,
   getRpgClass,
   getRpgXpNeeded,
   hasRpgCharacter,
@@ -95,9 +96,11 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
   }
 
   const assetName = customAvatar || rpgClass.asset;
+  const equippedPet = userData ? getEquippedPet(userData) : null;
+  const headerPetEmoji = equippedPet?.emoji || "👤";
 
   const title = userData?.rpg?.name
-    ? `👤 ${userData.rpg.name} (${rpgClass.name})`
+    ? `${headerPetEmoji} ${userData.rpg.name} (${rpgClass.name})`
     : `${rpgClass.name} - ${rpgClass.title}`;
 
   const embed = new EmbedBuilder()
@@ -131,6 +134,10 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     const currentPower = calculateRpgPower(userData);
     const availablePoints = getAvailablePoints(userData);
 
+    const petLine = equippedPet
+      ? `Linh thú: ${equippedPet.emoji} **${equippedPet.name}** Lvl.**${equippedPet.level || 1}**\n`
+      : `Linh thú: ❌ **Chưa trang bị**\n`;
+
     embed.addFields(
       {
         name: "Nhân vật của bạn",
@@ -138,6 +145,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
           nameLine +
           `Level: **${userData.rpg.level}**\n` +
           `Rank: **${userData.rpg.rank}**\n` +
+          petLine +
           `Lực chiến: **${Math.floor(currentPower).toLocaleString()}**\n` +
           `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**\n` +
           `Điểm chưa cộng: **${availablePoints}**`,
