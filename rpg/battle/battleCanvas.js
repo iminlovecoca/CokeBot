@@ -59,10 +59,19 @@ async function getEmojiImage(emojiStr) {
 }
 
 /**
- * Load equipped pet image from local disk asset or Discord emoji CDN.
+ * Load equipped pet image (supports Legendary assets, Discord emojis, and Unicode emojis).
  */
-async function getPetCanvasImage(pet) {
-  if (!pet) return null;
+async function getPetCanvasImage(petInput) {
+  if (!petInput) return null;
+
+  let pet = petInput;
+  const { PET_SPECIES } = require("../../data/pets");
+  const petKey = typeof petInput === "string" ? petInput : petInput.key;
+  const foundSpecies = PET_SPECIES.find((s) => s.key === petKey || s.aliases?.includes(petKey));
+
+  const key = petKey || foundSpecies?.key;
+  const emoji = (typeof petInput === "object" ? petInput.emoji : null) || foundSpecies?.emoji;
+
   const petKeyMap = {
     sabertiger: path.join(__dirname, "../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
     mammoth: path.join(__dirname, "../../assets/ranks/legendary/legendary_mammoth.png"),
@@ -70,12 +79,37 @@ async function getPetCanvasImage(pet) {
     shark: path.join(__dirname, "../../assets/ranks/legendary/legendary_shark.png"),
     snake: path.join(__dirname, "../../assets/ranks/legendary/legendary_snake.png"),
   };
-  if (petKeyMap[pet.key] && fs.existsSync(petKeyMap[pet.key])) {
-    return await getCachedImage(petKeyMap[pet.key]);
+
+  // 1. Check legendary PNG badge assets
+  if (key && petKeyMap[key] && fs.existsSync(petKeyMap[key])) {
+    return await getCachedImage(petKeyMap[key]);
   }
-  if (pet.emoji) {
-    return await getEmojiImage(pet.emoji);
+
+  // 2. Check Discord custom emoji (<:name:id> or <a:name:id>)
+  if (emoji && (emoji.includes("<:") || emoji.includes("<a:"))) {
+    const discordImg = await getEmojiImage(emoji);
+    if (discordImg) return discordImg;
   }
+
+  // 3. Render Unicode emoji or fallback text on a 74x74 Canvas
+  if (emoji) {
+    if (emojiCache.has(emoji)) {
+      return emojiCache.get(emoji);
+    }
+    try {
+      const c = createCanvas(74, 74);
+      const ctx = c.getContext("2d");
+      ctx.font = '50px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emoji, 37, 37);
+      emojiCache.set(emoji, c);
+      return c;
+    } catch (err) {
+      console.error(`Failed to create canvas for emoji ${emoji}:`, err);
+    }
+  }
+
   return null;
 }
 

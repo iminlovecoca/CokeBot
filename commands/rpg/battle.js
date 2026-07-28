@@ -1051,6 +1051,10 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     return list.length > 0 ? " " + list.join(" ") : "";
   };
 
+  const { getEquippedPet } = require("../../utils/rpgUtil");
+  const pet1 = getEquippedPet(user1);
+  const pet2 = getEquippedPet(user2);
+
   if (showImage && result.history && result.history.length > 0) {
     const history = result.history;
     const totalStates = history.length;
@@ -1081,12 +1085,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
         state.p1.hp,
         result.p1.maxHp,
         state.p1.rage || 0,
-        user1.rpg.equippedPet,
+        pet1,
         state.p1.effects,
         state.p2.hp,
         result.p2.maxHp,
         state.p2.rage || 0,
-        user2.rpg.equippedPet,
+        pet2,
         state.p2.effects,
         finalStatus
       ).catch((err) => {
