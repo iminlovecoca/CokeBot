@@ -175,8 +175,32 @@ const generatePvPImage = async (
     return lower.endsWith(".gif") || lower.includes("mecha");
   };
 
-  // Load character images
-  const img1 = await getTransparentCharacter(p1Asset);
+  const getPetCanvasImage = async (pet) => {
+    if (!pet) return null;
+    const petKeyMap = {
+      sabertiger: path.join(__dirname, "../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
+      mammoth: path.join(__dirname, "../../assets/ranks/legendary/legendary_mammoth.png"),
+      eagle: path.join(__dirname, "../../assets/ranks/legendary/legendary_eagle_fullbody.png"),
+      shark: path.join(__dirname, "../../assets/ranks/legendary/legendary_shark.png"),
+      snake: path.join(__dirname, "../../assets/ranks/legendary/legendary_snake.png"),
+    };
+    if (petKeyMap[pet.key] && fs.existsSync(petKeyMap[pet.key])) {
+      return await getCachedImage(petKeyMap[pet.key]);
+    }
+    if (pet.emoji) {
+      return await getEmojiImage(pet.emoji);
+    }
+    return null;
+  };
+
+  // Pre-load all character and pet images in parallel for ultra-fast performance
+  const [img1, img2, p1PetImg, p2PetImg] = await Promise.all([
+    getTransparentCharacter(p1Asset),
+    getTransparentCharacter(p2Asset),
+    getPetCanvasImage(p1Pet),
+    getPetCanvasImage(p2Pet),
+  ]);
+
   if (img1) {
     ctx.save();
     // Clip to Left Frame (wooden border)
@@ -194,7 +218,6 @@ const generatePvPImage = async (
     ctx.restore();
   }
 
-  const img2 = await getTransparentCharacter(p2Asset);
   if (img2) {
     ctx.save();
     // Clip to Right Frame
@@ -212,31 +235,11 @@ const generatePvPImage = async (
     ctx.restore();
   }
 
-  // Load and Draw Equipped Pets in the top corner square boxes
-  const getPetCanvasImage = async (pet) => {
-    if (!pet) return null;
-    const petKeyMap = {
-      sabertiger: path.join(__dirname, "../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
-      mammoth: path.join(__dirname, "../../assets/ranks/legendary/legendary_mammoth.png"),
-      eagle: path.join(__dirname, "../../assets/ranks/legendary/legendary_eagle_fullbody.png"),
-      shark: path.join(__dirname, "../../assets/ranks/legendary/legendary_shark.png"),
-      snake: path.join(__dirname, "../../assets/ranks/legendary/legendary_snake.png"),
-    };
-    if (petKeyMap[pet.key] && fs.existsSync(petKeyMap[pet.key])) {
-      return await getCachedImage(petKeyMap[pet.key]);
-    }
-    if (pet.emoji) {
-      return await loadEmojiImage(pet.emoji);
-    }
-    return null;
-  };
-
-  const p1PetImg = await getPetCanvasImage(p1Pet);
+  // Draw Equipped Pets in the top corner square boxes
   if (p1PetImg) {
     ctx.drawImage(p1PetImg, 27 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
   }
 
-  const p2PetImg = await getPetCanvasImage(p2Pet);
   if (p2PetImg) {
     ctx.drawImage(p2PetImg, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
   }
