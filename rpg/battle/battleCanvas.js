@@ -194,7 +194,7 @@ class BattleCanvas {
       getPetCanvasImage(p2Pet),
     ]);
 
-    // 3. Draw Player 1 Character Sprite
+    // 3. Draw Player 1 Character Sprite (Flipped right facing towards opponent)
     if (img1) {
       ctx.save();
       ctx.rect(73 + 4, 136 + 4, 212 - 8, 354 - 8);
@@ -205,7 +205,7 @@ class BattleCanvas {
       ctx.restore();
     }
 
-    // 4. Draw Player 2 Character Sprite
+    // 4. Draw Player 2 Character Sprite (Facing left towards Player 1)
     if (img2) {
       ctx.save();
       ctx.rect(735 + 4, 136 + 4, 211 - 8, 354 - 8);
@@ -214,11 +214,18 @@ class BattleCanvas {
       ctx.restore();
     }
 
-    // 5. Draw Equipped Pets in the top corner square boxes
+    // 5. Draw Equipped Pets in the top corner square boxes (Flipped so both face center/opponent)
     if (p1PetImg) {
-      ctx.drawImage(p1PetImg, 27 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
+      ctx.save();
+      // Mirror Player 1 Pet to face right towards the center VS
+      ctx.translate(27 + 94 / 2, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(p1PetImg, -37, 22 + (95 - 74) / 2, 74, 74);
+      ctx.restore();
     }
+
     if (p2PetImg) {
+      // Player 2 Pet naturally faces left towards Player 1
       ctx.drawImage(p2PetImg, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
     }
 
