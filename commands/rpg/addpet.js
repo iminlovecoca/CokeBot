@@ -18,7 +18,7 @@ class AddPetCommand extends BaseCommand {
     });
   }
 
-  async execute({ message, args }) {
+  async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
     const query = args.join(" ").trim();
 

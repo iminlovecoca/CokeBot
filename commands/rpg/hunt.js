@@ -71,8 +71,6 @@ class HuntCommand extends BaseCommand {
     user.rpg.power = calculateRpgPower(user);
     user.rpg.lastHuntAt = new Date();
 
-    await user.save();
-
     
     const { updateQuestProgress } = require("../../utils/questUtil");
     await updateQuestProgress(message.author.id, "exp_gain", expGain, message.channel);
@@ -183,6 +181,9 @@ class HuntCommand extends BaseCommand {
     if (levelsGained > 0) {
       text += `\n${blankEmo} **|** 🆙 **LÊN CẤP!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
     }
+
+    // Save updated user data (including new pets, pet exp, gear, and stats) to Database
+    await user.save();
 
     return message.reply({ content: text });
   }
