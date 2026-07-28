@@ -1,6 +1,7 @@
 const { createCanvas, loadImage } = require("canvas");
 const path = require("path");
 const fs = require("fs");
+const { getCharacterAssetPath } = require("../../utils/rpgUtil");
 
 const imageCache = new Map();
 const emojiCache = new Map();
@@ -9,6 +10,7 @@ const emojiCache = new Map();
  * Pre-cache standard background assets into RAM.
  */
 async function getCachedImage(filePath) {
+  if (!filePath) return null;
   if (imageCache.has(filePath)) {
     return imageCache.get(filePath);
   }
@@ -24,24 +26,35 @@ async function getCachedImage(filePath) {
 }
 
 /**
- * Fetch and memory-cache Discord Emoji image as Canvas Image object.
+ * Fetch and memory-cache Discord Emoji image (static & animated GIFs/PNGs) as Canvas Image.
  */
 async function getEmojiImage(emojiStr) {
   if (!emojiStr) return null;
   if (emojiCache.has(emojiStr)) {
     return emojiCache.get(emojiStr);
   }
-  const match = emojiStr.match(/:(\d+)>/);
+  const match = emojiStr.match(/<(a)?:[^:]+:(\d+)>/);
   if (!match) return null;
-  const emojiId = match[1];
-  const url = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
+
+  const isAnimated = Boolean(match[1]);
+  const emojiId = match[2];
+  const primaryExt = isAnimated ? "gif" : "png";
+  const primaryUrl = `https://cdn.discordapp.com/emojis/${emojiId}.${primaryExt}`;
+
   try {
-    const img = await loadImage(url);
+    const img = await loadImage(primaryUrl);
     emojiCache.set(emojiStr, img);
     return img;
   } catch (err) {
-    console.error(`Failed to load emoji image from ${url}:`, err);
-    return null;
+    try {
+      const fallbackUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
+      const img = await loadImage(fallbackUrl);
+      emojiCache.set(emojiStr, img);
+      return img;
+    } catch (e2) {
+      console.error(`Failed to load emoji image for ${emojiStr}:`, e2);
+      return null;
+    }
   }
 }
 
@@ -67,12 +80,23 @@ async function getPetCanvasImage(pet) {
 }
 
 /**
- * Load transparent character sprite asset.
+ * Load transparent character sprite asset (resolves skins and base class assets).
  */
-async function getTransparentCharacter(assetName) {
-  if (!assetName) return null;
-  const charPath = path.join(__dirname, "../../assets/characters", assetName);
-  return await getCachedImage(charPath);
+async function getTransparentCharacter(userOrAsset) {
+  if (!userOrAsset) return null;
+  let filePath = null;
+
+  if (typeof userOrAsset === "object" && userOrAsset.rpg) {
+    filePath = getCharacterAssetPath(userOrAsset);
+  } else if (typeof userOrAsset === "string") {
+    if (fs.existsSync(userOrAsset)) {
+      filePath = userOrAsset;
+    } else {
+      filePath = path.join(__dirname, "../../assets/characters", userOrAsset);
+    }
+  }
+
+  return await getCachedImage(filePath);
 }
 
 class BattleCanvas {
@@ -80,7 +104,7 @@ class BattleCanvas {
    * Render ultra-fast PvP Battle Frame with Equipped Pets in top corner square boxes.
    */
   static async renderPvPImage(
-    p1Asset, p2Asset,
+    p1AssetOrUser, p2AssetOrUser,
     p1Hp, p1MaxHp, p1Rage, p1Pet, p1Effects,
     p2Hp, p2MaxHp, p2Rage, p2Pet, p2Effects,
     resultStatus
@@ -102,8 +126,8 @@ class BattleCanvas {
 
     // 2. Pre-load all character and pet images in parallel
     const [img1, img2, p1PetImg, p2PetImg] = await Promise.all([
-      getTransparentCharacter(p1Asset),
-      getTransparentCharacter(p2Asset),
+      getTransparentCharacter(p1AssetOrUser),
+      getTransparentCharacter(p2AssetOrUser),
       getPetCanvasImage(p1Pet),
       getPetCanvasImage(p2Pet),
     ]);
@@ -170,7 +194,21 @@ class BattleCanvas {
       ctx.fillRect(606 + (276 - Math.floor(276 * rage2Ratio)), 76, Math.floor(276 * rage2Ratio), 20);
     }
 
-    // 8. Draw Status Overlay (KO / TIMEOUT) if final frame
+    // 8. Render HP and Rage Text Numbers over bars
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 14px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Player 1 HP & Rage text
+    ctx.fillText(`${Math.max(0, Math.floor(p1Hp))}/${Math.floor(p1MaxHp)}`, 142 + 138, 44 + 10);
+    ctx.fillText(`${Math.floor(p1Rage || 0)}% Nộ`, 142 + 138, 76 + 10);
+
+    // Player 2 HP & Rage text
+    ctx.fillText(`${Math.max(0, Math.floor(p2Hp))}/${Math.floor(p2MaxHp)}`, 606 + 138, 44 + 10);
+    ctx.fillText(`${Math.floor(p2Rage || 0)}% Nộ`, 606 + 138, 76 + 10);
+
+    // 9. Draw Status Overlay (KO / TIMEOUT) if final frame
     if (resultStatus === "ko") {
       const koPath = path.join(__dirname, "../../assets/backgrounds/ko_stamp.png");
       const koImg = await getCachedImage(koPath);

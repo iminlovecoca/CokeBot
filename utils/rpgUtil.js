@@ -162,7 +162,14 @@ const isDungeonWeapon = (item) => {
   return isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
 };
 
-const getCharacterAssetPath = (avatarFile) => {
+const getCharacterAssetPath = (avatarFileOrUser) => {
+  let avatarFile = avatarFileOrUser;
+  if (typeof avatarFileOrUser === "object" && avatarFileOrUser?.rpg) {
+    const rpgClass = getRpgClass(avatarFileOrUser.rpg.classKey || "warrior");
+    avatarFile = avatarFileOrUser.rpg.characterAsset || rpgClass?.asset || "Warrior_male.png";
+  }
+  if (!avatarFile || typeof avatarFile !== "string") avatarFile = "Warrior_male.png";
+
   const root = path.join(__dirname, "..");
   let assetPath = path.join(root, "assets/characters", avatarFile);
   if (!fs.existsSync(assetPath)) {
@@ -1304,6 +1311,8 @@ const seedUpgradeStones = async (client) => {
     }
   }
 };
+
+
 
 module.exports = {
   getEquippedPet,

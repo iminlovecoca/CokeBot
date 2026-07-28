@@ -57,7 +57,7 @@ class BattleRewards {
 
     if (user1.rpg.equippedPet) {
       addPetXp(user1.rpg.equippedPet, petXp1, user1);
-      petFooterInfo += ` | 🐾 Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
+      petFooterInfo += ` | Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
     }
 
     if (user2.rpg.equippedPet) {

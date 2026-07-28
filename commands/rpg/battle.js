@@ -1076,8 +1076,8 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       let finalStatus = isFinalFrame ? (result.isDraw ? "timeout" : "ko") : null;
 
       const imgData = await renderPvPImage(
-        user1.rpg.characterAsset || class1.asset,
-        user2.rpg.characterAsset || class2.asset,
+        user1,
+        user2,
         state.p1.hp,
         result.p1.maxHp,
         state.p1.rage || 0,
