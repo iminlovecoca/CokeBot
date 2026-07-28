@@ -6,9 +6,9 @@ const {
   PET_TIERS,
   PET_SPECIES,
   generatePetStats,
-  getPetXpNeeded,
   findPetSpecies,
 } = require("../../data/pets");
+const { getXpRequired } = require("../../utils/petXpUtil");
 
 class PetCommand extends BaseCommand {
   constructor() {
@@ -23,29 +23,6 @@ class PetCommand extends BaseCommand {
 
   async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
-
-    // Grant starter pet if empty
-    if (!user.rpg.pets || user.rpg.pets.length === 0) {
-      const starterSpecies = findPetSpecies("bee");
-      const starterPet = {
-        id: `pet-${Date.now()}-1`,
-        key: starterSpecies.key,
-        name: starterSpecies.name,
-        nickname: starterSpecies.name,
-        tier: starterSpecies.tier,
-        emoji: starterSpecies.emoji,
-        level: 1,
-        exp: 0,
-        stats: generatePetStats(starterSpecies),
-        createdAt: new Date(),
-      };
-      user.rpg.pets = [starterPet];
-      if (!user.rpg.equippedPet) {
-        user.rpg.equippedPet = starterPet;
-      }
-      user.markModified("rpg");
-      await user.save();
-    }
 
     const query = args.join(" ").trim();
     if (query) {
@@ -104,7 +81,7 @@ class PetCommand extends BaseCommand {
 
     const level = petData.level || 1;
     const currentExp = petData.exp || 0;
-    const neededExp = getPetXpNeeded(level);
+    const neededExp = getXpRequired(level);
 
     // Calculate Points (Power added)
     const tierMulti = {
@@ -143,7 +120,7 @@ class PetCommand extends BaseCommand {
       .setDescription(`*${desc}*`)
       .addFields(
         { name: "Nickname", value: `**${petData.nickname || petData.name}**`, inline: true },
-        { name: "Level", value: `**${level}** (${currentExp}/${neededExp} EXP)`, inline: true },
+        { name: "Level", value: `**${level}** (${currentExp}/${typeof neededExp === "number" ? neededExp : "MAX"} EXP)`, inline: true },
         { name: "Rank", value: `${tierConfig.emoji} **${petData.tier}**`, inline: true },
         { name: "Alias", value: `\`${aliasesStr}\``, inline: true },
         { name: "Points", value: `⚡ **+${powerPoints.toLocaleString()}** Power`, inline: true },
@@ -163,17 +140,13 @@ class PetCommand extends BaseCommand {
           value: `+${defVal} (+${defPct}% / lvl)`,
           inline: true,
         }
-      )
-      .setFooter({
-        text: `Dùng ${config.prefix}xaddpet <tên_pet> để trang bị | CokeBot RPG Pet`,
-      });
+      );
 
     return message.channel.send({ embeds: [embed] });
   }
 
   async showPetList(message, user) {
     const pets = user.rpg.pets || [];
-    const equipped = getEquippedPet(user);
 
     // Map owned species keys
     const ownedKeys = new Set(pets.map((p) => p.key));
@@ -181,42 +154,19 @@ class PetCommand extends BaseCommand {
     const username = message.member?.displayName || message.author.displayName || message.author.username;
 
     let text = `🌿🌱🌳 **${username}'s zoo!** 🌳🌱🌿\n`;
-    if (equipped) {
-      const lvl = equipped.level || 1;
-      const hpPct = (lvl * 0.5).toFixed(1);
-      const atkPct = (lvl * 0.4).toFixed(1);
-      const defPct = (lvl * 0.35).toFixed(2);
-      text += `⭐ **Đang Trang Bị**: ${equipped.emoji} **${equipped.name}** (Lvl **${lvl}**) | ❤️ +${hpPct}% HP | ⚔️ +${atkPct}% ATK | 🛡️ +${defPct}% DEF\n`;
-    } else {
-      text += `⚠️ **Chưa trang bị Linh Thú.** Dùng \`${config.prefix}xaddpet <tên_pet>\` để trang bị!\n`;
-    }
-    text += `──────────────────────────────\n`;
-
-    const tierLetter = {
-      Common: "C",
-      Rare: "R",
-      Epic: "E",
-      Legendary: "L",
-      Mythic: "M",
-      Ancient: "A",
-      Divine: "D",
-    };
 
     const tierOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
 
     tierOrder.forEach((tierKey) => {
+      const tierConfig = PET_TIERS[tierKey];
       const speciesInTier = PET_SPECIES.filter((s) => s.tier === tierKey);
-      if (speciesInTier.length > 0) {
-        const letter = tierLetter[tierKey] || tierKey[0];
+      if (speciesInTier.length > 0 && tierConfig) {
         const itemsStr = speciesInTier
-          .map((sp) => (ownedKeys.has(sp.key) ? sp.emoji : "🔒"))
+          .map((sp) => (ownedKeys.has(sp.key) ? sp.emoji : "❓"))
           .join("   ");
-        text += `**${letter}**   ${itemsStr}\n`;
+        text += `${tierConfig.emoji}   ${itemsStr}\n`;
       }
     });
-
-    text += `──────────────────────────────\n`;
-    text += `💡 *Gõ \`${config.prefix}xpet <tên_pet>\` để xem chi tiết | \`${config.prefix}xaddpet <tên_pet>\` để trang bị.*`;
 
     return message.channel.send(text);
   }
