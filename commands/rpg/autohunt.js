@@ -323,7 +323,7 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
   ];
 
   if (petsCaught.length > 0) {
-    const petStr = petsCaught.map((p) => `${p.emoji} **${p.name}**`).join(", ");
+    const petStr = petsCaught.map((p) => `${rarityEmojis[p.tier] || ""} ${p.emoji} **${p.name}**`).join(", ");
     lines.push(`🔮 **|** 🎉 **THU PHỤC LINH THÚ MỚI:** ${petStr}!`);
   }
 

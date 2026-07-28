@@ -107,15 +107,16 @@ class HuntCommand extends BaseCommand {
 
       if (isAlreadyOwned) {
         // Duplicate Pet -> Grant +35% of current needed EXP specifically to the EQUIPPED PET!
+        const tierEmo = PET_TIERS[caughtSpecies.tier]?.emoji || "";
         if (user.rpg.equippedPet) {
           const neededExp = getXpRequired(user.rpg.equippedPet.level || 1);
           const expBonus = Math.max(10, Math.floor(neededExp * 0.35));
           const petRes = addPetXpUtil(user.rpg.equippedPet, expBonus);
           user.markModified("rpg");
 
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${caughtSpecies.emoji} **${caughtSpecies.name}**! Linh thú đang trang bị ${user.rpg.equippedPet.emoji} nhận **+35% EXP** (+\`${expBonus.toLocaleString()} EXP\`)!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}`;
+          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! Linh thú đang trang bị ${user.rpg.equippedPet.emoji} nhận **+35% EXP** (+\`${expBonus.toLocaleString()} EXP\`)!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}`;
         } else {
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${caughtSpecies.emoji} **${caughtSpecies.name}**! (Trang bị Linh thú để nhận +35% EXP)`;
+          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! (Trang bị Linh thú để nhận +35% EXP)`;
         }
       } else {
         // New Pet species caught!
@@ -137,7 +138,8 @@ class HuntCommand extends BaseCommand {
         }
         user.markModified("rpg");
 
-        petText = `\n${blankEmo} **|** 🎉 **BẮT ĐƯỢC LINH THÚ MỚI!** Bạn đã thu phục ${caughtSpecies.emoji} **${caughtSpecies.name}** (${caughtSpecies.tier})!`;
+        const tierEmo = PET_TIERS[caughtSpecies.tier]?.emoji || "";
+        petText = `\n${blankEmo} **|** 🎉 **BẮT ĐƯỢC LINH THÚ MỚI!** Bạn đã thu phục ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**!`;
       }
     }
 
