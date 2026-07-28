@@ -561,6 +561,63 @@ const getAvailablePoints = (user) => {
   return Math.max(0, (level - 1) - allocated);
 };
 
+const getEquippedPet = (user) => {
+  const equipped = user?.rpg?.equippedPet;
+  if (!equipped) return null;
+  const pets = user?.rpg?.pets || [];
+  return pets.find((p) => p.id === equipped.id || p.key === equipped.key) || equipped;
+};
+
+const getEquippedPetBonuses = (user) => {
+  const pet = getEquippedPet(user);
+  if (!pet) return { hpPct: 0, atkPct: 0, defPct: 0, baseHp: 0, baseAtk: 0, baseDef: 0, pet: null };
+  const lvl = pet.level || 1;
+  const { PET_TIERS } = require("../data/pets");
+  const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
+  const baseHp = pet.stats?.baseHp || tierConfig.baseHp;
+  const baseAtk = pet.stats?.baseAtk || tierConfig.baseAtk;
+  const baseDef = pet.stats?.baseDef || tierConfig.baseDef;
+
+  return {
+    hpPct: lvl * 0.005,   // +0.5% per level
+    atkPct: lvl * 0.004,  // +0.4% per level
+    defPct: lvl * 0.0035, // +0.35% per level
+    baseHp,
+    baseAtk,
+    baseDef,
+    pet,
+  };
+};
+
+const addPetExp = (user, amount) => {
+  const pet = getEquippedPet(user);
+  if (!pet) return { leveledUp: false, pet: null };
+  const { getPetXpNeeded } = require("../data/pets");
+  let exp = (pet.exp || 0) + amount;
+  let level = pet.level || 1;
+  let leveledUp = false;
+
+  while (exp >= getPetXpNeeded(level)) {
+    exp -= getPetXpNeeded(level);
+    level += 1;
+    leveledUp = true;
+  }
+
+  pet.exp = exp;
+  pet.level = level;
+  
+  if (Array.isArray(user.rpg.pets)) {
+    const petIdx = user.rpg.pets.findIndex((p) => p.id === pet.id || p.key === pet.key);
+    if (petIdx > -1) {
+      user.rpg.pets[petIdx].exp = exp;
+      user.rpg.pets[petIdx].level = level;
+    }
+  }
+  user.rpg.equippedPet = pet;
+  user.markModified("rpg");
+  return { leveledUp, level, pet };
+};
+
 const getEffectiveRpgStats = (user) => {
   const stats = emptyStats();
   if (!user?.rpg?.classKey) return stats;
@@ -587,7 +644,6 @@ const getEffectiveRpgStats = (user) => {
     }
   }
 
-  
   for (const stat of Object.keys(stats)) {
     stats[stat] = Math.min(99, stats[stat]);
   }
@@ -599,12 +655,22 @@ const calculateRpgPower = (user) => {
   const equipped = getEquippedItems(user);
   const effectiveStats = getEffectiveRpgStats(user);
   
-  return Object.values(equipped).reduce((total, item) => {
+  let gearPower = Object.values(equipped).reduce((total, item) => {
     if (item.slot === "weapon") {
       return total + getWeaponPower(item, effectiveStats);
     }
     return total + (item.power || 0);
   }, 0);
+
+  const equippedPet = getEquippedPet(user);
+  let petPower = 0;
+  if (equippedPet) {
+    const tierMulti = { Common: 100, Rare: 250, Epic: 500, Legendary: 1000, Mythic: 2000, Ancient: 3500, Divine: 5000 };
+    const petB = getEquippedPetBonuses(user);
+    petPower = (tierMulti[equippedPet.tier] || 100) + petB.baseHp * 2 + petB.baseAtk * 5 + petB.baseDef * 4 + (equippedPet.level || 1) * 35;
+  }
+
+  return gearPower + petPower;
 };
 
 const calculateStarterPower = () => 0;
@@ -1240,6 +1306,9 @@ const seedUpgradeStones = async (client) => {
 };
 
 module.exports = {
+  getEquippedPet,
+  getEquippedPetBonuses,
+  addPetExp,
   classEntries,
   getRpgClass,
   getClassAssetPath,

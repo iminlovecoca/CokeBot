@@ -21,6 +21,8 @@ const {
   dungeonKeys,
   getCharacterAssetPath,
   getItemImageFile,
+  getEquippedPetBonuses,
+  addPetExp,
 } = require("../../utils/rpgUtil");
 const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs");
@@ -904,8 +906,14 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const stats1 = getEffectiveRpgStats(user1);
   const stats2 = getEffectiveRpgStats(user2);
 
-  const maxHp1 = 150 + stats1.vigor * 20 + user1.rpg.level * 20;
-  const maxHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
+  const petB1 = getEquippedPetBonuses(user1);
+  const petB2 = getEquippedPetBonuses(user2);
+
+  const baseHp1 = 150 + stats1.vigor * 20 + user1.rpg.level * 20;
+  const baseHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
+
+  const maxHp1 = Math.floor(baseHp1 * (1 + (petB1.hpPct || 0)));
+  const maxHp2 = Math.floor(baseHp2 * (1 + (petB2.hpPct || 0)));
 
   
   let p1Name = user1.rpg.name || usernameCache.get(p1Id);
@@ -1033,7 +1041,6 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       user1.markModified("rpg");
     }
 
-    // No coke reward for pvp battles
     addRpgExp(winUser.rpg, 200);
     winUser.rpg.power = calculateRpgPower(winUser);
     winUser.markModified("rpg");
@@ -1041,6 +1048,10 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     addRpgExp(loseUser.rpg, 50);
     loseUser.rpg.power = calculateRpgPower(loseUser);
     loseUser.markModified("rpg");
+
+    // Award Pet EXP for participating in battle
+    addPetExp(user1, 40);
+    addPetExp(user2, 40);
 
     const { updateQuestProgress } = require("../../utils/questUtil");
     await Promise.all([
