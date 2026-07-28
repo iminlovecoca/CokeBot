@@ -978,155 +978,33 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     return def;
   };
 
-  const player1 = {
-    id: p1Id,
-    name: p1Name,
-    level: user1.rpg.level,
-    classKey: user1.rpg.classKey,
-    classLabel: class1.name,
-    rpgClass: class1,
-    effectiveStats: stats1,
-    maxHp: maxHp1,
-    hp: maxHp1,
-    gearPower: calculateRpgPower(user1),
-    defensePower: getDefPower(equipped1),
-    dbUser: user1,
-    weapon: equipped1.weapon,
-  };
+  const { simulateBattle, renderPvPImage, processRewards } = require("../../rpg/battle");
 
-  const player2 = {
-    id: p2Id,
-    name: p2Name,
-    level: user2.rpg.level,
-    classKey: user2.rpg.classKey,
-    classLabel: class2.name,
-    rpgClass: class2,
-    effectiveStats: stats2,
-    maxHp: maxHp2,
-    hp: maxHp2,
-    gearPower: calculateRpgPower(user2),
-    defensePower: getDefPower(equipped2),
-    dbUser: user2,
-    weapon: equipped2.weapon,
-  };
+  const result = simulateBattle(user1, user2, { maxTurns: 30 });
+  const rewards = await processRewards(user1, user2, result, {
+    isTargeted: !!promptMessage,
+    channel: message.channel,
+  });
 
-  const result = simulatePvP(player1, player2);
-
-  let winUser,
-    loseUser,
-    finalHp1 = 0,
-    finalHp2 = 0;
-  const isP1Winner = result.winner && result.winner.id === player1.id;
-
-  let petFooterInfo = "";
-  const { getBattleXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
-  const p1Result = result.isDraw ? "draw" : isP1Winner ? "win" : "lose";
-  const p2Result = result.isDraw ? "draw" : !isP1Winner ? "win" : "lose";
-  const p1Streak = isP1Winner ? user1.rpg.pvpStreak || 0 : 0;
-  const p2Streak = !isP1Winner && !result.isDraw ? user2.rpg.pvpStreak || 0 : 0;
-  const p1LvlDiff = Math.max(0, user2.rpg.level - user1.rpg.level);
-  const p2LvlDiff = Math.max(0, user1.rpg.level - user2.rpg.level);
-
-  const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
-  const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
-
-  if (user1.rpg.equippedPet) {
-    addPetXpUtil(user1.rpg.equippedPet, petXp1, user1);
-    petFooterInfo += ` | 🐾 Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
-  }
-  if (user2.rpg.equippedPet) {
-    addPetXpUtil(user2.rpg.equippedPet, petXp2, user2);
-  }
-
-  if (result.isDraw) {
-    addRpgExp(user1.rpg, 50);
-    user1.rpg.power = calculateRpgPower(user1);
-    user1.markModified("rpg");
-
-    addRpgExp(user2.rpg, 50);
-    user2.rpg.power = calculateRpgPower(user2);
-    user2.markModified("rpg");
-
-    const { updateQuestProgress } = require("../../utils/questUtil");
-    await Promise.all([
-      updateQuestProgress(user1, "exp_gain", 50, message.channel),
-      updateQuestProgress(user2, "exp_gain", 50, message.channel),
-    ]);
-
-    finalHp1 = Math.max(1, player1.hp);
-    finalHp2 = Math.max(1, player2.hp);
-  } else {
-    winUser = result.winner.dbUser;
-    loseUser = result.loser.dbUser;
-
-    const isTargeted = !!promptMessage;
-    if (!isTargeted) {
-      if (result.winner.id === p1Id) {
-        user1.rpg.pvpStreak = (user1.rpg.pvpStreak || 0) + 1;
-      } else {
-        user1.rpg.pvpStreak = 0;
-      }
-      user1.markModified("rpg");
-    }
-
-    addRpgExp(winUser.rpg, 200);
-    winUser.rpg.power = calculateRpgPower(winUser);
-    winUser.markModified("rpg");
-
-    addRpgExp(loseUser.rpg, 50);
-    loseUser.rpg.power = calculateRpgPower(loseUser);
-    loseUser.markModified("rpg");
-
-    const { updateQuestProgress } = require("../../utils/questUtil");
-    await Promise.all([
-      updateQuestProgress(
-        user1,
-        "exp_gain",
-        result.winner.id === p1Id ? 200 : 50,
-        message.channel,
-      ),
-      updateQuestProgress(
-        user2,
-        "exp_gain",
-        result.winner.id === p2Id ? 200 : 50,
-        message.channel,
-      ),
-    ]);
-
-    finalHp1 =
-      result.winner.id === player1.id ? Math.max(1, result.winner.hp) : 0;
-    finalHp2 =
-      result.winner.id === player2.id ? Math.max(1, result.winner.hp) : 0;
-  }
-
-  
-  await Promise.all([user1.save(), user2.save()]);
-
+  const isP1Winner = result.winner && result.winner.id === user1.userId;
   const battleDisplay = user1.rpg?.settings?.battleDisplay || "image";
   const battleSpeed = user1.rpg?.settings?.battleSpeed || "instant";
   const battleLogs = user1.rpg?.settings?.battleLogs || "false";
-
   const showImage = !["text", "compact"].includes(battleDisplay);
 
   const memberName = message.member?.displayName || message.author.displayName || message.author.username;
-  const weapon1Emoji = player1.weapon?.emoji ? ` ${player1.weapon.emoji}` : "";
-  const weapon2Emoji = player2.weapon?.emoji ? ` ${player2.weapon.emoji}` : "";
+  const weapon1Emoji = equipped1.weapon?.emoji ? ` ${equipped1.weapon.emoji}` : "";
+  const weapon2Emoji = equipped2.weapon?.emoji ? ` ${equipped2.weapon.emoji}` : "";
 
   let footerText = "";
   if (result.isDraw) {
-    footerText = `Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | Chuỗi thắng được giữ nguyên${petFooterInfo}`;
+    footerText = `Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | Chuỗi thắng được giữ nguyên${rewards.petFooterInfo}`;
   } else {
     const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
     const xpGained = isP1Winner ? 200 : 50;
     const isTargeted = !!promptMessage;
-    let streakText = "";
-    if (isTargeted) {
-      streakText = "Không tính chuỗi";
-    } else {
-      const streak = isP1Winner ? user1.rpg.pvpStreak : 0;
-      streakText = `Chuỗi thắng: ${streak}`;
-    }
-    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${petFooterInfo}`;
+    let streakText = isTargeted ? "Không tính chuỗi" : `Chuỗi thắng: ${isP1Winner ? user1.rpg.pvpStreak : 0}`;
+    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${rewards.petFooterInfo}`;
   }
 
   const finalEmbed = new EmbedBuilder()
@@ -1137,13 +1015,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     })
     .addFields(
       {
-        name: `${player1.name}${weapon1Emoji} (${player1.classLabel})`,
-        value: `LV. **${player1.level}**\n⚔ Lực chiến: **${Math.floor(player1.gearPower).toLocaleString()}**`,
+        name: `${p1Name}${weapon1Emoji} (${class1.name})`,
+        value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
         inline: true,
       },
       {
-        name: `${player2.name}${weapon2Emoji} (${player2.classLabel})`,
-        value: `LV. **${player2.level}**\n⚔ Lực chiến: **${Math.floor(player2.gearPower).toLocaleString()}**`,
+        name: `${p2Name}${weapon2Emoji} (${class2.name})`,
+        value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
         inline: true,
       },
     );
@@ -1195,27 +1073,24 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       const idx = indices[i];
       const state = history[idx];
       const isFinalFrame = i === indices.length - 1;
-      let finalStatus = null;
-      if (isFinalFrame) {
-        finalStatus = result.isDraw ? "timeout" : "ko";
-      }
+      let finalStatus = isFinalFrame ? (result.isDraw ? "timeout" : "ko") : null;
 
-      const imgData = await generatePvPImage(
-        player1.dbUser.rpg.characterAsset || player1.rpgClass.asset,
-        player2.dbUser.rpg.characterAsset || player2.rpgClass.asset,
+      const imgData = await renderPvPImage(
+        user1.rpg.characterAsset || class1.asset,
+        user2.rpg.characterAsset || class2.asset,
         state.p1.hp,
-        player1.maxHp,
+        result.p1.maxHp,
         state.p1.rage || 0,
-        player1.dbUser.rpg.equippedPet,
+        user1.rpg.equippedPet,
         state.p1.effects,
         state.p2.hp,
-        player2.maxHp,
+        result.p2.maxHp,
         state.p2.rage || 0,
-        player2.dbUser.rpg.equippedPet,
+        user2.rpg.equippedPet,
         state.p2.effects,
         finalStatus
       ).catch((err) => {
-        console.error("Failed to generate PvP image:", err);
+        console.error("Failed to render PvP image:", err);
         return null;
       });
 
@@ -1229,13 +1104,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           .setImage(`attachment://${imgData.name}`)
           .setFields([
             {
-              name: `${player1.name}${weapon1Emoji} (${player1.classLabel})${p1Status}`,
-              value: `LV. **${player1.level}**\n⚔ Lực chiến: **${Math.floor(player1.gearPower).toLocaleString()}**`,
+              name: `${p1Name}${weapon1Emoji} (${class1.name})${p1Status}`,
+              value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
               inline: true,
             },
             {
-              name: `${player2.name}${weapon2Emoji} (${player2.classLabel})${p2Status}`,
-              value: `LV. **${player2.level}**\n⚔ Lực chiến: **${Math.floor(player2.gearPower).toLocaleString()}**`,
+              name: `${p2Name}${weapon2Emoji} (${class2.name})${p2Status}`,
+              value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
               inline: true,
             }
           ]);
@@ -1269,12 +1144,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       }
     }
   } else {
-    finalEmbed.setFooter({ text: footerText });
-    const payload = { embeds: [finalEmbed], skipV2: true };
+    const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter({ text: footerText });
     if (promptMessage && promptMessage.editable) {
-      await promptMessage.edit({ ...payload, components: [] }).catch(() => {});
+      await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch(() => {});
     } else {
-      await message.reply(payload).catch(() => {});
+      await message.reply({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
     }
   }
 };
+
+module.exports = new BattleCommand();
