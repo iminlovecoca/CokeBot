@@ -1011,10 +1011,29 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
 
   let winUser,
     loseUser,
-    cokeWinner = 0,
     finalHp1 = 0,
     finalHp2 = 0;
   const isP1Winner = result.winner && result.winner.id === player1.id;
+
+  let petFooterInfo = "";
+  const { getBattleXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
+  const p1Result = result.isDraw ? "draw" : isP1Winner ? "win" : "lose";
+  const p2Result = result.isDraw ? "draw" : !isP1Winner ? "win" : "lose";
+  const p1Streak = isP1Winner ? user1.rpg.pvpStreak || 0 : 0;
+  const p2Streak = !isP1Winner && !result.isDraw ? user2.rpg.pvpStreak || 0 : 0;
+  const p1LvlDiff = Math.max(0, user2.rpg.level - user1.rpg.level);
+  const p2LvlDiff = Math.max(0, user1.rpg.level - user2.rpg.level);
+
+  const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
+  const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
+
+  if (user1.rpg.equippedPet) {
+    addPetXpUtil(user1.rpg.equippedPet, petXp1, user1);
+    petFooterInfo += ` | 🐾 Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
+  }
+  if (user2.rpg.equippedPet) {
+    addPetXpUtil(user2.rpg.equippedPet, petXp2, user2);
+  }
 
   if (result.isDraw) {
     addRpgExp(user1.rpg, 50);
@@ -1054,27 +1073,6 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     addRpgExp(loseUser.rpg, 50);
     loseUser.rpg.power = calculateRpgPower(loseUser);
     loseUser.markModified("rpg");
-
-    // Calculate and award Pet Battle XP using petXpUtil formula
-    const { getBattleXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
-    const p1Result = result.isDraw ? "draw" : isP1Winner ? "win" : "lose";
-    const p2Result = result.isDraw ? "draw" : !isP1Winner ? "win" : "lose";
-    const p1Streak = isP1Winner ? user1.rpg.pvpStreak || 0 : 0;
-    const p2Streak = !isP1Winner && !result.isDraw ? user2.rpg.pvpStreak || 0 : 0;
-    const p1LvlDiff = Math.max(0, user2.rpg.level - user1.rpg.level);
-    const p2LvlDiff = Math.max(0, user1.rpg.level - user2.rpg.level);
-
-    const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
-    const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
-
-    let petFooterInfo = "";
-    if (user1.rpg.equippedPet) {
-      const res = addPetXpUtil(user1.rpg.equippedPet, petXp1, user1);
-      petFooterInfo += ` | 🐾 Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
-    }
-    if (user2.rpg.equippedPet) {
-      addPetXpUtil(user2.rpg.equippedPet, petXp2, user2);
-    }
 
     const { updateQuestProgress } = require("../../utils/questUtil");
     await Promise.all([
