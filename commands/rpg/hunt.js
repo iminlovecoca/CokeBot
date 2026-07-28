@@ -87,13 +87,13 @@ class HuntCommand extends BaseCommand {
 
     // Check for Pet Catch during hunt
     const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../data/pets");
-    const { getHuntXp, getXpRequired, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
+    const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
 
     // 1. Award Base Hunt XP to equipped pet based on creature/loot rarity
     if (user.rpg.equippedPet) {
       const rarity = droppedItem ? droppedItem.rarity : "Common";
       const petHuntXp = getHuntXp(rarity);
-      addPetXpUtil(user.rpg.equippedPet, petHuntXp);
+      addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
       user.markModified("rpg");
     }
 
@@ -106,17 +106,17 @@ class HuntCommand extends BaseCommand {
       const isAlreadyOwned = user.rpg.pets.some((p) => p.key === caughtSpecies.key);
 
       if (isAlreadyOwned) {
-        // Duplicate Pet -> Grant +35% of current needed EXP specifically to the EQUIPPED PET!
+        // Duplicate Pet -> Grant flat EXP by rank to EQUIPPED PET!
         const tierEmo = PET_TIERS[caughtSpecies.tier]?.emoji || "";
+        const expBonus = getDuplicatePetXp(caughtSpecies.tier);
+
         if (user.rpg.equippedPet) {
-          const neededExp = getXpRequired(user.rpg.equippedPet.level || 1);
-          const expBonus = Math.max(10, Math.floor(neededExp * 0.35));
-          const petRes = addPetXpUtil(user.rpg.equippedPet, expBonus);
+          const petRes = addPetXpUtil(user.rpg.equippedPet, expBonus, user);
           user.markModified("rpg");
 
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! Linh thú đang trang bị ${user.rpg.equippedPet.emoji} nhận **+35% EXP** (+\`${expBonus.toLocaleString()} EXP\`)!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}`;
+          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! Linh thú đang trang bị ${user.rpg.equippedPet.emoji} nhận **+${expBonus} EXP**!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}`;
         } else {
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! (Trang bị Linh thú để nhận +35% EXP)`;
+          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! (Trang bị Linh thú để nhận **+${expBonus} EXP**)`;
         }
       } else {
         // New Pet species caught!

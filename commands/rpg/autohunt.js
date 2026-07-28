@@ -673,7 +673,7 @@ class XautohuntCommand extends BaseCommand {
         addRpgGearToUser,
       } = require("../../utils/rpgUtil");
       const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../data/pets");
-      const { getHuntXp, getXpRequired, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
+      const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
 
       let gearsDropped = [];
       let petsCaught = [];
@@ -693,7 +693,7 @@ class XautohuntCommand extends BaseCommand {
         if (user.rpg.equippedPet) {
           const rarity = droppedItem ? droppedItem.rarity : "Common";
           const petHuntXp = getHuntXp(rarity);
-          addPetXpUtil(user.rpg.equippedPet, petHuntXp);
+          addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
         }
 
         // Roll for Pet Catch during autohunt (applies 50% lower rate penalty)
@@ -703,10 +703,9 @@ class XautohuntCommand extends BaseCommand {
           const isAlreadyOwned = user.rpg.pets.some((p) => p.key === caughtSpecies.key);
 
           if (isAlreadyOwned) {
+            const expBonus = getDuplicatePetXp(caughtSpecies.tier);
             if (user.rpg.equippedPet) {
-              const neededExp = getXpRequired(user.rpg.equippedPet.level || 1);
-              const expBonus = Math.max(10, Math.floor(neededExp * 0.35));
-              addPetXpUtil(user.rpg.equippedPet, expBonus);
+              addPetXpUtil(user.rpg.equippedPet, expBonus, user);
               totalDuplicatePetExp += expBonus;
             }
           } else {

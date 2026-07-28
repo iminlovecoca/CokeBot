@@ -149,8 +149,8 @@ const getEmojiImage = async (emojiStr) => {
 
 const generatePvPImage = async (
   p1Asset, p2Asset,
-  p1Hp, p1MaxHp, p1Rage, p1Weapon, p1Effects,
-  p2Hp, p2MaxHp, p2Rage, p2Weapon, p2Effects,
+  p1Hp, p1MaxHp, p1Rage, p1Pet, p1Effects,
+  p2Hp, p2MaxHp, p2Rage, p2Pet, p2Effects,
   resultStatus
 ) => {
   const width = 1024;
@@ -212,27 +212,33 @@ const generatePvPImage = async (
     ctx.restore();
   }
 
-  // Load and Draw Weapons
-  const getWeaponPath = (weapon) => {
-    if (!weapon) return null;
-    const key = weapon.imageKey || getItemImageFile(weapon);
-    return key ? path.join(__dirname, "../../assets/items", key) : null;
+  // Load and Draw Equipped Pets in the top corner square boxes
+  const getPetCanvasImage = async (pet) => {
+    if (!pet) return null;
+    const petKeyMap = {
+      sabertiger: path.join(__dirname, "../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
+      mammoth: path.join(__dirname, "../../assets/ranks/legendary/legendary_mammoth.png"),
+      eagle: path.join(__dirname, "../../assets/ranks/legendary/legendary_eagle_fullbody.png"),
+      shark: path.join(__dirname, "../../assets/ranks/legendary/legendary_shark.png"),
+      snake: path.join(__dirname, "../../assets/ranks/legendary/legendary_snake.png"),
+    };
+    if (petKeyMap[pet.key] && fs.existsSync(petKeyMap[pet.key])) {
+      return await getCachedImage(petKeyMap[pet.key]);
+    }
+    if (pet.emoji) {
+      return await loadEmojiImage(pet.emoji);
+    }
+    return null;
   };
 
-  const w1Path = getWeaponPath(p1Weapon);
-  if (w1Path && fs.existsSync(w1Path)) {
-    const w1Img = await getCachedImage(w1Path);
-    if (w1Img) {
-      ctx.drawImage(w1Img, 27 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
-    }
+  const p1PetImg = await getPetCanvasImage(p1Pet);
+  if (p1PetImg) {
+    ctx.drawImage(p1PetImg, 27 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
   }
 
-  const w2Path = getWeaponPath(p2Weapon);
-  if (w2Path && fs.existsSync(w2Path)) {
-    const w2Img = await getCachedImage(w2Path);
-    if (w2Img) {
-      ctx.drawImage(w2Img, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
-    }
+  const p2PetImg = await getPetCanvasImage(p2Pet);
+  if (p2PetImg) {
+    ctx.drawImage(p2PetImg, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
   }
 
   // Draw HP and Rage Bars (Left Side) - Left to Right
@@ -1061,11 +1067,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
     const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
 
+    let petFooterInfo = "";
     if (user1.rpg.equippedPet) {
-      addPetXpUtil(user1.rpg.equippedPet, petXp1);
+      const res = addPetXpUtil(user1.rpg.equippedPet, petXp1, user1);
+      petFooterInfo += ` | 🐾 Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
     }
     if (user2.rpg.equippedPet) {
-      addPetXpUtil(user2.rpg.equippedPet, petXp2);
+      addPetXpUtil(user2.rpg.equippedPet, petXp2, user2);
     }
 
     const { updateQuestProgress } = require("../../utils/questUtil");
@@ -1105,7 +1113,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
 
   let footerText = "";
   if (result.isDraw) {
-    footerText = `Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | Chuỗi thắng được giữ nguyên`;
+    footerText = `Hòa sau ${result.turns} lượt! | Cả hai nhận +50 XP | Chuỗi thắng được giữ nguyên${petFooterInfo}`;
   } else {
     const winText = isP1Winner ? "Chiến thắng" : "Thất bại";
     const xpGained = isP1Winner ? 200 : 50;
@@ -1117,7 +1125,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       const streak = isP1Winner ? user1.rpg.pvpStreak : 0;
       streakText = `Chuỗi thắng: ${streak}`;
     }
-    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}`;
+    footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${petFooterInfo}`;
   }
 
   const finalEmbed = new EmbedBuilder()
@@ -1197,12 +1205,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
         state.p1.hp,
         player1.maxHp,
         state.p1.rage || 0,
-        player1.weapon,
+        player1.dbUser.rpg.equippedPet,
         state.p1.effects,
         state.p2.hp,
         player2.maxHp,
         state.p2.rage || 0,
-        player2.weapon,
+        player2.dbUser.rpg.equippedPet,
         state.p2.effects,
         finalStatus
       ).catch((err) => {

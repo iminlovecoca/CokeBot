@@ -1,5 +1,25 @@
 const petConfig = require("../data/petConfig");
 
+const DUPLICATE_PET_XP = {
+  Common: 100,
+  Rare: 150,
+  Epic: 175,
+  Legendary: 200,
+  Mythic: 250,
+  Ancient: 300,
+  Divine: 350,
+};
+
+/**
+ * Get flat XP awarded when catching a duplicate pet species.
+ *
+ * @param {string} tier - Pet rarity tier
+ * @returns {number} XP amount
+ */
+function getDuplicatePetXp(tier = "Common") {
+  return DUPLICATE_PET_XP[tier] || 100;
+}
+
 /**
  * Calculate XP required to reach the next level from current level.
  * Formula: floor((1000 + Level^4) * 0.8)
@@ -127,12 +147,14 @@ function levelUpPet(pet) {
 /**
  * Add XP to a pet with support for multiple level-ups and carry-over XP.
  * Prevents leveling beyond Level 101 and stores excess XP at max level.
+ * Synchronizes level & exp across equippedPet and user.rpg.pets array.
  *
  * @param {Object} pet - Pet object { level, exp }
  * @param {number} amount - XP amount to add
+ * @param {Object} [user=null] - Mongoose User document to synchronize equippedPet & pets array
  * @returns {Object} Result { leveledUp, levelsGained, startLevel, endLevel, pet }
  */
-function addPetXp(pet, amount) {
+function addPetXp(pet, amount, user = null) {
   if (!pet || amount <= 0) {
     return {
       leveledUp: false,
@@ -163,6 +185,25 @@ function addPetXp(pet, amount) {
   pet.level = currentLevel;
   pet.exp = currentExp;
 
+  // Synchronize equippedPet and pets array if user object is passed
+  if (user && user.rpg) {
+    const petId = pet.id || pet.key;
+    if (user.rpg.equippedPet && (user.rpg.equippedPet.id === petId || user.rpg.equippedPet.key === petId)) {
+      user.rpg.equippedPet.level = currentLevel;
+      user.rpg.equippedPet.exp = currentExp;
+    }
+    if (Array.isArray(user.rpg.pets)) {
+      const owned = user.rpg.pets.find((p) => (p.id && p.id === petId) || p.key === petId);
+      if (owned) {
+        owned.level = currentLevel;
+        owned.exp = currentExp;
+      }
+    }
+    if (typeof user.markModified === "function") {
+      user.markModified("rpg");
+    }
+  }
+
   return {
     leveledUp: levelsGained > 0,
     levelsGained,
@@ -174,6 +215,8 @@ function addPetXp(pet, amount) {
 
 module.exports = {
   petConfig,
+  DUPLICATE_PET_XP,
+  getDuplicatePetXp,
   getXpRequired,
   getBattleXp,
   getHuntXp,
