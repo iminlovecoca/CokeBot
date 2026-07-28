@@ -107,6 +107,16 @@ class DailyCommand extends BaseCommand {
     } else {
       responseText += `<:blank:1403928807395819671>**|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
     }
+
+    // Award Pet Daily XP (+300 XP)
+    if (user.rpg && user.rpg.equippedPet) {
+      const { getDailyXp, addPetXp } = require("../../utils/petXpUtil");
+      const petDailyXp = getDailyXp();
+      const petRes = addPetXp(user.rpg.equippedPet, petDailyXp);
+      user.markModified("rpg");
+      responseText += `<:blank:1403928807395819671>**|** Linh thú ${user.rpg.equippedPet.emoji} **${user.rpg.equippedPet.name}** nhận **+${petDailyXp} Pet XP**!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}\n`;
+    }
+
     responseText += `<:crate:1512793698025603282> **|** You received a **lootbox**!\n`;
     responseText += `<:souls:1518749776538243082> **|** You received **${soulsGained} Linh Hồn**!\n`;
     responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;

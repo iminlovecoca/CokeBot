@@ -77,4 +77,4 @@ class AddPetCommand extends BaseCommand {
   }
 }
 
-module.exports = AddPetCommand;
+module.exports = new AddPetCommand();

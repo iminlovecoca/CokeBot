@@ -222,4 +222,4 @@ class PetCommand extends BaseCommand {
   }
 }
 
-module.exports = PetCommand;
+module.exports = new PetCommand();

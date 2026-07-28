@@ -13,12 +13,18 @@ module.exports = {
     MULTIPLIER: 0.8,
   },
 
-  // Base Battle XP Rewards
+  // Base Battle XP Rewards (PvP)
   BATTLE_XP: {
     win: 200,
     draw: 100,
     lose: 50,
   },
+
+  // Boss Battle XP Reward
+  BOSS_XP: 500,
+
+  // Daily Claim XP Reward
+  DAILY_XP: 300,
 
   // Hunt XP Rewards by Loot/Creature Rank
   HUNT_XP: {
@@ -46,12 +52,5 @@ module.exports = {
   // Higher Level Opponent Bonus
   OPPONENT_BONUS: {
     MULTIPLIER_PER_LEVEL: 600,
-  },
-
-  // Catch-up XP Multiplier for lower-level pets in PvP
-  CATCHUP_XP: {
-    BASE_MULTIPLIER: 2.0,
-    PER_LEVEL_DIFFERENCE: 0.1,
-    MAX_MULTIPLIER: 10.0,
   },
 };

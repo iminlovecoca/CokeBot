@@ -16,7 +16,7 @@ function getXpRequired(level) {
 }
 
 /**
- * Calculate total Battle XP awarded to a pet.
+ * Calculate total Battle XP awarded to a pet in PvP.
  * Includes Base XP, Win Streak Bonus, and Higher Level Opponent Bonus.
  *
  * @param {string} result - 'win', 'draw', or 'lose'
@@ -63,21 +63,21 @@ function getHuntXp(rarity = "Common") {
 }
 
 /**
- * Calculate Catch-up XP Multiplier for lower-level pets in PvP.
- * Multiplier = 2 + (0.1 * LevelDifference), capped at x10.
+ * Get Boss XP awarded to equipped pet.
  *
- * @param {number} highestLevel - Highest pet level in user's collection
- * @param {number} petLevel - Level of the pet receiving XP
- * @returns {number} Catch-up XP Multiplier
+ * @returns {number} Boss XP earned (500 XP)
  */
-function getCatchupMultiplier(highestLevel = 1, petLevel = 1) {
-  const diff = highestLevel - petLevel;
-  if (diff <= 0) return 1.0;
+function getBossXp() {
+  return petConfig.BOSS_XP || 500;
+}
 
-  const { BASE_MULTIPLIER, PER_LEVEL_DIFFERENCE, MAX_MULTIPLIER } =
-    petConfig.CATCHUP_XP;
-  const mult = BASE_MULTIPLIER + PER_LEVEL_DIFFERENCE * diff;
-  return Math.min(MAX_MULTIPLIER, mult);
+/**
+ * Get Daily XP awarded to equipped pet.
+ *
+ * @returns {number} Daily XP earned (300 XP)
+ */
+function getDailyXp() {
+  return petConfig.DAILY_XP || 300;
 }
 
 /**
@@ -148,7 +148,7 @@ function addPetXp(pet, amount) {
   let currentExp = (pet.exp || 0) + amount;
   let levelsGained = 0;
 
-  // Level up loop with carry-over XP
+  // Level up loop with carry-over XP up to MAX_LEVEL 101
   while (currentLevel < petConfig.MAX_LEVEL) {
     const required = getXpRequired(currentLevel);
     if (currentExp >= required) {
@@ -177,7 +177,8 @@ module.exports = {
   getXpRequired,
   getBattleXp,
   getHuntXp,
-  getCatchupMultiplier,
+  getBossXp,
+  getDailyXp,
   calculateRemainingXp,
   calculateTotalXp,
   levelUpPet,

@@ -1049,9 +1049,24 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     loseUser.rpg.power = calculateRpgPower(loseUser);
     loseUser.markModified("rpg");
 
-    // Award Pet EXP for participating in battle
-    addPetExp(user1, 40);
-    addPetExp(user2, 40);
+    // Calculate and award Pet Battle XP using petXpUtil formula
+    const { getBattleXp, addPetXp: addPetXpUtil } = require("../../utils/petXpUtil");
+    const p1Result = result.isDraw ? "draw" : isP1Winner ? "win" : "lose";
+    const p2Result = result.isDraw ? "draw" : !isP1Winner ? "win" : "lose";
+    const p1Streak = isP1Winner ? user1.rpg.pvpStreak || 0 : 0;
+    const p2Streak = !isP1Winner && !result.isDraw ? user2.rpg.pvpStreak || 0 : 0;
+    const p1LvlDiff = Math.max(0, user2.rpg.level - user1.rpg.level);
+    const p2LvlDiff = Math.max(0, user1.rpg.level - user2.rpg.level);
+
+    const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
+    const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
+
+    if (user1.rpg.equippedPet) {
+      addPetXpUtil(user1.rpg.equippedPet, petXp1);
+    }
+    if (user2.rpg.equippedPet) {
+      addPetXpUtil(user2.rpg.equippedPet, petXp2);
+    }
 
     const { updateQuestProgress } = require("../../utils/questUtil");
     await Promise.all([
