@@ -14,9 +14,9 @@ class PetCommand extends BaseCommand {
   constructor() {
     super({
       name: "pet",
-      aliases: ["pets", "p"],
+      aliases: ["pets", "p", "zoo"],
       category: "rpg",
-      description: "Xem danh sách hoặc chi tiết Linh Thú RPG của bạn.",
+      description: "Xem danh sách thú sở hữu (Zoo) hoặc chi tiết Linh Thú của bạn.",
       usage: "xpet [tên_pet]",
     });
   }
@@ -175,7 +175,12 @@ class PetCommand extends BaseCommand {
     const pets = user.rpg.pets || [];
     const equipped = getEquippedPet(user);
 
-    let text = `🔮 **BỘ SƯU TẬP LINH THÚ (RPG PETS) - ${message.author.username.toUpperCase()}**\n`;
+    // Map owned species keys
+    const ownedKeys = new Set(pets.map((p) => p.key));
+
+    const username = message.member?.displayName || message.author.displayName || message.author.username;
+
+    let text = `🌿🌱🌳 **${username}'s zoo!** 🌳🌱🌿\n`;
     if (equipped) {
       const lvl = equipped.level || 1;
       const hpPct = (lvl * 0.5).toFixed(1);
@@ -183,29 +188,35 @@ class PetCommand extends BaseCommand {
       const defPct = (lvl * 0.35).toFixed(2);
       text += `⭐ **Đang Trang Bị**: ${equipped.emoji} **${equipped.name}** (Lvl **${lvl}**) | ❤️ +${hpPct}% HP | ⚔️ +${atkPct}% ATK | 🛡️ +${defPct}% DEF\n`;
     } else {
-      text += `⚠️ **Chưa trang bị Linh Thú nào.** Dùng \`${config.prefix}xaddpet <tên_pet>\` để trang bị!\n`;
+      text += `⚠️ **Chưa trang bị Linh Thú.** Dùng \`${config.prefix}xaddpet <tên_pet>\` để trang bị!\n`;
     }
     text += `──────────────────────────────\n`;
 
-    const tierOrder = ["Divine", "Ancient", "Mythic", "Legendary", "Epic", "Rare", "Common"];
+    const tierLetter = {
+      Common: "C",
+      Rare: "R",
+      Epic: "E",
+      Legendary: "L",
+      Mythic: "M",
+      Ancient: "A",
+      Divine: "D",
+    };
+
+    const tierOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
 
     tierOrder.forEach((tierKey) => {
-      const tierPets = pets.filter((p) => p.tier === tierKey);
-      if (tierPets.length > 0) {
-        const tierConfig = PET_TIERS[tierKey];
-        text += `\n${tierConfig.emoji} **${tierKey.toUpperCase()}** (${tierPets.length}):\n`;
-        tierPets.forEach((p) => {
-          const isEq = equipped && (equipped.id === p.id || equipped.key === p.key);
-          const hp = p.stats?.baseHp || tierConfig.baseHp || 0;
-          const atk = p.stats?.baseAtk || tierConfig.baseAtk || 0;
-          const def = p.stats?.baseDef || tierConfig.baseDef || 0;
-          text += `${isEq ? "⭐ " : "🔹 "}${p.emoji} **${p.name}** (Lvl ${p.level || 1}) - \`[HP:+${hp} ATK:+${atk} DEF:+${def}]\`\n`;
-        });
+      const speciesInTier = PET_SPECIES.filter((s) => s.tier === tierKey);
+      if (speciesInTier.length > 0) {
+        const letter = tierLetter[tierKey] || tierKey[0];
+        const itemsStr = speciesInTier
+          .map((sp) => (ownedKeys.has(sp.key) ? sp.emoji : "🔒"))
+          .join("   ");
+        text += `**${letter}**   ${itemsStr}\n`;
       }
     });
 
-    text += `\n──────────────────────────────\n`;
-    text += `💡 *Gõ \`${config.prefix}xpet <tên_pet>\` để xem chi tiết hoặc \`${config.prefix}xaddpet <tên_pet>\` để trang bị.*`;
+    text += `──────────────────────────────\n`;
+    text += `💡 *Gõ \`${config.prefix}xpet <tên_pet>\` để xem chi tiết | \`${config.prefix}xaddpet <tên_pet>\` để trang bị.*`;
 
     return message.channel.send(text);
   }

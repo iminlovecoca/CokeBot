@@ -2,6 +2,7 @@ const PET_TIERS = {
   Common: {
     name: "Common",
     emoji: "<:common:1530878565489311826>",
+    catchRate: 0.15, // 15%
     baseHp: 10,
     baseAtk: 2,
     baseDef: 2,
@@ -10,6 +11,7 @@ const PET_TIERS = {
   Rare: {
     name: "Rare",
     emoji: "<:rare:1530878574104547378>",
+    catchRate: 0.05, // 5%
     baseHp: 25,
     baseAtk: 5,
     baseDef: 4,
@@ -18,6 +20,7 @@ const PET_TIERS = {
   Epic: {
     name: "Epic",
     emoji: "<:epic:1530878567955566642>",
+    catchRate: 0.01, // 1%
     baseHp: 50,
     baseAtk: 10,
     baseDef: 8,
@@ -26,6 +29,7 @@ const PET_TIERS = {
   Legendary: {
     name: "Legendary",
     emoji: "<:legendary:1530878570858287205>",
+    catchRate: 0.0005, // 0.05%
     baseHp: 100,
     baseAtk: 20,
     baseDef: 15,
@@ -34,6 +38,7 @@ const PET_TIERS = {
   Mythic: {
     name: "Mythic",
     emoji: "<a:mythic:1530878614843686912>",
+    catchRate: 0.0001, // 0.01%
     baseHp: 180,
     baseAtk: 35,
     baseDef: 28,
@@ -42,6 +47,7 @@ const PET_TIERS = {
   Ancient: {
     name: "Ancient",
     emoji: "<a:ancient:1530878606656540814>",
+    catchRate: 0.00001, // 0.001%
     baseHp: 300,
     baseAtk: 60,
     baseDef: 50,
@@ -50,6 +56,7 @@ const PET_TIERS = {
   Divine: {
     name: "Divine",
     emoji: "<a:divine:1530878610515165365>",
+    catchRate: 0.000001, // 0.0001%
     baseHp: 500,
     baseAtk: 100,
     baseDef: 80,
@@ -367,9 +374,10 @@ function generatePetStats(species) {
 }
 
 /**
- * Get EXP needed for a pet to reach next level
+ * Get EXP needed for a pet to reach next level (Max Level 100)
  */
 function getPetXpNeeded(level) {
+  if (level >= 100) return 9999999; // Cap at Max Level 100
   return Math.floor(50 * Math.pow(level, 1.8));
 }
 
@@ -388,10 +396,31 @@ function findPetSpecies(query) {
   });
 }
 
+/**
+ * Roll for Pet Catch during xhunt according to independent rates
+ */
+function rollHuntPetDrop() {
+  const getRandomSpecies = (tier) => {
+    const list = PET_SPECIES.filter((s) => s.tier === tier);
+    return list[Math.floor(Math.random() * list.length)];
+  };
+
+  if (Math.random() < 0.000001) return getRandomSpecies("Divine");      // 0.0001%
+  if (Math.random() < 0.00001)  return getRandomSpecies("Ancient");     // 0.001%
+  if (Math.random() < 0.0001)   return getRandomSpecies("Mythic");      // 0.01%
+  if (Math.random() < 0.0005)   return getRandomSpecies("Legendary");   // 0.05%
+  if (Math.random() < 0.01)     return getRandomSpecies("Epic");        // 1%
+  if (Math.random() < 0.05)     return getRandomSpecies("Rare");        // 5%
+  if (Math.random() < 0.15)     return getRandomSpecies("Common");      // 15%
+
+  return null;
+}
+
 module.exports = {
   PET_TIERS,
   PET_SPECIES,
   generatePetStats,
   getPetXpNeeded,
   findPetSpecies,
+  rollHuntPetDrop,
 };

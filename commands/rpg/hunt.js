@@ -87,6 +87,63 @@ class HuntCommand extends BaseCommand {
       `${blankEmo} **|** ${huntGround.emoji} ${huntGround.name} đã bị dọn sạch\n` +
       `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()}xp**, **${cokeGain.toLocaleString()} coke**`;
 
+    // Check for Pet Catch during hunt
+    const { rollHuntPetDrop, generatePetStats, getPetXpNeeded } = require("../../data/pets");
+    const caughtSpecies = rollHuntPetDrop();
+    let petText = "";
+
+    if (caughtSpecies) {
+      user.rpg.pets = user.rpg.pets || [];
+      const ownedPet = user.rpg.pets.find((p) => p.key === caughtSpecies.key);
+
+      if (ownedPet) {
+        // Duplicate Pet -> Grant +35% of current needed EXP
+        const neededExp = getPetXpNeeded(ownedPet.level || 1);
+        const expBonus = Math.max(10, Math.floor(neededExp * 0.35));
+        
+        let lvl = ownedPet.level || 1;
+        let exp = (ownedPet.exp || 0) + expBonus;
+        let leveledUp = false;
+
+        while (lvl < 100 && exp >= getPetXpNeeded(lvl)) {
+          exp -= getPetXpNeeded(lvl);
+          lvl += 1;
+          leveledUp = true;
+        }
+
+        ownedPet.exp = exp;
+        ownedPet.level = lvl;
+        
+        if (user.rpg.equippedPet && (user.rpg.equippedPet.id === ownedPet.id || user.rpg.equippedPet.key === ownedPet.key)) {
+          user.rpg.equippedPet = ownedPet;
+        }
+        user.markModified("rpg");
+
+        petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${ownedPet.emoji} **${ownedPet.name}**! Linh thú nhận **+35% EXP** (+\`${expBonus.toLocaleString()} EXP\`)!${leveledUp ? ` 🆙 **Pet Lên Cấp ${lvl}!**` : ""}`;
+      } else {
+        // New Pet species caught!
+        const newPet = {
+          id: `pet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          key: caughtSpecies.key,
+          name: caughtSpecies.name,
+          nickname: caughtSpecies.name,
+          tier: caughtSpecies.tier,
+          emoji: caughtSpecies.emoji,
+          level: 1,
+          exp: 0,
+          stats: generatePetStats(caughtSpecies),
+          createdAt: new Date(),
+        };
+        user.rpg.pets.push(newPet);
+        if (!user.rpg.equippedPet) {
+          user.rpg.equippedPet = newPet;
+        }
+        user.markModified("rpg");
+
+        petText = `\n${blankEmo} **|** 🎉 **BẮT ĐƯỢC LINH THÚ MỚI!** Bạn đã thu phục ${caughtSpecies.emoji} **${caughtSpecies.name}** (${caughtSpecies.tier})!`;
+      }
+    }
+
     if (droppedItem) {
       const bracketEmoji = {
         Common: "<:common:1530878565489311826>",
@@ -118,6 +175,10 @@ class HuntCommand extends BaseCommand {
       const emoji = droppedItem.emoji || slotEmoji[droppedItem.slot] || "🛡️";
 
       text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${emoji} **${droppedItem.subType}** (ID: \`${droppedItem.id}\`)`;
+    }
+
+    if (petText) {
+      text += petText;
     }
 
     if (levelsGained > 0) {
