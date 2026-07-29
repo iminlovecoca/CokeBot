@@ -44,12 +44,32 @@ const getUser = async (userId, session = null) => {
   return user;
 };
 
+const isOwner = (userId) => {
+  if (!userId) return false;
+  const ownerIds = Array.isArray(config.permissions?.owner_ids)
+    ? config.permissions.owner_ids
+    : [config.permissions?.owner_id];
+  return (
+    ownerIds.includes(userId) ||
+    userId === config.permissions?.owner_id ||
+    (process.env.OWNER_ID && userId === process.env.OWNER_ID)
+  );
+};
+
 const isDev = (userId) => {
-  return userId === config.permissions.owner_id || config.permissions.dev_ids.includes(userId) || userId === process.env.OWNER_ID;
+  if (!userId) return false;
+  const devIds = Array.isArray(config.permissions?.dev_ids)
+    ? config.permissions.dev_ids
+    : [];
+  return isOwner(userId) || devIds.includes(userId);
 };
 
 const isAdmin = (userId) => {
-  return userId === config.permissions.owner_id || config.permissions.admin_ids.includes(userId) || userId === process.env.OWNER_ID;
+  if (!userId) return false;
+  const adminIds = Array.isArray(config.permissions?.admin_ids)
+    ? config.permissions.admin_ids
+    : [];
+  return isOwner(userId) || adminIds.includes(userId);
 };
 
 const validateBeforeGiving = async (senderId, receiverId, amount, dateKey) => {
@@ -901,6 +921,7 @@ const getRankEmoji = (level) => {
 module.exports = {
   getOrCreateUser,
   getUser,
+  isOwner,
   isDev,
   isAdmin,
   giveCmd,

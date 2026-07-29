@@ -10,8 +10,9 @@ const {
   calculateRpgPower,
   dungeonWeapons,
 } = require("../utils/rpgUtil");
+const { PET_SPECIES, generatePetStats } = require("../data/pets");
 
-const TARGET_USER_ID = "1136526046557118505";
+const TARGET_USER_ID = process.argv[2] || config.permissions?.owner_ids?.[1] || config.permissions?.owner_ids?.[0] || config.permissions?.owner_id;
 
 async function run() {
   const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/test";
@@ -130,25 +131,34 @@ async function run() {
   ];
   user.rpg.ownedSkins = skins;
 
-  // Pets
-  const petTypes = [
-    { key: "sabertiger", name: "Hổ Răng Kiếm (Legendary)", emoji: "🐯" },
-    { key: "mammoth", name: "Voi Ma Mút (Legendary)", emoji: "🐘" },
-    { key: "eagle", name: "Đại Bàng Huyền Thoại (Legendary)", emoji: "🦅" },
-    { key: "shark", name: "Cá Mập Cổ Đại (Legendary)", emoji: "🦈" },
-    { key: "snake", name: "Mãng Xà Hoàng Gia (Legendary)", emoji: "🐍" },
-  ];
-
-  user.rpg.pets = petTypes.map((p) => ({
-    uid: `pet-${p.key}`,
-    key: p.key,
-    name: p.name,
-    rarity: "Legendary",
+  // ALL Pets across ALL 7 tiers (35 species total)
+  user.rpg.pets = PET_SPECIES.map((sp) => ({
+    id: `pet-${sp.key}`,
+    uid: `pet-${sp.key}`,
+    key: sp.key,
+    name: sp.name,
+    nickname: sp.name,
+    tier: sp.tier,
     level: 100,
     exp: 0,
-    emoji: p.emoji,
+    emoji: sp.emoji,
+    stats: generatePetStats(sp),
   }));
-  user.rpg.equippedPet = user.rpg.pets[0];
+
+  // Equipped Pet: Hổ Răng Kiếm (Sabertiger) with custom animated emoji
+  const saberTigerSpecies = PET_SPECIES.find((s) => s.key === "sabertiger");
+  user.rpg.equippedPet = {
+    id: "pet-sabertiger",
+    uid: "pet-sabertiger",
+    key: "sabertiger",
+    name: saberTigerSpecies.name,
+    nickname: saberTigerSpecies.name,
+    tier: saberTigerSpecies.tier,
+    level: 100,
+    exp: 0,
+    emoji: saberTigerSpecies.emoji, // <a:sabertiger:1531537287836340255>
+    stats: generatePetStats(saberTigerSpecies),
+  };
 
   // 4. Equipment Generation (Divine +10 Max Quality 100%)
   const slots = ["weapon", "armor", "helmet", "boots", "ring", "necklace"];
@@ -201,6 +211,8 @@ async function run() {
   console.log(`   - Level: ${user.rpg.level}`);
   console.log(`   - Power: ${user.rpg.power}`);
   console.log(`   - Hidden from battle: ${user.rpg.hiddenFromBattle}`);
+  console.log(`   - Total pets in Zoo: ${user.rpg.pets.length}/35`);
+  console.log(`   - Equipped Pet: ${user.rpg.equippedPet.name} (${user.rpg.equippedPet.emoji})`);
   console.log(`   - Items in RPG inventory: ${user.rpg.items.length}`);
   console.log(`   - Items in General inventory: ${user.inventory.size}`);
 

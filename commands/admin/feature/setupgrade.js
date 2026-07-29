@@ -2,20 +2,21 @@ const { EmbedBuilder } = require("discord.js");
 const User = require("../../../models/User");
 const config = require("../../../data/config");
 const { isDungeonWeapon, getGearDisplayName, calculateRpgPower } = require("../../../utils/rpgUtil");
+const { isDev } = require("../../../utils/userUtil");
 const BaseCommand = require("../../../core/BaseCommand");
+
 class SetupgradeCommand extends BaseCommand {
   constructor() {
     super({
-  name: "setupgrade",
-  aliases: ["setupg", "setenhance", "seteh"],
-  description: "Đặt cấp cường hóa cho vũ khí của người chơi (Chỉ Admin/Dev)",
-  usage: `${config.prefix}setupgrade @user <cấp độ> [ID vũ khí]`,
-        cooldown: 0
+      name: "setupgrade",
+      aliases: ["setupg", "setenhance", "seteh"],
+      description: "Đặt cấp cường hóa cho vũ khí của người chơi (Chỉ Admin/Dev)",
+      usage: `${config.prefix}setupgrade @user <cấp độ> [ID vũ khí]`,
+      cooldown: 0
     });
   }
   async execute(message, args) {
-    const ownerId = "745950731638407210";
-    if (message.author.id !== ownerId && !config.permissions.dev_ids.includes(message.author.id) && message.author.id !== process.env.OWNER_ID) {
+    if (!isDev(message.author.id)) {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
     const targetArg = args[0];
@@ -26,58 +27,52 @@ class SetupgradeCommand extends BaseCommand {
     if (!mention) {
       return message.reply("❌ Không tìm thấy người dùng.");
     }
-    const levelArg = args[1];
-    if (!levelArg || isNaN(levelArg)) {
-      return message.reply(`❌ Cú pháp: \`${config.prefix}setupgrade @user <cấp độ> [ID vũ khí]\` (Cấp độ phải là số)`);
-    }
-    const targetLevel = parseInt(levelArg, 10);
-    if (targetLevel < 0) {
-      return message.reply("❌ Cấp độ cường hóa không được âm.");
+    const levelInput = parseInt(args[1]);
+    if (isNaN(levelInput) || levelInput < 0 || levelInput > 10) {
+      return message.reply("❌ Cấp cường hóa phải từ 0 đến 10.");
     }
     const dbUser = await User.findOne({ userId: mention.id });
-    if (!dbUser || !dbUser.rpg || !dbUser.rpg.classKey) {
-      return message.reply(`❌ Người dùng <@${mention.id}> chưa tạo nhân vật RPG.`);
+    if (!dbUser || !dbUser.rpg || !dbUser.rpg.items || dbUser.rpg.items.length === 0) {
+      return message.reply(`❌ Người dùng <@${mention.id}> không có trang bị RPG nào.`);
     }
-    let itemId = null;
-    if (args[2] && !isNaN(args[2])) {
-      itemId = parseInt(args[2], 10);
+    let targetGear = null;
+    const gearIdArg = args[2];
+    if (gearIdArg) {
+      const gearId = Number(gearIdArg.replace(/^[gG]/, ""));
+      targetGear = dbUser.rpg.items.find(item => item.id === gearId);
+      if (!targetGear) {
+        return message.reply(`❌ Không tìm thấy trang bị ID \`G${String(gearId).padStart(3, "0")}\` của <@${mention.id}>.`);
+      }
     } else {
-      itemId = dbUser.rpg.equipped?.weapon;
-      if (!itemId) {
-        return message.reply(`❌ Người dùng <@${mention.id}> hiện không mặc vũ khí nào. Vui lòng nhập ID vũ khí cụ thể.`);
+      const weaponId = dbUser.rpg.equipped?.weapon;
+      if (weaponId) {
+        targetGear = dbUser.rpg.items.find(item => item.id === weaponId);
+      }
+      if (!targetGear) {
+        targetGear = dbUser.rpg.items.find(item => item.slot === "weapon");
       }
     }
-    const items = dbUser.rpg.items || [];
-    const itemIndex = items.findIndex(it => it.id === itemId);
-    if (itemIndex === -1) {
-      return message.reply(`❌ Không tìm thấy trang bị ID \`${itemId}\` trong túi đồ của người dùng.`);
+    if (!targetGear) {
+      return message.reply(`❌ Không tìm thấy vũ khí nào của <@${mention.id}> để đặt cấp cường hóa.`);
     }
-    const item = items[itemIndex];
-    if (item.slot !== "weapon") {
-      return message.reply(`❌ Trang bị ID \`${itemId}\` không phải là Vũ khí. Chỉ có thể cường hóa vũ khí.`);
-    }
-    const isSpecial = isDungeonWeapon(item);
-    const maxLevel = isSpecial ? 10 : 25;
-    if (targetLevel > maxLevel) {
-      return message.reply(`❌ Vũ khí ${isSpecial ? "đặc biệt" : "thường"} chỉ có thể cường hóa tối đa là **+${maxLevel}**.`);
-    }
-    const oldLevel = item.upgradeLevel || 0;
-    item.upgradeLevel = targetLevel;
-    item.name = getGearDisplayName(item);
-    dbUser.markModified("rpg");
+    const oldLevel = targetGear.upgradeLevel || 0;
+    targetGear.upgradeLevel = levelInput;
     dbUser.rpg.power = calculateRpgPower(dbUser);
+    dbUser.markModified("rpg");
     await dbUser.save();
+
     const embed = new EmbedBuilder()
-      .setColor("#57F287")
-      .setTitle("⚙️ Admin Set Upgrade Level")
+      .setColor("#2ECC71")
+      .setTitle("✨ Đã đặt cấp cường hóa")
       .setDescription(
-        `Đã đặt cấp cường hóa cho vũ khí của <@${mention.id}>:\n\n` +
-        `• **Vũ khí**: ${item.name} (**+${oldLevel}** ➡️ **+${targetLevel}**)\n` +
-        `• **Loại**: \`${isSpecial ? "Vũ khí Đặc biệt" : "Vũ khí Thường"}\` (Giới hạn: +${maxLevel})\n` +
-        `• **Lực chiến tổng hiện tại**: **${Math.floor(dbUser.rpg.power).toLocaleString()}**`
+        `Đã thay đổi cấp cường hóa cho trang bị của <@${mention.id}>:\n\n` +
+        `• **Trang bị**: ${getGearDisplayName(targetGear)}\n` +
+        `• **ID Trang bị**: \`G${String(targetGear.id).padStart(3, "0")}\`\n` +
+        `• **Cấp cường hóa**: \`+${oldLevel}\` → \`+${levelInput}\`\n` +
+        `• **Lực chiến mới**: \`${Math.floor(dbUser.rpg.power).toLocaleString()}\``
       )
       .setTimestamp();
     return message.reply({ embeds: [embed] });
-    }
+  }
 }
 module.exports = new SetupgradeCommand();

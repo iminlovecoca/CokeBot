@@ -685,7 +685,7 @@ class BattleCommand extends BaseCommand {
           `${config.emoji.no} Đối phương chưa tạo nhân vật RPG. Họ cần dùng lệnh \`${config.prefix}class\` trước.`,
         );
       }
-      const hiddenBattleIds = config.permissions.hidden_battle_ids || ["1136526046557118505"];
+      const hiddenBattleIds = config.permissions?.hidden_battle_ids || [];
       const { isDev } = require("../../../utils/userUtil");
       const isTargetHidden = hiddenBattleIds.includes(receiverId) || receiverUser.rpg?.hiddenFromBattle;
       if (isTargetHidden && senderId !== receiverId && !isDev(senderId)) {
@@ -755,7 +755,7 @@ class BattleCommand extends BaseCommand {
           .catch(() => {});
       });
     } else {
-      const hiddenBattleIds = config.permissions.hidden_battle_ids || ["1136526046557118505"];
+      const hiddenBattleIds = config.permissions?.hidden_battle_ids || [];
       const excludedIds = Array.from(new Set([senderId, ...hiddenBattleIds]));
       const opponents = await User.aggregate([
         {

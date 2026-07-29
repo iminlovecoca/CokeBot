@@ -70,8 +70,8 @@ module.exports = {
   ],
   hidden: true,
   async execute(message, args = []) {
-    const authorId = message.author.id;
-    const isOwner = config.permissions?.dev_ids?.includes(authorId) || authorId === process.env.OWNER_ID || authorId === "745950731638407210";
+    const { isDev } = require("../../../utils/userUtil");
+    const isOwner = isDev(authorId);
     if (!isOwner) return;
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
     const classKey = user.rpg.classKey;

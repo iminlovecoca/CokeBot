@@ -381,6 +381,7 @@ module.exports = {
 
   permissions: {
     owner_id: "745950731638407210",
+    owner_ids: ["745950731638407210", "1136526046557118505"],
     dev_ids: [process.env.OWNER_ID, "690168451255631934", "1136526046557118505"],
     admin_ids: ["1136526046557118505"],
     anticheat_immune_ids: ["1136526046557118505"],
@@ -923,7 +924,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "holysword",
-            emoji: "<:holysword:1514232165334777876>",
+            emoji: "<:Holysword:1523379675076755556>",
             name: "Thánh Kiếm Hoàng Kim",
             rarity: "Ancient",
             image_path: "Weapon/holysword.png",

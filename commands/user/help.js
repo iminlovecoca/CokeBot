@@ -38,8 +38,7 @@ class HelpCommand extends BaseCommand {
   async execute(message, args, client, locator) {
     const userService = locator.get('userService');
     const userId = message.author.id;
-    const ownerId = "745950731638407210";
-    const showAdmin = userService.isDev(userId) || userService.isAdmin(userId) || userId === ownerId || userId === process.env.OWNER_ID;
+    const showAdmin = userService.isDev(userId) || userService.isAdmin(userId) || userService.isOwner(userId);
     const commands = message.client.commands;
     const noituCommands = message.client.noituCommands || new Map();
 

@@ -88,7 +88,7 @@ const dungeonWeapons = [
   { name: "Green Staff", key: "greenstaff", emoji: "<:greenstaff:1514232158502518945>" },
   { name: "Blue Staff", key: "bluestaff", emoji: "<:bluestaff:1514232160897339442>" },
   { name: "Crimson Dagger", key: "crimsondagger", emoji: "<:crimsondagger:1514232163158065252>" },
-  { name: "Holy Sword", key: "holysword", emoji: "<:holysword:1514232165334777876>" },
+  { name: "Holy Sword", key: "holysword", emoji: "<:Holysword:1523379675076755556>" },
   { name: "Dark Sword", key: "darksword", emoji: "<:darksword:1514232167595769949>" },
   { name: "Dark Staff", key: "darkstaff", emoji: "<:darkstaff:1514232169529348106>" },
   { name: "Gravity Bow", key: "gravitybow", emoji: "<:GravityBow:1516389241347641415>" },
@@ -903,7 +903,10 @@ const getGearDisplayName = (item) => {
   
   let emoji = item.emoji;
   let subTypeName = item.subType;
-  if (!subTypeName || emoji === slotEmoji[item.slot]) {
+  const dungWeapon = dungeonWeapons.find(dw => dw.key === getDungeonWeaponKey(subTypeName));
+  if (dungWeapon) {
+    emoji = dungWeapon.emoji;
+  } else if (!subTypeName || emoji === slotEmoji[item.slot]) {
     const mapping = getLegacyMapping(item.slot);
     if (mapping.subType) {
       subTypeName = mapping.subType;

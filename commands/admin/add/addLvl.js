@@ -12,8 +12,8 @@ class AddLvlCommand extends BaseCommand {
     });
   }
   async execute(message, args) {
-    const ownerId = "745950731638407210";
-    if (message.author.id !== ownerId) {
+    const { isOwner } = require("../../../utils/userUtil");
+    if (!isOwner(message.author.id)) {
       return message.reply("❌ | Lệnh này chỉ dành cho **owner**.");
     }
     const isRpg = args.some(arg => arg.toLowerCase() === "rpg");

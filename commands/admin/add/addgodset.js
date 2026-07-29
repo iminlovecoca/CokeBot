@@ -39,8 +39,8 @@ class AddgodsetCommand extends BaseCommand {
     });
   }
   async execute(message, args) {
-    const ownerId = "745950731638407210";
-    if (message.author.id !== ownerId && !config.permissions.dev_ids.includes(message.author.id)) {
+    const { isDev } = require("../../../utils/userUtil");
+    if (!isDev(message.author.id)) {
       return message.reply("❌ Bạn không có quyền dùng lệnh này!");
     }
     if (args.length === 0) {
