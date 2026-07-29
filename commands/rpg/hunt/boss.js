@@ -475,10 +475,10 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         }).catch(() => null);
       }
       const { updateQuestProgress } = require("../../../utils/questUtil");
-      await updateQuestProgress(userId, "boss_fight", 1, channel);
-      await updateQuestProgress(userId, "exp_gain", expGain, channel);
+      await updateQuestProgress(user, "boss_fight", 1, channel);
+      await updateQuestProgress(user, "exp_gain", expGain, channel);
       if (isLastHit) {
-        await updateQuestProgress(userId, "boss_last_hit", 1, channel);
+        await updateQuestProgress(user, "boss_last_hit", 1, channel);
       }
       await sendRewardDm({
         client,
@@ -1158,7 +1158,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     }
   }
   await user.save();
-  await updateQuestProgress(userId, "boss_damage", damage, channel);
+  await updateQuestProgress(user, "boss_damage", damage, channel);
   await updateBossMessage(channel, activeBoss, false, interaction);
   try {
     const SpawnedBoss = require("../../../models/SpawnedBoss");

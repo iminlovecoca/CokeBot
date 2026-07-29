@@ -64,9 +64,9 @@ class HuntCommand extends BaseCommand {
     user.rpg.power = calculateRpgPower(user);
     user.rpg.lastHuntAt = new Date();
     const { updateQuestProgress } = require("../../../utils/questUtil");
-    await updateQuestProgress(message.author.id, "exp_gain", expGain, message.channel);
+    await updateQuestProgress(user, "exp_gain", expGain, message.channel);
     if (droppedItem) {
-      await updateQuestProgress(message.author.id, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
+      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
     }
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
     const blankEmo = config.emoji.blank || "";

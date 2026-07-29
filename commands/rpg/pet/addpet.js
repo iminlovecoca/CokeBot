@@ -30,13 +30,16 @@ class AddPetCommand extends BaseCommand {
         `${config.emoji.no} Bạn chưa có Linh Thú nào. Dùng \`${config.prefix}pet\` để nhận linh thú tân thủ!`
       );
     }
+    const removeTones = (str) =>
+      str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D") : "";
+    const cleanQuery = removeTones(query).toLowerCase();
+    const sp = findPetSpecies(query);
+
     const targetPet = pets.find((p) => {
-      if (p.name.toLowerCase() === query.toLowerCase()) return true;
-      if (p.key.toLowerCase() === query.toLowerCase()) return true;
-      if (p.nickname && p.nickname.toLowerCase() === query.toLowerCase())
-        return true;
-      const sp = findPetSpecies(query);
       if (sp && sp.key === p.key) return true;
+      if (p.key && p.key.toLowerCase() === query.toLowerCase()) return true;
+      if (p.name && removeTones(p.name).toLowerCase().includes(cleanQuery)) return true;
+      if (p.nickname && removeTones(p.nickname).toLowerCase().includes(cleanQuery)) return true;
       return false;
     });
     if (!targetPet) {

@@ -35,11 +35,15 @@ class PetCommand extends BaseCommand {
   async showPetDetail(message, user, query) {
     const pets = user.rpg.pets || [];
     const species = findPetSpecies(query);
+    const removeTones = (str) =>
+      str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D") : "";
+    const cleanQuery = removeTones(query).toLowerCase();
+
     let ownedPet = pets.find((p) => {
-      if (p.name.toLowerCase().includes(query.toLowerCase())) return true;
-      if (p.key.toLowerCase() === query.toLowerCase()) return true;
-      if (p.nickname && p.nickname.toLowerCase().includes(query.toLowerCase()))
-        return true;
+      if (species && p.key === species.key) return true;
+      if (p.key && p.key.toLowerCase() === query.toLowerCase()) return true;
+      if (p.name && removeTones(p.name).toLowerCase().includes(cleanQuery)) return true;
+      if (p.nickname && removeTones(p.nickname).toLowerCase().includes(cleanQuery)) return true;
       return false;
     });
 

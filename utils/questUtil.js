@@ -105,6 +105,16 @@ const checkAndResetDailyQuests = async (user) => {
     };
   }
 
+  if (Array.isArray(user.rpg.quests.active)) {
+    const originalLen = user.rpg.quests.active.length;
+    user.rpg.quests.active = user.rpg.quests.active.filter(
+      (q) => !q.completed && (q.progress || 0) < q.target
+    );
+    if (user.rpg.quests.active.length !== originalLen) {
+      user.markModified("rpg");
+    }
+  }
+
   const tz = "Asia/Ho_Chi_Minh";
   const nowVn = DateTime.now().setZone(tz);
   const todayStr = nowVn.toFormat("yyyy-MM-dd");

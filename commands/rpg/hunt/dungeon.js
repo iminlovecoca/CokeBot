@@ -1762,7 +1762,7 @@ const handleVictory = async (channel, activeDungeon) => {
     }
     await freshUser.save();
     const { updateQuestProgress } = require("../../../utils/questUtil");
-    await updateQuestProgress(freshUser.userId, "dungeon_win", 1, channel, { chapter: activeDungeon.chapter });
+    await updateQuestProgress(freshUser, "dungeon_win", 1, channel, { chapter: activeDungeon.chapter });
     const stoneItem = channel.client.allItems?.find(i => i.item_id === cristalStoneId) || { name: `Cristal Smithing Stone [${activeDungeon.chapter}]`, emoji: "💎" };
     const gearText = gear 
       ? `**${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`
