@@ -783,7 +783,7 @@ class BattleCommand extends BaseCommand {
       ));
       const validOpponent = opponents.find(opp => {
         const du = userMap.get(opp.userId);
-        return du && !du.bot;
+        return du ? !du.bot : true;
       });
       if (!validOpponent) {
         return message.reply(
@@ -798,8 +798,9 @@ class BattleCommand extends BaseCommand {
 }
 module.exports = new BattleCommand();
 const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
-  const user1 = typeof user1OrId === "object" && user1OrId.save ? user1OrId : await User.findOne({ userId: user1OrId });
-  const user2 = typeof user2OrId === "object" && user2OrId.save ? user2OrId : await User.findOne({ userId: user2OrId });
+  const getUserId = (val) => (typeof val === "object" && val !== null ? val.userId : val);
+  const user1 = typeof user1OrId === "object" && typeof user1OrId.save === "function" ? user1OrId : await User.findOne({ userId: getUserId(user1OrId) });
+  const user2 = typeof user2OrId === "object" && typeof user2OrId.save === "function" ? user2OrId : await User.findOne({ userId: getUserId(user2OrId) });
   const p1Id = user1.userId;
   const p2Id = user2.userId;
   const class1 = getRpgClass(user1.rpg.classKey);

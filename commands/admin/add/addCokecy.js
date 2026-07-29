@@ -8,14 +8,17 @@ const User = require("../../../models/User");
 const ALLOWED_IDS = [process.env.OWNER_ID];
 const BaseCommand = require("../../../core/BaseCommand");
 const { fetchUser } = require("../../../utils/discordCache");
+const config = require("../../../config");
+
 class AddCokecyCommand extends BaseCommand {
   constructor() {
     super({
-  name: "addcoke",
-  description: "Thêm coke cho người dùng hoặc tất cả (chỉ chủ bot)",
-        cooldown: 0
+      name: "addcoke",
+      description: "Thêm coke cho người dùng hoặc tất cả (chỉ chủ bot)",
+      cooldown: 0
     });
   }
+
   async execute(message, args) {
     const authorId = message.author.id;
     if (!ALLOWED_IDS.includes(authorId)) {
@@ -74,6 +77,23 @@ class AddCokecyCommand extends BaseCommand {
                 .setColor("Green")
                 .setTitle("✅ Thành công")
                 .setDescription(
+                  `Đã cộng **${amount.toLocaleString()} coke** cho **tất cả người dùng**.`
+                ),
+            ],
+            components: [],
+          });
+        } else {
+          const user = await User.findOneAndUpdate(
+            { userId: mention.id },
+            { $inc: { coke: amount } },
+            { new: true, upsert: true }
+          );
+          await interaction.update({
+            embeds: [
+              new EmbedBuilder()
+                .setColor("Green")
+                .setTitle("✅ Thành công")
+                .setDescription(
                   `Đã cộng **${amount.toLocaleString()} coke** cho ${mention}.\n` +
                     `Số dư mới: **${user.coke.toLocaleString()} coke**`,
                 ),
@@ -106,6 +126,6 @@ class AddCokecyCommand extends BaseCommand {
         });
       }
     });
-    }
+  }
 }
 module.exports = new AddCokecyCommand();
