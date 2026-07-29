@@ -761,37 +761,19 @@ class BattleCommand extends BaseCommand {
         {
           $match: {
             "rpg.classKey": { $ne: null },
-            userId: { $nin: excludedIds, $regex: /^\d+$/ },
+            userId: { $nin: excludedIds },
             "rpg.godsetBackup": null,
             "rpg.hiddenFromBattle": { $ne: true },
           }
         },
-        { $sample: { size: 5 } }
+        { $sample: { size: 1 } }
       ]).catch(() => []);
       if (!opponents || opponents.length === 0) {
         return message.reply(
           `${config.emoji.no} Không tìm thấy người chơi nào khác có nhân vật RPG trong dữ liệu game để thách đấu.`,
         );
       }
-      // Fetch Discord users in parallel and filter out bots
-      // Batch fetch opponent Discord users using cache and filter out bots
-      const { fetchUser } = require('../../../utils/discordCache');
-      const uniqueIds = [...new Set(opponents.map(o => o.userId))];
-      const userMap = new Map();
-      await Promise.all(uniqueIds.map(id =>
-        fetchUser(message.client, id).then(u => { if (u) userMap.set(id, u); })
-      ));
-      const validOpponent = opponents.find(opp => {
-        const du = userMap.get(opp.userId);
-        return du ? !du.bot : true;
-      });
-      if (!validOpponent) {
-        return message.reply(
-          `${config.emoji.no} Không tìm thấy người chơi hợp lệ (không phải Bot) để thách đấu.`,
-        );
-      }
-      // Use the opponent document directly (no extra DB query)
-      const randomOpponent = validOpponent;
+      const randomOpponent = opponents[0];
       await runPvPBattle(message, null, senderUser, randomOpponent);
     }
   }
@@ -813,44 +795,8 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const baseHp2 = 150 + stats2.vigor * 20 + user2.rpg.level * 20;
   const maxHp1 = Math.floor(baseHp1 * (1 + (petB1.hpPct || 0)));
   const maxHp2 = Math.floor(baseHp2 * (1 + (petB2.hpPct || 0)));
-  let p1Name = user1.rpg.name || usernameCache.get(p1Id);
-  let p2Name = user2.rpg.name || usernameCache.get(p2Id);
-  if (!p1Name || !p2Name) {
-    const u1Cached = message.client.users.cache.get(p1Id);
-    const u2Cached = message.client.users.cache.get(p2Id);
-    if (!p1Name && u1Cached) {
-      p1Name = u1Cached.username;
-      usernameCache.set(p1Id, p1Name);
-    }
-    if (!p2Name && u2Cached) {
-      p2Name = u2Cached.username;
-      usernameCache.set(p2Id, p2Name);
-    }
-    if (!p1Name || !p2Name) {
-      const fetchPromises = [];
-      if (!p1Name) {
-        fetchPromises.push(
-          message.client.users.fetch(p1Id)
-            .then((u) => { 
-              p1Name = u.username; 
-              usernameCache.set(p1Id, u.username);
-            })
-            .catch(() => { p1Name = `Người chơi #${p1Id.slice(-4)}`; })
-        );
-      }
-      if (!p2Name) {
-        fetchPromises.push(
-          message.client.users.fetch(p2Id)
-            .then((u) => { 
-              p2Name = u.username; 
-              usernameCache.set(p2Id, u.username);
-            })
-            .catch(() => { p2Name = `Người chơi #${p2Id.slice(-4)}`; })
-        );
-      }
-      await Promise.all(fetchPromises);
-    }
-  }
+  let p1Name = user1.rpg?.name || usernameCache.get(p1Id) || message.client.users.cache.get(p1Id)?.username || message.author.displayName || message.author.username;
+  let p2Name = user2.rpg?.name || usernameCache.get(p2Id) || message.client.users.cache.get(p2Id)?.username || `Người chơi #${p2Id.slice(-4)}`;
   const equipped1 = getEquippedItems(user1);
   const equipped2 = getEquippedItems(user2);
   const getDefPower = (equipped) => {
