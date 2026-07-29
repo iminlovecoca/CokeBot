@@ -2,39 +2,8 @@ const BaseCommand = require('../../core/BaseCommand');
 const { EmbedBuilder } = require('discord.js');
 const { UserFriendlyError } = require('../../utils/errors');
 const { updateQuestProgress } = require('../../utils/questUtil');
+const { getActionGif } = require('../../utils/actionGifUtil');
 const config = require('../../data/config');
-
-const gifs = [
-  "https://files.catbox.moe/fuqsua.gif",
-  "https://files.catbox.moe/2l18rd.gif",
-  "https://files.catbox.moe/io8tto.gif",
-  "https://files.catbox.moe/k4l4e7.gif",
-  "https://files.catbox.moe/t8wtmp.gif",
-  "https://files.catbox.moe/xdkyap.gif",
-  "https://files.catbox.moe/s5griu.gif",
-  "https://files.catbox.moe/lpwg8e.gif",
-  "https://files.catbox.moe/4jyw8s.gif",
-  "https://files.catbox.moe/mgtr39.gif",
-  "https://files.catbox.moe/tbshki.gif",
-  "https://files.catbox.moe/vurvxc.gif",
-  "https://files.catbox.moe/vekpy8.gif",
-  "https://files.catbox.moe/s6i2ut.gif",
-  "https://files.catbox.moe/t4ao7p.gif",
-  "https://files.catbox.moe/i773y1.gif",
-  "https://files.catbox.moe/wrnnw8.gif",
-  "https://files.catbox.moe/lzv9z5.gif",
-  "https://files.catbox.moe/2m6o13.gif",
-  "https://files.catbox.moe/2mwfze.gif",
-  "https://files.catbox.moe/2udimq.gif",
-  "https://files.catbox.moe/mn7ipn.gif",
-  "https://files.catbox.moe/w0st22.gif",
-  "https://files.catbox.moe/29bmom.gif",
-  "https://files.catbox.moe/md73qe.gif",
-  "https://files.catbox.moe/n1tjvg.gif",
-  "https://files.catbox.moe/s0iniq.gif",
-  "https://files.catbox.moe/sw8zz7.gif",
-  "https://files.catbox.moe/62atow.gif"
-];
 
 class KissCommand extends BaseCommand {
   constructor() {
@@ -46,7 +15,7 @@ class KissCommand extends BaseCommand {
       examples: [
         { intent: 'Hôn một người dùng', command: `${config.prefix}kiss @user` }
       ],
-      cooldown: 5
+      cooldown: 3
     });
   }
 
@@ -63,7 +32,7 @@ class KissCommand extends BaseCommand {
     const senderName = message.member?.displayName || message.author.username;
     const targetMember = message.mentions.members.first() || message.guild?.members.cache.get(userMention.id);
     const targetName = targetMember?.displayName || userMention.username;
-    const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+    const randomGif = await getActionGif('kiss');
 
     const embed = new EmbedBuilder()
       .setAuthor({

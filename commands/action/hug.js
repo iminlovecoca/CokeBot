@@ -2,34 +2,8 @@ const BaseCommand = require('../../core/BaseCommand');
 const { EmbedBuilder } = require('discord.js');
 const { UserFriendlyError } = require('../../utils/errors');
 const { updateQuestProgress } = require('../../utils/questUtil');
+const { getActionGif } = require('../../utils/actionGifUtil');
 const config = require('../../data/config');
-
-const gifs = [
-  "https://files.catbox.moe/a7crzx.gif",
-  "https://files.catbox.moe/qp5gk5.gif",
-  "https://files.catbox.moe/5fmdt0.gif",
-  "https://files.catbox.moe/2u0wkh.gif",
-  "https://files.catbox.moe/5umxzp.gif",
-  "https://files.catbox.moe/hggwol.gif",
-  "https://files.catbox.moe/y94ww0.gif",
-  "https://files.catbox.moe/9fj25w.gif",
-  "https://files.catbox.moe/epruvi.gif",
-  "https://files.catbox.moe/bqh05o.gif",
-  "https://files.catbox.moe/x4ledc.gif",
-  "https://files.catbox.moe/1k2iau.gif",
-  "https://files.catbox.moe/ne7kaq.gif",
-  "https://files.catbox.moe/evpqb6.gif",
-  "https://files.catbox.moe/xn48da.gif",
-  "https://files.catbox.moe/pn5l17.gif",
-  "https://files.catbox.moe/fjrb1e.gif",
-  "https://files.catbox.moe/jelzdn.gif",
-  "https://files.catbox.moe/izjpnw.gif",
-  "https://files.catbox.moe/6jnfla.gif",
-  "https://files.catbox.moe/be36iu.gif",
-  "https://files.catbox.moe/952ttv.gif",
-  "https://files.catbox.moe/lwsibk.gif",
-  "https://files.catbox.moe/54ndim.gif"
-];
 
 class HugCommand extends BaseCommand {
   constructor() {
@@ -41,7 +15,7 @@ class HugCommand extends BaseCommand {
       examples: [
         { intent: 'Ôm một người dùng', command: `${config.prefix}hug @user` }
       ],
-      cooldown: 5
+      cooldown: 3
     });
   }
 
@@ -58,7 +32,7 @@ class HugCommand extends BaseCommand {
     const senderName = message.member?.displayName || message.author.username;
     const targetMember = message.mentions.members.first() || message.guild?.members.cache.get(userMention.id);
     const targetName = targetMember?.displayName || userMention.username;
-    const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+    const randomGif = await getActionGif('hug');
 
     const embed = new EmbedBuilder()
       .setAuthor({

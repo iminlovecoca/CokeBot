@@ -2,37 +2,8 @@ const BaseCommand = require('../../core/BaseCommand');
 const { EmbedBuilder } = require('discord.js');
 const { UserFriendlyError } = require('../../utils/errors');
 const { updateQuestProgress } = require('../../utils/questUtil');
+const { getActionGif } = require('../../utils/actionGifUtil');
 const config = require('../../data/config');
-
-const gifs = [
-  "https://files.catbox.moe/3xm60t.gif",
-  "https://files.catbox.moe/7dicm2.gif",
-  "https://files.catbox.moe/ke30bl.gif",
-  "https://files.catbox.moe/t5eprq.gif",
-  "https://files.catbox.moe/8wiy0d.gif",
-  "https://files.catbox.moe/6xll7q.gif",
-  "https://files.catbox.moe/kxf4zo.gif",
-  "https://files.catbox.moe/zoni5k.gif",
-  "https://files.catbox.moe/0lf69c.gif",
-  "https://files.catbox.moe/e52tfh.gif",
-  "https://files.catbox.moe/qrbho8.gif",
-  "https://files.catbox.moe/mrk1xf.gif",
-  "https://files.catbox.moe/admn6j.gif",
-  "https://files.catbox.moe/u50uq4.gif",
-  "https://files.catbox.moe/fq337f.gif",
-  "https://files.catbox.moe/b8xte3.gif",
-  "https://files.catbox.moe/yys3l5.gif",
-  "https://files.catbox.moe/dfhrp0.gif",
-  "https://files.catbox.moe/ee0sc2.gif",
-  "https://files.catbox.moe/sv57tv.gif",
-  "https://files.catbox.moe/fgbwb2.gif",
-  "https://files.catbox.moe/gz0qgu.gif",
-  "https://files.catbox.moe/5iahnq.gif",
-  "https://files.catbox.moe/a4b3gp.gif",
-  "https://files.catbox.moe/m32g8n.gif",
-  "https://files.catbox.moe/rlgfqk.gif",
-  "https://files.catbox.moe/8jq10y.gif"
-];
 
 class PunchCommand extends BaseCommand {
   constructor() {
@@ -44,7 +15,7 @@ class PunchCommand extends BaseCommand {
       examples: [
         { intent: 'Đấm một người dùng', command: `${config.prefix}punch @user` }
       ],
-      cooldown: 5
+      cooldown: 3
     });
   }
 
@@ -61,7 +32,7 @@ class PunchCommand extends BaseCommand {
     const senderName = message.member?.displayName || message.author.username;
     const targetMember = message.mentions.members.first() || message.guild?.members.cache.get(userMention.id);
     const targetName = targetMember?.displayName || userMention.username;
-    const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+    const randomGif = await getActionGif('punch');
 
     const embed = new EmbedBuilder()
       .setAuthor({
