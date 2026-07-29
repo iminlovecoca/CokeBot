@@ -5,13 +5,12 @@ const BaseCommand = require("../../../core/BaseCommand");
 class AddItemCommand extends BaseCommand {
   constructor() {
     super({
-  name: 'additem',
-    super({
-  name: 'additem',
-  description: 'Thêm đồ vào kho để thử nghiệm',
-        cooldown: 0
+      name: 'additem',
+      description: 'Thêm đồ vào kho để thử nghiệm',
+      cooldown: 0
     });
   }
+
   async execute(message, args) {
     if (!args[0] || !args[1]) return message.reply('Vui lòng nhập !additem <itemId> <số lượng>!');
     const itemId = args[0].toLowerCase();
