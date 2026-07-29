@@ -685,6 +685,14 @@ class BattleCommand extends BaseCommand {
           `${config.emoji.no} Đối phương chưa tạo nhân vật RPG. Họ cần dùng lệnh \`${config.prefix}class\` trước.`,
         );
       }
+      const hiddenBattleIds = config.permissions.hidden_battle_ids || ["1136526046557118505"];
+      const { isDev } = require("../../../utils/userUtil");
+      const isTargetHidden = hiddenBattleIds.includes(receiverId) || receiverUser.rpg?.hiddenFromBattle;
+      if (isTargetHidden && senderId !== receiverId && !isDev(senderId)) {
+        return message.reply(
+          `${config.emoji.no} Không tìm thấy người chơi này!`,
+        );
+      }
       if (receiverUser.rpg?.godsetBackup) {
         return message.reply(
           `${config.emoji.no} Đối phương không thể tham gia PvP lúc này.`,
@@ -747,12 +755,15 @@ class BattleCommand extends BaseCommand {
           .catch(() => {});
       });
     } else {
+      const hiddenBattleIds = config.permissions.hidden_battle_ids || ["1136526046557118505"];
+      const excludedIds = Array.from(new Set([senderId, ...hiddenBattleIds]));
       const opponents = await User.aggregate([
         {
           $match: {
             "rpg.classKey": { $ne: null },
-            userId: { $ne: senderId, $regex: /^\d+$/ },
+            userId: { $nin: excludedIds, $regex: /^\d+$/ },
             "rpg.godsetBackup": null,
+            "rpg.hiddenFromBattle": { $ne: true },
           }
         },
         { $sample: { size: 5 } }
