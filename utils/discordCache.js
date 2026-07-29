@@ -1,13 +1,13 @@
-const LRU = require('lru-cache');
+const { LRUCache } = require('lru-cache');
 
 // Cache sizes & TTLs are tuned for typical bot usage.
 // Users and channels are fetched most often, so we keep a slightly larger cache for them.
-const userCache = new LRU({ max: 500, ttl: 5 * 60 * 1000 }); // 5 min
-const channelCache = new LRU({ max: 200, ttl: 10 * 60 * 1000 }); // 10 min
-const guildCache = new LRU({ max: 100, ttl: 10 * 60 * 1000 });
-const roleCache = new LRU({ max: 200, ttl: 10 * 60 * 1000 });
-const emojiCache = new LRU({ max: 200, ttl: 10 * 60 * 1000 });
-const webhookCache = new LRU({ max: 100, ttl: 10 * 60 * 1000 });
+const userCache = new LRUCache({ max: 500, ttl: 5 * 60 * 1000 }); // 5 min
+const channelCache = new LRUCache({ max: 200, ttl: 10 * 60 * 1000 }); // 10 min
+const guildCache = new LRUCache({ max: 100, ttl: 10 * 60 * 1000 });
+const roleCache = new LRUCache({ max: 200, ttl: 10 * 60 * 1000 });
+const emojiCache = new LRUCache({ max: 200, ttl: 10 * 60 * 1000 });
+const webhookCache = new LRUCache({ max: 100, ttl: 10 * 60 * 1000 });
 
 /**
  * Generic fetch helper that checks the client cache first, then a local LRU cache,
