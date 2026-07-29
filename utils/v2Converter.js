@@ -122,12 +122,27 @@ function convertToV2(options, force = false, existingAttachments = []) {
 
     // 2. Fields
     if (data.fields && data.fields.length > 0) {
+      let combinedFieldsText = "";
       for (const field of data.fields) {
-        if (container.components && container.components.length > 0) {
-          container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+        if (!field || (!field.name && !field.value)) continue;
+        if (field.name === "\u200B" && field.value === "\u200B") continue;
+
+        const fieldHeader = field.name ? `**${field.name}**` : "";
+        const line = fieldHeader ? `${fieldHeader}\n${field.value}` : `${field.value}`;
+
+        if ((combinedFieldsText + line).length > 1800) {
+          if (container.components && container.components.length < 35) {
+            container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+            container.addTextDisplayComponents(new TextDisplayBuilder().setContent(combinedFieldsText.trim()));
+          }
+          combinedFieldsText = line;
+        } else {
+          combinedFieldsText += (combinedFieldsText ? "\n\n" : "") + line;
         }
-        const fieldText = `### ${field.name}\n${field.value}`;
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(fieldText));
+      }
+      if (combinedFieldsText.trim() && container.components && container.components.length < 35) {
+        container.addSeparatorComponents(new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small));
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(combinedFieldsText.trim()));
       }
     }
 
