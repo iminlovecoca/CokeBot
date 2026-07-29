@@ -1,3 +1,5 @@
+const User = require("../../../models/User");
+const { getEffectiveRpgStats, calculateRpgPower, getEquippedItems } = require("../../../utils/rpgUtil");
 const { isDev } = require("../../../utils/userUtil");
 const { UserFriendlyError } = require("../../../utils/errors");
 const config = require("../../../data/config");
@@ -46,9 +48,10 @@ class SimCommand extends BaseCommand {
       if (!boss) {
         const availableKeys = bossTiers.map(t => `\`${t.key}\``).join(", ");
         throw new UserFriendlyError(
-        paladin: "physical",
-        wretch: "physical",
-      };
+          `${config.emoji.no} Boss \`${bossKey}\` không tồn tại! Các boss khả dụng: ${availableKeys}`
+        );
+      }
+      const realUsers = await User.find({ "rpg.level": { $gte: 1 } }).limit(playerCount).lean();
       const classes = ["warrior", "assassin", "mage", "archer", "paladin"];
       const mockPlayers = [];
       for (const u of realUsers) {
