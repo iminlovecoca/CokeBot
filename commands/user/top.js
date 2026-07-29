@@ -89,7 +89,7 @@ class TopCommand extends BaseCommand {
           console.error("Error fetching top members:", err);
         }
         // Keep only members that exist in the guild and are not bots
-        matchedUsers = topUsers.filter(u => {
+        let matchedUsers = topUsers.filter(u => {
           const member = fetchedMembers.get(u.userId);
           return member && !member.user.bot;
         });

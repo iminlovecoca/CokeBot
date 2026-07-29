@@ -775,7 +775,7 @@ class BattleCommand extends BaseCommand {
       }
       // Fetch Discord users in parallel and filter out bots
       // Batch fetch opponent Discord users using cache and filter out bots
-      const { fetchUser } = require('../../utils/discordCache');
+      const { fetchUser } = require('../../../utils/discordCache');
       const uniqueIds = [...new Set(opponents.map(o => o.userId))];
       const userMap = new Map();
       await Promise.all(uniqueIds.map(id =>
