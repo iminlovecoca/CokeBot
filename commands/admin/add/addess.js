@@ -3,6 +3,7 @@ const config = require("../../../data/config");
 const User = require("../../../models/User");
 const { isDev } = require("../../../utils/userUtil");
 const BaseCommand = require("../../../core/BaseCommand");
+const { fetchUser } = require("../../../utils/discordCache");
 class AddessCommand extends BaseCommand {
   constructor() {
     super({
@@ -31,7 +32,7 @@ class AddessCommand extends BaseCommand {
     if (!isAll) {
       mention =
         message.mentions.users.first() ||
-        (await message.client.users.fetch(target).catch(() => null));
+        await fetchUser(message.client, target);
       if (!mention) return message.reply("❌ Không tìm thấy user.");
     }
     const embed = new EmbedBuilder()

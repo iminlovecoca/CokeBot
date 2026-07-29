@@ -1,4 +1,4 @@
-﻿const {
+const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -7,6 +7,7 @@
 const User = require("../../../models/User");
 const ALLOWED_IDS = [process.env.OWNER_ID];
 const BaseCommand = require("../../../core/BaseCommand");
+const { fetchUser } = require("../../../utils/discordCache");
 class AddCokecyCommand extends BaseCommand {
   constructor() {
     super({
@@ -32,7 +33,7 @@ class AddCokecyCommand extends BaseCommand {
     if (!isAll) {
       mention =
         message.mentions.users.first() ||
-        (await message.client.users.fetch(target).catch(() => null));
+        await fetchUser(message.client, target);
       if (!mention) return message.reply("❌ Không tìm thấy user.");
     }
     const embed = new EmbedBuilder()
@@ -67,22 +68,6 @@ class AddCokecyCommand extends BaseCommand {
       if (interaction.customId === "confirm_add") {
         if (isAll) {
           await User.updateMany({}, { $inc: { coke: amount } });
-          await interaction.update({
-            embeds: [
-              new EmbedBuilder()
-                .setColor("Green")
-                .setTitle("✅ Thành công")
-                .setDescription(
-                  `Đã cộng thêm **${amount.toLocaleString()} coke** cho toàn bộ user.`,
-                ),
-            ],
-            components: [],
-          });
-        } else {
-          let user = await User.findOne({ userId: mention.id });
-          if (!user) user = await User.create({ userId: mention.id });
-          user.coke += amount;
-          await user.save();
           await interaction.update({
             embeds: [
               new EmbedBuilder()

@@ -598,24 +598,33 @@ class XautohuntCommand extends BaseCommand {
       let gearsDropped = [];
       let petsCaught = [];
       let totalDuplicatePetExp = 0;
-      for (let i = 0; i < huntsCount; i++) {
-        const droppedItem = await generateRpgGearDrop(user, {
+
+      // Parallelize gear generation to reduce latency
+      const gearPromises = Array.from({ length: huntsCount }, () =>
+        generateRpgGearDrop(user, {
           forceDrop: false,
           dropRateBonus: radInfo.stat / 100,
-        });
+        })
+      );
+      const gearResults = await Promise.all(gearPromises);
+      gearResults.forEach(droppedItem => {
         if (droppedItem) {
           gearsDropped.push(droppedItem);
           addRpgGearToUser(user, droppedItem);
         }
+      });
+
+      // Process pet XP and pet captures per hunt
+      for (let i = 0; i < huntsCount; i++) {
         if (user.rpg.equippedPet) {
-          const rarity = droppedItem ? droppedItem.rarity : "Common";
+          const rarity = gearResults[i] ? gearResults[i].rarity : "Common";
           const petHuntXp = getHuntXp(rarity);
           addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
         }
         const caughtSpecies = rollHuntPetDrop(true);
         if (caughtSpecies) {
           user.rpg.pets = user.rpg.pets || [];
-          const isAlreadyOwned = user.rpg.pets.some((p) => p.key === caughtSpecies.key);
+          const isAlreadyOwned = user.rpg.pets.some(p => p.key === caughtSpecies.key);
           if (isAlreadyOwned) {
             const expBonus = getDuplicatePetXp(caughtSpecies.tier);
             if (user.rpg.equippedPet) {

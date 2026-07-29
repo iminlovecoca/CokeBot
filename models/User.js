@@ -157,5 +157,13 @@ const userSchema = new mongoose.Schema({
     equippedPet: { type: Object, default: null },
   },
 });
+// Indexes for ranking and fast lookups
+userSchema.index({ coke: -1 });
+userSchema.index({ level: -1 });
+userSchema.index({ luck: -1 });
+userSchema.index({ tea: -1 });
+userSchema.index({ "rpg.power": -1 });
+userSchema.index({ "rpg.autohunt.totalEssence": -1 });
+userSchema.index({ "rpg.autohunt.isActive": 1 });
 
 module.exports = mongoose.model("User", userSchema);

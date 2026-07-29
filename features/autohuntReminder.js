@@ -3,10 +3,10 @@ const config = require("../data/config");
 
 const initializeAutohuntReminders = async (client) => {
   try {
-    const activeReminders = await User.find({
-      "rpg.autohunt.isActive": true,
-      "rpg.autohunt.dmReminder": true,
-    }).exec();
+    const activeReminders = await User.find(
+      { "rpg.autohunt.isActive": true, "rpg.autohunt.dmReminder": true },
+      { userId: 1, "rpg.autohunt.startTime": 1, "rpg.autohunt.durationHours": 1, "rpg.autohunt.dmReminder": 1 }
+    ).lean();
 
     console.log(`⏰ Loaded ${activeReminders.length} active autohunt reminders from DB.`);
 

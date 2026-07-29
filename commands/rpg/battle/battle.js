@@ -773,19 +773,25 @@ class BattleCommand extends BaseCommand {
           `${config.emoji.no} Không tìm thấy người chơi nào khác có nhân vật RPG trong dữ liệu game để thách đấu.`,
         );
       }
-      let randomOpponent = null;
-      for (const oppRaw of opponents) {
-        const discordUser = await message.client.users.fetch(oppRaw.userId).catch(() => null);
-        if (discordUser && !discordUser.bot) {
-          randomOpponent = await User.findOne({ userId: oppRaw.userId });
-          break;
-        }
-      }
-      if (!randomOpponent) {
+      // Fetch Discord users in parallel and filter out bots
+      // Batch fetch opponent Discord users using cache and filter out bots
+      const { fetchUser } = require('../../utils/discordCache');
+      const uniqueIds = [...new Set(opponents.map(o => o.userId))];
+      const userMap = new Map();
+      await Promise.all(uniqueIds.map(id =>
+        fetchUser(message.client, id).then(u => { if (u) userMap.set(id, u); })
+      ));
+      const validOpponent = opponents.find(opp => {
+        const du = userMap.get(opp.userId);
+        return du && !du.bot;
+      });
+      if (!validOpponent) {
         return message.reply(
           `${config.emoji.no} Không tìm thấy người chơi hợp lệ (không phải Bot) để thách đấu.`,
         );
       }
+      // Use the opponent document directly (no extra DB query)
+      const randomOpponent = validOpponent;
       await runPvPBattle(message, null, senderUser, randomOpponent);
     }
   }

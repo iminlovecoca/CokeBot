@@ -35,35 +35,35 @@ class TopCommand extends BaseCommand {
         title = `Top Level - ${guildName}`;
         unit = 'Level';
         getValue = u => u.level || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ level: -1 });
+        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
         break;
 
       case 'rank':
         title = `Top Rank - ${guildName}`;
         unit = 'Rank';
         getValue = u => u.level || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ level: -1 });
+        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
         break;
 
       case 'luck':
         title = `Top Luck - ${guildName}`;
         unit = 'Luck';
         getValue = u => u.luck || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ luck: -1 });
+        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ luck: -1 }).limit(limit).lean();
         break;
 
       case 'tea':
         title = `Top Tea - ${guildName}`;
         unit = 'Tea';
         getValue = u => u.tea || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ tea: -1 });
+        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ tea: -1 }).limit(limit).lean();
         break;
 
       case 'rpg':
         title = `Top Lực Chiến RPG - ${guildName}`;
         unit = 'Lực chiến';
         getValue = u => Math.floor(u.rpg?.power || 0);
-        topUsers = await User.find({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }).sort({ "rpg.power": -1 });
+        topUsers = await User.find({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }, { userId: 1, "rpg.power": 1, level: 1, luck: 1, tea: 1, coke: 1 }).sort({ "rpg.power": -1 }).limit(limit).lean();
         break;
 
       case 'cash':
@@ -71,39 +71,32 @@ class TopCommand extends BaseCommand {
         title = `Top Coke - ${guildName}`;
         unit = 'Coke';
         getValue = u => u.coke || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }).sort({ coke: -1 });
+        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ coke: -1 }).limit(limit).lean();
         break;
     }
 
     if (!topUsers || topUsers.length === 0)
       return message.reply('❌ **|** Không có dữ liệu người chơi nào.');
 
-    let matchedUsers = [];
-    if (guild) {
-      const batchSize = 100;
-      const maxUsersToCheck = Math.min(topUsers.length, 1000);
-      const authorIndex = topUsers.findIndex(u => u.userId === authorId);
-      for (let i = 0; i < maxUsersToCheck; i += batchSize) {
-        const batch = topUsers.slice(i, i + batchSize);
-        const batchIds = batch.map(u => u.userId);
+        // Fetch guild members for the top users in a single request
+        // Limit the fetch to the number of users we actually need (up to `limit`).
+        const neededIds = topUsers.slice(0, limit).map(u => u.userId);
+        let fetchedMembers = new Map();
         try {
-          const fetched = await guild.members.fetch({ user: batchIds });
-          for (const u of batch) {
-            const member = fetched.get(u.userId);
-            if (member && !member.user.bot) {
-              matchedUsers.push(u);
-            }
-          }
+          const fetched = await guild.members.fetch({ user: neededIds });
+          fetchedMembers = fetched;
         } catch (err) {
-          console.error("Error fetching top members batch:", err);
+          console.error("Error fetching top members:", err);
         }
-        const authorInMatched = matchedUsers.some(u => u.userId === authorId);
-        if (matchedUsers.length >= limit && (authorIndex === -1 || authorInMatched || i + batchSize >= authorIndex)) {
-          break;
-        }
-      }
-      topUsers = matchedUsers;
-    }
+        // Keep only members that exist in the guild and are not bots
+        matchedUsers = topUsers.filter(u => {
+          const member = fetchedMembers.get(u.userId);
+          return member && !member.user.bot;
+        });
+        // If we gathered fewer than the limit (e.g., some users left the guild),
+        // fall back to the originally requested amount without breaking the flow.
+        if (matchedUsers.length > limit) matchedUsers = matchedUsers.slice(0, limit);
+        topUsers = matchedUsers;
 
     if (topUsers.length === 0)
       return message.reply('❌ **|** Không có thành viên nào trong server để hiển thị.');

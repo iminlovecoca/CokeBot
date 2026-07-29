@@ -2,6 +2,7 @@ const User = require("../../../models/User");
 const config = require("../../../data/config");
 const { hasRpgCharacter, getRpgRank, calculateRpgPower } = require("../../../utils/rpgUtil");
 const BaseCommand = require("../../../core/BaseCommand");
+const { fetchUser } = require("../../../utils/discordCache");
 class AddLvlCommand extends BaseCommand {
   constructor() {
     super({
@@ -19,7 +20,7 @@ class AddLvlCommand extends BaseCommand {
     const isRpg = args.some(arg => arg.toLowerCase() === "rpg");
     if (isRpg) {
       const cleanArgs = args.filter(arg => arg.toLowerCase() !== "rpg");
-      const target = message.mentions.users.first() || (cleanArgs[0] ? await message.client.users.fetch(cleanArgs[0]).catch(() => null) : null);
+      const target = message.mentions.users.first() || (cleanArgs[0] ? await fetchUser(message.client, cleanArgs[0]) : null);
       const level = cleanArgs[1] ? parseInt(cleanArgs[1], 10) : NaN;
       if (!target || isNaN(level) || level <= 0) {
         return message.reply(

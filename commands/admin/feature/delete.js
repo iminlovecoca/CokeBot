@@ -76,7 +76,7 @@ class DeleteCommand extends BaseCommand {
       ) {
         return message.channel.send("❌ Huỷ thao tác reset toàn bộ.");
       }
-      const users = await User.find({});
+      const users = await User.find();
       for (const u of users) {
         await resetUserData(u);
       }

@@ -12,6 +12,7 @@ function getRankEmoji(level) {
   return "<:common:1530878565489311826>";
 }
 const BaseCommand = require("../../../core/BaseCommand");
+const { fetchUser } = require("../../../utils/discordCache");
 class AddXPCommand extends BaseCommand {
   constructor() {
     super({
@@ -31,7 +32,7 @@ class AddXPCommand extends BaseCommand {
     }
     const target =
       message.mentions.users.first() ||
-      (await message.client.users.fetch(args[0]).catch(() => null));
+      await fetchUser(message.client, args[0]);
     if (!target) return message.reply("❌ | Không tìm thấy user.");
     const userId = target.id;
     const xpToAdd = parseInt(args[1], 10);

@@ -46,18 +46,6 @@ class SimCommand extends BaseCommand {
       if (!boss) {
         const availableKeys = bossTiers.map(t => `\`${t.key}\``).join(", ");
         throw new UserFriendlyError(
-          `${config.emoji.no} Không tìm thấy boss với key \`${bossKey}\`.\nDanh sách boss khả dụng: ${availableKeys}`
-        );
-      }
-      await message.reply(`⚙️ Đang tải dữ liệu người chơi RPG và khởi tạo mô phỏng trận chiến với **${boss.name}**...`);
-      const User = require("../../../models/User");
-      const { getRpgClass, getEffectiveRpgStats, calculateRpgPower, getEquippedItems, dungeonKeys } = require("../../../utils/rpgUtil");
-      const realUsers = await User.find({ "rpg.classKey": { $ne: null } }).limit(playerCount).exec();
-      const CLASS_ATTACK_TYPES = {
-        warrior: "physical",
-        assassin: "physical",
-        archer: "physical",
-        mage: "magical",
         paladin: "physical",
         wretch: "physical",
       };
