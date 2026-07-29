@@ -8,7 +8,7 @@ const User = require("../../../models/User");
 const ALLOWED_IDS = [process.env.OWNER_ID];
 const BaseCommand = require("../../../core/BaseCommand");
 const { fetchUser } = require("../../../utils/discordCache");
-const config = require("../../../config");
+const config = require("../../../data/config");
 
 class AddCokecyCommand extends BaseCommand {
   constructor() {
