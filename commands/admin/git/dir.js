@@ -158,14 +158,14 @@ class DirCommand extends BaseCommand {
           { name: "⚡ Sức mạnh & Kỹ năng", value: entry.power },
           { name: "💡 Mẹo chiến đấu", value: entry.tips }
         );
-        filePath = path.join(__dirname, "../../assets/dungeons", entry.image);
+        filePath = path.join(__dirname, "../../../assets/dungeons", entry.image);
       } else {
         embed.addFields(
           { name: "📖 Nguồn gốc", value: entry.origin },
           { name: "⚡ Sức mạnh & Nội tại", value: entry.power },
           { name: "🔑 Cách sở hữu", value: entry.acquisition }
         );
-        filePath = path.join(__dirname, "../../assets/items/Weapon", entry.image);
+        filePath = path.join(__dirname, "../../../assets/items/Weapon", entry.image);
       }
       const attachment = new AttachmentBuilder(filePath, { name: entry.image });
       embed.setImage(`attachment://${entry.image}`);

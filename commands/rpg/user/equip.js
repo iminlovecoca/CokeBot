@@ -49,7 +49,7 @@ module.exports = {
     let itemAttachment = null;
     const imgKey = item.imageKey || getItemImageFile(item);
     if (imgKey) {
-      const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+      const itemImagePath = path.join(__dirname, "../../../assets/items", imgKey);
       if (fs.existsSync(itemImagePath)) {
         itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
         embed.setThumbnail("attachment://item.png");

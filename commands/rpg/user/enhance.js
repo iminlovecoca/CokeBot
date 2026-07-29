@@ -197,7 +197,7 @@ class EnhanceCommand extends BaseCommand {
         let itemAttachment = null;
         const imgKey = freshItem.imageKey || (require("../../../utils/rpgUtil").getItemImageFile(freshItem));
         if (imgKey) {
-          const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+          const itemImagePath = path.join(__dirname, "../../../assets/items", imgKey);
           if (fs.existsSync(itemImagePath)) {
             itemAttachment = new AttachmentBuilder(itemImagePath, { name: "item.png" });
             successEmbed.setThumbnail("attachment://item.png");

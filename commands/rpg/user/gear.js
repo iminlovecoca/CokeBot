@@ -8,6 +8,7 @@ const {
   AttachmentBuilder,
 } = require("discord.js");
 const path = require("path");
+const fs = require("fs");
 const config = require("../../../data/config");
 const {
   calculateRpgPower,
@@ -241,8 +242,10 @@ class GearCommand extends BaseCommand {
       const imageFile = getItemImageFile(item);
       let attachment = null;
       if (imageFile) {
-        const assetPath = path.join(__dirname, "../../assets/items", imageFile);
-        attachment = new AttachmentBuilder(assetPath, { name: path.basename(imageFile) });
+        const assetPath = path.join(__dirname, "../../../assets/items", imageFile);
+        if (fs.existsSync(assetPath)) {
+          attachment = new AttachmentBuilder(assetPath, { name: path.basename(imageFile) });
+        }
       }
       const replyOptions = { embeds: [embed], components: [row] };
       if (attachment) {

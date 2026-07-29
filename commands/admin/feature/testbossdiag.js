@@ -55,7 +55,7 @@ class TestbossdiagCommand extends BaseCommand {
         .setTitle(diag.title)
         .setDescription(diag.description)
         .setTimestamp();
-      const eyesPath = path.join(__dirname, "../../assets/backgrounds/eyes.png");
+      const eyesPath = path.join(__dirname, "../../../assets/backgrounds/eyes.png");
       const files = [];
       if (fs.existsSync(eyesPath)) {
         files.push(new AttachmentBuilder(eyesPath, { name: "eyes.png" }));

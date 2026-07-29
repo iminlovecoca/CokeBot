@@ -24,7 +24,7 @@ class SkinCommand extends BaseCommand {
       return message.reply("❌ Không tìm thấy thông tin class nhân vật của bạn!");
     }
     const className = rpgClass.name;
-    const skinsDir = path.join(__dirname, "../../assets/skins", className);
+    const skinsDir = path.join(__dirname, "../../../assets/skins", className);
     let skinFiles = [];
     if (fs.existsSync(skinsDir)) {
       skinFiles = fs.readdirSync(skinsDir).filter(file => file.endsWith(".png") || file.endsWith(".gif"));

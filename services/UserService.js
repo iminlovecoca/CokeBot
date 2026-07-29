@@ -1,6 +1,6 @@
 const BaseService = require('./BaseService');
 const config = require('../data/config');
-const { isDev, isAdmin } = require('../utils/userUtil');
+const { isDev, isAdmin, isOwner } = require('../utils/userUtil');
 
 class UserService extends BaseService {
   constructor(locator) {
@@ -13,6 +13,10 @@ class UserService extends BaseService {
 
   async getUser(userId) {
     return this.userRepo.getOrCreate(userId);
+  }
+
+  isOwner(userId) {
+    return isOwner(userId);
   }
 
   isDev(userId) {

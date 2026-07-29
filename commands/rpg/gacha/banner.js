@@ -55,7 +55,7 @@ class BannerCommand extends BaseCommand {
         if (banner.coverImage.startsWith("http://") || banner.coverImage.startsWith("https://")) {
           embed.setImage(banner.coverImage);
         } else {
-          const localPath = path.join(__dirname, "../../assets/backgrounds", banner.coverImage);
+          const localPath = path.join(__dirname, "../../../assets/backgrounds", banner.coverImage);
           if (fs.existsSync(localPath)) {
             const fileName = `banner_cover_${idx}.png`;
             const attachment = new AttachmentBuilder(localPath, { name: fileName });

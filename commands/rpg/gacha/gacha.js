@@ -249,7 +249,7 @@ class GachaCommand extends BaseCommand {
       } else if (bestGear) {
         const imgKey = bestGear.imageKey || getItemImageFile(bestGear);
         if (imgKey) {
-          const itemImagePath = path.join(__dirname, "../../assets/items", imgKey);
+          const itemImagePath = path.join(__dirname, "../../../assets/items", imgKey);
           if (fs.existsSync(itemImagePath)) {
             const itemAttachment = new AttachmentBuilder(itemImagePath, { name: "weapon.png" });
             files.push(itemAttachment);

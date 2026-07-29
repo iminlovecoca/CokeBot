@@ -1533,7 +1533,7 @@ const makeSoulBattlePayload = (playerState, bossState, logs, currentTurn, hasSou
     flags: MessageFlags.IsComponentsV2
   };
   if (hasSoulImage) {
-    const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
+    const soulImagePath = path.join(__dirname, "../../../assets/souls", soulImageFile);
     if (fs.existsSync(soulImagePath)) {
       payload.files = [new AttachmentBuilder(soulImagePath, { name: soulImageFile })];
     }
@@ -1574,7 +1574,7 @@ const startSoulRealmBattle = async (client, channel, userId) => {
                         classKey === "archer" ? "archer.png" :
                         classKey === "assassin" ? "assassin.png" :
                         "warrior.png";
-  const soulImagePath = path.join(__dirname, "../../assets/souls", soulImageFile);
+  const soulImagePath = path.join(__dirname, "../../../assets/souls", soulImageFile);
   const hasSoulImage = fs.existsSync(soulImagePath);
   const logs = [`🌌 Cõi Linh Hồn đã sẵn sàng. Trận đấu bắt đầu!`];
   let currentTurn = "player";

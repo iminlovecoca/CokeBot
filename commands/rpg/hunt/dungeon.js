@@ -489,7 +489,7 @@ const setupRound = (activeDungeon, channel) => {
           .setTitle(diag.title)
           .setDescription(diag.description)
           .setTimestamp();
-        const eyesPath = path.join(__dirname, "../../assets/backgrounds/eyes.png");
+        const eyesPath = path.join(__dirname, "../../../assets/backgrounds/eyes.png");
         const files = [];
         if (fs.existsSync(eyesPath)) {
           files.push(new AttachmentBuilder(eyesPath, { name: "eyes.png" }));
@@ -678,7 +678,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   let imgFileName = null;
   if (enemy.isBoss) {
     const bossImageFile = bossCfg?.image_phase1 || "TF.png";
-    const bossImagePath = path.join(__dirname, "../../assets/dungeons", chapter === 5 ? "Chapter2" : "", bossImageFile);
+    const bossImagePath = path.join(__dirname, "../../../assets/dungeons", chapter === 5 ? "Chapter2" : "", bossImageFile);
     if (fs.existsSync(bossImagePath)) {
       files.push(new AttachmentBuilder(bossImagePath, { name: bossImageFile }));
       imgFileName = bossImageFile;
@@ -688,10 +688,10 @@ const renderGameScreen = async (channel, activeDungeon) => {
     let fileName = null;
     if (chapter === 4) {
       if (round === 3) {
-        filePath = path.join(__dirname, "../../assets/dungeons/Creeps/Draugor.png");
+        filePath = path.join(__dirname, "../../../assets/dungeons/Creeps/Draugor.png");
         fileName = "Draugor.png";
       } else if (round === 1 || round === 2 || round === 4) {
-        filePath = path.join(__dirname, "../../assets/dungeons/Creeps/soilderDevil.png");
+        filePath = path.join(__dirname, "../../../assets/dungeons/Creeps/soilderDevil.png");
         fileName = "soilderDevil.png";
       }
     } else if (chapter === 5) {
@@ -700,7 +700,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       if (bossKey) {
         const extensions = ["jpg", "png", "webp"];
         for (const ext of extensions) {
-          const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/${bossKey}-creep${round}.${ext}`);
+          const testPath = path.join(__dirname, `../../../assets/dungeons/Creeps/${bossKey}-creep${round}.${ext}`);
           if (fs.existsSync(testPath)) {
             filePath = testPath;
             fileName = `${bossKey}-creep${round}.${ext}`;
@@ -709,7 +709,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
         }
       }
     } else {
-      const testPath = path.join(__dirname, `../../assets/dungeons/Creeps/Creep${round}.png`);
+      const testPath = path.join(__dirname, `../../../assets/dungeons/Creeps/Creep${round}.png`);
       if (fs.existsSync(testPath)) {
         filePath = testPath;
         fileName = `Creep${round}.png`;

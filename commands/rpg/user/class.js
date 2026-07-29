@@ -299,7 +299,7 @@ class ClassCommand extends BaseCommand {
           if (!rpgClass) {
             return interaction.reply({ content: "❌ Không tìm thấy thông tin class của bạn!", flags: 64 });
           }
-          const skinsDir = path.join(__dirname, "../../assets/skins", rpgClass.name);
+          const skinsDir = path.join(__dirname, "../../../assets/skins", rpgClass.name);
           let skinFiles = [];
           if (fs.existsSync(skinsDir)) {
             skinFiles = fs.readdirSync(skinsDir)

@@ -68,9 +68,9 @@ const getTransparentCharacter = async (pAsset) => {
 };
 const preloadAssets = async () => {
   try {
-    const bgPath = path.join(__dirname, "../../assets/backgrounds/battlebg.png");
+    const bgPath = path.join(__dirname, "../../../assets/backgrounds/battlebg.png");
     await getCachedImage(bgPath);
-    const charactersDir = path.join(__dirname, "../../assets/characters");
+    const charactersDir = path.join(__dirname, "../../../assets/characters");
     if (fs.existsSync(charactersDir)) {
       const files = fs.readdirSync(charactersDir);
       for (const file of files) {
@@ -137,7 +137,7 @@ const generatePvPImage = async (
   const height = 535;
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
-  const bgPath = path.join(__dirname, "../../assets/backgrounds/battle_template.png");
+  const bgPath = path.join(__dirname, "../../../assets/backgrounds/battle_template.png");
   const bg = await getCachedImage(bgPath);
   if (bg) {
     ctx.drawImage(bg, 0, 0, width, height);
@@ -153,11 +153,11 @@ const generatePvPImage = async (
   const getPetCanvasImage = async (pet) => {
     if (!pet) return null;
     const petKeyMap = {
-      sabertiger: path.join(__dirname, "../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
-      mammoth: path.join(__dirname, "../../assets/ranks/legendary/legendary_mammoth.png"),
-      eagle: path.join(__dirname, "../../assets/ranks/legendary/legendary_eagle_fullbody.png"),
-      shark: path.join(__dirname, "../../assets/ranks/legendary/legendary_shark.png"),
-      snake: path.join(__dirname, "../../assets/ranks/legendary/legendary_snake.png"),
+      sabertiger: path.join(__dirname, "../../../assets/ranks/legendary/legendary_saber_tiger_badge.png"),
+      mammoth: path.join(__dirname, "../../../assets/ranks/legendary/legendary_mammoth.png"),
+      eagle: path.join(__dirname, "../../../assets/ranks/legendary/legendary_eagle_fullbody.png"),
+      shark: path.join(__dirname, "../../../assets/ranks/legendary/legendary_shark.png"),
+      snake: path.join(__dirname, "../../../assets/ranks/legendary/legendary_snake.png"),
     };
     if (petKeyMap[pet.key] && fs.existsSync(petKeyMap[pet.key])) {
       return await getCachedImage(petKeyMap[pet.key]);
@@ -262,7 +262,7 @@ const generatePvPImage = async (
   await drawEmojiList(p1Effects, 142);
   await drawEmojiList(p2Effects, 606);
   if (resultStatus === "ko") {
-    const koPath = path.join(__dirname, "../../assets/backgrounds/ko.png");
+    const koPath = path.join(__dirname, "../../../assets/backgrounds/ko.png");
     if (fs.existsSync(koPath)) {
       const koImg = await getTransparentAsset(koPath, (r, g, b) => r < 40 && g < 40 && b < 40);
       if (koImg) {
@@ -270,7 +270,7 @@ const generatePvPImage = async (
       }
     }
   } else if (resultStatus === "timeout") {
-    const toPath = path.join(__dirname, "../../assets/backgrounds/timeout.png");
+    const toPath = path.join(__dirname, "../../../assets/backgrounds/timeout.png");
     if (fs.existsSync(toPath)) {
       const toImg = await getTransparentAsset(toPath, (r, g, b) => r < 40 && g < 40 && b < 40);
       if (toImg) {
