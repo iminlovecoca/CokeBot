@@ -238,7 +238,7 @@ class DexCommand extends BaseCommand {
                     embed.addFields({ name: `${entry.emoji} ${entry.name} #${entry.dex_id}`, value: `${isCaught} ${caughtText}`, inline: true })
                 })
                 embed.addFields({ name: '\u200B', value: '\u200B', inline: true })
-                return { embeds: [embed] }
+                return { embeds: [embed], skipV2: true }
             }
             await initPage(message, generateDisplay, totalPages, `${config.prefix}dex`)
         }

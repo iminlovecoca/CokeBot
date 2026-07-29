@@ -10,7 +10,6 @@ const RpgGuildSchema = new mongoose.Schema(
   { timestamps: true }
 );
 // Indexes for fast lookup
-RpgGuildSchema.index({ leaderId: 1 }, { unique: true });
 RpgGuildSchema.index({ members: 1 });
 
 module.exports = mongoose.model("RpgGuild", RpgGuildSchema);
