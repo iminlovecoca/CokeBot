@@ -15,12 +15,14 @@ class BannerCommand extends BaseCommand {
   }
   async execute(message, args) {
     const bannersToShow = [];
-    if (gachaBanner.weapon) {
+    if (Array.isArray(gachaBanner.weapons) && gachaBanner.weapons.length > 0) {
+      bannersToShow.push(...gachaBanner.weapons);
+    } else if (gachaBanner.weapon) {
       bannersToShow.push(gachaBanner.weapon);
     }
 
     if (bannersToShow.length === 0) {
-      return message.reply("❌ Hiện tại không có banner gacha vũ khí nào đang diễn ra (Coming Soon).");
+      return message.reply("❌ Hiện tại không có banner gacha vũ khí nào đang diễn ra.");
     }
 
     const { AttachmentBuilder } = require("discord.js");
@@ -44,15 +46,21 @@ class BannerCommand extends BaseCommand {
         .setColor("#FFD700")
         .setTitle(`✨ ${banner.bannerName} ✨`)
         .setDescription(
-          `🔥 **Thông tin tiêu điểm:**\n` +
           `• Vũ khí: ${banner.weaponEmoji} **${banner.weaponName}**\n` +
           `• Cấp bậc: **${banner.rarity}**\n` +
-          `• Loại: \`Vũ khí\`\n\n` +
-          `⏰ Thời gian kết thúc: **${timeStr}:** ngày **${dateStr}**`
+          `⏰ Thời hạn: **${timeStr}** ngày **${dateStr}**`
         )
         .setTimestamp();
 
-      if (banner.coverImage) {
+      if (banner.imageKey) {
+        const itemPath = path.join(__dirname, "../../../assets/items", banner.imageKey);
+        if (fs.existsSync(itemPath)) {
+          const fileName = `banner_wp_${idx}.png`;
+          const attachment = new AttachmentBuilder(itemPath, { name: fileName });
+          files.push(attachment);
+          embed.setImage(`attachment://${fileName}`);
+        }
+      } else if (banner.coverImage) {
         if (banner.coverImage.startsWith("http://") || banner.coverImage.startsWith("https://")) {
           embed.setImage(banner.coverImage);
         } else {
