@@ -98,12 +98,14 @@ const dungeonWeapons = [
   { name: "Sun Bow", key: "sunbow", emoji: "<:Sunbow:1518746354728304720>" },
   { name: "Clawhex", key: "clawhex", emoji: "<:Clawhex:1518746346352545792>" },
   { name: "Spearhex", key: "spearhex", emoji: "<:Spearhex:1518746351784034366>" },
-  { name: "Shieldhex", key: "shieldhex", emoji: "<:Shieldhex:1518746348973850818>" }
+  { name: "Shieldhex", key: "shieldhex", emoji: "<:Shieldhex:1518746348973850818>" },
+  { name: "Lunashard", key: "lunashard", emoji: "<:Lunashard:1523374307986772088>" },
+  { name: "Eclipsesoul", key: "eclipsesoul", emoji: "<:Eclipsesoul:1523374305256280065>" }
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
 const NORMAL_WEAPONS = ["longsword", "dagger", "staff"];
-const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul"];
 
 const getWeaponCategory = (subType) => {
   if (!subType) return null;

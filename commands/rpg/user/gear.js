@@ -169,7 +169,9 @@ class GearCommand extends BaseCommand {
             sunbow: "Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của đối thủ",
             clawhex: "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt",
             spearhex: "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ",
-            shieldhex: "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4"
+            shieldhex: "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4",
+            lunashard: "Tăng 15% Tỷ lệ Bạo kích & 25% Sát thương Bạo kích, 20% cơ hội xuyên 15% phòng thủ đối thủ",
+            eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép"
           };
           const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];
