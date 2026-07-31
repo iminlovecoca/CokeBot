@@ -205,21 +205,33 @@ class GachaCommand extends BaseCommand {
       return isLimited || isAncientPlus;
     });
 
-    const successGifUrl = "https://files.catbox.moe/xxznmt.gif";
-    const missGifUrl = "https://files.catbox.moe/4ax8ij.gif";
-    const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
+    const gifFileName = gotSuccess ? "Success.gif" : "Miss.gif";
+    const gifPath = path.join(__dirname, "../../../assets/events", gifFileName);
     const displayName = message.member?.displayName || message.author.username;
     const currencyName = usedCoke ? "coke" : "souls";
     const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
 
     const revealEmbed = new EmbedBuilder()
       .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
-      .setDescription(textAbove)
-      .setImage(gifUrl);
+      .setDescription(textAbove);
 
-    const revealMsg = await message.reply({
-      embeds: [revealEmbed],
-    });
+    const revealFiles = [];
+
+    if (fs.existsSync(gifPath)) {
+      const attachment = new AttachmentBuilder(gifPath, { name: "reveal.gif" });
+      revealFiles.push(attachment);
+      revealEmbed.setImage("attachment://reveal.gif");
+    } else {
+      const gifUrl = gotSuccess ? "https://files.catbox.moe/xxznmt.gif" : "https://files.catbox.moe/4ax8ij.gif";
+      revealEmbed.setImage(gifUrl);
+    }
+
+    const revealPayload = { embeds: [revealEmbed] };
+    if (revealFiles.length > 0) {
+      revealPayload.files = revealFiles;
+    }
+
+    const revealMsg = await message.reply(revealPayload);
 
     setTimeout(async () => {
       await revealMsg.delete().catch(() => null);

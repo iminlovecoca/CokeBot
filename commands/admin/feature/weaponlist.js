@@ -36,6 +36,8 @@ class WeaponlistCommand extends BaseCommand {
       else if (dw.key === "shieldhex") desc = "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4";
       else if (dw.key === "riverofblood") desc = "Đòn đánh hồi phục HP cho bản thân bằng 2% sát thương gây ra";
       else if (dw.key === "duskanddawn") desc = "Tấn công thường chém vật lý/phép xen kẽ, 30% cơ hội tấn công thêm 1 lần trong lượt";
+      else if (dw.key === "lunashard") desc = "Tăng 15% Crit Rate & 25% Crit Damage, 20% cơ hội xuyên 15% phòng thủ đối thủ | Scale: DEX (S) | ARC (A) | STR (B)";
+      else if (dw.key === "eclipsesoul") desc = "Thiêu đốt làm giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép | Scale: INT (S) | ARC (A) | DEX (B)";
       return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
     };
     const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 6).map(getDungeonWeaponLine).join("\n");

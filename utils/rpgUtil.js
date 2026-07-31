@@ -416,7 +416,12 @@ const getWeaponScaling = (item) => {
     return { str: "-", dex: "S", int: "A", arc: "B" };
   }
 
-  
+  if (subType.includes("lunashard")) {
+    return { str: "B", dex: "S", int: "-", arc: "A" };
+  }
+  if (subType.includes("eclipsesoul")) {
+    return { str: "-", dex: "B", int: "S", arc: "A" };
+  }
   if (subType.includes("axesnake")) {
     return { str: "S", dex: "-", int: "-", arc: "-" };
   }
@@ -1040,6 +1045,10 @@ const generateRpgGearDrop = async (user, options = {}) => {
     const subName = chosenSubtype.name.toLowerCase();
     if (subName.includes("gravitybow") || subName.includes("gravity bow")) {
       scaling = { str: "-", dex: "S", int: "A", arc: "B" };
+    } else if (subName.includes("lunashard")) {
+      scaling = { str: "B", dex: "S", int: "-", arc: "A" };
+    } else if (subName.includes("eclipsesoul")) {
+      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
     } else {
       scaling = { str: "-", dex: "-", int: "-", arc: "-" };
       const { prim, sec } = getWeaponScalingStats(subName);
