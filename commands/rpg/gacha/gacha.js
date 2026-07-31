@@ -18,7 +18,7 @@ class GachaCommand extends BaseCommand {
       name: "gacha",
       aliases: ["qc"],
       description: "Hệ thống Gacha vũ khí RPG với bảo hiểm.",
-      usage: `${config.prefix}gacha wp <1 hoặc 10> [coke/souls]`,
+      usage: `${config.prefix}gacha <1 hoặc 10> [coke/souls]`,
       cooldown: 0
     });
   }
@@ -29,15 +29,21 @@ class GachaCommand extends BaseCommand {
       return bannerCmd.execute(message, args.slice(1));
     }
 
-    throw new UserFriendlyError("⏳ Tính năng Gacha hiện đang được cập nhật và sẽ sớm trở lại (Coming Soon)!");
+    let pullsInput;
+    let currencyPref;
 
-    /* Standard Weapon Gacha logic when re-enabled:
-    if (subcommand !== "wp") {
+    if (subcommand === "1" || subcommand === "10") {
+      pullsInput = subcommand;
+      currencyPref = args[1]?.toLowerCase();
+    } else if (subcommand === "wp" || subcommand === "weapon") {
+      pullsInput = args[1];
+      currencyPref = args[2]?.toLowerCase();
+    } else {
       throw new UserFriendlyError(
-        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha vũ khí.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
+        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha <1 hoặc 10> [coke/souls]\` (hoặc \`${config.prefix}gacha wp <1 hoặc 10>\`) để quay gacha vũ khí.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
       );
     }
-    const pullsInput = args[1];
+
     if (!pullsInput || (pullsInput !== "1" && pullsInput !== "10")) {
       throw new UserFriendlyError(`❌ Vui lòng chọn số lượt quay hợp lệ (1 hoặc 10).`);
     }
@@ -51,7 +57,6 @@ class GachaCommand extends BaseCommand {
     let usedCoke = false;
     const costSouls = pulls === 1 ? 10 : 100;
     const costCoke = pulls === 1 ? 100000 : 1000000;
-    const currencyPref = args[2]?.toLowerCase();
     if (currencyPref === "coke") {
       if (currentCoke < costCoke) {
         throw new UserFriendlyError(
@@ -77,23 +82,31 @@ class GachaCommand extends BaseCommand {
         );
       }
     }
-    const banner = gachaBanner.weapon;
-    if (!banner || !banner.bannerName) {
+
+    const featuredList = Array.isArray(gachaBanner.weapons) && gachaBanner.weapons.length > 0
+      ? gachaBanner.weapons
+      : (gachaBanner.weapon ? [gachaBanner.weapon] : []);
+
+    if (featuredList.length === 0) {
       throw new UserFriendlyError("❌ Hiện không có banner gacha vũ khí đang diễn ra.");
     }
+
+    const firstBanner = featuredList[0];
     const { DateTime } = require("luxon");
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
-    const expireDate = DateTime.fromISO(banner.expiresAt).setZone(timezone);
+    const expireDate = DateTime.fromISO(firstBanner.expiresAt).setZone(timezone);
     const now = DateTime.now().setZone(timezone);
     if (expireDate < now) {
       throw new UserFriendlyError("❌ Banner gacha hiện tại đã kết thúc.");
     }
+
     if (usedCoke) {
       user.coke -= costCoke;
     } else {
       user.inventory.set("souls", currentSouls - costSouls);
       user.markModified("inventory");
     }
+
     const pityField = "gachaWpPity";
     const guaranteedField = "gachaWpGuaranteed";
     let pity = user.rpg[pityField] || 0;
@@ -101,6 +114,7 @@ class GachaCommand extends BaseCommand {
     let hasGold = false;
     const itemsGained = [];
     const rollsLog = [];
+
     for (let i = 0; i < pulls; i++) {
       pity += 1;
       let rate = 0.006;
@@ -128,11 +142,13 @@ class GachaCommand extends BaseCommand {
         }
         let gear;
         if (won5050) {
+          const chosenBanner = featuredList[Math.floor(Math.random() * featuredList.length)];
           gear = await generateRpgGearDrop(user, {
             forceDrop: true,
             slot: "weapon",
-            subType: banner.weaponName,
-            rarity: banner.rarity,
+            subType: chosenBanner.weaponName,
+            rarity: chosenBanner.rarity,
+            emoji: chosenBanner.weaponEmoji,
             fromEvent: true,
           });
           if (gear) {
@@ -176,28 +192,35 @@ class GachaCommand extends BaseCommand {
         }
       }
     }
+
     user.rpg[pityField] = pity;
     user.rpg[guaranteedField] = guaranteed;
     user.markModified("rpg");
     await user.save();
+
+    const featuredNames = featuredList.map(b => b.weaponName);
     const gotSuccess = itemsGained.some(gear => {
-      const isLimited = (gear.subType === banner.weaponName && gear.rarity === banner.rarity);
+      const isLimited = (featuredNames.includes(gear.subType) && gear.rarity === "Ancient");
       const isAncientPlus = (gear.rarity === "Ancient" || gear.rarity === "Divine");
       return isLimited || isAncientPlus;
     });
+
     const successGifUrl = "https://files.catbox.moe/xxznmt.gif";
     const missGifUrl = "https://files.catbox.moe/4ax8ij.gif";
     const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
     const displayName = message.member?.displayName || message.author.username;
     const currencyName = usedCoke ? "coke" : "souls";
     const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
+
     const revealEmbed = new EmbedBuilder()
       .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
       .setDescription(textAbove)
       .setImage(gifUrl);
+
     const revealMsg = await message.reply({
       embeds: [revealEmbed],
     });
+
     setTimeout(async () => {
       await revealMsg.delete().catch(() => null);
       const resultEmbed = new EmbedBuilder()
@@ -209,6 +232,7 @@ class GachaCommand extends BaseCommand {
           rollsLog.join("\n")
         )
         .setTimestamp();
+
       const files = [];
       const rarityWeights = {
         Common: 1,
@@ -240,7 +264,6 @@ class GachaCommand extends BaseCommand {
       }
       await message.reply(payload);
     }, 5500);
-    */
   }
 }
 module.exports = new GachaCommand();
