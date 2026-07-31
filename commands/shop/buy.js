@@ -109,19 +109,6 @@ class BuyCommand extends BaseCommand {
       }
     }
 
-    const seedMap = {
-      vegetableseed: 'vegetable',
-      vegetable: 'vegetable',
-      flowerseed: 'flower',
-      flower: 'flower',
-      fruitseed: 'fruit',
-      fruit: 'fruit'
-    };
-
-    const seedType = seedMap[cleanId];
-    if (seedType) {
-      throw new UserFriendlyError(`❌ Tính năng nông trại (Garden) đã bị vô hiệu hóa trên bot.`);
-    }
 
     const { item } = await buyItem(message.client, message.author.id, cleanId, quantity);
 

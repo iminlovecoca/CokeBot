@@ -28,9 +28,13 @@ class GachaCommand extends BaseCommand {
       const bannerCmd = require("./banner");
       return bannerCmd.execute(message, args.slice(1));
     }
-    if (subcommand !== "wp" && subcommand !== "skin") {
+
+    throw new UserFriendlyError("⏳ Tính năng Gacha hiện đang được cập nhật và sẽ sớm trở lại (Coming Soon)!");
+
+    /* Standard Weapon Gacha logic when re-enabled:
+    if (subcommand !== "wp") {
       throw new UserFriendlyError(
-        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha vũ khí.\n• \`${config.prefix}gacha skin <1 hoặc 10> [coke/souls]\` để quay gacha skin.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
+        `❌ Lệnh hợp lệ:\n• \`${config.prefix}gacha wp <1 hoặc 10> [coke/souls]\` để quay gacha vũ khí.\n• \`${config.prefix}gacha banner\` để xem thông tin banner.`
       );
     }
     const pullsInput = args[1];
@@ -73,9 +77,9 @@ class GachaCommand extends BaseCommand {
         );
       }
     }
-    const banner = subcommand === "wp" ? gachaBanner.weapon : gachaBanner.skin;
+    const banner = gachaBanner.weapon;
     if (!banner || !banner.bannerName) {
-      throw new UserFriendlyError("❌ Hiện không có banner gacha tương ứng đang diễn ra.");
+      throw new UserFriendlyError("❌ Hiện không có banner gacha vũ khí đang diễn ra.");
     }
     const { DateTime } = require("luxon");
     const timezone = config.rpg.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
@@ -90,8 +94,8 @@ class GachaCommand extends BaseCommand {
       user.inventory.set("souls", currentSouls - costSouls);
       user.markModified("inventory");
     }
-    const pityField = subcommand === "wp" ? "gachaWpPity" : "gachaSkinPity";
-    const guaranteedField = subcommand === "wp" ? "gachaWpGuaranteed" : "gachaSkinGuaranteed";
+    const pityField = "gachaWpPity";
+    const guaranteedField = "gachaWpGuaranteed";
     let pity = user.rpg[pityField] || 0;
     let guaranteed = user.rpg[guaranteedField] || false;
     let hasGold = false;
@@ -99,16 +103,16 @@ class GachaCommand extends BaseCommand {
     const rollsLog = [];
     for (let i = 0; i < pulls; i++) {
       pity += 1;
-      let rate = 0.006; 
+      let rate = 0.006;
       if (pity >= 74 && pity < 90) {
         rate = 0.006 + (pity - 73) * 0.06;
       } else if (pity >= 90) {
-        rate = 1.0; 
+        rate = 1.0;
       }
       const roll = Math.random();
       if (roll < rate) {
         hasGold = true;
-        pity = 0; 
+        pity = 0;
         let won5050 = false;
         if (guaranteed) {
           won5050 = true;
@@ -124,31 +128,18 @@ class GachaCommand extends BaseCommand {
         }
         let gear;
         if (won5050) {
-          if (banner.weaponType === "skin") {
-            const { resolveGachaSkinName } = require("../../../data/rpg/skins");
-            const skinFileName = resolveGachaSkinName(user, banner);
-            if (!user.rpg.ownedSkins) {
-              user.rpg.ownedSkins = [];
-            }
-            if (!user.rpg.ownedSkins.includes(skinFileName)) {
-              user.rpg.ownedSkins.push(skinFileName);
-            }
-            user.markModified("rpg");
-            rollsLog.push(`✨ **Skin: ${banner.weaponName}** (Đã thêm vào tủ đồ skin) **[HỮU HẠN]** 🎉`);
-          } else {
-            gear = await generateRpgGearDrop(user, {
-              forceDrop: true,
-              slot: "weapon",
-              subType: banner.weaponName,
-              rarity: banner.rarity,
-              fromEvent: true,
-            });
-            if (gear) {
-              addRpgGearToUser(user, gear);
-              user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
-              itemsGained.push(gear);
-              rollsLog.push(`✨ **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[LIMITED]** 🎉`);
-            }
+          gear = await generateRpgGearDrop(user, {
+            forceDrop: true,
+            slot: "weapon",
+            subType: banner.weaponName,
+            rarity: banner.rarity,
+            fromEvent: true,
+          });
+          if (gear) {
+            addRpgGearToUser(user, gear);
+            user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
+            itemsGained.push(gear);
+            rollsLog.push(`✨ **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[LIMITED]** 🎉`);
           }
         } else {
           const standardWeapons = [
@@ -193,7 +184,7 @@ class GachaCommand extends BaseCommand {
       const isLimited = (gear.subType === banner.weaponName && gear.rarity === banner.rarity);
       const isAncientPlus = (gear.rarity === "Ancient" || gear.rarity === "Divine");
       return isLimited || isAncientPlus;
-    }) || (banner.weaponType === "skin" && rollsLog.some(log => log.includes(banner.weaponName)));
+    });
     const successGifUrl = "https://files.catbox.moe/xxznmt.gif";
     const missGifUrl = "https://files.catbox.moe/4ax8ij.gif";
     const gifUrl = gotSuccess ? successGifUrl : missGifUrl;
@@ -232,21 +223,7 @@ class GachaCommand extends BaseCommand {
         (a, b) => (rarityWeights[b.rarity] || 0) - (rarityWeights[a.rarity] || 0)
       );
       const bestGear = sortedGears[0];
-      let gotSkin = false;
-      if (banner.weaponType === "skin" && rollsLog.some(log => log.includes(banner.weaponName))) {
-        gotSkin = true;
-      }
-      if (gotSkin) {
-        const { resolveGachaSkinName } = require("../../../data/rpg/skins");
-        const { getCharacterAssetPath } = require("../../../utils/rpgUtil");
-        const skinFileName = resolveGachaSkinName(user, banner);
-        const skinPath = getCharacterAssetPath(skinFileName);
-        if (fs.existsSync(skinPath)) {
-          const skinAttachment = new AttachmentBuilder(skinPath, { name: "skin.png" });
-          files.push(skinAttachment);
-          resultEmbed.setImage("attachment://skin.png");
-        }
-      } else if (bestGear) {
+      if (bestGear) {
         const imgKey = bestGear.imageKey || getItemImageFile(bestGear);
         if (imgKey) {
           const itemImagePath = path.join(__dirname, "../../../assets/items", imgKey);
@@ -263,6 +240,7 @@ class GachaCommand extends BaseCommand {
       }
       await message.reply(payload);
     }, 5500);
+    */
   }
 }
 module.exports = new GachaCommand();

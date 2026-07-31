@@ -44,7 +44,7 @@ class ShopCommand extends BaseCommand {
       console.error("[SHOP] Error checking Hex Event status:", err);
     }
 
-    const totalPages = regularPages + stonePages + 1 + (isEventActive ? 1 : 0);
+    const totalPages = regularPages + stonePages + (isEventActive ? 1 : 0);
 
     const generateDisplay = (page) => {
       const paddingChar = '\u2003';
@@ -59,32 +59,6 @@ class ShopCommand extends BaseCommand {
         const startIdx = stonePageIdx * ITEMS_PER_PAGE;
         pageItems = stoneItems.slice(startIdx, startIdx + ITEMS_PER_PAGE);
         title = 'Cửa Hàng Cokemon - Đá Cường Hóa';
-      } else if (page === regularPages + stonePages) {
-        title = 'Cửa Hàng Hạt Giống 🌻';
-        const embed = new EmbedBuilder()
-          .setColor('#2ECC71')
-          .setTitle(title)
-          .setDescription(`Chào mừng bạn đến với Cửa Hàng Hạt Giống!\nMua hạt giống để trồng trong vườn bằng lệnh \`${config.prefix}garden\`.\nMua bằng lệnh: \`${config.prefix}buy <id> [số lượng]\` (Mỗi số lượng mua = 1 gói 10 hạt).`)
-          .setFooter({ text: `Trang ${page + 1}/${totalPages}` });
-
-        embed.addFields(
-          {
-            name: `🌿 Vegetable Seed (ID: \`vegetableseed\` hoặc \`vegetable\`)`,
-            value: `*Hạt giống rau củ quả. Thời gian mọc: 8h. Lợi nhuận thấp.*\n**Giá:** ${config.emoji.money} 500 coke (Gói 10 hạt)`,
-            inline: false
-          },
-          {
-            name: `🌸 Flower Seed (ID: \`flowerseed\` hoặc \`flower\`)`,
-            value: `*Hạt giống hoa đẹp. Thời gian mọc: 10h. Giá bán khá.*\n**Giá:** ${config.emoji.money} 1,500 coke (Gói 10 hạt)`,
-            inline: false
-          },
-          {
-            name: `🍎 Fruit Seed (ID: \`fruitseed\` hoặc \`fruit\`)`,
-            value: `*Hạt giống cây ăn quả. Thời gian mọc: 12h. Lợi nhuận cao.*\n**Giá:** ${config.emoji.money} 3,000 coke (Gói 10 hạt)`,
-            inline: false
-          }
-        );
-        return { embeds: [embed], skipV2: true };
       } else {
         title = 'Cửa Hàng Sự Kiện Hex 🟣';
         const embed = new EmbedBuilder()
