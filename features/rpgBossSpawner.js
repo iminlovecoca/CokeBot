@@ -690,7 +690,7 @@ const initialize = async (client) => {
     const unrewarded = await SpawnedBoss.find({ defeated: true, rewarded: false }).exec();
     if (unrewarded.length > 0) {
       console.log(`[RPG_BOSS] Found ${unrewarded.length} unrewarded defeated bosses. Resuming reward distribution...`);
-      const { finishBoss } = require("../commands/rpg/boss");
+      const { finishBoss } = require("../commands/rpg/hunt/boss");
       for (const dbBoss of unrewarded) {
         const channel = await client.channels.fetch(dbBoss.channelId).catch(() => null);
         if (channel) {
