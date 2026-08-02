@@ -1,17 +1,16 @@
-/**
- * Smoke test for MathService — run with: node scratch/test_math.js
- * Verifies all Casio-style operations produce correct results.
- */
 const MathService = require("../services/MathService");
 
 const service = new MathService({ get: () => null });
 
 const tests = [
+  // Issue report case
+  ["410*408", "167280"],
+
   // Basic operations
   ["2+2", "4"],
   ["5+8*9", "77"],
   ["(25+8)^3", "35937"],
-  ["10/3", null], // floating point, just check it runs
+  ["10/3", "3.3333333333333"],
   ["-5+3", "-2"],
   ["10%3", "1"],
 
@@ -28,6 +27,7 @@ const tests = [
   ["factorial(8)", "40320"],
   ["8!", "40320"],
   ["5!", "120"],
+  ["(5+3)!", "40320"],
 
   // Logarithms
   ["log(100)", "2"],
@@ -38,10 +38,11 @@ const tests = [
   ["cos(60 deg)", "0.5"],
 
   // Trigonometry (radian)
+  ["sin(pi/2)", "1"],
   ["sin(pi/6)", "0.5"],
 
   // Constants
-  ["pi", null], // just check it runs
+  ["pi", null],
   ["e", null],
 
   // Floor, ceil, round
@@ -69,6 +70,7 @@ const tests = [
   // Error cases
   ["5+*", null, true],
   ["1/0", null, true],
+  ["import('fs')", null, true],
 ];
 
 let passed = 0;
@@ -95,7 +97,6 @@ for (const [expr, expected, isError] of tests) {
   }
 
   if (expected === null) {
-    // Just check it produces a result without error
     console.log(`✅ PASS: "${expr}" → ${result}`);
     passed++;
     continue;
@@ -105,7 +106,6 @@ for (const [expr, expected, isError] of tests) {
     console.log(`✅ PASS: "${expr}" → ${result}`);
     passed++;
   } else {
-    // Try numeric comparison for floating point
     const numResult = parseFloat(result);
     const numExpected = parseFloat(expected);
     if (!isNaN(numResult) && !isNaN(numExpected) && Math.abs(numResult - numExpected) < 1e-10) {
@@ -119,4 +119,4 @@ for (const [expr, expected, isError] of tests) {
 }
 
 console.log(`\n--- Results: ${passed} passed, ${failed} failed ---`);
-process.exit(failed > 0 ? 1 : 0);
+if (failed > 0) process.exit(1);

@@ -4,6 +4,23 @@ const { create, all } = require("mathjs");
 // Maximum allowed expression length to prevent abuse
 const MAX_EXPRESSION_LENGTH = 500;
 
+// Forbidden AST symbol names that must not be referenced in expressions
+const FORBIDDEN_SYMBOLS = new Set([
+  "import",
+  "createUnit",
+  "evaluate",
+  "parse",
+  "simplify",
+  "derivative",
+  "eval",
+  "Function",
+  "process",
+  "require",
+  "global",
+  "window",
+  "document",
+]);
+
 class MathService extends BaseService {
   constructor(locator) {
     super(locator);
@@ -11,91 +28,72 @@ class MathService extends BaseService {
   }
 
   /**
-   * Creates a restricted mathjs instance with custom functions.
-   * No access to eval, import, createUnit, or other dangerous operations.
+   * Creates a configured mathjs instance with Casio-style custom functions.
    */
   _createMathInstance() {
     const math = create(all);
 
-    // Register custom functions for Casio-style operations first
-    math.import({
-      // Factorial — also handled via preprocess for `n!` syntax
-      factorial: function (n) {
-        return math.gamma(n + 1);
-      },
-
-      // Base conversion
-      bin: function (n) {
-        return "0b" + Math.trunc(n).toString(2);
-      },
-      oct: function (n) {
-        return "0o" + Math.trunc(n).toString(8);
-      },
-      hex: function (n) {
-        return "0x" + Math.trunc(n).toString(16).toUpperCase();
-      },
-
-      // Degree-based trigonometric helpers
-      sind: function (x) {
-        return math.sin(math.unit(x, "deg"));
-      },
-      cosd: function (x) {
-        return math.cos(math.unit(x, "deg"));
-      },
-      tand: function (x) {
-        return math.tan(math.unit(x, "deg"));
-      },
-      asind: function (x) {
-        return math.number(math.asin(x), "deg");
-      },
-      acosd: function (x) {
-        return math.number(math.acos(x), "deg");
-      },
-      atand: function (x) {
-        return math.number(math.atan(x), "deg");
-      },
-
-      // Random — rand() or rand(min, max)
-      rand: function (...args) {
-        if (args.length === 0) return Math.random();
-        if (args.length === 2) {
-          const [min, max] = args;
-          return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-        throw new Error("rand() expects 0 or 2 arguments.");
-      },
-
-      // Combinatorics — nCr
-      C: function (n, r) {
-        return math.combinations(n, r);
-      },
-
-      // Combinatorics — nPr
-      P: function (n, r) {
-        return math.permutations(n, r);
-      },
-    }, { override: true });
-
-    // Disable dangerous functions LAST after all custom functions are imported
+    // Register custom functions for Casio-style operations
     math.import(
       {
-        import: function () {
-          throw new Error("Function import is disabled.");
+        // Factorial — gamma(n + 1)
+        factorial: function (n) {
+          if (typeof n !== "number" || isNaN(n)) {
+            throw new Error("Invalid argument for factorial.");
+          }
+          if (n < 0) {
+            throw new Error("Factorial is not defined for negative numbers.");
+          }
+          return math.gamma(n + 1);
         },
-        createUnit: function () {
-          throw new Error("Function createUnit is disabled.");
+
+        // Base conversion helpers
+        bin: function (n) {
+          return "0b" + Math.trunc(n).toString(2);
         },
-        evaluate: function () {
-          throw new Error("Function evaluate is disabled.");
+        oct: function (n) {
+          return "0o" + Math.trunc(n).toString(8);
         },
-        parse: function () {
-          throw new Error("Function parse is disabled.");
+        hex: function (n) {
+          return "0x" + Math.trunc(n).toString(16).toUpperCase();
         },
-        simplify: function () {
-          throw new Error("Function simplify is disabled.");
+
+        // Degree-based trigonometric helpers
+        sind: function (x) {
+          return math.sin(math.unit(x, "deg"));
         },
-        derivative: function () {
-          throw new Error("Function derivative is disabled.");
+        cosd: function (x) {
+          return math.cos(math.unit(x, "deg"));
+        },
+        tand: function (x) {
+          return math.tan(math.unit(x, "deg"));
+        },
+        asind: function (x) {
+          return math.number(math.asin(x), "deg");
+        },
+        acosd: function (x) {
+          return math.number(math.acos(x), "deg");
+        },
+        atand: function (x) {
+          return math.number(math.atan(x), "deg");
+        },
+
+        // Random — rand() or rand(min, max)
+        rand: function (...args) {
+          if (args.length === 0) return Math.random();
+          if (args.length === 2) {
+            const [min, max] = args;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+          }
+          throw new Error("rand() expects 0 or 2 arguments.");
+        },
+
+        // Combinatorics — nCr & nPr
+        C: function (n, r) {
+          return math.combinations(n, r);
+        },
+        P: function (n, r) {
+          return math.permutations(n, r);
         },
       },
       { override: true },
@@ -111,38 +109,37 @@ class MathService extends BaseService {
   _preprocess(expr) {
     let processed = expr.trim();
 
-    // Replace `(expr)!` with factorial(expr) — must run before digit version
+    // Replace `(expr)!` with factorial(expr)
     processed = processed.replace(/\(([^)]+)\)!/g, "factorial($1)");
 
     // Replace `n!` (number followed by !) with factorial(n)
     processed = processed.replace(/(\d+)!/g, "factorial($1)");
 
     // Replace `nCr` notation: 10C3 → C(10,3)
-    processed = processed.replace(/(\d+)\s*C\s*(\d+)/g, "C($1,$2)");
+    processed = processed.replace(/(\d+)\s*C\s*(\d+)/gi, "C($1,$2)");
 
     // Replace `nPr` notation: 10P4 → P(10,4)
-    processed = processed.replace(/(\d+)\s*P\s*(\d+)/g, "P($1,$2)");
+    processed = processed.replace(/(\d+)\s*P\s*(\d+)/gi, "P($1,$2)");
 
     // Replace `deg` keyword inside trig: sin(30 deg) → sind(30)
     processed = processed.replace(
       /\b(sin|cos|tan)\s*\(\s*([^)]+?)\s+deg\s*\)/gi,
-      (_, fn, arg) => `${fn}d(${arg})`,
+      (_, fn, arg) => `${fn.toLowerCase()}d(${arg})`,
     );
 
     // Replace `asin/acos/atan` with deg output: asin(0.5 deg) → asind(0.5)
     processed = processed.replace(
       /\b(asin|acos|atan)\s*\(\s*([^)]+?)\s+deg\s*\)/gi,
-      (_, fn, arg) => `${fn}d(${arg})`,
+      (_, fn, arg) => `${fn.toLowerCase()}d(${arg})`,
     );
 
     // Replace `log(x)` (Casio convention: base-10) → `log10(x)`
-    // Must run BEFORE ln replacement. Use negative lookbehind to skip "ln" alias.
     processed = processed.replace(/\blog\s*\(/g, "log10(");
 
     // Replace `ln(x)` → `log(x)` (mathjs log = natural log)
     processed = processed.replace(/\bln\s*\(/g, "log(");
 
-    // Replace `cbrt(x)` → `nthRoot(x, 3)` if not natively available
+    // Replace `cbrt(x)` → `nthRoot(x, 3)`
     processed = processed.replace(
       /\bcbrt\s*\(\s*([^)]+)\s*\)/g,
       "nthRoot($1, 3)",
@@ -152,10 +149,9 @@ class MathService extends BaseService {
   }
 
   /**
-   * Validates expression for unsafe patterns before evaluation.
-   * Returns an error message string if invalid, null if safe.
+   * Validates expression string & AST nodes for security and correctness.
    */
-  _validate(expr) {
+  _validateString(expr) {
     if (!expr || expr.trim().length === 0) {
       return "Vui lòng nhập một biểu thức toán học.";
     }
@@ -164,13 +160,8 @@ class MathService extends BaseService {
       return `Biểu thức quá dài (tối đa ${MAX_EXPRESSION_LENGTH} ký tự).`;
     }
 
-    // Block assignment operators
+    // Block assignment operators (= but not ==, !=, <=, >=)
     if (/[^=!<>]=[^=]/.test(expr)) {
-      return "Invalid mathematical expression.";
-    }
-
-    // Block access to object prototypes or property chains
-    if (/\.\s*[a-zA-Z]/.test(expr)) {
       return "Invalid mathematical expression.";
     }
 
@@ -188,24 +179,55 @@ class MathService extends BaseService {
   }
 
   /**
+   * Inspects parsed AST node to ensure no dangerous operations (property access, assignments, etc.)
+   */
+  _validateAST(node) {
+    let invalid = false;
+
+    node.traverse((n) => {
+      // Disallow assignments, property accessors, object literals
+      if (
+        n.isAssignmentNode ||
+        n.isFunctionAssignmentNode ||
+        n.isAccessorNode ||
+        n.isObjectNode
+      ) {
+        invalid = true;
+      }
+      // Disallow forbidden symbol names
+      if (n.isSymbolNode && FORBIDDEN_SYMBOLS.has(n.name)) {
+        invalid = true;
+      }
+    });
+
+    return !invalid;
+  }
+
+  /**
    * Evaluates a mathematical expression and returns the result as a string.
    * Returns { result: string } on success, { error: string } on failure.
    */
   evaluate(expression) {
-    // Validate input
-    const validationError = this._validate(expression);
-    if (validationError) {
-      return { error: validationError };
+    const stringErr = this._validateString(expression);
+    if (stringErr) {
+      return { error: stringErr };
     }
 
     try {
-      // Preprocess Casio-style syntax into mathjs-compatible form
       const processed = this._preprocess(expression);
 
-      // Evaluate using the restricted mathjs instance
-      const result = this.math.evaluate(processed);
+      // Parse AST
+      const astNode = this.math.parse(processed);
 
-      // Handle special result types
+      // Validate AST
+      if (!this._validateAST(astNode)) {
+        return { error: "Invalid mathematical expression." };
+      }
+
+      // Compile and evaluate AST node
+      const compiled = astNode.compile();
+      const result = compiled.evaluate();
+
       if (result === undefined || result === null) {
         return { error: "Invalid mathematical expression." };
       }
@@ -215,17 +237,13 @@ class MathService extends BaseService {
         return { result };
       }
 
-      // Check for Infinity
-      if (result === Infinity || result === -Infinity) {
-        return { error: "Result is Infinity." };
+      // Check for Infinity / NaN
+      if (typeof result === "number") {
+        if (isNaN(result)) return { error: "Invalid mathematical expression." };
+        if (!isFinite(result)) return { error: "Division by zero." };
       }
 
-      // Check for NaN
-      if (typeof result === "number" && isNaN(result)) {
-        return { error: "Invalid mathematical expression." };
-      }
-
-      // Format result — mathjs may return BigNumber or other types
+      // Format result
       const formatted = this.math.format(result, {
         notation: "auto",
         precision: 14,
@@ -235,19 +253,21 @@ class MathService extends BaseService {
 
       return { result: formatted };
     } catch (err) {
-      // Map common mathjs errors to user-friendly messages
       const msg = err.message || "";
 
-      if (msg.includes("Division by zero") || msg.includes("divide by zero")) {
+      if (
+        msg.includes("Division by zero") ||
+        msg.includes("divide by zero") ||
+        msg.includes("Infinity")
+      ) {
         return { error: "Division by zero." };
       }
 
-      if (msg.includes("Unknown function") || msg.includes("Undefined function")) {
+      if (
+        msg.includes("Undefined symbol") ||
+        msg.includes("Undefined function")
+      ) {
         return { error: "Unknown function." };
-      }
-
-      if (msg.includes("is disabled")) {
-        return { error: "Invalid mathematical expression." };
       }
 
       return { error: "Invalid mathematical expression." };
