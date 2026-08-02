@@ -9,7 +9,7 @@ const WIN_MESSAGES = [
   (e, amt) => `bỏ túi gọn ${e} **${amt}** 💰`,
 ];
 
-// Lose messages — slightly toxic but not too much, OwO-style
+// Lose messages — slightly toxic, OwO-style
 const LOSE_MESSAGES = [
   (e, amt) => `rồi cống luôn ${e} **${amt}**.`,
   (e, amt) => `đóng học phí ${e} **${amt}**.`,
@@ -118,13 +118,12 @@ class TaixiuService extends BaseService {
   }
 
   /**
-   * Builds the OwO-style text frame.
-   * Format matches OwO Slots:
-   * **  `___TÀI XỈU___`**
-   * ` ` d0 d1 d2 ` ` **Player** cược <:cokecy:...> 100,000 vào **TÀI**
-   * [resultText on new line if final frame]
-   *   `|   TÀI   |`
-   *   `|         |`
+   * Builds the OwO-style text frame (identical layout to OwO Slots in image 2).
+   *
+   * Line 1: **  `___TÀI XỈU___`**
+   * Line 2: ` ` d0 d1 d2 ` ` **Player** cược <:cokecy:...> 100,000 vào **TÀI**
+   * Line 3:   `|         |`   và húp <:cokecy:...> 100,000.  (result text next to box line 3!)
+   * Line 4:   `|   TÀI   |`
    */
   buildFrame(
     dice,
@@ -142,13 +141,13 @@ class TaixiuService extends BaseService {
     const d1 = revealed[1] ? this.getDiceEmoji(dice[1]) : rolling;
     const d2 = revealed[2] ? this.getDiceEmoji(dice[2]) : rolling;
 
-    const betText = `${this._moneyEmoji} **${amount.toLocaleString()}**`;
     const boldName = `**${name}**`;
+    const moneyStr = `${this._moneyEmoji} ${amount.toLocaleString()}`;
 
-    // Title line
+    // Line 1: Header
     let output = "**  `___TÀI XỈU___`**\n";
 
-    // Dice row + player bet info line
+    // Line 2: Dice row + bet info
     output +=
       "` ` " +
       d0 +
@@ -159,29 +158,27 @@ class TaixiuService extends BaseService {
       " ` ` " +
       boldName +
       " cược " +
-      this._moneyEmoji +
-      " " +
-      amount.toLocaleString() +
+      moneyStr +
       " vào **" +
       sideLabel +
-      "**";
+      "**\n";
 
-    // Result outcome message on next line (final frame)
+    // Line 3: Upper box + result outcome text right next to it (if present)
+    output += "  `|         |`";
     if (resultText) {
-      output += "\n" + resultText;
+      output += "   " + resultText;
     }
+    output += "\n";
 
-    // Centered box display (9 chars inside | |)
-    const boxLabel = outcomeLabel ? `|   ${outcomeLabel}   |` : "|         |";
-
-    output += "\n  `" + boxLabel + "`";
-    output += "\n  `|         |`";
+    // Line 4: Bottom box with centered result label (9 chars: |   TÀI   |)
+    const bottomLabel = outcomeLabel ? `|   ${outcomeLabel}   |` : "|         |";
+    output += "  `" + bottomLabel + "`";
 
     return output;
   }
 
   /**
-   * Builds the final result text for the second line.
+   * Builds the final result outcome text placed on Line 3 next to `|         |`.
    */
   buildResultText(result, name, amount, sideLabel) {
     this._loadEmojis();
