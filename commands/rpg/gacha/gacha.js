@@ -164,12 +164,11 @@ class GachaCommand extends BaseCommand {
             { name: "Dagger", emoji: "<:dagger:1514231934191009853>" },
           ];
           const chosenWp = standardWeapons[Math.floor(Math.random() * standardWeapons.length)];
-          const chosenRarity = Math.random() < 0.5 ? "Legendary" : "Mythic";
           gear = await generateRpgGearDrop(user, {
             forceDrop: true,
             slot: "weapon",
             subType: chosenWp.name,
-            rarity: chosenRarity,
+            rarity: "Ancient",
           });
           if (gear) {
             addRpgGearToUser(user, gear);

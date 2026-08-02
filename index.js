@@ -110,6 +110,8 @@ const GameRepository = require("./repositories/GameRepository");
 const UserRepository = require("./repositories/UserRepository");
 const UserService = require("./services/UserService");
 const RpgService = require("./services/RpgService");
+const MathService = require("./services/MathService");
+const TaixiuService = require("./services/TaixiuService");
 
 const locator = new ServiceLocator();
 locator.register("gameRepository", new GameRepository());
@@ -117,6 +119,8 @@ locator.register("gambleService", new GambleService(locator));
 locator.register("userRepository", new UserRepository());
 locator.register("userService", new UserService(locator));
 locator.register("rpgService", new RpgService(locator));
+locator.register("mathService", new MathService(locator));
+locator.register("taixiuService", new TaixiuService(locator));
 client.services = locator;
 
 const loadFiles = (dir, callback) => {
@@ -351,12 +355,6 @@ client.once(Events.ClientReady, async () => {
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);
 
-    try {
-      const { initializeTaixiu } = require("./features/taixiuEngine");
-      await initializeTaixiu(client);
-    } catch (txError) {
-      console.error("❌ Taixiu Engine initialization error:", txError);
-    }
 
     await performStartupCleanup(client);
 

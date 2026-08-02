@@ -1,0 +1,729 @@
+# CokeBot — Cursor AI Mandatory Operating Rules
+
+> **This file is NOT documentation. This is a binding instruction set.**
+> Cursor MUST obey every rule below on every edit, refactor, debug, and upgrade operation.
+> Violations will introduce regressions in a 100k+ LOC production Discord RPG bot.
+
+---
+
+## §0 — Pre-Edit Protocol (MANDATORY — Execute Before Every Change)
+
+### 0.1 Think Before Coding
+- **STOP.** Read the full user request twice before touching any file.
+- Formulate a mental model of the change, its blast radius, and every file it touches.
+- If ambiguity exists, ask — do NOT assume intent.
+
+### 0.2 Codebase Analysis
+- Before modifying any file, trace its **full dependency graph**:
+  - What `require()`s this file?
+  - What does this file `require()`?
+  - What events, Maps, or Collections on `client` does it read/write?
+  - What MongoDB models does it touch?
+  - What LRU caches in `utils/cache.js` does it interact with?
+- Identify every upstream caller and downstream consumer.
+- Verify your change does not break any of them.
+
+### 0.3 Pre-Edit Suggestion
+- Before applying any non-trivial edit, **output a summary** of:
+  1. What you will change and why.
+  2. Which files are affected.
+  3. What could break.
+  4. What tests or manual checks should be performed.
+- Wait for approval on destructive, architectural, or multi-file changes.
+
+### 0.4 Minimal Change Principle
+- Make the **smallest diff** that achieves the goal.
+- Do NOT refactor adjacent code unless explicitly asked.
+- Do NOT rename variables, reformat files, or rearrange imports unless that IS the task.
+- Do NOT remove existing comments or JSDoc unless they are factually incorrect.
+
+### 0.5 Backward Compatibility
+- Every change MUST be backward-compatible unless the user explicitly authorizes a breaking change.
+- If a function signature changes, ensure every call site is updated in the same commit.
+- If a MongoDB schema changes, provide a migration path or script in `scripts/`.
+- Never silently drop fields, parameters, or return values.
+
+---
+
+## §1 — Architecture & Design Principles
+
+### 1.1 Clean Architecture Layers
+The codebase follows a strict layered architecture. Respect the dependency direction:
+
+```
+commands/  →  services/  →  repositories/  →  models/
+   ↓             ↓              ↓
+ utils/        data/         database/
+```
+
+| Layer | Directory | Responsibility |
+|-------|-----------|----------------|
+| **Presentation** | `commands/`, `events/` | Parse user input, invoke services, format Discord responses |
+| **Feature** | `features/` | Long-running background systems (spawner, taixiu engine, boss spawner) |
+| **Service** | `services/` | Business logic, orchestration, domain rules |
+| **Repository** | `repositories/` | Data access abstraction over Mongoose models |
+| **Model** | `models/` | Mongoose schemas and model definitions only — zero business logic |
+| **Core** | `core/` | Framework primitives (`BaseCommand`, `ServiceLocator`) |
+| **Data** | `data/` | Static configuration, game data, constants |
+| **Utility** | `utils/` | Stateless helper functions, formatters, pure computations |
+| **Scripts** | `scripts/`, `seeders/` | One-off operational scripts, database seeders |
+
+**Rules:**
+- Models MUST NOT import from services, commands, or features.
+- Commands MUST NOT query MongoDB directly — delegate to services or repositories.
+- Utils MUST remain stateless. If a util needs `client`, it must accept it as a parameter — never import it globally.
+- Services access data ONLY through repositories or through utility functions that accept explicit parameters.
+- Static game data (config, boss definitions, species) lives in `data/` — never hardcoded in commands or services.
+
+### 1.2 Dependency Injection via ServiceLocator
+- All services are registered in `index.js` via `ServiceLocator`.
+- New services MUST extend `BaseService` and receive `locator` in the constructor.
+- Services retrieve sibling services through `this.locator.get('serviceName')` — never via `require()` at the top of the file.
+- Commands receive the locator as the 4th argument in `execute(message, args, client, locator)`.
+
+```js
+// ✅ CORRECT
+class PaymentService extends BaseService {
+  constructor(locator) {
+    super(locator);
+  }
+  async process(userId, amount) {
+    const userService = this.locator.get('userService');
+    // ...
+  }
+}
+
+// ❌ WRONG — direct require of another service
+const UserService = require('./UserService');
+```
+
+### 1.3 Repository Pattern
+- All new Mongoose queries MUST go through a Repository class extending `BaseRepository`.
+- `BaseRepository` provides: `findById`, `findOne`, `create`, `updateOne`, `deleteOne`.
+- Domain-specific queries are added as named methods on the concrete repository.
+- Repositories MUST NOT contain business logic — only query construction and execution.
+- Always call `.lean()` on read queries that do not need Mongoose document methods.
+- Always call `.exec()` to return a proper Promise.
+
+### 1.4 Command System
+- All commands export an object with at minimum: `name`, `aliases`, `description`, `execute(message, args, client, locator)`.
+- Slash commands additionally export a `data` property (SlashCommandBuilder).
+- Commands are auto-loaded recursively from `commands/` — file placement determines category.
+- Commands MUST NOT contain business logic beyond input parsing and response formatting.
+- Use `BaseCommand` class for new commands when appropriate.
+
+### 1.5 Event System
+- Events export `{ name, once?, execute(eventArgs..., client) }`.
+- Events are auto-registered from `events/` — do not manually attach listeners.
+- Event handlers MUST be thin orchestrators — delegate logic to services or utilities.
+
+---
+
+## §2 — SOLID Principles (Enforced)
+
+### 2.1 Single Responsibility Principle
+- One file = one clear responsibility.
+- If a file exceeds **300 lines**, evaluate whether it should be split.
+- If a function exceeds **50 lines**, extract sub-operations into named helpers.
+- Utility files like `rpgUtil.js` (52KB) and `userUtil.js` (33KB) are legacy — do NOT add new functions to bloated utils. Create purpose-specific utility modules instead.
+
+### 2.2 Open/Closed Principle
+- Systems MUST be extensible without modifying existing code.
+- New commands → add a new file in the appropriate `commands/` subdirectory.
+- New game modes → add a new feature file; do NOT modify the spawner core.
+- New RPG classes/bosses → add entries in `data/rpg/`; do NOT modify `rpgUtil.js` core logic.
+
+### 2.3 Liskov Substitution Principle
+- Subclasses of `BaseCommand`, `BaseService`, `BaseRepository` MUST be drop-in replaceable.
+- Override `execute()` in commands — do NOT change its signature.
+- All repository methods MUST return Promises consistent with `BaseRepository`.
+
+### 2.4 Interface Segregation Principle
+- Do NOT force commands to implement methods they do not use.
+- Optional capabilities (slash command support, button handling, autocomplete) are opt-in via additional properties — not mandatory overrides.
+
+### 2.5 Dependency Inversion Principle
+- High-level modules (commands, services) depend on abstractions (BaseService, BaseRepository), NOT concrete implementations.
+- The `ServiceLocator` is the composition root — it wires concrete implementations at startup in `index.js`.
+
+---
+
+## §3 — Code Quality Rules
+
+### 3.1 DRY — No Duplicated Code
+- Before writing any logic, **search the codebase** for existing implementations.
+- Key utility locations to check first:
+  - `utils/userUtil.js` — user data operations, coke transactions, XP, ranking
+  - `utils/rpgUtil.js` — RPG combat, power calculation, equipment, items
+  - `utils/miscUtil.js` — formatting, duration, general helpers
+  - `utils/cokemonUtil.js` — Cokemon mechanics, XP, evolution
+  - `utils/gameUtil.js` — shared game logic
+  - `utils/format.js` — number/text formatters
+  - `utils/cache.js` — all LRU cache instances
+  - `utils/errors.js` — `UserFriendlyError`, `handleCommandError`, `handleUtilityError`
+  - `data/config.js` — all emojis, constants, game settings, permissions
+- If logic exists, **reuse it**. If it needs modification, extend — do not duplicate.
+
+### 3.2 KISS — Keep It Simple
+- Prefer readable, straightforward code over clever abstractions.
+- Avoid premature abstraction — extract a pattern only when it recurs ≥ 3 times.
+- One logical operation per line. No chained ternaries beyond 2 levels.
+
+### 3.3 YAGNI — You Aren't Gonna Need It
+- Do NOT add features, parameters, or abstractions "just in case."
+- Do NOT add unused configuration options.
+- Do NOT create wrapper classes around perfectly adequate built-ins.
+
+### 3.4 Code Smell Detection
+Before finalizing any edit, check for these smells and refactor if found:
+- **God Object**: A single file handling too many concerns (see §2.1 limits).
+- **Long Parameter List**: More than 4 parameters → use an options object.
+- **Feature Envy**: A function that accesses another module's data more than its own.
+- **Shotgun Surgery**: A single logical change requiring edits in 5+ files → consolidate.
+- **Dead Code**: Unreachable branches, unused variables, commented-out blocks.
+- **Magic Numbers**: Replace with named constants in `data/config.js`.
+- **Nested Callbacks**: Max nesting depth of 3 — use async/await.
+
+---
+
+## §4 — Naming Conventions (Enforced)
+
+### 4.1 Files
+| Type | Convention | Example |
+|------|-----------|---------|
+| Commands | `camelCase.js` | `coinflip.js`, `blackjack.js` |
+| Models | `PascalCase.js` | `User.js`, `SpawnedBoss.js` |
+| Services | `PascalCase.js` with `Service` suffix | `GambleService.js`, `RpgService.js` |
+| Repositories | `PascalCase.js` with `Repository` suffix | `GameRepository.js` |
+| Utilities | `camelCase.js` with descriptive suffix | `rpgUtil.js`, `cokemonUtil.js` |
+| Features | `camelCase.js` | `spawner.js`, `taixiuEngine.js` |
+| Data/Config | `camelCase.js` | `config.js`, `rpgConfig.js` |
+| Seeders | `camelCase.js` | `species.js`, `abilities.js` |
+
+### 4.2 Code Identifiers
+| Type | Convention | Example |
+|------|-----------|---------|
+| Classes | PascalCase | `BaseCommand`, `GambleService` |
+| Functions | camelCase | `getUser`, `calculateRpgPower` |
+| Variables | camelCase | `activeSpawns`, `debuffPercentage` |
+| Constants | UPPER_SNAKE_CASE | `MAX_POOL_SIZE`, `XP_COOLDOWN_MS` |
+| Mongoose Fields | snake_case | `user_id`, `species_id`, `active_cokemon_id` |
+| Config Keys | camelCase (nested objects) | `config.gamble_settings.enable_special_treatment` |
+| Event Names | camelCase (Discord.js convention) | `messageCreate`, `interactionCreate` |
+| Map/Collection Keys | camelCase or descriptive string | `client.commands`, `client.rpgBosses` |
+| Boolean Variables | `is`/`has`/`should`/`can` prefix | `isCommand`, `hasShiny`, `shouldLoadUser` |
+| Error Classes | PascalCase with `Error` suffix | `UserFriendlyError` |
+
+### 4.3 Import Organization
+Order imports in every file as follows (separated by blank lines):
+```js
+// 1. Node.js built-in modules
+const fs = require('fs');
+const path = require('path');
+
+// 2. Third-party packages
+const mongoose = require('mongoose');
+const { Client } = require('discord.js');
+
+// 3. Core / framework
+const BaseCommand = require('../core/BaseCommand');
+const BaseService = require('../services/BaseService');
+
+// 4. Models
+const User = require('../models/User');
+
+// 5. Services / Repositories
+const UserService = require('../services/UserService');
+
+// 6. Utilities
+const { getUser } = require('../utils/userUtil');
+const config = require('../data/config');
+
+// 7. Local / sibling modules
+const { calculateDamage } = require('./helpers');
+```
+
+---
+
+## §5 — Async & Concurrency
+
+### 5.1 Async/Await
+- ALWAYS use `async/await` — never raw `.then()` chains for business logic.
+- `.then()` is acceptable ONLY for fire-and-forget operations (e.g., `message.reply(...).catch(() => {})`).
+- Every `await` MUST be inside a `try/catch` or the calling function must propagate the rejection.
+
+### 5.2 Error Handling
+- Use `UserFriendlyError` for all user-facing error messages.
+- Use `handleCommandError(error, message)` in command execution paths.
+- Use `handleUtilityError(action, context)` to wrap utility calls with context.
+- NEVER swallow errors silently. At minimum: `console.error('[CONTEXT]', error)`.
+- All Discord API calls (`.reply()`, `.send()`, `.edit()`, `.delete()`) MUST have a trailing `.catch(() => {})` to prevent unhandled rejections from deleted messages/channels.
+
+```js
+// ✅ CORRECT
+await message.reply('Done!').catch(() => {});
+
+// ✅ CORRECT
+try {
+  await riskyOperation();
+} catch (error) {
+  if (error instanceof UserFriendlyError) throw error;
+  console.error('[riskyOperation]', error);
+  throw new UserFriendlyError('Có lỗi xảy ra, vui lòng thử lại.');
+}
+
+// ❌ WRONG — swallowed error
+try { await something(); } catch (e) { /* silence */ }
+```
+
+### 5.3 Concurrency Guards
+- Use `client.actionLocks` (Set) to prevent duplicate concurrent operations per user.
+- Pattern:
+```js
+const lockKey = `commandName:${userId}`;
+if (client.actionLocks.has(lockKey)) {
+  return message.reply('Bạn đang thực hiện thao tác này rồi.').catch(() => {});
+}
+client.actionLocks.add(lockKey);
+try {
+  // ... operation
+} finally {
+  client.actionLocks.delete(lockKey);
+}
+```
+
+### 5.4 Timeouts & Intervals
+- All `setTimeout` / `setInterval` MUST store the timer ID for cleanup.
+- Use `clearTimeout` / `clearInterval` in error paths and shutdown hooks.
+- Respect the global `setTimeout` override in `index.js` that enforces `delay >= 1`.
+- For game state expiry, prefer LRU caches with TTL (`utils/cache.js`) over manual timers.
+
+---
+
+## §6 — MongoDB & Mongoose
+
+### 6.1 Schema Design
+- Define schemas in `models/` — one model per file.
+- ALWAYS define indexes for fields used in queries, sorts, or unique lookups.
+- Use `{ _id: false }` for embedded sub-schemas that don't need their own ObjectId.
+- Use `Map` type for dynamic key-value data (e.g., `inventory`, `cokedex`).
+- Use `markModified('field')` before `.save()` when modifying Mixed/Object type fields.
+
+### 6.2 Query Optimization
+- **ALWAYS** use `.lean()` for read-only queries — it returns plain objects 5-10x faster.
+- **ALWAYS** use `.exec()` to ensure a real Promise is returned.
+- Use projections to select only needed fields: `User.findOne({ userId }, 'coke level rpg').lean()`.
+- Use `$inc`, `$set`, `$push`, `$pull` atomic operators instead of read-modify-write when possible.
+- NEVER use `find({})` without a filter on large collections — always add query constraints.
+- Use `bulkWrite()` for batch operations instead of looping individual writes.
+- Index usage — the following indexes exist and MUST be leveraged:
+  - `User`: `userId` (unique), `coke`, `level`, `luck`, `tea`, `rpg.power`, `rpg.autohunt.totalEssence`, `rpg.autohunt.isActive`, `rpg.lastItemId`
+
+### 6.3 Connection Management
+- Connection is managed in `index.js` with `connectWithRetry()`.
+- Pool settings: `maxPoolSize: 100`, `minPoolSize: 10`, `socketTimeoutMS: 45000`.
+- ALWAYS check `mongoose.connection.readyState === 1` before executing queries in event handlers.
+- On network errors (`EAI_AGAIN`, `ENOTFOUND`, `ECONNRESET`), let PM2 handle restart via `process.exit(1)`.
+
+### 6.4 Transactions
+- Use Mongoose sessions/transactions for multi-document operations where atomicity is required (e.g., coke transfers between users).
+- Pattern:
+```js
+const session = await mongoose.startSession();
+try {
+  await session.withTransaction(async () => {
+    await User.updateOne({ userId: senderId }, { $inc: { coke: -amount } }, { session });
+    await User.updateOne({ userId: receiverId }, { $inc: { coke: amount } }, { session });
+  });
+} finally {
+  session.endSession();
+}
+```
+
+---
+
+## §7 — Discord.js Best Practices
+
+### 7.1 Client Configuration
+- Intents and Partials are configured in `index.js` — do NOT modify without explicit instruction.
+- Sweeper settings are tuned to prevent memory leaks — respect the existing intervals.
+
+### 7.2 Message Handling
+- All user-facing text MUST use emojis from `config.emoji` — do NOT hardcode emoji strings.
+- Embed colors MUST use config values or standard hex — never magic numbers.
+- ALL `.reply()`, `.send()`, `.edit()`, `.delete()` calls MUST have `.catch(() => {})`.
+- Respect the cooldown system in `utils/cooldown.js` — new commands with cooldowns must use `checkAndSetCooldown`.
+
+### 7.3 Interactions (Slash Commands, Buttons, Menus)
+- Slash commands are registered via `client.application.commands.set()` at startup.
+- Button `customId` format: `featureName:contextData` (e.g., `rpg_boss_fight:bossId`).
+- ALWAYS handle the case where an interaction has already been replied to (`interaction.replied || interaction.deferred`).
+- Use ephemeral replies (`flags: 64`) for error messages and user-specific data.
+
+### 7.4 Collections & Maps on Client
+The following Maps/Collections exist on `client` — use them, do NOT create duplicates:
+- `client.commands` — loaded text commands (Collection)
+- `client.noituCommands` — word-chain game commands (Collection)
+- `client.services` — ServiceLocator instance
+- `client.activeSpawns` — Cokemon spawn state per channel
+- `client.activeLures` — active lure items
+- `client.actionLocks` — concurrency lock set
+- `client.xpCooldowns`, `client.friendshipCooldowns`, `client.cuddleCooldowns` — rate limiters
+- `client.rpgBosses` — active world boss instances
+- `client.noituGames` — active word-chain game states
+- `client.allSpecies`, `client.allItems` — cached Cokemon data (loaded at startup)
+- `client.botLocked`, `client.lockedFeatures` — runtime feature toggles
+
+### 7.5 Memory Management
+- Use LRU caches from `utils/cache.js` with configured TTLs — do NOT create `new Map()` for caching.
+- Never store full Mongoose documents in memory — always `.lean()` or extract only needed fields.
+- Clear event listeners on cleanup. Use `client.removeListener()` when unsubscribing.
+- Canvas/Image objects in `imageCache`, `transparentCharCache`, `transparentAssetCache` have 12h TTL.
+- PM2 restarts the bot daily at 04:00 via `cron_restart` to reclaim accumulated memory.
+
+---
+
+## §8 — Error Handling & Logging
+
+### 8.1 Error Hierarchy
+```
+Error (built-in)
+  └── UserFriendlyError (utils/errors.js)  →  shown to user in Discord
+```
+- Throw `UserFriendlyError` for any situation the user caused (bad input, insufficient coke, cooldown).
+- Throw standard `Error` for programmer errors and unexpected failures.
+- NEVER expose stack traces, internal paths, or database errors to users.
+
+### 8.2 Logging Standards
+| Level | Usage | Prefix |
+|-------|-------|--------|
+| `console.log` | Startup events, milestones | `✅`, `🚀`, `ℹ️` |
+| `console.warn` | Non-critical issues, fallbacks | `⚠️` |
+| `console.error` | Failures requiring investigation | `❌` |
+
+- Always include a context tag: `[MODULE_NAME]`, `[COMMAND_NAME]`, or `[FEATURE_NAME]`.
+- Log format: `console.error('[RPG_BOSS_SPAWNER] Failed to spawn boss:', error)`.
+- For command errors, use the centralized `handleCommandError` from `utils/errors.js`.
+- For Discord channel logging, use `sendLog(client, message, type)` from `utils/BotLog.js`.
+
+### 8.3 Global Error Handlers
+- `unhandledRejection` and `uncaughtException` are handled in `index.js`.
+- Network-related errors trigger `process.exit(1)` for PM2 to restart.
+- NEVER add additional global handlers — pipe errors through the existing system.
+
+---
+
+## §9 — Security
+
+### 9.1 Input Validation
+- ALWAYS validate and sanitize user input before processing.
+- Validate numeric inputs: check `isNaN`, `isFinite`, positive, within bounds.
+- Validate string inputs: trim, check length limits, sanitize for Discord markdown injection.
+- Validate Discord IDs: must match `/^\d{17,20}$/`.
+- Use `parseCommandArgs` from `utils/commandParser.js` for argument parsing.
+
+### 9.2 Permission Checks
+- Owner/dev commands MUST check `config.permissions.dev_ids` or `process.env.OWNER_ID`.
+- Admin commands MUST check `message.member.permissions.has()`.
+- Bot lock status MUST be checked via `client.botLocked` before executing commands.
+
+### 9.3 Rate Limiting & Anti-Cheat
+- The anti-cheat system (`utils/anticheat.js`) handles automatic verification.
+- Respect `client.bannedUsersCache` and `client.verificationCache`.
+- Gambling and economy commands MUST check for active bans before execution.
+- Use the cooldown system for rate limiting — do NOT implement ad-hoc cooldowns.
+
+### 9.4 Environment Variables
+- All secrets go in `.env` — NEVER hardcode tokens, URIs, or API keys.
+- Access via `process.env.VARIABLE_NAME` — never expose in logs or error messages.
+- The `.env.example` file documents all required variables. Update it when adding new ones.
+
+---
+
+## §10 — Configuration Management
+
+### 10.1 Centralized Config
+- `data/config.js` is the single source of truth for:
+  - Bot prefix, emojis, colors
+  - Game settings, probabilities, cooldowns
+  - RPG classes, boss definitions, equipment tiers
+  - Anti-cheat thresholds
+  - AI settings (embedding model, thread expiry)
+  - Permission lists
+- NEVER hardcode values that belong in config. If a value might change, it goes in config.
+
+### 10.2 Game Data Files
+- `data/rpg/` — RPG bosses, classes, skins, config
+- `data/pets.js` — Pet definitions
+- `data/knowledge.js` — AI knowledge base entries
+- `data/gachaBanner.js` — Current gacha banner config
+- Seeders in `seeders/` populate MongoDB from these data files.
+
+### 10.3 Feature Flags
+- `DISABLED_SLASH_COMMANDS` env var disables specific slash commands at startup.
+- `client.lockedFeatures` array locks features at runtime.
+- `client.botLocked` toggles full bot lock (dev-only access).
+- New features MUST support being disabled via these mechanisms.
+
+---
+
+## §11 — Performance Optimization
+
+### 11.1 General
+- Avoid synchronous file I/O in command handlers — all fs operations at runtime must use async APIs or be loaded at startup.
+- Prefer `for...of` over `.forEach()` for arrays when async operations are involved.
+- Use destructuring to extract only needed properties from large objects.
+- Avoid creating unnecessary intermediate arrays (`.map().filter()` → single `.reduce()` or `for` loop).
+
+### 11.2 Discord API
+- Batch operations where possible. Do not send multiple messages when one embed suffices.
+- Use `message.channel.send()` for responses where reply threading is unnecessary.
+- Avoid fetching guild members unless absolutely required — use cached data.
+- Use `fetchReply: true` only when you need the sent message object.
+
+### 11.3 MongoDB
+- Use atomic operations (`$inc`, `$set`, `$push`) instead of `findOne` + modify + `save()`.
+- Use `findOneAndUpdate` with `{ new: true }` when you need the updated document.
+- Use `updateMany` or `bulkWrite` for batch updates.
+- Avoid `populate()` in hot paths — denormalize or cache if accessed frequently.
+- The species/items cache (`client.allSpecies`, `client.allItems`) is loaded once at startup — use it instead of querying.
+
+### 11.4 Canvas & Image Processing
+- All canvas operations use caches from `utils/cache.js` — check cache before generating.
+- Reuse canvas instances where possible — create once, clear and redraw.
+- Use `createCanvas` sparingly — pool or cache generated images.
+
+---
+
+## §12 — Folder Structure (Enforced)
+
+```
+CokeBot/
+├── index.js                    # Entry point, client setup, service wiring
+├── package.json
+├── ecosystem.config.js         # PM2 configuration
+├── .env / .env.example
+│
+├── core/                       # Framework primitives
+│   ├── BaseCommand.js
+│   └── ServiceLocator.js
+│
+├── commands/                   # Auto-loaded command modules
+│   ├── action/                 # Social/action commands
+│   ├── admin/                  # Admin-only commands
+│   ├── cokecy/                 # Economy commands
+│   ├── cokemon/                # Cokemon game commands
+│   ├── config/                 # Bot configuration commands
+│   ├── gamble/                 # Gambling game commands
+│   ├── general/                # General utility commands
+│   ├── noitu/                  # Word-chain game commands
+│   ├── rpg/                    # RPG system commands
+│   │   ├── battle/
+│   │   ├── gacha/
+│   │   ├── hunt/
+│   │   ├── pet/
+│   │   └── user/
+│   ├── shop/                   # Shop commands
+│   └── user/                   # User profile commands
+│
+├── events/                     # Discord event handlers
+│   ├── messageCreate.js
+│   ├── interactionCreate.js
+│   ├── threadUpdate.js
+│   ├── node/                   # Node/shard events
+│   └── player/                 # Music player events
+│
+├── features/                   # Background systems & engines
+│   ├── spawner.js              # Cokemon spawner
+│   ├── rpgBossSpawner.js       # RPG world boss spawner
+│   ├── taixiuEngine.js         # Tài xỉu game engine
+│   ├── autohuntReminder.js     # Auto-hunt DM reminders
+│   └── godsetExpiryManager.js  # God equipment expiry
+│
+├── services/                   # Business logic layer
+│   ├── BaseService.js
+│   ├── GambleService.js
+│   ├── RpgService.js
+│   └── UserService.js
+│
+├── repositories/               # Data access layer
+│   ├── BaseRepository.js
+│   ├── GameRepository.js
+│   └── UserRepository.js
+│
+├── models/                     # Mongoose schemas
+│   ├── User.js
+│   ├── SpawnedBoss.js
+│   ├── BlackJackGame.js
+│   ├── cokemon/
+│   │   ├── Species.js
+│   │   ├── Cokemon.js
+│   │   ├── Item.js
+│   │   ├── Ability.js
+│   │   └── ActiveNet.js
+│   └── ...
+│
+├── database/                   # Database connection & server data
+│   └── server.js
+│
+├── data/                       # Static game data & configuration
+│   ├── config.js               # Master config (emoji, settings, permissions)
+│   ├── rpg/                    # RPG data (bosses, classes, skins)
+│   ├── pets.js
+│   ├── knowledge.js
+│   └── gachaBanner.js
+│
+├── utils/                      # Stateless utility functions
+│   ├── errors.js               # Error classes & handlers
+│   ├── cache.js                # LRU cache instances
+│   ├── cooldown.js             # Cooldown system
+│   ├── anticheat.js            # Anti-cheat & CAPTCHA
+│   ├── userUtil.js             # User operations
+│   ├── rpgUtil.js              # RPG mechanics
+│   ├── cokemonUtil.js          # Cokemon mechanics
+│   ├── miscUtil.js             # General helpers
+│   └── ...
+│
+├── scripts/                    # Operational scripts
+├── seeders/                    # Database seed scripts
+├── assets/                     # Static image/media assets
+├── logs/                       # PM2 log output
+└── rpg/                        # RPG subsystem modules
+    └── battle/                 # Battle engine
+```
+
+### 12.1 Placement Rules
+- **New command** → create a file in the appropriate `commands/<category>/` subdirectory.
+- **New model** → create in `models/`. If domain-specific (cokemon), use a subdirectory.
+- **New service** → create in `services/`, extend `BaseService`, register in `index.js`.
+- **New repository** → create in `repositories/`, extend `BaseRepository`.
+- **New background system** → create in `features/`, initialize from `index.js` on `ClientReady`.
+- **New utility function** → add to the most relevant existing util, or create a new util file if no fit exists. Do NOT add to bloated utils (rpgUtil, userUtil) without explicit instruction.
+- **New static data** → add to `data/` or a subdirectory of `data/`.
+
+---
+
+## §13 — Feature Development Workflow
+
+When asked to implement a new feature, execute in this order:
+
+1. **Analyze** — Understand the full requirement. Identify affected layers.
+2. **Data Model** — Define/modify Mongoose schemas if needed. Add indexes.
+3. **Repository** — Create/extend repository for new data access patterns.
+4. **Service** — Implement business logic in a service. Register in ServiceLocator if new.
+5. **Command** — Create command file in the correct `commands/` subdirectory.
+6. **Config** — Add constants, emojis, settings to `data/config.js`.
+7. **Integration** — Wire everything in `index.js` if initialization is needed.
+8. **Error Handling** — Add `UserFriendlyError` throws for all user-facing error cases.
+9. **Cooldown** — Add cooldown if the command should be rate-limited.
+10. **Test** — Describe manual test steps or provide a test script.
+
+---
+
+## §14 — Refactoring Workflow
+
+When asked to refactor:
+
+1. **Identify** — List all files affected by the refactor.
+2. **Dependency Map** — Trace every import/require chain to and from the target.
+3. **Plan** — Write out the refactoring steps. Present to user before executing.
+4. **Execute Incrementally** — Make one logical change at a time. Verify each step.
+5. **Preserve Behavior** — The refactored code MUST produce identical output for identical input.
+6. **Update Callers** — If a function signature or export changes, update ALL call sites.
+7. **Verify** — Confirm the bot starts without errors. Confirm affected commands work.
+
+---
+
+## §15 — Debug Workflow
+
+When asked to debug an issue:
+
+1. **Reproduce** — Understand the exact steps and conditions that trigger the bug.
+2. **Trace** — Follow the execution path from the entry point (event handler) through to the failure.
+3. **Isolate** — Identify the exact line or function where behavior deviates from expectation.
+4. **Root Cause** — Determine the underlying cause, not just the symptom.
+5. **Fix Minimally** — Apply the smallest change that fixes the root cause.
+6. **Guard** — Add validation or error handling to prevent recurrence.
+7. **Explain** — Document what was wrong and why the fix works.
+
+---
+
+## §16 — Code Review Checklist
+
+Before finalizing ANY change, verify:
+
+- [ ] **No broken imports** — all `require()` paths resolve correctly.
+- [ ] **No circular dependencies** — no module A requires B requires A.
+- [ ] **Consistent coding style** — matches the existing file's style (semicolons, quotes, spacing).
+- [ ] **All async functions properly awaited** — no floating promises.
+- [ ] **Discord API calls have `.catch(() => {})`** — no unhandled rejections.
+- [ ] **User-facing errors use `UserFriendlyError`**.
+- [ ] **No hardcoded magic numbers** — use config or named constants.
+- [ ] **No hardcoded emoji strings** — use `config.emoji.*`.
+- [ ] **No `console.log` left from debugging** — use proper logging with context tags.
+- [ ] **MongoDB queries use `.lean()` where applicable**.
+- [ ] **MongoDB queries use `.exec()`**.
+- [ ] **No new memory leaks** — Maps/Sets are cleaned up, timers are cleared.
+- [ ] **Backward compatible** — existing command signatures, API responses, and data shapes are preserved.
+- [ ] **Existing comments preserved** — do not remove unrelated comments.
+- [ ] **Import order follows convention** (§4.3).
+- [ ] **File is in the correct directory** per the folder structure (§12).
+- [ ] **ServiceLocator used for service dependencies** — no direct cross-service requires.
+- [ ] **ActionLocks used for concurrent operations** where race conditions are possible.
+
+---
+
+## §17 — Preserved Coding Style
+
+The codebase uses these conventions — **match them exactly**:
+
+- **Module system**: CommonJS (`require` / `module.exports`). Do NOT use ESM import/export.
+- **Semicolons**: Optional (mixed in codebase). Match the style of the file you're editing.
+- **Quotes**: Double quotes `"` for strings in most files. Match the file.
+- **Indentation**: 2 spaces.
+- **Trailing commas**: Used in multi-line objects/arrays.
+- **Error catch pattern**: `.catch(() => {})` on Discord API calls.
+- **User-facing language**: Vietnamese for all user-facing messages. English for logs and code comments.
+- **Emoji prefix**: Use emoji from `config.emoji` or Unicode emoji for log messages.
+- **Mongoose patterns**: `Schema` → `model()` → export. Indexes defined after schema, before export.
+- **Command export pattern**: `module.exports = { name, aliases, description, execute, ... }`.
+- **Event export pattern**: `module.exports = { name, once?, execute }`.
+
+---
+
+## §18 — Forbidden Actions
+
+**Cursor MUST NEVER:**
+
+1. Delete or modify `index.js` startup sequence without explicit instruction.
+2. Change MongoDB connection settings.
+3. Modify the global `setTimeout` override.
+4. Alter PM2 ecosystem configuration.
+5. Remove or weaken anti-cheat protections.
+6. Expose environment variables in user-facing messages.
+7. Add `process.exit()` calls outside of `index.js` critical error handlers.
+8. Use `eval()`, `Function()`, or any dynamic code execution.
+9. Install new npm packages without explicit user approval.
+10. Modify `BaseCommand`, `BaseService`, `BaseRepository`, or `ServiceLocator` without explicit instruction.
+11. Change the command auto-loading system in `index.js`.
+12. Alter the event registration system in `index.js`.
+13. Remove existing indexes from Mongoose schemas.
+14. Convert CommonJS to ESM or vice versa.
+15. Add TypeScript to the project (it uses plain JavaScript with SWC for optional compilation).
+16. Create utility functions that depend on global state or singletons (except via parameter injection).
+17. Bypass the ServiceLocator by directly requiring and instantiating services.
+18. Add new properties to `client` without documenting them in §7.4 of this file.
+
+---
+
+## §19 — When In Doubt
+
+1. **Ask.** Do not guess the user's intent on ambiguous requests.
+2. **Preserve.** When unsure whether to modify existing behavior, leave it unchanged.
+3. **Explain.** If a requested change would violate any rule in this file, explain the conflict and propose an alternative.
+4. **Minimize.** The best change is the smallest change that fully solves the problem.
+5. **Trace.** Follow the data flow end-to-end before claiming a fix is complete.
+
+---
+
+*This rule set governs all Cursor AI operations on the CokeBot project. No exceptions.*
