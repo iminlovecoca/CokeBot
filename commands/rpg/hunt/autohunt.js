@@ -750,59 +750,12 @@ class XautohuntCommand extends BaseCommand {
           `${blankEmoji} **|** \`${expectedEssence.toLocaleString()} ESSENCE, AND ${expectedXp.toLocaleString()} EXPERIENCE\``
         ].join("\n");
 
-        const notifyBtn = new ButtonBuilder()
-          .setCustomId("autohunt_notify_toggle")
-          .setLabel("Nhận thông báo 🔔")
-          .setStyle(ButtonStyle.Primary);
+        const sentMsg = await message.reply({ content: startMsg, skipV2: true });
 
-        const row = new ActionRowBuilder().addComponents(notifyBtn);
-
-        const sentMsg = await message.reply({ content: startMsg, components: [row], skipV2: true });
-
-        sentMsg.react("🔔").catch(() => null);
-
-        const componentCollector = sentMsg.createMessageComponentCollector({
-          filter: (i) => i.user.id === message.author.id,
-          time: 300000,
-        });
-
-        componentCollector.on("collect", async (interaction) => {
-          if (interaction.customId === "autohunt_notify_toggle") {
-            const dbUser = await User.findOne({ userId: message.author.id });
-            if (dbUser && dbUser.rpg && dbUser.rpg.autohunt && dbUser.rpg.autohunt.isActive) {
-              const currentStatus = dbUser.rpg.autohunt.dmReminder || false;
-              const newStatus = !currentStatus;
-              dbUser.rpg.autohunt.dmReminder = newStatus;
-              dbUser.markModified("rpg");
-              await dbUser.save();
-
-              const newBtn = new ButtonBuilder()
-                .setCustomId("autohunt_notify_toggle")
-                .setLabel(newStatus ? "Đã bật thông báo 🔔" : "Nhận thông báo 🔔")
-                .setStyle(newStatus ? ButtonStyle.Success : ButtonStyle.Primary);
-
-              const updatedRow = new ActionRowBuilder().addComponents(newBtn);
-              await interaction.update({ components: [updatedRow] }).catch(() => null);
-
-              if (newStatus) {
-                await interaction.followUp({
-                  content: "🔔 **Đã bật thông báo!** Bot sẽ gửi tin nhắn riêng cho bạn khi Autohunt hoàn thành.",
-                  flags: 64,
-                }).catch(() => null);
-              } else {
-                await interaction.followUp({
-                  content: "🔕 **Đã tắt thông báo.**",
-                  flags: 64,
-                }).catch(() => null);
-              }
-            } else {
-              await interaction.reply({ content: "❌ Bạn hiện không có phiên autohunt nào đang chạy.", flags: 64 }).catch(() => null);
-            }
-          }
-        });
+        sentMsg.react("⏰").catch(() => null);
 
         const reactionCollector = sentMsg.createReactionCollector({
-          filter: (reaction, user) => reaction.emoji.name === "🔔" && user.id === message.author.id,
+          filter: (reaction, user) => reaction.emoji.name === "⏰" && user.id === message.author.id,
           time: 300000,
         });
 
@@ -814,15 +767,8 @@ class XautohuntCommand extends BaseCommand {
               dbUser.markModified("rpg");
               await dbUser.save();
 
-              const newBtn = new ButtonBuilder()
-                .setCustomId("autohunt_notify_toggle")
-                .setLabel("Đã bật thông báo 🔔")
-                .setStyle(ButtonStyle.Success);
-              const updatedRow = new ActionRowBuilder().addComponents(newBtn);
-              await sentMsg.edit({ components: [updatedRow] }).catch(() => null);
-
               await sentMsg.channel.send({
-                content: `<@${message.author.id}> 🔔 **Đã bật thông báo!** Bot sẽ gửi tin nhắn riêng cho bạn khi Autohunt hoàn thành.`
+                content: `<@${message.author.id}> ⏰ **Đã bật thông báo!** Bot sẽ gửi tin nhắn riêng cho bạn khi Autohunt hoàn thành.`
               }).catch(() => null);
             }
           }

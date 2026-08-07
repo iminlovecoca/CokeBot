@@ -227,6 +227,16 @@ class DungeonCommand extends BaseCommand {
 module.exports = new DungeonCommand();
 const askBlessing = async (message, selectMsg, guild, chapter, startInteraction = null) => {
   const userId = message.author.id;
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("rpg_blessing_active")
+      .setLabel("✨ Phước Lành (+10% HP, +20% ATK)")
+      .setStyle(ButtonStyle.Success),
+    new ButtonBuilder()
+      .setCustomId("rpg_blessing_none")
+      .setLabel("⚔️ Thử Thách (+20% EXP & Coke)")
+      .setStyle(ButtonStyle.Secondary)
+  );
   const container = new ContainerBuilder()
     .setAccentColor(0xF1C40F)
     .addTextDisplayComponents(

@@ -1,7 +1,7 @@
-# CokeBot — Cursor AI Mandatory Operating Rules
+# CokeBot — Antigravity AI Mandatory Operating Rules
 
 > **This file is NOT documentation. This is a binding instruction set.**
-> Cursor MUST obey every rule below on every edit, refactor, debug, and upgrade operation.
+> Antigravity MUST obey every rule below on every edit, refactor, debug, and upgrade operation.
 > Violations will introduce regressions in a 100k+ LOC production Discord RPG bot.
 
 ---
@@ -693,7 +693,7 @@ The codebase uses these conventions — **match them exactly**:
 
 ## §18 — Forbidden Actions
 
-**Cursor MUST NEVER:**
+**Antigravity MUST NEVER:**
 
 1. Delete or modify `index.js` startup sequence without explicit instruction.
 2. Change MongoDB connection settings.
@@ -726,4 +726,4 @@ The codebase uses these conventions — **match them exactly**:
 
 ---
 
-*This rule set governs all Cursor AI operations on the CokeBot project. No exceptions.*
+*This rule set governs all Antigravity AI operations on the CokeBot project. No exceptions.*
