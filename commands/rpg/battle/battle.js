@@ -187,7 +187,6 @@ class BattleCommand extends BaseCommand {
         content: `<@${receiverId}>`,
         embeds: [challengeEmbed],
         components: [row],
-        skipV2: true,
       });
 
       const challengeData = {
