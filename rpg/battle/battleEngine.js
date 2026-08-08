@@ -112,7 +112,7 @@ class BattleEngine {
     const logs = [];
     const history = [];
 
-    const recordState = (currentTurn) => {
+    const saveState = (currentTurn) => {
       history.push({
         turn: currentTurn,
         p1: {
@@ -127,6 +127,7 @@ class BattleEngine {
         },
       });
     };
+    const recordState = saveState;
 
     recordState(0);
 
