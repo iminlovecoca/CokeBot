@@ -212,13 +212,16 @@ class BattleCommand extends BaseCommand {
         if (interaction.customId === "pvp_accept") {
           collector.stop("accepted");
           pendingChallenges.delete(receiverId);
-          await interaction.deferUpdate();
+          await interaction.deferUpdate().catch(() => {});
+          const freshSender = await User.findOne({ userId: senderId });
+          const freshReceiver = await User.findOne({ userId: receiverId });
+          if (!freshSender || !freshReceiver) return;
           const { updateQuestProgress } = require("../../../utils/questUtil");
           await Promise.all([
-            updateQuestProgress(senderUser, "pvp_battle", 1, message.channel),
-            updateQuestProgress(receiverUser, "pvp_battle", 1, message.channel),
+            updateQuestProgress(freshSender, "pvp_battle", 1, message.channel),
+            updateQuestProgress(freshReceiver, "pvp_battle", 1, message.channel),
           ]);
-          await runPvPBattle(message, prompt, senderUser, receiverUser);
+          await runPvPBattle(message, prompt, freshSender, freshReceiver);
         } else if (interaction.customId === "pvp_decline") {
           collector.stop("declined");
           pendingChallenges.delete(receiverId);
@@ -226,7 +229,7 @@ class BattleCommand extends BaseCommand {
             content: `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`,
             embeds: [],
             components: [],
-          });
+          }).catch(() => {});
         }
       });
 
@@ -285,15 +288,19 @@ const handleAcceptChallenge = async (message) => {
   }
 
   pendingChallenges.delete(receiverId);
-  const { senderUser, receiverUser, prompt } = challenge;
+  const { senderId, prompt } = challenge;
+
+  const freshSender = await User.findOne({ userId: senderId });
+  const freshReceiver = await User.findOne({ userId: receiverId });
+  if (!freshSender || !freshReceiver) return;
 
   const { updateQuestProgress } = require("../../../utils/questUtil");
   await Promise.all([
-    updateQuestProgress(senderUser, "pvp_battle", 1, message.channel),
-    updateQuestProgress(receiverUser, "pvp_battle", 1, message.channel),
+    updateQuestProgress(freshSender, "pvp_battle", 1, message.channel),
+    updateQuestProgress(freshReceiver, "pvp_battle", 1, message.channel),
   ]);
 
-  await runPvPBattle(message, prompt, senderUser, receiverUser);
+  await runPvPBattle(message, prompt, freshSender, freshReceiver);
 };
 
 /**
@@ -503,11 +510,17 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           currentEmbed.setFooter({ text: `Đang chiến đấu... Lượt ${state.turn}/${result.turns}` });
         }
 
-        const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
+        const payload = { embeds: [currentEmbed], files: [attachment] };
         if (activeMessage && activeMessage.editable) {
-          await activeMessage.edit({ ...payload, components: [] }).catch(() => {});
+          const edited = await activeMessage.edit({ ...payload, components: [] }).catch((err) => {
+            console.error("[PVP_BATTLE] Error editing activeMessage:", err);
+            return null;
+          });
+          if (!edited) {
+            activeMessage = await message.channel.send(payload).catch(() => null);
+          }
         } else {
-          activeMessage = await message.reply(payload).catch(() => null);
+          activeMessage = await message.channel.send(payload).catch(() => null);
         }
       }
 
@@ -518,9 +531,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   } else {
     const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter({ text: footerText });
     if (promptMessage && promptMessage.editable) {
-      await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch(() => {});
+      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [] }).catch((err) => {
+        console.error("[PVP_BATTLE] Error editing promptMessage:", err);
+        return null;
+      });
+      if (!edited) {
+        await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
+      }
     } else {
-      await message.reply({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
+      await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
     }
   }
 };
