@@ -33,8 +33,20 @@ const CLASS_EMOJIS = {
   wretch: "🪵",
 };
 
-// Global pending challenges map keyed by targetUserId
+// Global pending challenges map keyed by receiverId
 const pendingChallenges = new Map();
+
+/**
+ * Helper to find any active challenge involving a specific userId (as sender or receiver)
+ */
+const findUserChallenge = (userId) => {
+  for (const [key, c] of pendingChallenges.entries()) {
+    if (c.senderId === userId || c.receiverId === userId) {
+      return { key, challenge: c };
+    }
+  }
+  return null;
+};
 
 class BattleCommand extends BaseCommand {
   constructor() {
@@ -107,6 +119,22 @@ class BattleCommand extends BaseCommand {
         );
       }
 
+      // Concurrency check: Ensure sender does not have an active pending challenge
+      const senderActive = findUserChallenge(senderId);
+      if (senderActive) {
+        return message.reply(
+          `${config.emoji.no} Bạn đang trong một lời khiêu chiến chưa hoàn tất. Hãy từ chối (\`${config.prefix}db\`) hoặc chờ hết hạn trước khi khiêu chiến người khác.`,
+        );
+      }
+
+      // Concurrency check: Ensure target does not have an active pending challenge
+      const targetActive = findUserChallenge(receiverId);
+      if (targetActive) {
+        return message.reply(
+          `${config.emoji.no} <@${receiverId}> hiện đang trong một lời khiêu chiến khác chưa hoàn tất!`,
+        );
+      }
+
       let receiverUser, receiverClass;
       try {
         const res = await requireRpgCharacter(receiverId);
@@ -148,30 +176,30 @@ class BattleCommand extends BaseCommand {
 
       const senderAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
 
-      // OwO-style traditional Discord challenge embed
+      // 100% OwO Vietnamese style challenge embed
       const challengeEmbed = new EmbedBuilder()
         .setColor(senderClass.color || "#5865F2")
         .setAuthor({
-          name: `${targetName.toUpperCase()}, ${senderName} challenges you to a duel!`,
+          name: `${targetName.toUpperCase()}, ${senderName} đã thách đấu bạn một trận quyết chiến!`,
           iconURL: senderAvatar,
         })
         .setDescription(
-          `\`${config.prefix}ab\` to accept the battle!\n` +
-          `\`${config.prefix}db\` to decline the battle!`
+          `\`${config.prefix}ab\` để chấp nhận trận đấu!\n` +
+          `\`${config.prefix}db\` để từ chối trận đấu!`
         )
         .addFields(
           {
-            name: `${senderName} | ${senderStreak} wins`,
-            value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name} | ⚔️ **${senderPwr.toLocaleString()}** Pwr`,
+            name: `${senderName} | ${senderStreak} trận thắng`,
+            value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name} | ⚔️ **${senderPwr.toLocaleString()}** Lực chiến`,
             inline: true,
           },
           {
-            name: `${targetName} | ${receiverStreak} wins`,
-            value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name} | ⚔️ **${receiverPwr.toLocaleString()}** Pwr`,
+            name: `${targetName} | ${receiverStreak} trận thắng`,
+            value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name} | ⚔️ **${receiverPwr.toLocaleString()}** Lực chiến`,
             inline: true,
           }
         )
-        .setFooter({ text: "This challenge will expire in 10 minutes" })
+        .setFooter({ text: "Thách đấu này sẽ hết hạn trong 10 phút" })
         .setTimestamp();
 
       const row = new ActionRowBuilder().addComponents(
@@ -185,7 +213,7 @@ class BattleCommand extends BaseCommand {
           .setStyle(ButtonStyle.Danger)
       );
 
-      // Force traditional Discord embed using skipV2: true
+      // Send as traditional Discord Embed (skipV2: true)
       const prompt = await message.reply({
         content: `<@${receiverId}>`,
         embeds: [challengeEmbed],
@@ -208,12 +236,21 @@ class BattleCommand extends BaseCommand {
       pendingChallenges.set(receiverId, challengeData);
 
       const collector = prompt.createMessageComponentCollector({
-        filter: (interaction) => interaction.user.id === receiverId,
         time: 10 * 60 * 1000,
       });
 
       collector.on("collect", async (interaction) => {
+        const clickerId = interaction.user.id;
+
         if (interaction.customId === "pvp_accept") {
+          // Only the challenged target user can accept
+          if (clickerId !== receiverId) {
+            return interaction.reply({
+              content: `❌ Chỉ <@${receiverId}> mới có thể chấp nhận lời khiêu chiến này!`,
+              flags: 64,
+            });
+          }
+
           collector.stop("accepted");
           pendingChallenges.delete(receiverId);
           await interaction.deferUpdate().catch(() => {});
@@ -226,11 +263,25 @@ class BattleCommand extends BaseCommand {
             updateQuestProgress(freshReceiver, "pvp_battle", 1, message.channel),
           ]);
           await runPvPBattle(message, prompt, freshSender, freshReceiver);
+
         } else if (interaction.customId === "pvp_decline") {
+          // Both receiver (target) AND sender (challenger) can decline/cancel
+          if (clickerId !== receiverId && clickerId !== senderId) {
+            return interaction.reply({
+              content: `❌ Bạn không thể từ chối lời thách đấu của người khác!`,
+              flags: 64,
+            });
+          }
+
           collector.stop("declined");
           pendingChallenges.delete(receiverId);
+
+          const cancelMsg = clickerId === senderId
+            ? `❌ <@${senderId}> đã hủy lời khiêu chiến gửi tới <@${receiverId}>.`
+            : `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`;
+
           await interaction.update({
-            content: `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`,
+            content: cancelMsg,
             embeds: [],
             components: [],
             skipV2: true,
@@ -281,7 +332,7 @@ class BattleCommand extends BaseCommand {
 }
 
 /**
- * Handle accepting a pending PvP challenge.
+ * Handle accepting a pending PvP challenge via `xab` command.
  */
 const handleAcceptChallenge = async (message) => {
   const receiverId = message.author.id;
@@ -310,25 +361,32 @@ const handleAcceptChallenge = async (message) => {
 };
 
 /**
- * Handle declining a pending PvP challenge.
+ * Handle declining or canceling a pending PvP challenge via `xdb` command.
  */
 const handleDeclineChallenge = async (message) => {
-  const receiverId = message.author.id;
-  const challenge = pendingChallenges.get(receiverId);
+  const userId = message.author.id;
+  const found = findUserChallenge(userId);
 
-  if (!challenge) {
+  if (!found) {
     return message.reply(
-      `${config.emoji.no} Bạn hiện không có lời khiêu chiến PvP nào để từ chối!`,
+      `${config.emoji.no} Bạn hiện không có lời khiêu chiến PvP nào để từ chối hoặc hủy!`,
     );
   }
 
-  pendingChallenges.delete(receiverId);
-  const { senderId, prompt } = challenge;
+  const { key, challenge } = found;
+  pendingChallenges.delete(key);
+
+  const { senderId, receiverId, prompt } = challenge;
+  const isSender = userId === senderId;
+
+  const statusMsg = isSender
+    ? `❌ <@${senderId}> đã hủy lời khiêu chiến gửi tới <@${receiverId}>.`
+    : `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`;
 
   if (prompt && prompt.editable) {
     await prompt
       .edit({
-        content: `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`,
+        content: statusMsg,
         embeds: [],
         components: [],
         skipV2: true,
@@ -336,9 +394,7 @@ const handleDeclineChallenge = async (message) => {
       .catch(() => {});
   }
 
-  return message.reply(
-    `❌ Bạn đã từ chối lời khiêu chiến từ <@${senderId}>.`,
-  );
+  return message.reply(statusMsg);
 };
 
 /**
