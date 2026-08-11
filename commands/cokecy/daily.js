@@ -37,7 +37,7 @@ class DailyCommand extends BaseCommand {
     const s = Math.floor(diff.seconds);
 
     if (lastClaim && lastClaim.equals(today)) {
-      return message.reply(`⏱️ **|** **${name}**, your next daily is in: **${h}H ${m}M ${s}S**`);
+      return message.reply(`⏱️ **|** **${name}**, thời gian nhận điểm danh tiếp theo của bạn là sau: **${h}Giờ ${m}Phút ${s}Giây**`);
     }
 
     let streak = 1;
@@ -101,16 +101,16 @@ class DailyCommand extends BaseCommand {
 
     await user.save();
 
-    let responseText = `💰 **|** **${name}**, Here is your daily ${config.emoji.money} **${reward.toLocaleString()}** Coke!\n`;
+    let responseText = `💰 **|** **${name}**, đây là phần thưởng hàng ngày của bạn: ${config.emoji.money} **${reward.toLocaleString()}** Coke!\n`;
     if (brokeStreak) {
-      responseText += `${config.emoji.fireBreak} **|** Bạn đã mất chuỗi, bắt đầu lại từ đầu!\n`;
+      responseText += `${config.emoji.fireBreak} **|** Bạn đã mất chuỗi điểm danh, bắt đầu lại từ đầu!\n`;
     } else {
-      responseText += `<:blank:1403928807395819671>**|** You're on a **${streak}** daily streak! ${streakEmoji}\n`;
+      responseText += `<:blank:1403928807395819671>**|** Bạn đang có chuỗi điểm danh **${streak} ngày** liên tiếp! ${streakEmoji}\n`;
     }
 
-    responseText += `<:crate:1512793698025603282> **|** You received a **lootbox**!\n`;
-    responseText += `<:souls:1518749776538243082> **|** You received **${soulsGained} Linh Hồn**!\n`;
-    responseText += `⏱️ **|** Your next daily is in: **${h}H ${m}M ${s}S**`;
+    responseText += `<:crate:1512793698025603282> **|** Bạn đã nhận được **1 Rương Vật Phẩm**!\n`;
+    responseText += `<:souls:1518749776538243082> **|** Bạn đã nhận được **${soulsGained} Linh Hồn**!\n`;
+    responseText += `⏱️ **|** Thời gian nhận điểm danh tiếp theo: **${h}Giờ ${m}Phút ${s}Giây**`;
 
     if (milestoneMessage) {
       responseText += `\n\n${milestoneMessage}`;

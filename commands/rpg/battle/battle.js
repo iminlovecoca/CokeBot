@@ -176,6 +176,11 @@ class BattleCommand extends BaseCommand {
 
       const senderAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
 
+      const equipped1 = getEquippedItems(senderUser);
+      const equipped2 = getEquippedItems(receiverUser);
+      const weapon1Emoji = equipped1.weapon?.emoji ? ` | ${equipped1.weapon.emoji}` : "";
+      const weapon2Emoji = equipped2.weapon?.emoji ? ` | ${equipped2.weapon.emoji}` : "";
+
       // 100% OwO Vietnamese style challenge embed
       const challengeEmbed = new EmbedBuilder()
         .setColor(senderClass.color || "#5865F2")
@@ -190,12 +195,12 @@ class BattleCommand extends BaseCommand {
         .addFields(
           {
             name: `${senderName} | ${senderStreak} trận thắng`,
-            value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name} | ⚔️ **${senderPwr.toLocaleString()}** Lực chiến`,
+            value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name}${weapon1Emoji}\n⚔️ **${senderPwr.toLocaleString()}** Lực chiến`,
             inline: true,
           },
           {
             name: `${targetName} | ${receiverStreak} trận thắng`,
-            value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name} | ⚔️ **${receiverPwr.toLocaleString()}** Lực chiến`,
+            value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name}${weapon2Emoji}\n⚔️ **${receiverPwr.toLocaleString()}** Lực chiến`,
             inline: true,
           }
         )
@@ -205,11 +210,11 @@ class BattleCommand extends BaseCommand {
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("pvp_accept")
-          .setLabel("Accept")
+          .setLabel("Chấp Nhận")
           .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
           .setCustomId("pvp_decline")
-          .setLabel("Decline")
+          .setLabel("Từ Chối")
           .setStyle(ButtonStyle.Danger)
       );
 
