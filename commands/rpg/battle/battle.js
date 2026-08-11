@@ -213,7 +213,7 @@ class BattleCommand extends BaseCommand {
           .setStyle(ButtonStyle.Danger)
       );
 
-      // Send as traditional Discord Embed (skipV2: true)
+      // Send challenge message as traditional Discord Embed with buttons below (skipV2: true)
       const prompt = await message.reply({
         content: `<@${receiverId}>`,
         embeds: [challengeEmbed],
@@ -451,7 +451,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${rewards.petFooterInfo || ""}`;
   }
 
-  // Traditional Discord Embed with round circular avatar icon
+  // Discord Embed with round circular avatar icon
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .setAuthor({
@@ -575,7 +575,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           currentEmbed.setFooter({ text: `Đang chiến đấu... Lượt ${state.turn}/${result.turns}` });
         }
 
-        const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
+        const payload = { embeds: [currentEmbed], files: [attachment] };
         if (activeMessage && activeMessage.editable) {
           const edited = await activeMessage.edit({ ...payload, components: [] }).catch((err) => {
             console.error("[PVP_BATTLE] Error editing activeMessage:", err);
@@ -596,15 +596,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   } else {
     const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter({ text: footerText });
     if (promptMessage && promptMessage.editable) {
-      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch((err) => {
+      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [] }).catch((err) => {
         console.error("[PVP_BATTLE] Error editing promptMessage:", err);
         return null;
       });
       if (!edited) {
-        await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
+        await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
       }
     } else {
-      await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
+      await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
     }
   }
 };

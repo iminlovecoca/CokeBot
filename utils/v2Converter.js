@@ -323,7 +323,7 @@ function patchMethod(target, methodName) {
 
     // Check if the current payload is sending V2 components
     const isSendingV2 = convertedOptions && typeof convertedOptions === "object" && 
-      ((convertedOptions.flags & MessageFlags.IsComponentsV2) || (convertedOptions.components && convertedOptions.components.length > 0));
+      ((convertedOptions.flags & MessageFlags.IsComponentsV2) || (convertedOptions.components && convertedOptions.components.some(c => c && (c.constructor?.name === "ContainerBuilder" || c.type === 17))));
 
     if (isSendingV2) {
       if (methodName === "edit" && isMessage) {
