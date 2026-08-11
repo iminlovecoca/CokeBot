@@ -1,17 +1,17 @@
 const BaseCommand = require("../../../core/BaseCommand");
 const config = require("../../../data/config");
-const { handleAcceptChallenge } = require("./battle");
+const confirmationManager = require("../../../utils/confirmationManager");
 
-class AcceptBattleCommand extends BaseCommand {
+class AcceptCommand extends BaseCommand {
   constructor() {
     super({
       name: "ab",
       aliases: ["accept", "acceptbattle", "xab"],
-      description: "Chấp nhận lời khiêu chiến PvP.",
+      description: "Chấp nhận lời khiêu chiến PvP, chuyển tiền hoặc đề nghị đang chờ.",
       usage: `${config.prefix}ab`,
       examples: [
         {
-          intent: "Chấp nhận lời khiêu chiến PvP",
+          intent: "Chấp nhận đề nghị đang chờ",
           command: `${config.prefix}ab`,
         },
       ],
@@ -20,8 +20,8 @@ class AcceptBattleCommand extends BaseCommand {
   }
 
   async execute(message) {
-    return handleAcceptChallenge(message);
+    return confirmationManager.acceptRequest(message.author.id, message);
   }
 }
 
-module.exports = new AcceptBattleCommand();
+module.exports = new AcceptCommand();
