@@ -146,12 +146,14 @@ class BattleCommand extends BaseCommand {
       const senderStreak = senderUser.rpg?.pvpStreak || 0;
       const receiverStreak = receiverUser.rpg?.pvpStreak || 0;
 
-      // OwO-style challenge embed matching user's screenshot
+      const senderAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
+
+      // OwO-style traditional Discord challenge embed
       const challengeEmbed = new EmbedBuilder()
         .setColor(senderClass.color || "#5865F2")
         .setAuthor({
           name: `${targetName.toUpperCase()}, ${senderName} challenges you to a duel!`,
-          iconURL: message.author.displayAvatarURL({ dynamic: true }),
+          iconURL: senderAvatar,
         })
         .setDescription(
           `\`${config.prefix}ab\` to accept the battle!\n` +
@@ -183,10 +185,12 @@ class BattleCommand extends BaseCommand {
           .setStyle(ButtonStyle.Danger)
       );
 
+      // Force traditional Discord embed using skipV2: true
       const prompt = await message.reply({
         content: `<@${receiverId}>`,
         embeds: [challengeEmbed],
         components: [row],
+        skipV2: true,
       });
 
       const challengeData = {
@@ -229,6 +233,7 @@ class BattleCommand extends BaseCommand {
             content: `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`,
             embeds: [],
             components: [],
+            skipV2: true,
           }).catch(() => {});
         }
       });
@@ -241,6 +246,7 @@ class BattleCommand extends BaseCommand {
             content: `⌛ Lời khiêu chiến đã hết hạn. <@${receiverId}> đã không trả lời kịp thời.`,
             embeds: [],
             components: [],
+            skipV2: true,
           })
           .catch(() => {});
       });
@@ -325,6 +331,7 @@ const handleDeclineChallenge = async (message) => {
         content: `❌ <@${receiverId}> đã từ chối lời khiêu chiến từ <@${senderId}>.`,
         embeds: [],
         components: [],
+        skipV2: true,
       })
       .catch(() => {});
   }
@@ -373,6 +380,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const showImage = !["text", "compact"].includes(battleDisplay);
 
   const memberName = message.member?.displayName || message.author.displayName || message.author.username;
+  const authorAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
   const weapon1Emoji = equipped1.weapon?.emoji ? ` ${equipped1.weapon.emoji}` : "";
   const weapon2Emoji = equipped2.weapon?.emoji ? ` ${equipped2.weapon.emoji}` : "";
 
@@ -387,11 +395,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${rewards.petFooterInfo || ""}`;
   }
 
+  // Traditional Discord Embed with round circular avatar icon
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
     .setAuthor({
       name: `${memberName} Đang chiến đấu!`,
-      iconURL: message.author.displayAvatarURL({ dynamic: true }),
+      iconURL: authorAvatar,
     })
     .addFields(
       {
@@ -510,7 +519,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           currentEmbed.setFooter({ text: `Đang chiến đấu... Lượt ${state.turn}/${result.turns}` });
         }
 
-        const payload = { embeds: [currentEmbed], files: [attachment] };
+        const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
         if (activeMessage && activeMessage.editable) {
           const edited = await activeMessage.edit({ ...payload, components: [] }).catch((err) => {
             console.error("[PVP_BATTLE] Error editing activeMessage:", err);
@@ -531,15 +540,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   } else {
     const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter({ text: footerText });
     if (promptMessage && promptMessage.editable) {
-      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [] }).catch((err) => {
+      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch((err) => {
         console.error("[PVP_BATTLE] Error editing promptMessage:", err);
         return null;
       });
       if (!edited) {
-        await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
+        await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
       }
     } else {
-      await message.channel.send({ embeds: [finalEmbedWithFooter] }).catch(() => {});
+      await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
     }
   }
 };
