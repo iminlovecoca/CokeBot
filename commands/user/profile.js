@@ -5,6 +5,7 @@ const config = require('../../data/config');
 const path = require('path');
 const User = require('../../models/User');
 const { getEquippedItems, getEquippedPet } = require('../../utils/rpgUtil');
+const { PET_SPECIES } = require('../../data/pets');
 
 function roundRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
@@ -29,6 +30,17 @@ function getRankInfo(level) {
   if (level <= 60) return { key: 'ancient', name: 'Ancient' };
   return { key: 'divine', name: 'Divine' };
 }
+
+const sanitizeText = (str) => {
+  if (!str) return '';
+  return str.replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '').trim();
+};
+
+const extractEmojiId = (str) => {
+  if (!str) return null;
+  const match = str.match(/<a?:[a-zA-Z0-9_]+:(\d+)>/);
+  return match ? match[1] : null;
+};
 
 class ProfileCommand extends BaseCommand {
   constructor() {
@@ -197,21 +209,64 @@ class ProfileCommand extends BaseCommand {
     roundRect(ctx, 45, card2Y, 710, card2H, 12);
     ctx.fill();
 
+    try {
+      const cokeEmojiUrl = 'https://cdn.discordapp.com/emojis/1509951335016173662.png';
+      const cokeImg = await loadImage(cokeEmojiUrl).catch(() => null);
+      if (cokeImg) {
+        ctx.drawImage(cokeImg, 70, card2Y + 34, 28, 28);
+      }
+    } catch {}
+
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`💰 ${userData.coke.toLocaleString()} Coke`, 70, card2Y + 55);
+    ctx.fillText(`${userData.coke.toLocaleString()} Coke`, 106, card2Y + 56);
 
     const equippedItems = getEquippedItems(userData);
     const weapon = equippedItems.weapon;
-    const weaponName = weapon ? `${weapon.name || weapon.id}` : 'Tay Không';
+    const cleanWeaponName = sanitizeText(weapon?.name || weapon?.id) || 'Tay Không';
+    const weaponEmojiId = extractEmojiId(weapon?.emoji || weapon?.icon);
+
+    let weaponX = 340;
+    if (weaponEmojiId) {
+      try {
+        const weaponImg = await loadImage(`https://cdn.discordapp.com/emojis/${weaponEmojiId}.png`).catch(() => null);
+        if (weaponImg) {
+          ctx.drawImage(weaponImg, 340, card2Y + 24, 24, 24);
+          weaponX = 370;
+        }
+      } catch {}
+    }
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px Arial';
-    ctx.fillText(`⚔️ Vũ khí: ${weaponName}`, 320, card2Y + 40);
+    ctx.fillText(`Vũ khí: ${cleanWeaponName}`, weaponX, card2Y + 42);
 
     const equippedPet = getEquippedPet(userData);
-    const petName = equippedPet ? `${equippedPet.name || equippedPet.key} (Lv.${equippedPet.level || 1})` : 'Chưa trang bị';
-    ctx.fillText(`🐾 Pet: ${petName}`, 320, card2Y + 70);
+    let petX = 340;
+
+    if (equippedPet) {
+      const petSpecies = (PET_SPECIES || []).find((s) => s.key === equippedPet.key);
+      const petEmojiStr = equippedPet.emoji || petSpecies?.emoji || '';
+      const petEmojiId = extractEmojiId(petEmojiStr);
+
+      if (petEmojiId) {
+        try {
+          const petImg = await loadImage(`https://cdn.discordapp.com/emojis/${petEmojiId}.png`).catch(() => null);
+          if (petImg) {
+            ctx.drawImage(petImg, 340, card2Y + 56, 24, 24);
+            petX = 370;
+          }
+        } catch {}
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText(`Pet: (Lv.${equippedPet.level || 1})`, petX, card2Y + 73);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('Pet: Chưa trang bị', 340, card2Y + 73);
+    }
     ctx.restore();
 
     const card3Y = 375;
@@ -230,17 +285,29 @@ class ProfileCommand extends BaseCommand {
       displayName.toLowerCase() === 'khang' ||
       (config.permissions?.dev_ids || []).includes(targetUser.id);
 
+    let spouseName = '';
     if (isKhang) {
-      ctx.fillStyle = '#ff4757';
-      ctx.font = 'bold 18px Arial';
-      ctx.textAlign = 'right';
-      ctx.fillText('💍 Ngọc Ánh ❤️', 735, card3Y + 35);
-      ctx.textAlign = 'left';
+      spouseName = 'Ngọc Ánh ❤️';
     } else if (userData.spouse) {
-      ctx.fillStyle = '#ff4757';
+      spouseName = `${userData.spouse} ❤️`;
+    }
+
+    if (spouseName) {
+      try {
+        const ringEmojiUrl = 'https://cdn.discordapp.com/emojis/1417090203188723722.png';
+        const ringImg = await loadImage(ringEmojiUrl).catch(() => null);
+        const nameWidth = ctx.measureText(spouseName).width;
+        const ringX = 735 - nameWidth - 28;
+
+        if (ringImg) {
+          ctx.drawImage(ringImg, ringX, card3Y + 16, 22, 22);
+        }
+      } catch {}
+
+      ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 18px Arial';
       ctx.textAlign = 'right';
-      ctx.fillText(`💍 ${userData.spouse} ❤️`, 735, card3Y + 35);
+      ctx.fillText(spouseName, 735, card3Y + 33);
       ctx.textAlign = 'left';
     }
 
