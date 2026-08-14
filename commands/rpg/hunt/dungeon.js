@@ -921,7 +921,7 @@ const setupCollector = (channel, activeDungeon) => {
       }
       const hpCost = Math.floor(pExist.maxHp * 0.15);
       pExist.hp = Math.max(1, pExist.hp - hpCost);
-      activeDungeon.logs.push(`🩸 **${pExist.name}** hy sinh **${hpCost.toLocaleString()}** HP để kích hoạt **Huyết Sát**!`);
+      activeDungeon.logs.push(`<:bleed:1521938497642958889> **${pExist.name}** hy sinh **${hpCost.toLocaleString()}** HP để kích hoạt **Huyết Sát**!`);
       activeDungeon.crimsonActivePlayer = pExist.id;
       activeDungeon.crimsonHpCost = hpCost;
       await executePlayerAttack(channel, activeDungeon, pExist, 1.36);
@@ -1272,7 +1272,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
       if (activeDungeon.crimsonActivePlayer === player.id) {
         const hpRefund = activeDungeon.crimsonHpCost || 0;
         player.hp = Math.min(player.maxHp, player.hp + hpRefund);
-        activeDungeon.logs.push(`🩸 **${player.name}** tiêu diệt mục tiêu và được hồi lại **${hpRefund.toLocaleString()}** HP từ nội tại Crimson Dagger!`);
+        activeDungeon.logs.push(`<:bleed:1521938497642958889> **${player.name}** tiêu diệt mục tiêu và được hồi lại **${hpRefund.toLocaleString()}** HP từ nội tại Crimson Dagger!`);
       }
       delete activeDungeon.crimsonActivePlayer;
       delete activeDungeon.crimsonHpCost;

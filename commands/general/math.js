@@ -39,7 +39,6 @@ class MathCommand extends BaseCommand {
   }
 
   async execute(message, args, client, locator) {
-    // Join all arguments as a single expression (user may type spaces)
     const expression = args.join(" ").trim();
 
     if (!expression) {

@@ -158,7 +158,7 @@ class BattleEngine {
       if (attacker.effects.bleedRounds > 0) {
         attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
         attacker.effects.bleedRounds -= 1;
-        logs.push(`🩸 **${attacker.name}** bị mất **${attacker.effects.bleedDamage.toLocaleString()}** HP do chảy máu!`);
+        logs.push(`<:bleed:1521938497642958889> **${attacker.name}** bị mất **${attacker.effects.bleedDamage.toLocaleString()}** HP do chảy máu!`);
         if (attacker.hp <= 0) break;
       }
 

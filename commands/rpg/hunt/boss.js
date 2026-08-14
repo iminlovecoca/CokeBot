@@ -1587,7 +1587,7 @@ const startSoulRealmBattle = async (client, channel, userId) => {
           const bleedDmg = Math.floor(bossState.maxHp * 0.02);
           bossState.hp = Math.max(0, bossState.hp - bleedDmg);
           bossState.bleedRounds -= 1;
-          logs.push(`🩸 Boss bị chảy máu và mất **${bleedDmg.toLocaleString()}** HP. (Còn lại: ${bossState.bleedRounds} lượt)`);
+          logs.push(`<:bleed:1521938497642958889> Boss bị chảy máu và mất **${bleedDmg.toLocaleString()}** HP. (Còn lại: ${bossState.bleedRounds} lượt)`);
           if (bossState.hp <= 0) break;
         }
         const editPayload = makeSoulBattlePayload(playerState, bossState, logs, currentTurn, hasSoulImage, soulImageFile);
