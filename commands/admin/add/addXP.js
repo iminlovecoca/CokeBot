@@ -1,7 +1,10 @@
 const User = require("../../../models/User");
+const config = require("../../../data/config");
+
 function getXpNeeded(level) {
   return 2000 + (level - 1) * 1000;
 }
+
 function getRankEmoji(level) {
   if (level >= 71) return "<a:divine:1530878610515165365>";
   if (level >= 61) return "<a:ancient:1530878606656540814>";
@@ -11,16 +14,22 @@ function getRankEmoji(level) {
   if (level >= 21) return "<:rare:1530878574104547378>";
   return "<:common:1530878565489311826>";
 }
+
+const { AttachmentBuilder } = require("discord.js");
+const { createLevelUpCanvas } = require("../../../utils/levelUpCanvas");
+const { getRawRankName } = require("../../../utils/userUtil");
 const BaseCommand = require("../../../core/BaseCommand");
 const { fetchUser } = require("../../../utils/discordCache");
+
 class AddXPCommand extends BaseCommand {
   constructor() {
     super({
-  name: "addxp",
-  description: "Thêm XP cho 1 người chơi (admin only)",
-        cooldown: 0
+      name: "addxp",
+      description: "Thêm XP cho 1 người chơi (admin only)",
+      cooldown: 0,
     });
   }
+
   async execute(message, args) {
     if (!message.member.permissions.has("Administrator")) {
       return message.reply("❌ | Bạn không có quyền dùng lệnh này.");
@@ -32,7 +41,7 @@ class AddXPCommand extends BaseCommand {
     }
     const target =
       message.mentions.users.first() ||
-      await fetchUser(message.client, args[0]);
+      (await fetchUser(message.client, args[0]));
     if (!target) return message.reply("❌ | Không tìm thấy user.");
     const userId = target.id;
     const xpToAdd = parseInt(args[1], 10);
@@ -64,16 +73,43 @@ class AddXPCommand extends BaseCommand {
     await user.save();
     let msg = `✅ Đã cộng \`${xpToAdd}\` XP cho **<@${userId}>**.\n`;
     msg += `📊 Level hiện tại: \`${user.level}\` (${user.xp}/${getXpNeeded(user.level)} XP)`;
+
     if (leveledUp) {
-      const emoji = getRankEmoji(user.level);
-      message.channel.send(
-        `🎉 **Chúc mừng <@${userId}> đã lên cấp!**\n` +
-          `📈 Level: \`${oldLevel} → ${user.level}\`\n` +
-          `💰 Thưởng: \`${totalReward.toLocaleString()} coke\`\n` +
-          `🏅 Rank: ${emoji}`,
-      );
+      try {
+        const avatarUrl = target.displayAvatarURL({
+          extension: "png",
+          size: 256,
+        });
+        const title =
+          user.rpg?.name || user.rpg?.rank || getRawRankName(user.level);
+        const displayName = target.username;
+
+        const buffer = await createLevelUpCanvas({
+          newLevel: user.level,
+          totalReward,
+          avatarUrl,
+          title,
+        });
+
+        const attachment = new AttachmentBuilder(buffer, {
+          name: "levelup.png",
+        });
+
+        await message.channel
+          .send({
+            content: `🎉 | **${displayName}** | **${title}** leveled up!`,
+            files: [attachment],
+          })
+          .catch(() => {});
+      } catch (err) {
+        console.error(
+          "[ADD_XP_COMMAND] Error sending level up banner:",
+          err,
+        );
+      }
     }
     return message.channel.send(msg);
-    }
+  }
 }
+
 module.exports = new AddXPCommand();

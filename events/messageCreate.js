@@ -1,12 +1,15 @@
 const mongoose = require("mongoose");
 const Cokemon = require("../models/cokemon/Cokemon");
+const { AttachmentBuilder } = require("discord.js");
 const {
   getUser,
   getOrCreateUser,
   getActiveCokemon,
   addUserXp,
   getRankEmoji,
+  getRawRankName,
 } = require("../utils/userUtil");
+const { createLevelUpCanvas } = require("../utils/levelUpCanvas");
 const { addCokemonXp } = require("../utils/cokemonUtil");
 const {
   generateVerificationCode,
@@ -233,12 +236,27 @@ module.exports = {
           10,
         );
         if (leveledUp) {
-          await message.channel.send(
-            `🎉 **Chúc mừng <@${userId}> đã lên cấp!**\n` +
-              `📈 Level: \`${oldLevel} → ${newLevel}\`\n` +
-              `💰 Thưởng: \`${totalReward.toLocaleString()} coke\`\n` +
-              `🏅 Rank: ${getRankEmoji(newLevel)}`,
-          );
+          try {
+            const avatarUrl = message.author.displayAvatarURL({ extension: "png", size: 256 });
+            const title = user.rpg?.name || user.rpg?.rank || getRawRankName(newLevel);
+            const displayName = message.member?.displayName || message.author.username;
+
+            const buffer = await createLevelUpCanvas({
+              newLevel,
+              totalReward,
+              avatarUrl,
+              title,
+            });
+
+            const attachment = new AttachmentBuilder(buffer, { name: "levelup.png" });
+
+            await message.channel.send({
+              content: `🎉 | **${displayName}** | **${title}** leveled up!`,
+              files: [attachment],
+            }).catch(() => {});
+          } catch (err) {
+            console.error("[LEVEL_UP_NOTIFICATION] Error sending level up banner:", err);
+          }
         }
       }
 

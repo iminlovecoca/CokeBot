@@ -918,6 +918,16 @@ const getRankEmoji = (level) => {
   return "<a:divine:1530878610515165365>";
 };
 
+const getRawRankName = (level) => {
+  if (level <= 10) return "Common";
+  if (level <= 20) return "Uncommon";
+  if (level <= 30) return "Rare";
+  if (level <= 40) return "Legendary";
+  if (level <= 50) return "Mythic";
+  if (level <= 60) return "Ancient";
+  return "Divine";
+};
+
 module.exports = {
   getOrCreateUser,
   getUser,
@@ -950,4 +960,6 @@ module.exports = {
   addToBlacklist,
   removeFromBlacklist,
   getRankEmoji,
+  getRawRankName,
 };
+
