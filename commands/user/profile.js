@@ -31,9 +31,22 @@ function getRankInfo(level) {
   return { key: 'divine', name: 'Divine' };
 }
 
+const CLASS_NAMES = {
+  warrior: 'Chiến Sĩ (Warrior)',
+  archer: 'Cung Thủ (Archer)',
+  mage: 'Pháp Sư (Mage)',
+  assassin: 'Sát Thủ (Assassin)',
+  paladin: 'Hiệp Sĩ (Paladin)',
+  wretch: 'Kẻ Bần Cùng (Wretch)'
+};
+
 const sanitizeText = (str) => {
   if (!str) return '';
-  return str.replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '').trim();
+  return str
+    .replace(/<a?:[a-zA-Z0-9_]+:\d+>/g, '')
+    .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{2B50}-\u{2B55}]|[\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
 const extractEmojiId = (str) => {
@@ -41,6 +54,90 @@ const extractEmojiId = (str) => {
   const match = str.match(/<a?:[a-zA-Z0-9_]+:(\d+)>/);
   return match ? match[1] : null;
 };
+
+function drawGoldenRingIcon(ctx, x, y, size = 20) {
+  ctx.save();
+  const radius = size / 2 - 2;
+  const centerX = x + size / 2;
+  const centerY = y + size / 2 + 2;
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  const gemX = centerX;
+  const gemY = centerY - radius;
+  ctx.beginPath();
+  ctx.moveTo(gemX, gemY - 4);
+  ctx.lineTo(gemX + 4, gemY);
+  ctx.lineTo(gemX, gemY + 4);
+  ctx.lineTo(gemX - 4, gemY);
+  ctx.closePath();
+  ctx.fillStyle = '#70a1ff';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawClassIcon(ctx, x, y, size = 18) {
+  ctx.save();
+  ctx.fillStyle = '#70a1ff';
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawWeaponIcon(ctx, x, y, size = 18) {
+  ctx.save();
+  ctx.strokeStyle = '#ff4757';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(x + 3, y + size - 3);
+  ctx.lineTo(x + size - 3, y + 3);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x + size - 3, y + size - 3);
+  ctx.lineTo(x + 3, y + 3);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawPetPawIcon(ctx, x, y, size = 18) {
+  ctx.save();
+  ctx.fillStyle = '#ff7979';
+  const cx = x + size / 2;
+  const cy = y + size / 2 + 1;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  const toes = [
+    { dx: -0.32, dy: -0.32 },
+    { dx: 0, dy: -0.42 },
+    { dx: 0.32, dy: -0.32 }
+  ];
+  for (const t of toes) {
+    ctx.beginPath();
+    ctx.arc(cx + t.dx * size, cy + t.dy * size, size * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
 
 class ProfileCommand extends BaseCommand {
   constructor() {
@@ -154,8 +251,8 @@ class ProfileCommand extends BaseCommand {
     ctx.fillText(`Hạng toàn server: #${globalRank.toLocaleString()}`, 165, 105);
     ctx.restore();
 
-    const card1Y = 155;
-    const card1H = 95;
+    const card1Y = 145;
+    const card1H = 90;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
     roundRect(ctx, 45, card1Y, 710, card1H, 12);
@@ -163,32 +260,32 @@ class ProfileCommand extends BaseCommand {
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.font = '15px Arial';
-    ctx.fillText('Level', 70, card1Y + 32);
+    ctx.fillText('Level', 70, card1Y + 30);
 
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 36px Arial';
-    ctx.fillText(String(userData.level), 70, card1Y + 70);
+    ctx.fillText(String(userData.level), 70, card1Y + 68);
 
     const rankInfo = getRankInfo(userData.level);
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 18px Arial';
-    ctx.fillText(`Rank: #${globalRank.toLocaleString()}`, 200, card1Y + 40);
+    ctx.fillText(`Rank: #${globalRank.toLocaleString()}`, 200, card1Y + 38);
 
     const rankImgPath = path.join(__dirname, `../../assets/ranks/png/${rankInfo.key}.png`);
     try {
       const rankImg = await loadImage(rankImgPath);
-      ctx.drawImage(rankImg, 160, card1Y + 22, 28, 28);
+      ctx.drawImage(rankImg, 160, card1Y + 20, 28, 28);
     } catch {}
 
     const xpText = `XP: ${userData.xp.toLocaleString()}/${xpNeed.toLocaleString()}`;
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'right';
-    ctx.fillText(xpText, 725, card1Y + 40);
+    ctx.fillText(xpText, 725, card1Y + 38);
     ctx.textAlign = 'left';
 
     const barX = 200;
-    const barY = card1Y + 56;
+    const barY = card1Y + 54;
     const barW = 525;
     const barH = 16;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
@@ -202,8 +299,8 @@ class ProfileCommand extends BaseCommand {
     }
     ctx.restore();
 
-    const card2Y = 265;
-    const card2H = 95;
+    const card2Y = 248;
+    const card2H = 110;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
     roundRect(ctx, 45, card2Y, 710, card2H, 12);
@@ -213,39 +310,57 @@ class ProfileCommand extends BaseCommand {
       const cokeEmojiUrl = 'https://cdn.discordapp.com/emojis/1509951335016173662.png';
       const cokeImg = await loadImage(cokeEmojiUrl).catch(() => null);
       if (cokeImg) {
-        ctx.drawImage(cokeImg, 70, card2Y + 34, 28, 28);
+        ctx.drawImage(cokeImg, 70, card2Y + 41, 28, 28);
       }
     } catch {}
 
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`${userData.coke.toLocaleString()} Coke`, 106, card2Y + 56);
+    ctx.fillText(`${userData.coke.toLocaleString()} Coke`, 106, card2Y + 63);
+
+    const iconX = 335;
+    const textX = 362;
+
+    const userClassKey = (userData.rpg?.classKey || '').toLowerCase();
+    const classNameText = CLASS_NAMES[userClassKey] || 'Chưa chọn Class';
+    drawClassIcon(ctx, iconX, card2Y + 16, 18);
+    ctx.fillStyle = '#70a1ff';
+    ctx.font = 'bold 15px Arial';
+    ctx.fillText(`Class: ${classNameText}`, textX, card2Y + 31);
 
     const equippedItems = getEquippedItems(userData);
     const weapon = equippedItems.weapon;
-    const cleanWeaponName = sanitizeText(weapon?.name || weapon?.id) || 'Tay Không';
-    const weaponEmojiId = extractEmojiId(weapon?.emoji || weapon?.icon);
+    const rawWeaponName = weapon ? (weapon.name || weapon.id) : '';
+    const cleanWeaponName = sanitizeText(rawWeaponName) || 'Tay Không';
+    const enhanceText = weapon?.enhance ? ` +${weapon.enhance}` : '';
+    const fullWeaponDisplay = `Vũ khí: ${cleanWeaponName}${enhanceText}`;
 
-    let weaponX = 340;
+    const weaponEmojiId = extractEmojiId(weapon?.emoji || weapon?.icon);
+    let drewWeaponIcon = false;
     if (weaponEmojiId) {
       try {
         const weaponImg = await loadImage(`https://cdn.discordapp.com/emojis/${weaponEmojiId}.png`).catch(() => null);
         if (weaponImg) {
-          ctx.drawImage(weaponImg, 340, card2Y + 24, 24, 24);
-          weaponX = 370;
+          ctx.drawImage(weaponImg, iconX, card2Y + 44, 18, 18);
+          drewWeaponIcon = true;
         }
       } catch {}
     }
+    if (!drewWeaponIcon) {
+      drawWeaponIcon(ctx, iconX, card2Y + 44, 18);
+    }
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px Arial';
-    ctx.fillText(`Vũ khí: ${cleanWeaponName}`, weaponX, card2Y + 42);
+    ctx.font = 'bold 15px Arial';
+    ctx.fillText(fullWeaponDisplay, textX, card2Y + 59);
 
     const equippedPet = getEquippedPet(userData);
-    let petX = 340;
+    let drewPetIcon = false;
 
     if (equippedPet) {
-      const petSpecies = (PET_SPECIES || []).find((s) => s.key === equippedPet.key);
+      const petSpecies = (PET_SPECIES || []).find(
+        (s) => s.key === equippedPet.key || s.key === equippedPet.speciesKey
+      );
       const petEmojiStr = equippedPet.emoji || petSpecies?.emoji || '';
       const petEmojiId = extractEmojiId(petEmojiStr);
 
@@ -253,23 +368,28 @@ class ProfileCommand extends BaseCommand {
         try {
           const petImg = await loadImage(`https://cdn.discordapp.com/emojis/${petEmojiId}.png`).catch(() => null);
           if (petImg) {
-            ctx.drawImage(petImg, 340, card2Y + 56, 24, 24);
-            petX = 370;
+            ctx.drawImage(petImg, iconX, card2Y + 72, 18, 18);
+            drewPetIcon = true;
           }
         } catch {}
       }
 
+      if (!drewPetIcon) {
+        drawPetPawIcon(ctx, iconX, card2Y + 72, 18);
+      }
+
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText(`Pet: (Lv.${equippedPet.level || 1})`, petX, card2Y + 73);
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText(`Pet: (Lv.${equippedPet.level || 1})`, textX, card2Y + 87);
     } else {
+      drawPetPawIcon(ctx, iconX, card2Y + 72, 18);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText('Pet: Chưa trang bị', 340, card2Y + 73);
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText('Pet: Chưa trang bị', textX, card2Y + 87);
     }
     ctx.restore();
 
-    const card3Y = 375;
+    const card3Y = 372;
     const card3H = 110;
     ctx.save();
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
@@ -287,22 +407,17 @@ class ProfileCommand extends BaseCommand {
 
     let spouseName = '';
     if (isKhang) {
-      spouseName = 'Ngọc Ánh ❤️';
+      spouseName = 'Ngọc Ánh ♥';
     } else if (userData.spouse) {
-      spouseName = `${userData.spouse} ❤️`;
+      spouseName = `${userData.spouse} ♥`;
     }
 
     if (spouseName) {
-      try {
-        const ringEmojiUrl = 'https://cdn.discordapp.com/emojis/1417090203188723722.png';
-        const ringImg = await loadImage(ringEmojiUrl).catch(() => null);
-        const nameWidth = ctx.measureText(spouseName).width;
-        const ringX = 735 - nameWidth - 28;
+      ctx.font = 'bold 18px Arial';
+      const nameWidth = ctx.measureText(spouseName).width;
+      const ringX = 735 - nameWidth - 28;
 
-        if (ringImg) {
-          ctx.drawImage(ringImg, ringX, card3Y + 16, 22, 22);
-        }
-      } catch {}
+      drawGoldenRingIcon(ctx, ringX, card3Y + 16, 20);
 
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 18px Arial';
