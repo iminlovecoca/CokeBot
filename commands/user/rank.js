@@ -1,15 +1,44 @@
 const BaseCommand = require('../../core/BaseCommand');
-const config = require('../../data/config')
+const { AttachmentBuilder } = require('discord.js');
+const { createCanvas, loadImage } = require('canvas');
+const config = require('../../data/config');
+const path = require('path');
+const User = require('../../models/User');
+
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function getRankInfo(level) {
+  if (level <= 10) return { key: 'common', name: 'Common' };
+  if (level <= 20) return { key: 'rare', name: 'Rare' };
+  if (level <= 30) return { key: 'epic', name: 'Epic' };
+  if (level <= 40) return { key: 'legendary', name: 'Legendary' };
+  if (level <= 50) return { key: 'mythic', name: 'Mythic' };
+  if (level <= 60) return { key: 'ancient', name: 'Ancient' };
+  return { key: 'divine', name: 'Divine' };
+}
 
 class RankCommand extends BaseCommand {
   constructor() {
     super({
       name: 'rank',
       aliases: ['level', 'lvl'],
-      description: '🔰 Xem cấp bậc rank và level',
-      usage: `${config.prefix}rank`,
+      description: '🔰 Xem cấp bậc rank và level bằng hình ảnh Canvas.',
+      usage: `${config.prefix}rank [@user]`,
       examples: [
-        { intent: 'Xem thông tin level và rank của bạn', command: `${config.prefix}rank` }
+        { intent: 'Xem thông tin level và rank của bạn', command: `${config.prefix}rank` },
+        { intent: 'Xem level của người khác', command: `${config.prefix}rank @Khang` }
       ],
       category: 'user'
     });
@@ -17,24 +46,125 @@ class RankCommand extends BaseCommand {
 
   async execute(message, args, client, locator) {
     const userService = locator.get('userService');
-    const displayName = message.member?.displayName || message.author.username;
-    
-    let user = await userService.getUser(message.author.id);
+    const targetUser = message.mentions.users.first() || message.author;
+    let user = await userService.getUser(targetUser.id);
     const xpNeed = userService.getUserXpNeeded(user.level);
-    const xpPercent = Math.floor((user.xp / xpNeed) * 100);
-    const progressBar =
-      `▰`.repeat(Math.floor(xpPercent / 10)) +
-      `▱`.repeat(10 - Math.floor(xpPercent / 10));
+    const xpPercent = Math.min(1, Math.max(0, user.xp / xpNeed));
 
-    const rankEmoji = userService.getRankEmoji(user.level);
+    const globalRank = await User.countDocuments({
+      $or: [
+        { level: { $gt: user.level } },
+        { level: user.level, xp: { $gt: user.xp } }
+      ]
+    }).catch(() => 0) + 1;
 
-    const output =
-      `🔰 **${displayName}** 🔰\n` +
-      `**Rank **|** ${rankEmoji}\n` +
-      `XP \t**|** ${user.xp} / ${xpNeed}\n` +
-      `Level ${user.level} ${progressBar} ${xpPercent}%**`;
+    const width = 750;
+    const height = 240;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
 
-    return message.channel.send(output);
+    const bgPath = path.join(__dirname, '../../assets/backgrounds/profile-bg.png');
+    try {
+      const bg = await loadImage(bgPath);
+      ctx.drawImage(bg, 0, 0, width, height);
+    } catch {
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#19082b');
+      gradient.addColorStop(1, '#140624');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(18, 20, 26, 0.78)';
+    roundRect(ctx, 15, 15, width - 30, height - 30, 16);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    const avatarX = 25;
+    const avatarY = 25;
+    const avatarSize = 190;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+    try {
+      const avatarImg = await loadImage(targetUser.displayAvatarURL({ extension: 'png', size: 256 }));
+      ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+    } catch {
+      ctx.fillStyle = '#333';
+      ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+
+    const displayName = message.guild?.members.cache.get(targetUser.id)?.displayName || targetUser.displayName || targetUser.username;
+
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 34px Arial';
+    ctx.fillText(displayName, 240, 65);
+
+    const textWidth = ctx.measureText(displayName).width;
+    const rankInfo = getRankInfo(user.level);
+    const rankImgPath = path.join(__dirname, `../../assets/ranks/png/${rankInfo.key}.png`);
+    try {
+      const rankImg = await loadImage(rankImgPath);
+      ctx.drawImage(rankImg, 240 + textWidth + 12, 38, 32, 32);
+    } catch {}
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
+    ctx.font = 'italic 18px Arial';
+    ctx.fillText(`Hạng toàn server: #${globalRank.toLocaleString()}`, 240, 95);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 38px Arial';
+    ctx.fillText(`LVL ${user.level}`, 240, 172);
+    ctx.restore();
+
+    const rightStartX = 380;
+
+    ctx.save();
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(`Rank: #${globalRank.toLocaleString()}`, rightStartX, 148);
+
+    const xpText = `XP: ${user.xp.toLocaleString()}/${xpNeed.toLocaleString()}`;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(xpText, 710, 148);
+    ctx.textAlign = 'left';
+
+    const barY = 162;
+    const barW = 330;
+    const barH = 18;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    roundRect(ctx, rightStartX, barY, barW, barH, 9);
+    ctx.fill();
+
+    if (xpPercent > 0) {
+      ctx.fillStyle = '#ffffff';
+      roundRect(ctx, rightStartX, barY, Math.max(18, barW * xpPercent), barH, 9);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'level.png' });
+    return message.reply({ files: [attachment] });
   }
 }
 
