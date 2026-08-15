@@ -1,6 +1,16 @@
 const User = require('../models/User');
 const BattleRankService = require('../services/battleRankService');
 
+const TARGET_TIER_DISTRIBUTION = [
+  { rank: 'Common', count: 3 },
+  { rank: 'Rare', count: 3 },
+  { rank: 'Epic', count: 3 },
+  { rank: 'Legendary', count: 3 },
+  { rank: 'Mythic', count: 3 },
+  { rank: 'Ancient', count: 2 },
+  { rank: 'Divine', count: 2 }
+];
+
 class BattleBotEngine {
   constructor() {
     this.intervalTimer = null;
@@ -8,14 +18,16 @@ class BattleBotEngine {
   }
 
   async initialize() {
-    console.log('🤖 Battle Bot Engine initializing...');
+    console.log('🤖 Battle Bot Engine initializing with 19 Bot Tier Pyramid Distribution...');
     await this.syncBotStatsWithHumanAverage();
+    await this.balanceBotRankDistribution();
 
-    // Run periodic bot simulation every 30 minutes
+    // Run periodic bot simulation and tier re-balancing every 30 minutes
     this.intervalTimer = setInterval(async () => {
       try {
         await this.syncBotStatsWithHumanAverage();
         await this.simulateBotBattleClimb();
+        await this.balanceBotRankDistribution();
       } catch (err) {
         console.error('[BATTLE_BOT_ENGINE] Simulation error:', err);
       }
@@ -23,7 +35,6 @@ class BattleBotEngine {
   }
 
   async syncBotStatsWithHumanAverage() {
-    // Calculate average level and power of real human players
     const humanStats = await User.aggregate([
       { $match: { isBattleBot: { $ne: true }, 'rpg.classKey': { $ne: null } } },
       {
@@ -40,7 +51,6 @@ class BattleBotEngine {
 
     const bots = await User.find({ isBattleBot: true });
     for (const bot of bots) {
-      // Dynamic variation between 85% and 115% of human average
       const pwrMultiplier = 0.85 + Math.random() * 0.3;
       const lvlVariation = Math.floor(Math.random() * 5) - 2;
 
@@ -54,11 +64,28 @@ class BattleBotEngine {
     }
   }
 
+  async balanceBotRankDistribution() {
+    const bots = await User.find({ isBattleBot: true }).sort({ 'rpg.battleLp': -1 });
+    if (bots.length < 19) return;
+
+    let botIdx = 0;
+    for (const tierConfig of TARGET_TIER_DISTRIBUTION) {
+      for (let i = 0; i < tierConfig.count; i++) {
+        if (botIdx < bots.length) {
+          const bot = bots[botIdx];
+          bot.rpg.battleRank = tierConfig.rank;
+          bot.markModified('rpg');
+          await bot.save().catch(() => {});
+          botIdx++;
+        }
+      }
+    }
+  }
+
   async simulateBotBattleClimb() {
     const bots = await User.find({ isBattleBot: true });
     if (bots.length < 2) return;
 
-    // Pick 2 random bots to simulate a match
     const b1Idx = Math.floor(Math.random() * bots.length);
     let b2Idx = Math.floor(Math.random() * bots.length);
     while (b2Idx === b1Idx) {
@@ -68,7 +95,6 @@ class BattleBotEngine {
     const bot1 = bots[b1Idx];
     const bot2 = bots[b2Idx];
 
-    // Determine winner based on power + random factor
     const b1Roll = (bot1.rpg?.power || 1000) * (0.8 + Math.random() * 0.4);
     const b2Roll = (bot2.rpg?.power || 1000) * (0.8 + Math.random() * 0.4);
 
