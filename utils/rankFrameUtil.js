@@ -1,76 +1,95 @@
+/**
+ * Clean & Modern Square (1:1) Dark Fantasy RPG Rank Frames (100% Pure Canvas 2D Vector)
+ * 100% SQUARE FRAMES (HÌNH VUÔNG): Clean metallic borders, geometric bevels, sharp corner brackets, accurate colors.
+ */
+
 const RANK_TIERS = {
   unranked: { key: "unranked", name: "Unranked", isUnranked: true },
   common: {
     key: "common",
-    name: "Common",
+    name: "COMMON",
+    subtitle: "Viền Bạc Thép",
     emoji: "<:common:1530878565489311826>",
-    c1: "#e3e7f2",
+    textColor: "#b5b9c7",
+    c1: "#ffffff",
     c2: "#b5b9c7",
     c3: "#4a4e5d",
-    gem: "#7393b3",
-    glow: "rgba(181, 185, 199, 0.35)"
+    gem: "#d2d7e5",
+    glow: "rgba(181, 185, 199, 0.25)"
   },
   rare: {
     key: "rare",
-    name: "Rare",
+    name: "RARE",
+    subtitle: "Viền Vàng Kim",
     emoji: "<:rare:1530878574104547378>",
-    c1: "#fff4b0",
+    textColor: "#ffd700",
+    c1: "#fffbe0",
     c2: "#ffd700",
     c3: "#8a6500",
     gem: "#ffee75",
-    glow: "rgba(255, 215, 0, 0.55)"
+    glow: "rgba(255, 215, 0, 0.45)"
   },
   epic: {
     key: "epic",
-    name: "Epic",
+    name: "EPIC",
+    subtitle: "Viền Sapphire Lam",
     emoji: "<:epic:1530878567955566642>",
-    c1: "#b3e5ff",
+    textColor: "#00a8ff",
+    c1: "#e0f6ff",
     c2: "#00a8ff",
     c3: "#003b80",
     gem: "#00ffff",
-    glow: "rgba(0, 168, 255, 0.65)"
+    glow: "rgba(0, 168, 255, 0.55)"
   },
   legendary: {
     key: "legendary",
-    name: "Legendary",
+    name: "LEGENDARY",
+    subtitle: "Viền Tím Hoàng Gia",
     emoji: "<:legendary:1530878570858287205>",
-    c1: "#f2c6ff",
+    textColor: "#a55eea",
+    c1: "#f6e8ff",
     c2: "#a55eea",
     c3: "#481570",
     gem: "#df80ff",
-    glow: "rgba(165, 94, 234, 0.75)"
+    glow: "rgba(165, 94, 234, 0.65)"
   },
   mythic: {
     key: "mythic",
-    name: "Mythic",
+    name: "MYTHIC",
+    subtitle: "Viền Đỏ Huyết Nguyệt",
     emoji: "<a:mythic:1530878614843686912>",
-    c1: "#ffb8db",
+    textColor: "#ff007f",
+    c1: "#ffe6f2",
     c2: "#ff007f",
     c3: "#770039",
     gem: "#ff66b3",
-    glow: "rgba(255, 0, 127, 0.85)"
+    glow: "rgba(255, 0, 127, 0.75)"
   },
   ancient: {
     key: "ancient",
-    name: "Ancient",
+    name: "ANCIENT",
+    subtitle: "Viền Hổ Phách Cổ Đại",
     emoji: "<a:ancient:1530878606656540814>",
-    c1: "#ffd6c2",
+    textColor: "#ff793f",
+    c1: "#fff0e6",
     c2: "#ff793f",
     c3: "#802700",
     gem: "#ff944d",
-    accentGem: "#2ecc71",
-    glow: "rgba(255, 121, 63, 0.85)"
+    glow: "rgba(255, 121, 63, 0.75)"
   },
   divine: {
     key: "divine",
-    name: "Divine",
+    name: "DIVINE",
+    subtitle: "Viền Tinh Tú Tối Cao",
     emoji: "<a:divine:1530878610515165365>",
-    c1: "#e6ffff",
+    textColor: "#00f5d4",
+    c1: "#ffffff",
     c2: "#00f5d4",
-    c3: "#006658",
-    cGold: "#ffd700",
+    c3: "#005e52",
+    goldMid: "#ffd700",
+    goldLight: "#fff3a8",
     gem: "#ffffff",
-    glow: "rgba(0, 245, 212, 0.95)"
+    glow: "rgba(0, 245, 212, 0.85)"
   }
 };
 
@@ -80,84 +99,40 @@ function getRankConfig(rankTierInput) {
   return RANK_TIERS[key] || RANK_TIERS.unranked;
 }
 
-function roundRectPath(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, fillColor, strokeColor = "#ffffff") {
-  let rot = (Math.PI / 2) * 3;
-  let step = Math.PI / spikes;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerRadius);
-  for (let i = 0; i < spikes; i++) {
-    let x = cx + Math.cos(rot) * outerRadius;
-    let y = cy + Math.sin(rot) * outerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-
-    x = cx + Math.cos(rot) * innerRadius;
-    y = cy + Math.sin(rot) * innerRadius;
-    ctx.lineTo(x, y);
-    rot += step;
-  }
-  ctx.lineTo(cx, cy - outerRadius);
-  ctx.closePath();
-  ctx.fillStyle = fillColor;
-  ctx.fill();
-  if (strokeColor) {
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
 /**
- * Draws a 3D Faceted Diamond Gem on Canvas with light/dark reflection facets
+ * Draw a sleek 3D faceted diamond jewel pin
  */
-function draw3DDiamondGem(ctx, cx, cy, rx, ry, mainColor, topHighlightColor = "#ffffff") {
+function drawDiamondPin(ctx, cx, cy, r, gemColor, highlightColor = "#ffffff") {
   ctx.save();
 
   // Top Light Facet
-  ctx.fillStyle = topHighlightColor;
+  ctx.fillStyle = highlightColor;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ry);
-  ctx.lineTo(cx + rx, cy);
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
   ctx.lineTo(cx, cy);
-  ctx.lineTo(cx - rx, cy);
+  ctx.lineTo(cx - r, cy);
   ctx.closePath();
   ctx.fill();
 
   // Bottom Shadow Facet
-  ctx.fillStyle = mainColor;
+  ctx.fillStyle = gemColor;
   ctx.beginPath();
-  ctx.moveTo(cx - rx, cy);
+  ctx.moveTo(cx - r, cy);
   ctx.lineTo(cx, cy);
-  ctx.lineTo(cx + rx, cy);
-  ctx.lineTo(cx, cy + ry);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
   ctx.closePath();
   ctx.fill();
 
-  // Outer Border Line
+  // Crisp White Border
   ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ry);
-  ctx.lineTo(cx + rx, cy);
-  ctx.lineTo(cx, cy + ry);
-  ctx.lineTo(cx - rx, cy);
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
   ctx.closePath();
   ctx.stroke();
 
@@ -165,324 +140,162 @@ function draw3DDiamondGem(ctx, cx, cy, rx, ry, mainColor, topHighlightColor = "#
 }
 
 /**
- * Pure Canvas 2D Vector Renderer generating 100% exact 3D Metallic Wings & Frame Armors.
+ * Clean & Sleek Square Rank Frame (1:1 Ratio, Zero Wings, Pure Elegant Geometry)
  */
 function drawRankFrame(ctx, x, y, width, height, rankTierInput, options = {}) {
-  const config = getRankConfig(rankTierInput);
-  if (!config || config.isUnranked) return;
+  const cfg = getRankConfig(rankTierInput);
+  if (!cfg || cfg.isUnranked) return;
 
-  const { radius = 10 } = options;
-  const tierKey = config.key;
-  const c1 = config.c1;
-  const c2 = config.c2;
-  const c3 = config.c3;
-
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
+  const tier = cfg.key;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
   const topY = y;
-  const bottomY = y + height;
+  const botY = y + height;
+  const rightX = x + width;
+
+  const tierLevels = {
+    common: 1,
+    rare: 2,
+    epic: 3,
+    legendary: 4,
+    mythic: 5,
+    ancient: 6,
+    divine: 7
+  };
+  const level = tierLevels[tier] || 1;
 
   ctx.save();
 
-  // === 1. DRAW LOWER SIDE WINGS & CREST ARMORS (UNDERNEATH THE MAIN FRAME) ===
-
-  // --- RARE: Gold Layered Feathered Armor Wings ---
-  if (tierKey === "rare") {
-    ctx.fillStyle = c2;
-    ctx.strokeStyle = c3;
-    ctx.lineWidth = 1.5;
-
-    // Left Gold Wings
-    const lWings = [
-      { x1: x + 2, y1: bottomY - 10, x2: x - 22, y2: centerY + 25, x3: x - 5, y3: centerY + 5 },
-      { x1: x + 2, y1: centerY + 15, x2: x - 28, y2: centerY - 5, x3: x - 5, y3: centerY - 25 },
-      { x1: x + 2, y1: centerY - 15, x2: x - 24, y2: centerY - 35, x3: x + 2, y3: centerY - 45 }
-    ];
-    for (const w of lWings) {
-      ctx.beginPath();
-      ctx.moveTo(w.x1, w.y1);
-      ctx.lineTo(w.x2, w.y2);
-      ctx.lineTo(w.x3, w.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Right Gold Wings
-    const rWings = [
-      { x1: x + width - 2, y1: bottomY - 10, x2: x + width + 22, y2: centerY + 25, x3: x + width + 5, y3: centerY + 5 },
-      { x1: x + width - 2, y1: centerY + 15, x2: x + width + 28, y2: centerY - 5, x3: x + width + 5, y3: centerY - 25 },
-      { x1: x + width - 2, y1: centerY - 15, x2: x + width + 24, y2: centerY - 35, x3: x + width - 2, y3: centerY - 45 }
-    ];
-    for (const w of rWings) {
-      ctx.beginPath();
-      ctx.moveTo(w.x1, w.y1);
-      ctx.lineTo(w.x2, w.y2);
-      ctx.lineTo(w.x3, w.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+  // 1. Subtle Outer Glow (Epic to Divine)
+  if (level >= 3) {
+    ctx.shadowColor = cfg.glow;
+    ctx.shadowBlur = level * 3;
   }
 
-  // --- EPIC: Sapphire Blue Crystalline Feathered Wings ---
-  else if (tierKey === "epic") {
-    ctx.fillStyle = c2;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1.5;
+  // 2. Main Outer Frame with Clean Chamfered Square Corners
+  const bThickness = 2.5 + level * 0.7;
+  const cornerCut = 4 + level * 1.2;
 
-    // Left Sapphire Feather Spikes
-    const lFeathers = [
-      { x1: x + 2, y1: bottomY - 5, x2: x - 32, y2: centerY + 30, x3: x - 8, y3: centerY + 10 },
-      { x1: x + 2, y1: centerY + 20, x2: x - 38, y2: centerY - 10, x3: x - 8, y3: centerY - 30 },
-      { x1: x + 2, y1: centerY - 10, x2: x - 30, y2: centerY - 45, x3: x + 2, y3: centerY - 55 }
-    ];
-    for (const f of lFeathers) {
-      ctx.beginPath();
-      ctx.moveTo(f.x1, f.y1);
-      ctx.lineTo(f.x2, f.y2);
-      ctx.lineTo(f.x3, f.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+  const grad = ctx.createLinearGradient(x, topY, rightX, botY);
+  grad.addColorStop(0, cfg.c1);
+  grad.addColorStop(0.35, cfg.c2);
+  grad.addColorStop(1, cfg.c3);
 
-    // Right Sapphire Feather Spikes
-    const rFeathers = [
-      { x1: x + width - 2, y1: bottomY - 5, x2: x + width + 32, y2: centerY + 30, x3: x + width + 8, y3: centerY + 10 },
-      { x1: x + width - 2, y1: centerY + 20, x2: x + width + 38, y2: centerY - 10, x3: x + width + 8, y3: centerY - 30 },
-      { x1: x + width - 2, y1: centerY - 10, x2: x + width + 30, y2: centerY - 45, x3: x + width - 2, y3: centerY - 55 }
-    ];
-    for (const f of rFeathers) {
-      ctx.beginPath();
-      ctx.moveTo(f.x1, f.y1);
-      ctx.lineTo(f.x2, f.y2);
-      ctx.lineTo(f.x3, f.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = bThickness;
+
+  ctx.beginPath();
+  ctx.moveTo(x + cornerCut, topY);
+  ctx.lineTo(rightX - cornerCut, topY);
+  ctx.lineTo(rightX, topY + cornerCut);
+  ctx.lineTo(rightX, botY - cornerCut);
+  ctx.lineTo(rightX - cornerCut, botY);
+  ctx.lineTo(x + cornerCut, botY);
+  ctx.lineTo(x, botY - cornerCut);
+  ctx.lineTo(x, topY + cornerCut);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0; // Reset glow
+
+  // 3. Inner Secondary Accent Border (Rare to Divine)
+  if (level >= 2) {
+    const inset = bThickness + 2;
+    const inCut = Math.max(2, cornerCut - 2);
+
+    ctx.strokeStyle = tier === "divine" ? cfg.goldMid : "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 1.2;
+
+    ctx.beginPath();
+    ctx.moveTo(x + inset + inCut, topY + inset);
+    ctx.lineTo(rightX - inset - inCut, topY + inset);
+    ctx.lineTo(rightX - inset, topY + inset + inCut);
+    ctx.lineTo(rightX - inset, botY - inset - inCut);
+    ctx.lineTo(rightX - inset - inCut, botY - inset);
+    ctx.lineTo(x + inset + inCut, botY - inset);
+    ctx.lineTo(x + inset, botY - inset - inCut);
+    ctx.lineTo(x + inset, topY + inset + inCut);
+    ctx.closePath();
+    ctx.stroke();
   }
 
-  // --- LEGENDARY: Purple Dragon / Bat Leather Wings ---
-  else if (tierKey === "legendary") {
-    ctx.fillStyle = c2;
-    ctx.strokeStyle = c3;
+  // 4. Clean Geometric L-Corner Brackets (Epic to Divine)
+  if (level >= 3) {
+    const armLen = 10 + level * 1.5;
+    ctx.strokeStyle = tier === "divine" ? cfg.goldLight : cfg.c1;
     ctx.lineWidth = 2;
 
-    // Left Dragon Bat Wing Webbing
+    // Top-Left Corner Bracket
     ctx.beginPath();
-    ctx.moveTo(x + 2, bottomY - 15);
-    ctx.quadraticCurveTo(x - 45, centerY + 15, x - 38, topY - 35);
-    ctx.quadraticCurveTo(x - 20, centerY - 20, x + 2, topY + 25);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(x + armLen, topY);
+    ctx.lineTo(x, topY);
+    ctx.lineTo(x, topY + armLen);
     ctx.stroke();
 
-    // Right Dragon Bat Wing Webbing
+    // Top-Right Corner Bracket
     ctx.beginPath();
-    ctx.moveTo(x + width - 2, bottomY - 15);
-    ctx.quadraticCurveTo(x + width + 45, centerY + 15, x + width + 38, topY - 35);
-    ctx.quadraticCurveTo(x + width + 20, centerY - 20, x + width - 2, topY + 25);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(rightX - armLen, topY);
+    ctx.lineTo(rightX, topY);
+    ctx.lineTo(rightX, topY + armLen);
     ctx.stroke();
 
-    // Wing Rib Spikes (Left & Right)
+    // Bottom-Left Corner Bracket
+    ctx.beginPath();
+    ctx.moveTo(x + armLen, botY);
+    ctx.lineTo(x, botY);
+    ctx.lineTo(x, botY - armLen);
+    ctx.stroke();
+
+    // Bottom-Right Corner Bracket
+    ctx.beginPath();
+    ctx.moveTo(rightX - armLen, botY);
+    ctx.lineTo(rightX, botY);
+    ctx.lineTo(rightX, botY - armLen);
+    ctx.stroke();
+  }
+
+  // 5. Sleek Diamond Pins on Top & Bottom
+  const pinR = 3.5 + level * 0.9;
+
+  // Top Center Diamond Pin
+  drawDiamondPin(ctx, cx, topY, pinR, cfg.gem, cfg.c1);
+
+  // Bottom Center Diamond Pin (Rare to Divine)
+  if (level >= 2) {
+    drawDiamondPin(ctx, cx, botY, pinR * 0.8, cfg.gem, cfg.c1);
+  }
+
+  // 4 Corner Diamond Pins (Legendary to Divine)
+  if (level >= 4) {
+    const cPinR = pinR * 0.65;
+    drawDiamondPin(ctx, x, topY, cPinR, cfg.gem, cfg.c1);
+    drawDiamondPin(ctx, rightX, topY, cPinR, cfg.gem, cfg.c1);
+    drawDiamondPin(ctx, x, botY, cPinR, cfg.gem, cfg.c1);
+    drawDiamondPin(ctx, rightX, botY, cPinR, cfg.gem, cfg.c1);
+  }
+
+  // 6. Divine Starlight Pin (Divine only)
+  if (level === 7) {
+    ctx.save();
+    ctx.shadowColor = cfg.glow;
+    ctx.shadowBlur = 10;
+
+    const starY = topY - 14;
+    const sLen = 6;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(x + 2, bottomY - 15);
-    ctx.lineTo(x - 38, topY - 35);
-    ctx.moveTo(x + width - 2, bottomY - 15);
-    ctx.lineTo(x + width + 38, topY - 35);
+    ctx.moveTo(cx, starY - sLen);
+    ctx.lineTo(cx, starY + sLen);
+    ctx.moveTo(cx - sLen, starY);
+    ctx.lineTo(cx + sLen, starY);
     ctx.stroke();
-  }
 
-  // --- MYTHIC: Crimson Demonic Spiked Crystal Flame Wings ---
-  else if (tierKey === "mythic") {
-    ctx.fillStyle = c2;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1.8;
-
-    // Left Demonic Spikes
-    const lSpikes = [
-      { x1: x + 2, y1: bottomY - 5, x2: x - 42, y2: centerY + 25, x3: x - 10, y3: centerY + 5 },
-      { x1: x + 2, y1: centerY + 15, x2: x - 52, y2: centerY - 15, x3: x - 12, y3: centerY - 35 },
-      { x1: x + 2, y1: centerY - 15, x2: x - 40, y2: topY - 45, x3: x + 2, y3: topY - 15 }
-    ];
-    for (const s of lSpikes) {
-      ctx.beginPath();
-      ctx.moveTo(s.x1, s.y1);
-      ctx.lineTo(s.x2, s.y2);
-      ctx.lineTo(s.x3, s.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Right Demonic Spikes
-    const rSpikes = [
-      { x1: x + width - 2, y1: bottomY - 5, x2: x + width + 42, y2: centerY + 25, x3: x + width + 10, y3: centerY + 5 },
-      { x1: x + width - 2, y1: centerY + 15, x2: x + width + 52, y2: centerY - 15, x3: x + width + 12, y3: centerY - 35 },
-      { x1: x + width - 2, y1: centerY - 15, x2: x + width + 40, y2: topY - 45, x3: x + width - 2, y3: topY - 15 }
-    ];
-    for (const s of rSpikes) {
-      ctx.beginPath();
-      ctx.moveTo(s.x1, s.y1);
-      ctx.lineTo(s.x2, s.y2);
-      ctx.lineTo(s.x3, s.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-
-  // --- ANCIENT: Amber Ancient Rune Armor Wings & Green Emerald Accents ---
-  else if (tierKey === "ancient") {
-    ctx.fillStyle = c2;
-    ctx.strokeStyle = config.accentGem; // Green Emerald Line Accent
-    ctx.lineWidth = 2.2;
-
-    // Left Rune Wings
-    const lRunes = [
-      { x1: x + 2, y1: bottomY - 5, x2: x - 48, y2: centerY + 20, x3: x - 12, y3: centerY },
-      { x1: x + 2, y1: centerY + 10, x2: x - 58, y2: centerY - 20, x3: x - 14, y3: centerY - 40 },
-      { x1: x + 2, y1: centerY - 20, x2: x - 45, y2: topY - 50, x3: x + 2, y3: topY - 20 }
-    ];
-    for (const r of lRunes) {
-      ctx.beginPath();
-      ctx.moveTo(r.x1, r.y1);
-      ctx.lineTo(r.x2, r.y2);
-      ctx.lineTo(r.x3, r.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-
-    // Right Rune Wings
-    const rRunes = [
-      { x1: x + width - 2, y1: bottomY - 5, x2: x + width + 48, y2: centerY + 20, x3: x + width + 12, y3: centerY },
-      { x1: x + width - 2, y1: centerY + 10, x2: x + width + 58, y2: centerY - 20, x3: x + width + 14, y3: centerY - 40 },
-      { x1: x + width - 2, y1: centerY - 20, x2: x + width + 45, y2: topY - 50, x3: x + width - 2, y3: topY - 20 }
-    ];
-    for (const r of rRunes) {
-      ctx.beginPath();
-      ctx.moveTo(r.x1, r.y1);
-      ctx.lineTo(r.x2, r.y2);
-      ctx.lineTo(r.x3, r.y3);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-
-  // --- DIVINE: CHALLENGER-STYLE ULTIMATE CELESTIAL WINGS (Dual Tone Gold & Cyan) ---
-  else if (tierKey === "divine") {
-    // Golden Armor Wing Base
-    ctx.fillStyle = config.cGold;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5;
-
+    ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.moveTo(x + 2, bottomY - 5);
-    ctx.lineTo(x - 65, centerY + 15);
-    ctx.lineTo(x - 55, topY - 60);
-    ctx.lineTo(x - 20, topY - 20);
-    ctx.lineTo(x + 2, topY + 25);
-    ctx.closePath();
+    ctx.arc(cx, starY, 2, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(x + width - 2, bottomY - 5);
-    ctx.lineTo(x + width + 65, centerY + 15);
-    ctx.lineTo(x + width + 55, topY - 60);
-    ctx.lineTo(x + width + 20, topY - 20);
-    ctx.lineTo(x + width - 2, topY + 25);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Inner Cyan Celestial Crystal Inlay
-    ctx.fillStyle = c2;
-    const lFeathers = [
-      { x1: x + 2, y1: bottomY - 10, x2: x - 45, y2: centerY + 20, x3: x - 10, y3: centerY + 2 },
-      { x1: x + 2, y1: centerY + 10, x2: x - 52, y2: centerY - 15, x3: x - 12, y3: centerY - 30 },
-      { x1: x + 2, y1: centerY - 15, x2: x - 42, y2: topY - 40, x3: x + 2, y3: topY - 10 }
-    ];
-    for (const f of lFeathers) {
-      ctx.beginPath();
-      ctx.moveTo(f.x1, f.y1);
-      ctx.lineTo(f.x2, f.y2);
-      ctx.lineTo(f.x3, f.y3);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    const rFeathers = [
-      { x1: x + width - 2, y1: bottomY - 10, x2: x + width + 45, y2: centerY + 20, x3: x + width + 10, y3: centerY + 2 },
-      { x1: x + width - 2, y1: centerY + 10, x2: x + width + 52, y2: centerY - 15, x3: x + width + 12, y3: centerY - 30 },
-      { x1: x + width - 2, y1: centerY - 15, x2: x + width + 42, y2: topY - 40, x3: x + width - 2, y3: topY - 10 }
-    ];
-    for (const f of rFeathers) {
-      ctx.beginPath();
-      ctx.moveTo(f.x1, f.y1);
-      ctx.lineTo(f.x2, f.y2);
-      ctx.lineTo(f.x3, f.y3);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
-
-  // === 2. DRAW MAIN 3D METALLIC RECTANGULAR BOX BORDER ===
-  const bWidth = tierKey === "divine" ? 6 : tierKey === "mythic" || tierKey === "ancient" ? 5.5 : tierKey === "legendary" || tierKey === "epic" ? 4.5 : 3.5;
-
-  ctx.shadowColor = config.glow;
-  ctx.shadowBlur = tierKey === "divine" ? 25 : tierKey === "mythic" ? 20 : 12;
-
-  // Outer Highlight Gradient Stroke
-  const strokeGrad = ctx.createLinearGradient(x, y, x + width, y + height);
-  strokeGrad.addColorStop(0, c1);
-  strokeGrad.addColorStop(0.5, c2);
-  strokeGrad.addColorStop(1, c3);
-
-  ctx.strokeStyle = strokeGrad;
-  ctx.lineWidth = bWidth;
-  roundRectPath(ctx, x, y, width, height, radius);
-  ctx.stroke();
-
-  ctx.shadowBlur = 0; // Reset shadow glow
-
-  // Inner Secondary Accent Border Line
-  ctx.strokeStyle = tierKey === "divine" ? "#ffd700" : "rgba(255, 255, 255, 0.45)";
-  ctx.lineWidth = 1.2;
-  roundRectPath(ctx, x + bWidth + 1, y + bWidth + 1, width - (bWidth + 1) * 2, height - (bWidth + 1) * 2, Math.max(2, radius - 2));
-  ctx.stroke();
-
-  // === 3. DRAW 4 CORNER METALLIC SOCKET BRACKETS & 3D DIAMOND JEWELS ===
-  const gemRadiusX = Math.min(width, height) * 0.06;
-  const gemRadiusY = Math.min(width, height) * 0.08;
-
-  // Top Center Crown Gem
-  draw3DDiamondGem(ctx, centerX, topY, gemRadiusX * 1.3, gemRadiusY * 1.3, config.gem, c1);
-
-  // Bottom Center Gem
-  draw3DDiamondGem(ctx, centerX, bottomY, gemRadiusX * 1.1, gemRadiusY * 1.1, config.gem, c1);
-
-  // 4 Corner Diamond Jewels for Epic, Legendary, Mythic, Ancient, Divine
-  if (tierKey !== "common" && tierKey !== "rare") {
-    draw3DDiamondGem(ctx, x, y, gemRadiusX, gemRadiusY, config.gem, c1);
-    draw3DDiamondGem(ctx, x + width, y, gemRadiusX, gemRadiusY, config.gem, c1);
-    draw3DDiamondGem(ctx, x, y + height, gemRadiusX, gemRadiusY, config.gem, c1);
-    draw3DDiamondGem(ctx, x + width, y + height, gemRadiusX, gemRadiusY, config.gem, c1);
-  }
-
-  // === 4. DIVINE CELESTIAL STARBURST CROWN ===
-  if (tierKey === "divine") {
-    // 8-Pointed Celestial Diamond Starburst at top center
-    drawStar(ctx, centerX, topY - 14, 8, 16, 7, "#ffffff", "#00f5d4");
-    drawStar(ctx, centerX, bottomY + 14, 8, 14, 6, "#ffffff", "#ffd700");
+    ctx.restore();
   }
 
   ctx.restore();

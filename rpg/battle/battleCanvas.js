@@ -229,13 +229,18 @@ class BattleCanvas {
       ctx.drawImage(p2PetImg, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
     }
 
-    // Render Rank Frames on Pet Corner Boxes (27, 22, 94, 95 for P1; 903, 22, 94, 95 for P2)
+    // Render Rank Frames on Pet Corner Boxes & Character Cards
     const { drawRankFrame } = require("../../utils/rankFrameUtil");
     const p1Rank = (typeof p1AssetOrUser === "object" && p1AssetOrUser.rpg?.battleRank) ? p1AssetOrUser.rpg.battleRank : "Unranked";
     const p2Rank = (typeof p2AssetOrUser === "object" && p2AssetOrUser.rpg?.battleRank) ? p2AssetOrUser.rpg.battleRank : "Unranked";
 
+    // Pet corner frames
     drawRankFrame(ctx, 27, 22, 94, 95, p1Rank, { radius: 4, borderWidth: 3 });
     drawRankFrame(ctx, 903, 22, 94, 95, p2Rank, { radius: 4, borderWidth: 3 });
+
+    // Character battle card frames
+    drawRankFrame(ctx, 73, 136, 212, 354, p1Rank);
+    drawRankFrame(ctx, 735, 136, 211, 354, p2Rank);
 
     // 6. Draw HP and Rage Bars (Player 1)
     ctx.fillStyle = "rgb(30,31,35)";

@@ -1,4 +1,4 @@
-const { createCanvas, loadImage } = require("canvas");
+const { createCanvas } = require("canvas");
 const fs = require("fs");
 const path = require("path");
 const { drawRankFrame, RANK_TIERS } = require("../utils/rankFrameUtil");
@@ -9,148 +9,96 @@ async function renderAllRankFrames() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  console.log(`🚀 Starting rendering of all Battle Rank Frames into: ${outputDir}`);
-
   const tiers = [
-    { key: "common", label: "Common", desc: "Viền Bạc Thép" },
-    { key: "rare", label: "Rare", desc: "Cánh Vàng Kim" },
-    { key: "epic", label: "Epic", desc: "Cánh Sapphire Blue" },
-    { key: "legendary", label: "Legendary", desc: "Cánh Rồng Tím" },
-    { key: "mythic", label: "Mythic", desc: "Cánh Gai Đỏ Hồng" },
-    { key: "ancient", label: "Ancient", desc: "Cánh Cổ Đại Amber" },
-    { key: "divine", label: "Divine", desc: "Cánh Tinh Tú Cyan" }
+    { key: "common", name: "COMMON", sub: "Viền Bạc Thép" },
+    { key: "rare", name: "RARE", sub: "Viền Vàng Kim" },
+    { key: "epic", name: "EPIC", sub: "Viền Sapphire Lam" },
+    { key: "legendary", name: "LEGENDARY", sub: "Viền Tím Hoàng Gia" },
+    { key: "mythic", name: "MYTHIC", sub: "Viền Đỏ Huyết Nguyệt" },
+    { key: "ancient", name: "ANCIENT", sub: "Viền Hổ Phách Cổ Đại" },
+    { key: "divine", name: "DIVINE", sub: "Viền Tinh Tú Tối Cao" }
   ];
 
-  // 1. Render Individual 320x320 PNG Images for each Rank Tier
+  // 1. Render Individual Square (1:1) PNG Images (320x320)
   for (const tier of tiers) {
-    const width = 340;
-    const height = 340;
-    const canvas = createCanvas(width, height);
+    const size = 320;
+    const canvas = createCanvas(size, size);
     const ctx = canvas.getContext("2d");
 
-    // Dark Background
-    ctx.fillStyle = "#12141d";
-    ctx.fillRect(0, 0, width, height);
+    // Pure Solid Dark #05070B Background
+    ctx.fillStyle = "#05070B";
+    ctx.fillRect(0, 0, size, size);
 
-    // Tech Grid pattern
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += 30) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < height; y += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
+    // Frame Bounding Box (Square 180x180)
+    const boxSize = 180;
+    const boxX = (size - boxSize) / 2;
+    const boxY = (size - boxSize) / 2 + 10;
 
-    // Avatar Box Container (Center 140x140)
-    const boxW = 140;
-    const boxH = 140;
-    const boxX = (width - boxW) / 2;
-    const boxY = (height - boxH) / 2 - 15;
+    // Dark empty placeholder for avatar
+    ctx.fillStyle = "#10121a";
+    ctx.fillRect(boxX, boxY, boxSize, boxSize);
 
-    ctx.fillStyle = "#1f2330";
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxW, boxH, 12);
-    ctx.fill();
+    // Draw Square Vector Rank Frame
+    drawRankFrame(ctx, boxX, boxY, boxSize, boxSize, tier.key);
 
-    // Center Avatar Icon
-    ctx.fillStyle = "#4c536d";
-    ctx.font = "bold 52px sans-serif";
+    // Rank Title Text above frame
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⚔️", boxX + boxW / 2, boxY + boxH / 2);
+    ctx.font = "bold 20px serif";
+    ctx.fillStyle = RANK_TIERS[tier.key].textColor;
+    ctx.fillText(tier.name, size / 2, 40);
 
-    // Draw Metallic Rank Frame with 3D Wings
-    drawRankFrame(ctx, boxX, boxY, boxW, boxH, tier.key);
-
-    // Title Label below
-    ctx.font = "bold 24px sans-serif";
-    ctx.fillStyle = RANK_TIERS[tier.key].borderColor1;
-    ctx.fillText(tier.label.toUpperCase(), width / 2, height - 40);
-
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#a0a8be";
-    ctx.fillText(tier.desc, width / 2, height - 18);
+    // Subtitle Text below Title
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#a8b0c5";
+    ctx.fillText(tier.sub, size / 2, 58);
 
     const filePath = path.join(outputDir, `${tier.key}.png`);
     fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
-    console.log(`✅ Rendered individual frame: assets/ranks/preview/${tier.key}.png`);
   }
 
-  // 2. Render Full Overview Grid Image (all_ranks.png)
-  const fullWidth = 1400;
-  const fullHeight = 900;
+  // 2. Render Full Square Asset Template Sheet (all_ranks.png)
+  const fullWidth = 1800;
+  const fullHeight = 380;
   const fullCanvas = createCanvas(fullWidth, fullHeight);
   const fullCtx = fullCanvas.getContext("2d");
 
-  fullCtx.fillStyle = "#0c0d12";
+  // Pure Solid Dark #05070B Background
+  fullCtx.fillStyle = "#05070B";
   fullCtx.fillRect(0, 0, fullWidth, fullHeight);
 
-  fullCtx.fillStyle = "#ffffff";
-  fullCtx.font = "bold 32px sans-serif";
-  fullCtx.textAlign = "center";
-  fullCtx.fillText("🛡️ BẢNG TỔNG HỢP TOÀN BỘ KHUNG BẬC RANK BATTLE PVP (COKEBOT) 🛡️", fullWidth / 2, 55);
-
-  const boxW = 140;
-  const boxH = 140;
-  const startY = 140;
+  const boxSize = 180;
+  const startX = 55;
+  const spacingX = 248;
+  const frameY = 120;
 
   for (let i = 0; i < tiers.length; i++) {
     const tier = tiers[i];
-    const row = Math.floor(i / 4);
-    const col = i % 4;
+    const offsetX = startX + i * spacingX;
 
-    const offsetX = row === 0 ? 100 + col * 310 : 255 + col * 310;
-    const offsetY = startY + row * 380;
+    // Dark empty square placeholder for avatar
+    fullCtx.fillStyle = "#10121a";
+    fullCtx.fillRect(offsetX, frameY, boxSize, boxSize);
 
-    // Card background panel
-    fullCtx.save();
-    fullCtx.fillStyle = "#151722";
-    fullCtx.strokeStyle = RANK_TIERS[tier.key].borderColor1;
-    fullCtx.lineWidth = 2;
-    fullCtx.beginPath();
-    fullCtx.roundRect(offsetX - 35, offsetY - 45, boxW + 70, boxH + 195, 16);
-    fullCtx.fill();
-    fullCtx.stroke();
-    fullCtx.restore();
+    // Draw Square Vector Rank Frame (1:1 Ratio)
+    drawRankFrame(fullCtx, offsetX, frameY, boxSize, boxSize, tier.key);
 
-    // Dark avatar box container
-    fullCtx.fillStyle = "#202432";
-    fullCtx.beginPath();
-    fullCtx.roundRect(offsetX, offsetY, boxW, boxH, 12);
-    fullCtx.fill();
-
-    // Center Avatar Icon
-    fullCtx.fillStyle = "#454c64";
-    fullCtx.font = "bold 52px sans-serif";
+    // Title Text
     fullCtx.textAlign = "center";
-    fullCtx.textBaseline = "middle";
-    fullCtx.fillText("⚔️", offsetX + boxW / 2, offsetY + boxH / 2);
+    fullCtx.font = "bold 22px serif";
+    fullCtx.fillStyle = RANK_TIERS[tier.key].textColor;
+    fullCtx.fillText(tier.name, offsetX + boxSize / 2, 55);
 
-    // Draw Rank Frame
-    drawRankFrame(fullCtx, offsetX, offsetY, boxW, boxH, tier.key);
-
-    // Text Label
-    fullCtx.font = "bold 22px sans-serif";
-    fullCtx.fillStyle = RANK_TIERS[tier.key].borderColor1;
-    fullCtx.fillText(tier.label.toUpperCase(), offsetX + boxW / 2, offsetY + boxH + 60);
-
+    // Subtitle Text
     fullCtx.font = "14px sans-serif";
-    fullCtx.fillStyle = "#a8b0c5";
-    fullCtx.fillText(tier.desc, offsetX + boxW / 2, offsetY + boxH + 90);
+    fullCtx.fillStyle = "#a0a8be";
+    fullCtx.fillText(tier.sub, offsetX + boxSize / 2, 78);
   }
 
   const allRanksPath = path.join(outputDir, "all_ranks.png");
   fs.writeFileSync(allRanksPath, fullCanvas.toBuffer("image/png"));
-  console.log(`🎉 Saved complete overview to: assets/ranks/preview/all_ranks.png`);
+  console.log(`🎉 Saved square 1:1 rank template sheet to: assets/ranks/preview/all_ranks.png`);
 
-  // Also copy to artifacts directory for display
+  // Copy to artifact directory for instant user display
   const artifactDir = "C:\\Users\\khang\\.gemini\\antigravity\\brain\\e1573dd0-adcd-4dc8-99fb-f3fe38332066";
   if (fs.existsSync(artifactDir)) {
     fs.copyFileSync(allRanksPath, path.join(artifactDir, "all_ranks.png"));
