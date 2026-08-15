@@ -47,15 +47,65 @@ async function seedBattleBots() {
 
   for (const botData of BOT_NPC_LIST) {
     const pts = botData.statPts;
-    const statsObj = {
-      vigor: Math.floor(pts * 0.25),
-      pr: Math.floor(pts * 0.15),
-      mr: Math.floor(pts * 0.10),
-      str: Math.floor(pts * 0.25),
-      dex: Math.floor(pts * 0.15),
-      int: Math.floor(pts * 0.05),
-      arc: Math.floor(pts * 0.05)
-    };
+    let statsObj;
+
+    // Allocate stats according to RPG Class Archetype
+    if (botData.classKey === "paladin") {
+      // Tanker: Extreme Vigor (HP) & High Physical/Magic Resist
+      statsObj = {
+        vigor: Math.floor(pts * 0.50),
+        pr: Math.floor(pts * 0.20),
+        mr: Math.floor(pts * 0.15),
+        str: Math.floor(pts * 0.15),
+        dex: 10,
+        int: 10,
+        arc: 10
+      };
+    } else if (botData.classKey === "assassin") {
+      // Assassin: High DEX (Crit) & STR (Damage), Lower Vigor
+      statsObj = {
+        dex: Math.floor(pts * 0.40),
+        str: Math.floor(pts * 0.25),
+        arc: Math.floor(pts * 0.15),
+        vigor: Math.floor(pts * 0.15),
+        pr: Math.floor(pts * 0.05),
+        mr: 10,
+        int: 10
+      };
+    } else if (botData.classKey === "mage") {
+      // Mage: High INT (Spell Power) & ARC (Mana), Magic Resist
+      statsObj = {
+        int: Math.floor(pts * 0.45),
+        arc: Math.floor(pts * 0.25),
+        mr: Math.floor(pts * 0.15),
+        vigor: Math.floor(pts * 0.15),
+        pr: 10,
+        str: 10,
+        dex: 10
+      };
+    } else if (botData.classKey === "archer") {
+      // Archer: High DEX & STR (Ranged DPS)
+      statsObj = {
+        dex: Math.floor(pts * 0.45),
+        str: Math.floor(pts * 0.20),
+        vigor: Math.floor(pts * 0.20),
+        pr: Math.floor(pts * 0.10),
+        arc: Math.floor(pts * 0.05),
+        int: 10,
+        mr: 10
+      };
+    } else {
+      // Warrior: Balanced STR & Vigor
+      statsObj = {
+        str: Math.floor(pts * 0.35),
+        vigor: Math.floor(pts * 0.35),
+        pr: Math.floor(pts * 0.15),
+        dex: Math.floor(pts * 0.15),
+        int: 10,
+        mr: 10,
+        arc: 10
+      };
+    }
 
     const calculatedPower = pts * 120;
     const petObj = {

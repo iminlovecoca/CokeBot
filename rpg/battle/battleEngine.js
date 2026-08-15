@@ -77,6 +77,18 @@ class BattleEngine {
 
       const classKey = (user.rpg.classKey || "warrior").toLowerCase();
 
+      // Class HP Multiplier (Paladin is frontline Tank with highest HP pool)
+      const CLASS_HP_MULTIPLIERS = {
+        paladin: 1.45,  // +45% Max HP (Tank / Guardian)
+        warrior: 1.20,  // +20% Max HP (Bruiser / Fighter)
+        archer: 1.00,   // Standard (Ranger)
+        assassin: 0.95, // Glass Cannon (Stealth Burst)
+        mage: 0.90,     // Glass Cannon (Spell Caster)
+        wretch: 1.05    // Balanced
+      };
+      const classHpMult = CLASS_HP_MULTIPLIERS[classKey] || 1.0;
+      maxHp = Math.floor(maxHp * classHpMult);
+
       return {
         id: user.userId,
         name: user.rpg.name || `Player #${user.userId.slice(-4)}`,
