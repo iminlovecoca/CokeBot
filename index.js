@@ -110,7 +110,7 @@ const UserService = require("./services/UserService");
 const RpgService = require("./services/RpgService");
 const MathService = require("./services/MathService");
 const TaixiuService = require("./services/TaixiuService");
-const BattleRankService = require("./services/BattleRankService");
+const BattleRankService = require("./services/battleRankService");
 
 const locator = new ServiceLocator();
 locator.register("gameRepository", new GameRepository());

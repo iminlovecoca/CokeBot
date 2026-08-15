@@ -67,7 +67,7 @@ class BattleRewards {
     // 4. Calculate Battle Rank LP
     let lpSummaryInfo = "";
     if (!isDraw && battleResult.winner) {
-      const BattleRankService = require("../../services/BattleRankService");
+      const BattleRankService = require("../../services/battleRankService");
       const rankService = new BattleRankService();
       const winnerUser = isP1Winner ? user1 : user2;
       const loserUser = isP1Winner ? user2 : user1;
