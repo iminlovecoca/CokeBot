@@ -87,10 +87,10 @@ class RankCommand extends BaseCommand {
     const avatarX = 25;
     const avatarY = 25;
     const avatarSize = 190;
+    const avatarRadius = 12;
 
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    roundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, avatarRadius);
     ctx.clip();
     try {
       const avatarImg = await loadImage(targetUser.displayAvatarURL({ extension: 'png', size: 256 }));
@@ -102,12 +102,15 @@ class RankCommand extends BaseCommand {
     ctx.restore();
 
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
+    roundRect(ctx, avatarX, avatarY, avatarSize, avatarSize, avatarRadius);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
+
+    // Draw Unified Rank Frame around Avatar (if Battle Rank is active)
+    const { drawRankFrame } = require('../../utils/rankFrameUtil');
+    drawRankFrame(ctx, avatarX - 2, avatarY - 2, avatarSize + 4, avatarSize + 4, user.rpg?.battleRank || 'Unranked', { radius: avatarRadius + 2, borderWidth: 3.5 });
 
     const displayName = message.guild?.members.cache.get(targetUser.id)?.displayName || targetUser.displayName || targetUser.username;
 
