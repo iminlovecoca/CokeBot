@@ -18,40 +18,30 @@ class BattleRewards {
     const isTargeted = options.isTargeted || false;
     const channel = options.channel || null;
 
-    // 1. Update Win Streaks
+    // 1. Update Win Streaks (Only active initiator user1 is tracked)
     if (!isTargeted && !isDraw) {
       if (isP1Winner) {
         user1.rpg.pvpStreak = (user1.rpg.pvpStreak || 0) + 1;
-        user2.rpg.pvpStreak = 0;
       } else {
-        user2.rpg.pvpStreak = (user2.rpg.pvpStreak || 0) + 1;
         user1.rpg.pvpStreak = 0;
       }
     }
 
-    // 2. Award Character EXP
+    // 2. Award Character EXP (Only active initiator user1)
     const p1PlayerXp = isDraw ? 50 : isP1Winner ? 200 : 50;
-    const p2PlayerXp = isDraw ? 50 : !isP1Winner ? 200 : 50;
+    const p2PlayerXp = 0;
 
     addRpgExp(user1.rpg, p1PlayerXp);
-    addRpgExp(user2.rpg, p2PlayerXp);
-
     user1.rpg.power = calculateRpgPower(user1);
-    user2.rpg.power = calculateRpgPower(user2);
-
     user1.markModified("rpg");
-    user2.markModified("rpg");
 
-    // 3. Award & Synchronize Pet Battle XP
+    // 3. Award & Synchronize Pet Battle XP (Only active initiator user1)
     const p1Result = isDraw ? "draw" : isP1Winner ? "win" : "lose";
-    const p2Result = isDraw ? "draw" : !isP1Winner ? "win" : "lose";
     const p1Streak = isP1Winner ? user1.rpg.pvpStreak || 0 : 0;
-    const p2Streak = !isP1Winner && !isDraw ? user2.rpg.pvpStreak || 0 : 0;
     const p1LvlDiff = Math.max(0, user2.rpg.level - user1.rpg.level);
-    const p2LvlDiff = Math.max(0, user1.rpg.level - user2.rpg.level);
 
     const petXp1 = getBattleXp(p1Result, p1Streak, p1LvlDiff);
-    const petXp2 = getBattleXp(p2Result, p2Streak, p2LvlDiff);
+    const petXp2 = 0;
 
     let petFooterInfo = "";
 
@@ -60,11 +50,7 @@ class BattleRewards {
       petFooterInfo += ` | Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
     }
 
-    if (user2.rpg.equippedPet) {
-      addPetXp(user2.rpg.equippedPet, petXp2, user2);
-    }
-
-    // 4. Calculate Battle Rank LP (Only in random PvP, NOT in targeted challenges)
+    // 4. Calculate Battle Rank LP (Only applies to active initiator user1 in random PvP)
     let lpSummaryInfo = "";
     if (!isTargeted && !isDraw && battleResult.winner) {
       const BattleRankService = require("../../services/battleRankService");
@@ -72,7 +58,11 @@ class BattleRewards {
       const winnerUser = isP1Winner ? user1 : user2;
       const loserUser = isP1Winner ? user2 : user1;
 
-      const lpResult = await rankService.processBattleLp(winnerUser, loserUser);
+      const lpResult = await rankService.processBattleLp(winnerUser, loserUser, {
+        updateOnlyInitiator: true,
+        initiatorId: user1.userId
+      });
+
       if (isP1Winner) {
         const lpMaxText = lpResult.isDivine ? `${lpResult.newLp} LP` : `${lpResult.newLp}/100 LP`;
         lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpMaxText})`;

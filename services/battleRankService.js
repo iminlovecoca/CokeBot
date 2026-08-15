@@ -67,9 +67,13 @@ class BattleRankService extends BaseService {
     return 2; // Normal loss vs same or higher rank deducts 2 LP
   }
 
-  async processBattleLp(winnerUser, loserUser) {
+  async processBattleLp(winnerUser, loserUser, options = {}) {
+    const { updateOnlyInitiator = false, initiatorId = null } = options;
     const wRank = winnerUser.rpg?.battleRank || 'Unranked';
     const lRank = loserUser.rpg?.battleRank || 'Unranked';
+
+    const isWinnerInitiator = initiatorId ? winnerUser.userId === initiatorId : true;
+    const isLoserInitiator = initiatorId ? loserUser.userId === initiatorId : true;
 
     // 1. Calculate Winner LP gain & Promotion
     const lpGain = this.calculateLpGain(wRank, lRank);
@@ -91,16 +95,16 @@ class BattleRankService extends BaseService {
       }
     }
 
-    winnerUser.rpg.battleLp = newLp;
-    winnerUser.rpg.battleRank = newRank;
-    winnerUser.rpg.seasonWins = (winnerUser.rpg.seasonWins || 0) + 1;
-    winnerUser.rpg.loseStreak = 0; // Reset lose streak on win
+    if (!updateOnlyInitiator || isWinnerInitiator) {
+      winnerUser.rpg.battleLp = newLp;
+      winnerUser.rpg.battleRank = newRank;
+      winnerUser.rpg.seasonWins = (winnerUser.rpg.seasonWins || 0) + 1;
+      winnerUser.rpg.loseStreak = 0; // Reset lose streak on win
+      if (typeof winnerUser.markModified === 'function') winnerUser.markModified('rpg');
+    }
 
     // 2. Calculate Loser LP loss & Demotion Check
     const currentLoseStreak = (loserUser.rpg?.loseStreak || 0) + 1;
-    loserUser.rpg.loseStreak = currentLoseStreak;
-    loserUser.rpg.seasonLosses = (loserUser.rpg.seasonLosses || 0) + 1;
-
     const lpLoss = this.calculateLpLoss(lRank, wRank, currentLoseStreak);
     const loserCurrentLp = loserUser.rpg?.battleLp || 0;
     const loserIdx = this.getRankTierIndex(lRank);
@@ -119,8 +123,13 @@ class BattleRankService extends BaseService {
       loserNewLp = Math.max(0, loserNewLp);
     }
 
-    loserUser.rpg.battleLp = loserNewLp;
-    loserUser.rpg.battleRank = loserNewRank;
+    if (!updateOnlyInitiator || isLoserInitiator) {
+      loserUser.rpg.battleLp = loserNewLp;
+      loserUser.rpg.battleRank = loserNewRank;
+      loserUser.rpg.loseStreak = currentLoseStreak;
+      loserUser.rpg.seasonLosses = (loserUser.rpg.seasonLosses || 0) + 1;
+      if (typeof loserUser.markModified === 'function') loserUser.markModified('rpg');
+    }
 
     await Promise.all([
       winnerUser.save().catch(() => {}),
@@ -129,15 +138,15 @@ class BattleRankService extends BaseService {
 
     return {
       lpGain,
-      newLp,
-      newRank,
-      promoted,
-      isDivine: newRank.toLowerCase() === 'divine',
+      newLp: isWinnerInitiator ? newLp : currentLp,
+      newRank: isWinnerInitiator ? newRank : wRank,
+      promoted: isWinnerInitiator ? promoted : false,
+      isDivine: (isWinnerInitiator ? newRank : wRank).toLowerCase() === 'divine',
       lpLoss,
-      loserLp: loserUser.rpg.battleLp,
-      loserRank: loserUser.rpg.battleRank,
-      demoted,
-      loseStreak: currentLoseStreak
+      loserLp: isLoserInitiator ? loserNewLp : loserCurrentLp,
+      loserRank: isLoserInitiator ? loserNewRank : lRank,
+      demoted: isLoserInitiator ? demoted : false,
+      loseStreak: isLoserInitiator ? currentLoseStreak : (loserUser.rpg?.loseStreak || 0)
     };
   }
 
