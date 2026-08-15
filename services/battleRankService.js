@@ -12,7 +12,7 @@ const RANK_ORDER = [
   'Divine'
 ];
 
-const PROMOTION_LP_NEED = 50; // 50 LP per rank tier
+const PROMOTION_LP_NEED = 100; // 100 LP per tier for promotion (except Divine which is unlimited)
 
 const SEASON_REWARDS = {
   Unranked: { coke: 0, wc: 0, skin: false },
@@ -80,12 +80,15 @@ class BattleRankService extends BaseService {
     let newRank = wRank;
     let promoted = false;
 
-    if (newLp >= PROMOTION_LP_NEED && currentIdx < RANK_ORDER.length - 1) {
-      const overflow = newLp - PROMOTION_LP_NEED;
-      const nextIdx = currentIdx + 1;
-      newRank = this.getRankNameByIndex(nextIdx);
-      newLp = overflow;
-      promoted = true;
+    // Promotion check for all ranks below Divine (Must exceed 100 LP, i.e. >= 101 LP to promote)
+    if (currentIdx < RANK_ORDER.length - 1) {
+      if (newLp > PROMOTION_LP_NEED) {
+        const overflow = newLp - PROMOTION_LP_NEED;
+        const nextIdx = currentIdx + 1;
+        newRank = this.getRankNameByIndex(nextIdx);
+        newLp = overflow;
+        promoted = true;
+      }
     }
 
     winnerUser.rpg.battleLp = newLp;
@@ -112,6 +115,7 @@ class BattleRankService extends BaseService {
       newLp,
       newRank,
       promoted,
+      isDivine: newRank.toLowerCase() === 'divine',
       lpLoss,
       loserLp: loserUser.rpg.battleLp,
       loseStreak: currentLoseStreak

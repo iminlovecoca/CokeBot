@@ -66,8 +66,11 @@ class BattleRankCommand extends BaseCommand {
     const rConfig = getRankConfig(bRank);
     const emojiStr = rConfig.emoji ? `${rConfig.emoji} ` : "";
 
+    const isDivineRank = (bRank || '').toLowerCase() === 'divine';
+    const lpDisplay = isDivineRank ? `**${bLp}** LP *(Unlimited LP)*` : `**${bLp}** / 100 LP`;
+
     const lpBarLength = 10;
-    const filled = Math.min(10, Math.floor(bLp / 5));
+    const filled = isDivineRank ? 10 : Math.min(10, Math.floor(bLp / 10));
     const empty = 10 - filled;
     const lpBar = "▰".repeat(filled) + "▱".repeat(empty);
 
@@ -79,10 +82,10 @@ class BattleRankCommand extends BaseCommand {
       })
       .addFields(
         { name: "🛡️ Bậc Rank Hiện Tại", value: `${emojiStr}**${bRank}**`, inline: true },
-        { name: "📊 Điểm LP Mùa Giải", value: `**${bLp}** / 50 LP\n\`${lpBar}\``, inline: true },
+        { name: "📊 Điểm LP Mùa Giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
         { name: "⚔️ Tỉ Lệ Thắng", value: `**${wins}** Thắng / **${losses}** Thua (**${winRate}%**)`, inline: false }
       )
-      .setFooter({ text: "Thắng đối thủ cao bậc hơn nhận +3 đến +4 LP! Đủ 50 LP sẽ Thăng Hạng!" });
+      .setFooter({ text: isDivineRank ? "Bậc Divine tích lũy LP không giới hạn để tranh Top 1 Server!" : "Thắng đối thủ cao bậc hơn nhận +3 đến +4 LP! Đủ 100 LP sẽ Thăng Hạng!" });
 
     return message.reply({ embeds: [embed] });
   }

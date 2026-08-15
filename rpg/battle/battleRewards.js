@@ -74,12 +74,15 @@ class BattleRewards {
 
       const lpResult = await rankService.processBattleLp(winnerUser, loserUser);
       if (isP1Winner) {
-        lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpResult.newLp}/50 LP)`;
+        const lpMaxText = lpResult.isDivine ? `${lpResult.newLp} LP` : `${lpResult.newLp}/100 LP`;
+        lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpMaxText})`;
         if (lpResult.promoted) {
           lpSummaryInfo += ` 🏆 THĂNG HẠNG: ${lpResult.newRank}!`;
         }
       } else {
-        lpSummaryInfo = ` | -${lpResult.lpLoss} LP (${lpResult.loserLp}/50 LP)`;
+        const loserIsDivine = (user1.rpg?.battleRank || '').toLowerCase() === 'divine';
+        const loserLpText = loserIsDivine ? `${lpResult.loserLp} LP` : `${lpResult.loserLp}/100 LP`;
+        lpSummaryInfo = ` | -${lpResult.lpLoss} LP (${loserLpText})`;
         if (lpResult.loseStreak >= 3) {
           lpSummaryInfo += ` ⚠️ Chuỗi thua ${lpResult.loseStreak}!`;
         }
