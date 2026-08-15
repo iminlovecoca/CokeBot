@@ -29,41 +29,47 @@ class TopCommand extends BaseCommand {
     const guildName = message.guild?.name || 'Máy chủ';
     const guild = message.guild;
 
+    const baseFilter = {
+      isBattleBot: { $ne: true },
+      userId: { $not: /^bot_/ },
+      vipLevel: { $lte: 0 }
+    };
+
     switch (type) {
       case 'lvl':
       case 'level':
         title = `Top Level - ${guildName}`;
         unit = 'Level';
         getValue = u => u.level || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
+        topUsers = await User.find(baseFilter, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.name": 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
         break;
 
       case 'rank':
         title = `Top Rank - ${guildName}`;
         unit = 'Rank';
         getValue = u => u.level || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
+        topUsers = await User.find(baseFilter, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.name": 1, "rpg.power": 1 }).sort({ level: -1 }).limit(limit).lean();
         break;
 
       case 'luck':
         title = `Top Luck - ${guildName}`;
         unit = 'Luck';
         getValue = u => u.luck || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ luck: -1 }).limit(limit).lean();
+        topUsers = await User.find(baseFilter, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.name": 1, "rpg.power": 1 }).sort({ luck: -1 }).limit(limit).lean();
         break;
 
       case 'tea':
         title = `Top Tea - ${guildName}`;
         unit = 'Tea';
         getValue = u => u.tea || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ tea: -1 }).limit(limit).lean();
+        topUsers = await User.find(baseFilter, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.name": 1, "rpg.power": 1 }).sort({ tea: -1 }).limit(limit).lean();
         break;
 
       case 'rpg':
         title = `Top Lực Chiến RPG - ${guildName}`;
         unit = 'Lực chiến';
         getValue = u => Math.floor(u.rpg?.power || 0);
-        topUsers = await User.find({ "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null, vipLevel: { $lte: 0 } }, { userId: 1, "rpg.power": 1, level: 1, luck: 1, tea: 1, coke: 1 }).sort({ "rpg.power": -1 }).limit(limit).lean();
+        topUsers = await User.find({ ...baseFilter, "rpg.classKey": { $ne: null }, "rpg.godsetBackup": null }, { userId: 1, "rpg.power": 1, "rpg.name": 1, level: 1, luck: 1, tea: 1, coke: 1 }).sort({ "rpg.power": -1 }).limit(limit).lean();
         break;
 
       case 'cash':
@@ -71,35 +77,37 @@ class TopCommand extends BaseCommand {
         title = `Top Coke - ${guildName}`;
         unit = 'Coke';
         getValue = u => u.coke || 0;
-        topUsers = await User.find({ vipLevel: { $lte: 0 } }, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.power": 1 }).sort({ coke: -1 }).limit(limit).lean();
+        topUsers = await User.find(baseFilter, { userId: 1, level: 1, luck: 1, tea: 1, coke: 1, "rpg.name": 1, "rpg.power": 1 }).sort({ coke: -1 }).limit(limit).lean();
         break;
     }
 
     if (!topUsers || topUsers.length === 0)
-      return message.reply('❌ **|** Không có dữ liệu người chơi nào.');
+      return message.reply('❌ **|** Không có dữ liệu người chơi nào.').catch(() => {});
 
-        // Fetch guild members for the top users in a single request
-        // Limit the fetch to the number of users we actually need (up to `limit`).
-        const neededIds = topUsers.slice(0, limit).map(u => u.userId);
-        let fetchedMembers = new Map();
-        try {
-          const fetched = await guild.members.fetch({ user: neededIds });
-          fetchedMembers = fetched;
-        } catch (err) {
-          console.error("Error fetching top members:", err);
+    // Resolve user display names safely without blocking on GuildMembersTimeout
+    const userNames = [];
+    for (const u of topUsers) {
+      let username = null;
+      const member = guild?.members?.cache?.get(u.userId);
+      if (member) {
+        username = `@${member.user.username}`;
+      } else {
+        const cachedUser = client.users?.cache?.get(u.userId);
+        if (cachedUser) {
+          username = `@${cachedUser.username}`;
+        } else {
+          try {
+            const fetched = await client.users.fetch(u.userId).catch(() => null);
+            if (fetched) username = `@${fetched.username}`;
+          } catch (e) {}
         }
-        // Keep only members that exist in the guild and are not bots
-        let matchedUsers = topUsers.filter(u => {
-          const member = fetchedMembers.get(u.userId);
-          return member && !member.user.bot;
-        });
-        // If we gathered fewer than the limit (e.g., some users left the guild),
-        // fall back to the originally requested amount without breaking the flow.
-        if (matchedUsers.length > limit) matchedUsers = matchedUsers.slice(0, limit);
-        topUsers = matchedUsers;
+      }
 
-    if (topUsers.length === 0)
-      return message.reply('❌ **|** Không có thành viên nào trong server để hiển thị.');
+      if (!username) {
+        username = u.rpg?.name ? `@${u.rpg.name}` : `@Người chơi #${u.userId.slice(-4)}`;
+      }
+      userNames.push(username);
+    }
 
     const userRankIndex = topUsers.findIndex(u => u.userId === authorId);
     const userValue = userRankIndex >= 0 ? getValue(topUsers[userRankIndex]) : null;
@@ -115,8 +123,7 @@ class TopCommand extends BaseCommand {
 
     for (let i = 0; i < Math.min(limit, topUsers.length); i++) {
       const u = topUsers[i];
-      const member = guild.members.cache.get(u.userId);
-      const username = member ? `@${member.user.username}` : 'Ẩn danh';
+      const username = userNames[i] || 'Ẩn danh';
       const value = getValue(u).toLocaleString();
 
       if (type === 'rank') {
@@ -139,7 +146,7 @@ class TopCommand extends BaseCommand {
     });
 
     text += `\n${dateStr}\n\`\`\``;
-    return message.channel.send(text);
+    return message.channel.send(text).catch(() => {});
   }
 }
 
