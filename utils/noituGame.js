@@ -402,7 +402,23 @@ async function handleNoituMessage(message, client) {
     return false;
   }
 
-  const state = getGameState(client, message.guild.id);
+  let state = getGameState(client, message.guild.id);
+  if (!state) {
+    const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
+    if (guildDoc?.gameState?.running) {
+      state = {
+        running: guildDoc.gameState.running,
+        channelId: guildDoc.gameState.channelId,
+        currentWord: guildDoc.gameState.currentWord,
+        currentPlayerId: guildDoc.gameState.currentPlayerId,
+        words: guildDoc.gameState.words || [],
+        lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
+      };
+      if (!client.noituGames) client.noituGames = new Map();
+      client.noituGames.set(message.guild.id, state);
+    }
+  }
+
   if (!state?.running) {
     return false;
   }
@@ -453,20 +469,25 @@ async function handleNoituMessage(message, client) {
 
   addQuery(1);
 
-  const currentWord = state.currentWord;
-  if (state.currentPlayerId && message.author.id === state.currentPlayerId) {
+  const currentWord = normalizeWord(state.currentWord);
+  const normalizedContent = normalizeWord(content);
+
+  // Strict Turn-Based Rule: Người vừa nối đúng từ trước đó KHÔNG được nối liên tiếp 2 từ.
+  // Nhưng ngay khi có NGƯỜI KHÁC nối đúng, người trước đó sẽ được mở khóa ngay lập tức!
+  if (state.currentPlayerId && String(message.author.id) === String(state.currentPlayerId)) {
     await message.react("⛔").catch(() => {});
-    await message.channel.send("✋ Từ từ đi, bạn vừa trả lời rồi mà!");
+    await message.channel.send("✋ Từ từ đi má mới trả lời rồi mà.").catch(() => {});
     return true;
   }
 
-  if (state.words.includes(content)) {
+  const usedWordsNormalized = (state.words || []).map(normalizeWord);
+  if (usedWordsNormalized.includes(normalizedContent)) {
     await message.react("⛔").catch(() => {});
-    await message.channel.send("Từ này đã tồn tại!");
+    await message.channel.send("Từ này dùng rồi mà có đọc không vậy!").catch(() => {});
     return true;
   }
 
-  if (!isValidNextWord(currentWord, content, state.words)) {
+  if (!isValidNextWord(currentWord, normalizedContent, state.words)) {
     await message.react("⛔").catch(() => {});
     await User.updateOne(
       { userId: message.author.id },
@@ -477,9 +498,9 @@ async function handleNoituMessage(message, client) {
     return true;
   }
 
-  state.words.push(content);
-  state.currentWord = content;
-  state.currentPlayerId = message.author.id;
+  state.words.push(normalizedContent);
+  state.currentWord = normalizedContent;
+  state.currentPlayerId = String(message.author.id);
   state.lastUpdatedAt = Date.now();
   setGameState(client, message.guild.id, state);
 
