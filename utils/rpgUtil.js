@@ -65,7 +65,7 @@ const getRpgItems = (user) => {
       }
     }
   }
-  if (modified) {
+  if (modified && typeof user.markModified === "function") {
     user.markModified("rpg");
   }
   return items;
@@ -74,11 +74,16 @@ const getRpgItems = (user) => {
 const getEquippedItems = (user) => {
   const items = getRpgItems(user);
   const equipped = user.rpg?.equipped || {};
-  return Object.fromEntries(
+  const res = Object.fromEntries(
     Object.entries(equipped)
       .map(([slot, itemId]) => [slot, items.find((item) => item.id === itemId)])
       .filter(([, item]) => item),
   );
+  if (!res.weapon && user.rpg?.equippedWeapon) res.weapon = user.rpg.equippedWeapon;
+  if (!res.armor && user.rpg?.equippedArmor) res.armor = user.rpg.equippedArmor;
+  if (!res.helmet && user.rpg?.equippedHelmet) res.helmet = user.rpg.equippedHelmet;
+  if (!res.boots && user.rpg?.equippedBoots) res.boots = user.rpg.equippedBoots;
+  return res;
 };
 
 const dungeonWeapons = [
@@ -659,7 +664,7 @@ const getEffectiveRpgStats = (user) => {
   }
 
   for (const stat of Object.keys(stats)) {
-    stats[stat] = Math.min(99, stats[stat]);
+    stats[stat] = Math.max(0, Math.floor(stats[stat] || 0));
   }
 
   return stats;

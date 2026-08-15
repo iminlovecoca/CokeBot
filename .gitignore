@@ -4,3 +4,9 @@
 *.log
 npm-debug.log*
 .DS_Store
+
+# Runtime data files (noitu tracking)
+data/query.txt
+data/round-played.txt
+data/word-played.txt
+data/report-words.txt
