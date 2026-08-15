@@ -64,9 +64,9 @@ class BattleRewards {
       addPetXp(user2.rpg.equippedPet, petXp2, user2);
     }
 
-    // 4. Calculate Battle Rank LP
+    // 4. Calculate Battle Rank LP (Only in random PvP, NOT in targeted challenges)
     let lpSummaryInfo = "";
-    if (!isDraw && battleResult.winner) {
+    if (!isTargeted && !isDraw && battleResult.winner) {
       const BattleRankService = require("../../services/battleRankService");
       const rankService = new BattleRankService();
       const winnerUser = isP1Winner ? user1 : user2;
@@ -89,6 +89,8 @@ class BattleRewards {
           lpSummaryInfo += ` ⚠️ Chuỗi thua ${lpResult.loseStreak}!`;
         }
       }
+    } else if (isTargeted) {
+      lpSummaryInfo = " | Giao hữu (Không tính LP)";
     }
 
     // 5. Update Quest Progress

@@ -134,28 +134,116 @@ class BattleCommand extends BaseCommand {
       );
     }
 
+    const senderRank = senderUser.rpg?.battleRank || "Common";
+    const senderLvl = senderUser.rpg?.level || senderUser.level || 1;
+    const RANK_TIERS = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+
+    let currentRankIdx = RANK_TIERS.findIndex(r => r.toLowerCase() === senderRank.toLowerCase());
+    if (currentRankIdx === -1) currentRankIdx = 0;
+
+    // Allowed matched ranks: same rank preferred, or adjacent ±1 rank
+    const primaryRanks = [RANK_TIERS[currentRankIdx]];
+    const expandedRanks = Array.from(new Set([
+      RANK_TIERS[Math.max(0, currentRankIdx - 1)],
+      RANK_TIERS[currentRankIdx],
+      RANK_TIERS[Math.min(RANK_TIERS.length - 1, currentRankIdx + 1)]
+    ]));
+
+    // Small chance (15%) to encounter higher rank players/bots for a challenging fight
+    const isChallengerEncounter = Math.random() < 0.15 && currentRankIdx < RANK_TIERS.length - 1;
+    let targetRanks = expandedRanks;
+    if (isChallengerEncounter) {
+      const higherRankIdx1 = Math.min(RANK_TIERS.length - 1, currentRankIdx + 1);
+      const higherRankIdx2 = Math.min(RANK_TIERS.length - 1, currentRankIdx + 2);
+      targetRanks = Array.from(new Set([RANK_TIERS[higherRankIdx1], RANK_TIERS[higherRankIdx2]]));
+    }
+
     const hiddenBattleIds = config.permissions?.hidden_battle_ids || [];
     const excludedIds = Array.from(new Set([senderId, ...hiddenBattleIds]));
-    const opponents = await User.aggregate([
-      {
-        $match: {
-          "rpg.classKey": { $ne: null },
-          userId: { $nin: excludedIds },
-          "rpg.godsetBackup": null,
-          "rpg.hiddenFromBattle": { $ne: true },
-        },
-      },
-      { $sample: { size: 1 } },
-    ]).catch(() => []);
 
-    if (!opponents || opponents.length === 0) {
+    // Matchmaking Pipeline:
+    // 1. Try to match real players in target rank tier (70% preference)
+    // 2. If no real players or random roll, match Bot NPC OF TARGET RANK TIER
+    let matchedOpponent = null;
+    const shouldTryRealPlayerFirst = Math.random() < 0.70;
+
+    if (shouldTryRealPlayerFirst) {
+      const realPlayers = await User.aggregate([
+        {
+          $match: {
+            "rpg.classKey": { $ne: null },
+            userId: { $nin: excludedIds },
+            isBattleBot: { $ne: true },
+            "rpg.godsetBackup": null,
+            "rpg.hiddenFromBattle": { $ne: true },
+            $or: [
+              { "rpg.battleRank": { $in: targetRanks } },
+              { "rpg.level": { $gte: Math.max(1, senderLvl - 20), $lte: senderLvl + (isChallengerEncounter ? 35 : 20) } }
+            ]
+          }
+        },
+        { $sample: { size: 1 } }
+      ]).catch(() => []);
+
+      if (realPlayers.length > 0) {
+        matchedOpponent = realPlayers[0];
+      }
+    }
+
+    // If no real player matched yet, pick a Bot NPC of the TARGET RANK TIER
+    if (!matchedOpponent) {
+      const botsInTier = await User.aggregate([
+        {
+          $match: {
+            isBattleBot: true,
+            "rpg.battleRank": { $in: targetRanks },
+            userId: { $nin: excludedIds }
+          }
+        },
+        { $sample: { size: 1 } }
+      ]).catch(() => []);
+
+      if (botsInTier.length > 0) {
+        matchedOpponent = botsInTier[0];
+      } else {
+        // Fallback to expanded bot ranks
+        const botsExpanded = await User.aggregate([
+          {
+            $match: {
+              isBattleBot: true,
+              "rpg.battleRank": { $in: expandedRanks },
+              userId: { $nin: excludedIds }
+            }
+          },
+          { $sample: { size: 1 } }
+        ]).catch(() => []);
+        if (botsExpanded.length > 0) matchedOpponent = botsExpanded[0];
+      }
+    }
+
+    // Final fallback if all above failed
+    if (!matchedOpponent) {
+      const fallback = await User.aggregate([
+        {
+          $match: {
+            "rpg.classKey": { $ne: null },
+            userId: { $nin: excludedIds },
+            "rpg.godsetBackup": null,
+            "rpg.hiddenFromBattle": { $ne: true }
+          }
+        },
+        { $sample: { size: 1 } }
+      ]).catch(() => []);
+      if (fallback.length > 0) matchedOpponent = fallback[0];
+    }
+
+    if (!matchedOpponent) {
       return message.reply(
-        `${config.emoji.no} Không tìm thấy người chơi nào khác có nhân vật RPG trong dữ liệu game để thách đấu.`,
+        `${config.emoji.no} Không tìm thấy đối thủ nào phù hợp trong bậc rank của bạn để thách đấu.`
       );
     }
 
-    const randomOpponent = opponents[0];
-    return runPvPBattle(message, null, senderUser, randomOpponent);
+    return runPvPBattle(message, null, senderUser, matchedOpponent);
   }
 }
 
