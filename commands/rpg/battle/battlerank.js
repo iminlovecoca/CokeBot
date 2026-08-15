@@ -67,7 +67,7 @@ class BattleRankCommand extends BaseCommand {
     const emojiStr = rConfig.emoji ? `${rConfig.emoji} ` : "";
 
     const lpBarLength = 10;
-    const filled = Math.min(10, Math.floor(bLp / 10));
+    const filled = Math.min(10, Math.floor(bLp / 5));
     const empty = 10 - filled;
     const lpBar = "▰".repeat(filled) + "▱".repeat(empty);
 
@@ -79,10 +79,10 @@ class BattleRankCommand extends BaseCommand {
       })
       .addFields(
         { name: "🛡️ Bậc Rank Hiện Tại", value: `${emojiStr}**${bRank}**`, inline: true },
-        { name: "📊 Điểm LP Mùa Giải", value: `**${bLp}** / 100 LP\n\`${lpBar}\``, inline: true },
+        { name: "📊 Điểm LP Mùa Giải", value: `**${bLp}** / 50 LP\n\`${lpBar}\``, inline: true },
         { name: "⚔️ Tỉ Lệ Thắng", value: `**${wins}** Thắng / **${losses}** Thua (**${winRate}%**)`, inline: false }
       )
-      .setFooter({ text: "Thắng đối thủ cao bậc hơn nhận +3 đến +4 LP! Đủ 100 LP sẽ Thăng Hạng!" });
+      .setFooter({ text: "Thắng đối thủ cao bậc hơn nhận +3 đến +4 LP! Đủ 50 LP sẽ Thăng Hạng!" });
 
     return message.reply({ embeds: [embed] });
   }

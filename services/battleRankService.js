@@ -12,15 +12,17 @@ const RANK_ORDER = [
   'Divine'
 ];
 
+const PROMOTION_LP_NEED = 50; // Reduced from 100 to 50 LP per rank tier for faster progression
+
 const SEASON_REWARDS = {
-  Unranked: { coke: 50000, wc: 0, lb: 0, skin: false },
-  Common: { coke: 100000, wc: 0, lb: 0, skin: false },
-  Rare: { coke: 300000, wc: 1, lb: 0, skin: false },
-  Epic: { coke: 700000, wc: 2, lb: 1, skin: false },
-  Legendary: { coke: 1500000, wc: 3, lb: 2, skin: true },
-  Mythic: { coke: 3500000, wc: 5, lb: 3, skin: true },
-  Ancient: { coke: 7000000, wc: 8, lb: 5, skin: true },
-  Divine: { coke: 15000000, wc: 15, lb: 10, skin: true }
+  Unranked: { coke: 0, wc: 0, skin: false },
+  Common: { coke: 100000, wc: 0, skin: false },
+  Rare: { coke: 300000, wc: 1, skin: false },
+  Epic: { coke: 700000, wc: 2, skin: false },
+  Legendary: { coke: 1500000, wc: 3, skin: true },
+  Mythic: { coke: 3500000, wc: 5, skin: true },
+  Ancient: { coke: 6000000, wc: 8, skin: true },
+  Divine: { coke: 10000000, wc: 12, skin: true }
 };
 
 class BattleRankService extends BaseService {
@@ -64,9 +66,9 @@ class BattleRankService extends BaseService {
     let newRank = wRank;
     let promoted = false;
 
-    // Handle initial promotion from Unranked -> Common or subsequent promotions
-    if (newLp >= 100 && currentIdx < RANK_ORDER.length - 1) {
-      const overflow = newLp - 100;
+    // Check promotion threshold (50 LP)
+    if (newLp >= PROMOTION_LP_NEED && currentIdx < RANK_ORDER.length - 1) {
+      const overflow = newLp - PROMOTION_LP_NEED;
       const nextIdx = currentIdx + 1;
       newRank = this.getRankNameByIndex(nextIdx);
       newLp = overflow;
