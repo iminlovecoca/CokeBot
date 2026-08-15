@@ -130,6 +130,7 @@ async function getPetCanvasImage(petInput) {
   if (emoji && (emoji.includes("<:") || emoji.includes("<a:"))) {
     const discordImg = await getEmojiImage(emoji);
     if (discordImg) return discordImg;
+    return null;
   }
 
   // 3. Fetch high-res Twemoji PNG for Unicode emojis (e.g. 🐒 -> 1f412.png)
@@ -292,10 +293,20 @@ class BattleCanvas {
 
     // 9. Draw Status Overlay (KO / TIMEOUT) if final frame
     if (resultStatus === "ko") {
-      const koPath = path.join(__dirname, "../../assets/backgrounds/ko_stamp.png");
+      const koPath = path.join(__dirname, "../../assets/backgrounds/ko.png");
       const koImg = await getCachedImage(koPath);
       if (koImg) {
-        ctx.drawImage(koImg, (width - 320) / 2, (height - 180) / 2, 320, 180);
+        const stampW = 340;
+        const stampH = Math.floor(stampW * (koImg.height / koImg.width));
+        ctx.drawImage(koImg, (width - stampW) / 2, (height - stampH) / 2 + 35, stampW, stampH);
+      }
+    } else if (resultStatus === "timeout") {
+      const timeoutPath = path.join(__dirname, "../../assets/backgrounds/timeout.png");
+      const timeoutImg = await getCachedImage(timeoutPath);
+      if (timeoutImg) {
+        const stampW = 340;
+        const stampH = Math.floor(stampW * (timeoutImg.height / timeoutImg.width));
+        ctx.drawImage(timeoutImg, (width - stampW) / 2, (height - stampH) / 2 + 35, stampW, stampH);
       }
     }
 

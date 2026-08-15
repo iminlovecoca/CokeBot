@@ -29,8 +29,8 @@ const BOT_NPC_LIST = [
   { userId: "bot_pvp_15", name: "Reaper", classKey: "assassin", characterAsset: "Assassin_female.png", battleRank: "Mythic", battleLp: 50, weapon: "River of Blood +12", enhance: 12, petKey: "moonwolf", petName: "Nguyệt Lang", petEmoji: "<:moonwolf:1531002665536983091>", petLvl: 68, lvl: 78, statPts: 445 },
 
   // Ancient Bots
-  { userId: "bot_pvp_16", name: "Aegis", classKey: "paladin", characterAsset: "Paladin_male.png", battleRank: "Ancient", battleLp: 35, weapon: "Thánh Khiên Cổ Đại +14", enhance: 14, petKey: "argentinosaurus", petName: "Thảo Thạch Long", petEmoji: "<:argentinosaurus:1531002657781702758>", petLvl: 85, lvl: 95, statPts: 450 },
-  { userId: "bot_pvp_17", name: "Warlord", classKey: "warrior", characterAsset: "Warrior_male.png", battleRank: "Ancient", battleLp: 20, weapon: "Thánh Kiếm Cổ Đại +14", enhance: 14, petKey: "spinosaurus", petName: "Gai Vương Long", petEmoji: "<:spinosaurus:1531002659618820127>", petLvl: 88, lvl: 98, statPts: 480 },
+  { userId: "bot_pvp_16", name: "Aegis", classKey: "paladin", characterAsset: "Paladin_male.png", battleRank: "Ancient", battleLp: 35, weapon: "Thánh Khiên Cổ Đại +14", enhance: 14, petKey: "argentinosaurus", petName: "Argentinosaurus", petEmoji: "<:Argentinosaurus:1531012502815772743>", petLvl: 85, lvl: 95, statPts: 450 },
+  { userId: "bot_pvp_17", name: "Warlord", classKey: "warrior", characterAsset: "Warrior_male.png", battleRank: "Ancient", battleLp: 20, weapon: "Thánh Kiếm Cổ Đại +14", enhance: 14, petKey: "tyrannosaurus", petName: "Tyrannosaurus", petEmoji: "<:Tyrannosaurus:1531012505105596478>", petLvl: 88, lvl: 98, statPts: 480 },
 
   // Divine Bots
   { userId: "bot_pvp_18", name: "Phantom", classKey: "assassin", characterAsset: "Assassin_male.png", battleRank: "Divine", battleLp: 45, weapon: "Tử Thần Liềm Thần Thánh +15", enhance: 15, petKey: "phoenix", petName: "Phượng Hoàng", petEmoji: "<:Phoenix:1531346250903851188>", petLvl: 99, lvl: 120, statPts: 650 },
