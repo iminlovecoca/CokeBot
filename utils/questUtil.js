@@ -153,6 +153,10 @@ const checkAndResetDailyQuests = async (user) => {
 };
 
 const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraData = {}) => {
+  if (!userIdOrUser) return;
+  if (typeof userIdOrUser === "object" && (userIdOrUser.isBattleBot || String(userIdOrUser.userId || "").startsWith("bot_pvp_"))) return;
+  if (typeof userIdOrUser === "string" && userIdOrUser.startsWith("bot_pvp_")) return;
+
   const User = require("../models/User");
   const config = require("../data/config");
   

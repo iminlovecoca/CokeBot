@@ -108,7 +108,7 @@ class RankCommand extends BaseCommand {
     ctx.stroke();
     ctx.restore();
 
-    // Draw Unified Rank Frame around Avatar (if Battle Rank is active)
+    // Draw Unified Rank Frame around Avatar Container
     const { drawRankFrame } = require('../../utils/rankFrameUtil');
     drawRankFrame(ctx, avatarX - 2, avatarY - 2, avatarSize + 4, avatarSize + 4, user.rpg?.battleRank || 'Unranked', { radius: avatarRadius + 2, borderWidth: 3.5 });
 

@@ -12,7 +12,7 @@ const RANK_ORDER = [
   'Divine'
 ];
 
-const PROMOTION_LP_NEED = 100; // 100 LP per tier for promotion (except Divine which is unlimited)
+const PROMOTION_LP_NEED = 100; // 100 LP per tier for promotion
 
 const SEASON_REWARDS = {
   Unranked: { coke: 0, wc: 0, skin: false },
@@ -71,7 +71,7 @@ class BattleRankService extends BaseService {
     const wRank = winnerUser.rpg?.battleRank || 'Unranked';
     const lRank = loserUser.rpg?.battleRank || 'Unranked';
 
-    // 1. Calculate Winner LP gain
+    // 1. Calculate Winner LP gain & Promotion
     const lpGain = this.calculateLpGain(wRank, lRank);
     const currentLp = winnerUser.rpg?.battleLp || 0;
     const currentIdx = this.getRankTierIndex(wRank);
@@ -96,14 +96,31 @@ class BattleRankService extends BaseService {
     winnerUser.rpg.seasonWins = (winnerUser.rpg.seasonWins || 0) + 1;
     winnerUser.rpg.loseStreak = 0; // Reset lose streak on win
 
-    // 2. Calculate Loser LP loss
+    // 2. Calculate Loser LP loss & Demotion Check
     const currentLoseStreak = (loserUser.rpg?.loseStreak || 0) + 1;
     loserUser.rpg.loseStreak = currentLoseStreak;
     loserUser.rpg.seasonLosses = (loserUser.rpg.seasonLosses || 0) + 1;
 
     const lpLoss = this.calculateLpLoss(lRank, wRank, currentLoseStreak);
     const loserCurrentLp = loserUser.rpg?.battleLp || 0;
-    loserUser.rpg.battleLp = Math.max(0, loserCurrentLp - lpLoss);
+    const loserIdx = this.getRankTierIndex(lRank);
+
+    let loserNewLp = loserCurrentLp - lpLoss;
+    let loserNewRank = lRank;
+    let demoted = false;
+
+    // Demotion check: if LP drops below 0 and rank > Common
+    if (loserNewLp < 0 && loserIdx > 1) { // Ranks above Common (Rare, Epic, Legendary, Mythic, Ancient, Divine)
+      const prevIdx = loserIdx - 1;
+      loserNewRank = this.getRankNameByIndex(prevIdx);
+      loserNewLp = Math.max(0, 100 + loserNewLp); // e.g. 100 - 4 = 96 LP in lower rank tier
+      demoted = true;
+    } else {
+      loserNewLp = Math.max(0, loserNewLp);
+    }
+
+    loserUser.rpg.battleLp = loserNewLp;
+    loserUser.rpg.battleRank = loserNewRank;
 
     await Promise.all([
       winnerUser.save().catch(() => {}),
@@ -118,6 +135,8 @@ class BattleRankService extends BaseService {
       isDivine: newRank.toLowerCase() === 'divine',
       lpLoss,
       loserLp: loserUser.rpg.battleLp,
+      loserRank: loserUser.rpg.battleRank,
+      demoted,
       loseStreak: currentLoseStreak
     };
   }

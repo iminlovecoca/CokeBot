@@ -6,7 +6,7 @@ const TIER_POWER_MAP = {
   Rare: { minPower: 9500, maxPower: 12000, minLvl: 30, maxLvl: 35 },
   Epic: { minPower: 15000, maxPower: 19000, minLvl: 45, maxLvl: 50 },
   Legendary: { minPower: 25000, maxPower: 32000, minLvl: 62, maxLvl: 70 },
-  Mythic: { minPower: 37000, maxPower: 45000, minLvl: 78, maxLvl: 85 },
+  Mythic: { minPower: 40000, maxPower: 55000, minLvl: 78, maxLvl: 85 },
   Ancient: { minPower: 54000, maxPower: 60000, minLvl: 95, maxLvl: 98 },
   Divine: { minPower: 78000, maxPower: 90000, minLvl: 120, maxLvl: 125 }
 };

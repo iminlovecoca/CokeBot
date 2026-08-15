@@ -83,7 +83,9 @@ class BattleRewards {
         const loserIsDivine = (user1.rpg?.battleRank || '').toLowerCase() === 'divine';
         const loserLpText = loserIsDivine ? `${lpResult.loserLp} LP` : `${lpResult.loserLp}/100 LP`;
         lpSummaryInfo = ` | -${lpResult.lpLoss} LP (${loserLpText})`;
-        if (lpResult.loseStreak >= 3) {
+        if (lpResult.demoted) {
+          lpSummaryInfo += ` 🔻 GIÁNG HẠNG: ${lpResult.loserRank}!`;
+        } else if (lpResult.loseStreak >= 3) {
           lpSummaryInfo += ` ⚠️ Chuỗi thua ${lpResult.loseStreak}!`;
         }
       }
