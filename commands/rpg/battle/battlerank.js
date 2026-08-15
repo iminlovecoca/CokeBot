@@ -24,6 +24,7 @@ class BattleRankCommand extends BaseCommand {
 
     if (sub === "top" || sub === "lb") {
       const topRankers = await User.find({
+        isBattleBot: { $ne: true },
         "rpg.battleRank": { $exists: true }
       })
         .sort({ "rpg.battleLp": -1, "rpg.seasonWins": -1 })

@@ -11,6 +11,7 @@ const cokedexEntrySchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
+  isBattleBot: { type: Boolean, default: false },
   coke: { type: Number, default: 0 },
   cokeGC: { type: Number, default: 0 },
 

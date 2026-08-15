@@ -404,8 +404,18 @@ client.once(Events.ClientReady, async () => {
         }
         console.log("✅ Noitu game states loaded successfully.");
       }
-    } catch (noituLoadError) {
-      console.error("❌ Failed to load noitu games from database:", noituLoadError);
+    } catch (e) {
+      console.error("❌ Error loading noitu game states:", e);
+    }
+
+    try {
+      const seedBattleBots = require("./seeders/battleBots");
+      const battleBotEngine = require("./features/battleBotEngine");
+      await seedBattleBots().catch((e) => console.error("❌ Battle bot seed error:", e));
+      await battleBotEngine.initialize().catch((e) => console.error("❌ Battle bot engine error:", e));
+      console.log("🤖 Battle Bot NPCs initialized successfully.");
+    } catch (botErr) {
+      console.error("❌ Battle Bot initialization error:", botErr);
     }
   } catch (error) {
     console.error("❌ Error during startup sequence:", error);
