@@ -71,6 +71,7 @@ class BattleBotEngine {
     const loser = b1Roll >= b2Roll ? bot2 : bot1;
 
     await this.rankService.processBattleLp(winner, loser);
+    await this.syncBotStatsWithTierMap();
   }
 }
 

@@ -33,8 +33,8 @@ const BOT_NPC_LIST = [
   { userId: "bot_pvp_17", name: "Warlord", classKey: "warrior", battleRank: "Ancient", battleLp: 20, weapon: "Thánh Kiếm Cổ Đại +14", enhance: 14, petKey: "spinosaurus", petName: "Gai Vương Long", petEmoji: "<:spinosaurus:1531002659618820127>", petLvl: 88, lvl: 98, statPts: 480 },
 
   // Divine Bots
-  { userId: "bot_pvp_18", name: "Phantom", classKey: "assassin", battleRank: "Divine", battleLp: 45, weapon: "Tử Thần Liềm Thần Thánh +15", enhance: 15, petKey: "phoenix", petName: "Phượng Hoàng Bất Tử", petEmoji: "<a:phoenix:1530999516629569658>", petLvl: 99, lvl: 120, statPts: 650 },
-  { userId: "bot_pvp_19", name: "Berserk", classKey: "warrior", battleRank: "Divine", battleLp: 80, weapon: "Thánh Đao Vô Song Divine +15", enhance: 15, petKey: "dragon", petName: "Thần Rồng Vương", petEmoji: "<a:dragon:1530999513374920806>", petLvl: 99, lvl: 125, statPts: 700 }
+  { userId: "bot_pvp_18", name: "Phantom", classKey: "assassin", battleRank: "Divine", battleLp: 45, weapon: "Tử Thần Liềm Thần Thánh +15", enhance: 15, petKey: "phoenix", petName: "Phượng Hoàng", petEmoji: "<:Phoenix:1531346250903851188>", petLvl: 99, lvl: 120, statPts: 650 },
+  { userId: "bot_pvp_19", name: "Berserk", classKey: "warrior", battleRank: "Divine", battleLp: 80, weapon: "Thánh Đao Vô Song Divine +15", enhance: 15, petKey: "shenlong", petName: "Thần Long", petEmoji: "<:Shenlong:1531346248525807698>", petLvl: 99, lvl: 125, statPts: 700 }
 ];
 
 async function seedBattleBots() {

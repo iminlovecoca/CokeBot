@@ -666,6 +666,9 @@ const getEffectiveRpgStats = (user) => {
 };
 
 const calculateRpgPower = (user) => {
+  if ((user?.isBattleBot || user?.userId?.startsWith("bot_pvp_")) && typeof user.rpg?.power === "number" && user.rpg.power > 0) {
+    return user.rpg.power;
+  }
   const equipped = getEquippedItems(user);
   const effectiveStats = getEffectiveRpgStats(user);
   

@@ -63,14 +63,17 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       name: `${memberName} Đang chiến đấu!`,
       iconURL: authorAvatar,
     })
-    .addFields(
+    const class1Name = class1?.name || user1.rpg?.classKey || "Chiến binh";
+    const class2Name = class2?.name || user2.rpg?.classKey || "Chiến binh";
+
+    finalEmbed.addFields(
       {
-        name: `${p1Name}${weapon1Emoji} (${class1.name})`,
+        name: `${p1Name}${weapon1Emoji} (${class1Name})`,
         value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
         inline: true,
       },
       {
-        name: `${p2Name}${weapon2Emoji} (${class2.name})`,
+        name: `${p2Name}${weapon2Emoji} (${class2Name})`,
         value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
         inline: true,
       }
