@@ -400,7 +400,7 @@ class ProfileCommand extends BaseCommand {
     ctx.font = 'bold 20px Arial';
     ctx.fillText('About me', 70, card3Y + 35);
 
-    const isKhang = targetUser.id === '1068840242273103902';
+    const isKhang = targetUser.id === '745950731638407210';
 
     let spouseName = '';
     if (isKhang) {
