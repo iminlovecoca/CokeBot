@@ -23,14 +23,43 @@ class BattleRankCommand extends BaseCommand {
     const sub = (args[0] || "").toLowerCase();
 
     if (sub === "top" || sub === "lb") {
-      const topRankers = await User.find({
+      const rankIndexMap = {
+        divine: 7,
+        ancient: 6,
+        mythic: 5,
+        legendary: 4,
+        epic: 3,
+        rare: 2,
+        common: 1,
+        unranked: 0
+      };
+
+      const allCandidates = await User.find({
         isBattleBot: { $ne: true },
         "rpg.battleRank": { $exists: true }
       })
-        .sort({ "rpg.battleLp": -1, "rpg.seasonWins": -1 })
-        .limit(10)
         .lean()
         .exec();
+
+      allCandidates.sort((a, b) => {
+        const aRankIdx = rankIndexMap[(a.rpg?.battleRank || "unranked").toLowerCase()] || 0;
+        const bRankIdx = rankIndexMap[(b.rpg?.battleRank || "unranked").toLowerCase()] || 0;
+
+        if (bRankIdx !== aRankIdx) {
+          return bRankIdx - aRankIdx; // Higher Rank Tier first!
+        }
+
+        const aLp = a.rpg?.battleLp || 0;
+        const bLp = b.rpg?.battleLp || 0;
+
+        if (bLp !== aLp) {
+          return bLp - aLp; // Higher LP within same rank tier first!
+        }
+
+        return (b.rpg?.seasonWins || 0) - (a.rpg?.seasonWins || 0);
+      });
+
+      const topRankers = allCandidates.slice(0, 10);
 
       let desc = "";
       topRankers.forEach((u, i) => {
