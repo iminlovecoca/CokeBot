@@ -240,6 +240,10 @@ class ProfileCommand extends BaseCommand {
     ctx.stroke();
     ctx.restore();
 
+    // Draw Unified Rank Frame around Avatar Container (if Battle Rank is set)
+    const { drawRankFrame, getRankConfig } = require('../../utils/rankFrameUtil');
+    drawRankFrame(ctx, avatarX - 3, avatarY - 3, avatarSize + 6, avatarSize + 6, userData.rpg?.battleRank || 'Unranked', { radius: 12, borderWidth: 3.5 });
+
     const displayName = message.guild?.members.cache.get(targetUser.id)?.displayName || targetUser.displayName || targetUser.username;
     ctx.save();
     ctx.fillStyle = '#ffffff';
@@ -327,6 +331,20 @@ class ProfileCommand extends BaseCommand {
     ctx.fillStyle = '#70a1ff';
     ctx.font = 'bold 15px Arial';
     ctx.fillText(`Class: ${classNameText}`, textX, card2Y + 31);
+
+    const bRankConfig = getRankConfig(userData.rpg?.battleRank || 'Unranked');
+    if (!bRankConfig.isUnranked && bRankConfig.emoji) {
+      const bRankEmojiId = extractEmojiId(bRankConfig.emoji);
+      if (bRankEmojiId) {
+        try {
+          const classWidth = ctx.measureText(`Class: ${classNameText}`).width;
+          const rankEmojiImg = await loadImage(`https://cdn.discordapp.com/emojis/${bRankEmojiId}.png`).catch(() => null);
+          if (rankEmojiImg) {
+            ctx.drawImage(rankEmojiImg, textX + classWidth + 8, card2Y + 15, 20, 20);
+          }
+        } catch {}
+      }
+    }
 
     const equippedItems = getEquippedItems(userData);
     const weapon = equippedItems.weapon;

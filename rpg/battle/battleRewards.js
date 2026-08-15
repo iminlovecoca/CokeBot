@@ -64,7 +64,24 @@ class BattleRewards {
       addPetXp(user2.rpg.equippedPet, petXp2, user2);
     }
 
-    // 4. Update Quest Progress
+    // 4. Calculate Battle Rank LP
+    let lpSummaryInfo = "";
+    if (!isDraw && battleResult.winner) {
+      const BattleRankService = require("../../services/BattleRankService");
+      const rankService = new BattleRankService();
+      const winnerUser = isP1Winner ? user1 : user2;
+      const loserUser = isP1Winner ? user2 : user1;
+
+      const lpResult = await rankService.processBattleLp(winnerUser, loserUser);
+      if (isP1Winner) {
+        lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpResult.newLp}/100 LP)`;
+        if (lpResult.promoted) {
+          lpSummaryInfo += ` 🏆 THĂNG HẠNG: ${lpResult.newRank}!`;
+        }
+      }
+    }
+
+    // 5. Update Quest Progress
     if (channel) {
       await Promise.all([
         updateQuestProgress(user1, "exp_gain", p1PlayerXp, channel),
@@ -76,7 +93,7 @@ class BattleRewards {
     await Promise.all([user1.save(), user2.save()]);
 
     return {
-      petFooterInfo,
+      petFooterInfo: petFooterInfo + lpSummaryInfo,
       p1Xp: p1PlayerXp,
       p2Xp: p2PlayerXp,
       petXp1,

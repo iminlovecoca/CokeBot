@@ -106,12 +106,121 @@ client.db = new ServerData();
 
 const ServiceLocator = require("./core/ServiceLocator");
 const GambleService = require("./services/GambleService");
+require("dotenv").config();
+require("./utils/v2Converter");
+const dns = require("dns");
+if (typeof dns.setDefaultResultOrder === "function") {
+  dns.setDefaultResultOrder("ipv4first");
+}
+const fs = require("fs");
+const path = require("path");
+const mongoose = require("mongoose");
+const {
+  Client,
+  GatewayIntentBits,
+  Collection,
+  Events,
+  Partials,
+  Options,
+  ActivityType,
+} = require("discord.js");
+
+const originalSetTimeout = global.setTimeout;
+global.setTimeout = (callback, delay, ...args) => {
+  const safeDelay =
+    typeof delay === "number" && Number.isFinite(delay)
+      ? Math.max(1, delay)
+      : delay;
+  return originalSetTimeout(callback, safeDelay, ...args);
+};
+
+const Species = require("./models/cokemon/Species");
+const Item = require("./models/cokemon/Item");
+const Knowledge = require("./models/Knowledge");
+const { syncNoituData } = require("./utils/noituBootstrap");
+
+
+const spawner = require("./features/spawner");
+const rpgBossSpawner = require("./features/rpgBossSpawner");
+const { loadBotLock } = require("./utils/botLock");
+const { performStartupCleanup } = require("./utils/botCleanup");
+const { initializeAutohuntReminders } = require("./features/autohuntReminder");
+const { initializeGodsetExpirations } = require("./features/godsetExpiryManager");
+const config = require("./data/config");
+const { syncTimeDrift } = require("./utils/timeSync");
+const { startNetworkMonitor } = require("./utils/networkMonitor");
+
+process.on("unhandledRejection", (error) => {
+  console.error("❌ Unhandled rejection:", error);
+  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
+    console.error("Shutting down process due to network failure to let PM2 handle...");
+    process.exit(1);
+  }
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("❌ Uncaught exception:", error);
+  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
+    console.error("Shutting down process due to network failure to let PM2 handle...");
+    process.exit(1);
+  }
+});
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.MessageContent,
+  ],
+  partials: [
+    Partials.Message,
+    Partials.Channel,
+    Partials.Reaction,
+    Partials.User,
+  ],
+  sweepers: {
+    ...Options.DefaultSweeperSettings,
+    messages: {
+      interval: 3600, 
+      lifetime: 1800, 
+    },
+    users: {
+      interval: 3600, 
+      filter: () => (user) => user.id !== client.user.id, 
+    }
+  }
+});
+
+client.commands = new Collection();
+client.noituCommands = new Collection();
+client.activeLures = new Map();
+client.activeSpawns = new Map();
+client.lastSpawn = new Map();
+client.lureCooldowns = new Map();
+client.actionLocks = new Set();
+client.xpCooldowns = new Map();
+client.friendshipCooldowns = new Map();
+client.cuddleCooldowns = new Map();
+client.musicQueues = new Map();
+client.noituGames = new Map();
+client.noituModerationRequests = new Map();
+client.rpgBosses = new Map();
+
+const ServerData = require("./database/server");
+client.db = new ServerData();
+
+
+const ServiceLocator = require("./core/ServiceLocator");
+const GambleService = require("./services/GambleService");
 const GameRepository = require("./repositories/GameRepository");
 const UserRepository = require("./repositories/UserRepository");
 const UserService = require("./services/UserService");
 const RpgService = require("./services/RpgService");
 const MathService = require("./services/MathService");
 const TaixiuService = require("./services/TaixiuService");
+const BattleRankService = require("./services/BattleRankService");
 
 const locator = new ServiceLocator();
 locator.register("gameRepository", new GameRepository());
@@ -121,11 +230,6 @@ locator.register("userService", new UserService(locator));
 locator.register("rpgService", new RpgService(locator));
 locator.register("mathService", new MathService(locator));
 locator.register("taixiuService", new TaixiuService(locator));
-client.services = locator;
-
-const loadFiles = (dir, callback) => {
-  const files = fs.readdirSync(dir, { withFileTypes: true });
-  for (const file of files) {
     const fullPath = path.join(dir, file.name);
     if (file.isDirectory()) {
       loadFiles(fullPath, callback);

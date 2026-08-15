@@ -108,6 +108,11 @@ const userSchema = new mongoose.Schema({
     lastHuntAt: { type: Date, default: null },
     lastBossAt: { type: Date, default: null },
     pvpStreak: { type: Number, default: 0 },
+    battleRank: { type: String, default: "Unranked" },
+    battleLp: { type: Number, default: 0 },
+    seasonWins: { type: Number, default: 0 },
+    seasonLosses: { type: Number, default: 0 },
+    seasonRewardClaimed: { type: Boolean, default: false },
     createdAt: { type: Date, default: null },
     autohunt: {
       isActive: { type: Boolean, default: false },

@@ -214,10 +214,10 @@ class BattleCanvas {
       ctx.restore();
     }
 
-    // 5. Draw Equipped Pets in the top corner square boxes (Flipped so both face center/opponent)
+    // 5. Draw Equipped Pets & Rank Frames in top corner square boxes
     if (p1PetImg) {
       ctx.save();
-      // Mirror Player 1 Pet to face right towards the center VS
+      // Mirror Player 1 Pet to face right towards center VS
       ctx.translate(27 + 94 / 2, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(p1PetImg, -37, 22 + (95 - 74) / 2, 74, 74);
@@ -228,6 +228,14 @@ class BattleCanvas {
       // Player 2 Pet naturally faces left towards Player 1
       ctx.drawImage(p2PetImg, 903 + (94 - 74) / 2, 22 + (95 - 74) / 2, 74, 74);
     }
+
+    // Render Rank Frames on Pet Corner Boxes (27, 22, 94, 95 for P1; 903, 22, 94, 95 for P2)
+    const { drawRankFrame } = require("../../utils/rankFrameUtil");
+    const p1Rank = (typeof p1AssetOrUser === "object" && p1AssetOrUser.rpg?.battleRank) ? p1AssetOrUser.rpg.battleRank : "Unranked";
+    const p2Rank = (typeof p2AssetOrUser === "object" && p2AssetOrUser.rpg?.battleRank) ? p2AssetOrUser.rpg.battleRank : "Unranked";
+
+    drawRankFrame(ctx, 27, 22, 94, 95, p1Rank, { radius: 4, borderWidth: 3 });
+    drawRankFrame(ctx, 903, 22, 94, 95, p2Rank, { radius: 4, borderWidth: 3 });
 
     // 6. Draw HP and Rage Bars (Player 1)
     ctx.fillStyle = "rgb(30,31,35)";
