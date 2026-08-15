@@ -11,6 +11,16 @@ const TARGET_TIER_DISTRIBUTION = [
   { rank: 'Divine', count: 2 }
 ];
 
+const TIER_POWER_MAP = {
+  Common: { minPower: 2000, maxPower: 2500, minLvl: 15, maxLvl: 20 },
+  Rare: { minPower: 4500, maxPower: 5500, minLvl: 25, maxLvl: 30 },
+  Epic: { minPower: 9000, maxPower: 11000, minLvl: 38, maxLvl: 45 },
+  Legendary: { minPower: 21000, maxPower: 26000, minLvl: 52, maxLvl: 60 },
+  Mythic: { minPower: 45000, maxPower: 55000, minLvl: 68, maxLvl: 75 },
+  Ancient: { minPower: 90000, maxPower: 105000, minLvl: 85, maxLvl: 90 },
+  Divine: { minPower: 180000, maxPower: 210000, minLvl: 95, maxLvl: 99 }
+};
+
 class BattleBotEngine {
   constructor() {
     this.intervalTimer = null;
@@ -18,7 +28,7 @@ class BattleBotEngine {
   }
 
   async initialize() {
-    console.log('🤖 Battle Bot Engine initializing with 19 Bot Tier Pyramid Distribution...');
+    console.log('🤖 Battle Bot Engine initializing with High-Tier Gear & Power Scaling...');
     await this.syncBotStatsWithHumanAverage();
     await this.balanceBotRankDistribution();
 
@@ -35,29 +45,18 @@ class BattleBotEngine {
   }
 
   async syncBotStatsWithHumanAverage() {
-    const humanStats = await User.aggregate([
-      { $match: { isBattleBot: { $ne: true }, 'rpg.classKey': { $ne: null } } },
-      {
-        $group: {
-          _id: null,
-          avgLevel: { $avg: '$rpg.level' },
-          avgPower: { $avg: '$rpg.power' }
-        }
-      }
-    ]).catch(() => []);
-
-    const avgLvl = Math.max(10, Math.round(humanStats[0]?.avgLevel || 15));
-    const avgPwr = Math.max(500, Math.round(humanStats[0]?.avgPower || 1000));
-
     const bots = await User.find({ isBattleBot: true });
     for (const bot of bots) {
-      const pwrMultiplier = 0.85 + Math.random() * 0.3;
-      const lvlVariation = Math.floor(Math.random() * 5) - 2;
+      const rank = bot.rpg?.battleRank || 'Common';
+      const tierConfig = TIER_POWER_MAP[rank] || TIER_POWER_MAP.Common;
 
-      bot.level = Math.max(5, avgLvl + lvlVariation);
+      const randomPwr = Math.floor(tierConfig.minPower + Math.random() * (tierConfig.maxPower - tierConfig.minPower));
+      const randomLvl = Math.floor(tierConfig.minLvl + Math.random() * (tierConfig.maxLvl - tierConfig.minLvl + 1));
+
+      bot.level = randomLvl;
       if (!bot.rpg) bot.rpg = {};
-      bot.rpg.level = bot.level;
-      bot.rpg.power = Math.round(avgPwr * pwrMultiplier);
+      bot.rpg.level = randomLvl;
+      bot.rpg.power = randomPwr;
 
       bot.markModified('rpg');
       await bot.save().catch(() => {});
