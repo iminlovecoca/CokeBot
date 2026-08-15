@@ -19,10 +19,10 @@ const SEASON_REWARDS = {
   Common: { coke: 100000, wc: 0, skin: false },
   Rare: { coke: 300000, wc: 1, skin: false },
   Epic: { coke: 700000, wc: 2, skin: false },
-  Legendary: { coke: 1500000, wc: 3, skin: true },
-  Mythic: { coke: 3500000, wc: 5, skin: true },
-  Ancient: { coke: 6000000, wc: 8, skin: true },
-  Divine: { coke: 10000000, wc: 12, skin: true }
+  Legendary: { coke: 1000000, wc: 3, skin: true },
+  Mythic: { coke: 2500000, wc: 5, skin: true },
+  Ancient: { coke: 3500000, wc: 8, skin: true },
+  Divine: { coke: 4500000, wc: 12, skin: true }
 };
 
 class BattleRankService extends BaseService {
