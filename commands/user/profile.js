@@ -400,10 +400,7 @@ class ProfileCommand extends BaseCommand {
     ctx.font = 'bold 20px Arial';
     ctx.fillText('About me', 70, card3Y + 35);
 
-    const isKhang = targetUser.id === '1068840242273103902' ||
-      targetUser.username.toLowerCase() === 'khang' ||
-      displayName.toLowerCase() === 'khang' ||
-      (config.permissions?.dev_ids || []).includes(targetUser.id);
+    const isKhang = targetUser.id === '1068840242273103902';
 
     let spouseName = '';
     if (isKhang) {
