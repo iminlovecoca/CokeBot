@@ -9,11 +9,11 @@ module.exports = {
     MULTIPLIER: 0.8,
   },
 
-  // Base Battle XP Rewards (PvP) - Reduced by ~30% from original (200 -> 140)
+  // Base Battle XP Rewards (PvP)
   BATTLE_XP: {
-    win: 140,
-    draw: 70,
-    lose: 35,
+    win: 120,
+    draw: 50,
+    lose: 25,
   },
 
   // Boss Battle XP Reward
@@ -22,7 +22,7 @@ module.exports = {
   // Daily Claim XP Reward
   DAILY_XP: 0,
 
-  // Hunt XP Rewards by Loot/Creature Rank (~30% reduced)
+  // Hunt XP Rewards by Loot/Creature Rank
   HUNT_XP: {
     Common: 15,
     Rare: 30,
@@ -33,20 +33,19 @@ module.exports = {
     Divine: 900,
   },
 
-  // Balanced Win Streak Bonus Milestones for PvP (~30% reduced)
+  // Balanced Win Streak Bonus Milestones for PvP
   STREAK_BONUS: {
-    MAX_CAP: 2000,
+    MAX_CAP: 500,
     MILESTONES: [
-      { minStreak: 1000, base: 1000, scale: 20 },
-      { minStreak: 500, base: 500, scale: 10 },
-      { minStreak: 100, base: 250, scale: 5 },
-      { minStreak: 50, base: 150, scale: 3 },
-      { minStreak: 10, base: 50, scale: 2 },
+      { minStreak: 100, base: 150, scale: 5 },
+      { minStreak: 50, base: 100, scale: 3 },
+      { minStreak: 20, base: 50, scale: 2 },
+      { minStreak: 10, base: 25, scale: 1 },
     ],
   },
 
-  // Reduced Higher Level Opponent Bonus per level difference
+  // Higher Level Opponent Bonus per level difference (Only applied on WIN, capped at 150 XP)
   OPPONENT_BONUS: {
-    MULTIPLIER_PER_LEVEL: 100,
+    MULTIPLIER_PER_LEVEL: 5,
   },
 };

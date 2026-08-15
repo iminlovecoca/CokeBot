@@ -49,9 +49,14 @@ function getBattleXp(result = "win", streak = 0, levelDifference = 0) {
   const baseType = String(result || "win").toLowerCase();
   const baseBuffer = petConfig.BATTLE_XP[baseType] || petConfig.BATTLE_XP.lose;
 
-  // 2. Win Streak Bonus (Only highest applicable milestone is used)
+  // Defeat only receives fixed small compensation XP (no streak, no level difference bonuses)
+  if (baseType === "lose") {
+    return baseBuffer;
+  }
+
+  // 2. Win Streak Bonus (Only on WIN and only highest applicable milestone is used)
   let streakBonus = 0;
-  if (streak >= 10) {
+  if (baseType === "win" && streak >= 10) {
     const milestone = petConfig.STREAK_BONUS.MILESTONES.find(
       (m) => streak >= m.minStreak
     );
@@ -63,10 +68,13 @@ function getBattleXp(result = "win", streak = 0, levelDifference = 0) {
     }
   }
 
-  // 3. Higher Level Opponent Bonus
+  // 3. Higher Level Opponent Bonus (Only granted when winning against a higher level player)
   let opponentBonus = 0;
-  if (levelDifference > 0) {
-    opponentBonus = Math.round(levelDifference) * petConfig.OPPONENT_BONUS.MULTIPLIER_PER_LEVEL;
+  if (baseType === "win" && levelDifference > 0) {
+    opponentBonus = Math.min(
+      150,
+      Math.round(levelDifference) * (petConfig.OPPONENT_BONUS?.MULTIPLIER_PER_LEVEL || 5)
+    );
   }
 
   return baseBuffer + streakBonus + opponentBonus;
