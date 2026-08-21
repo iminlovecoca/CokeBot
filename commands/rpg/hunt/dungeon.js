@@ -526,8 +526,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
     none: "🛡️ Không có phước lành",
   };
   const blessingName = BLESSING_NAMES[activeDungeon.blessing || "none"];
+  let turnStatusText = "";
+  if (!activeDungeon.isFinished) {
+    if (currentActor && currentActor.id) {
+      turnStatusText = `\n👉 *Lượt:* **${currentActor.name}** (<@${currentActor.id}>)`;
+    } else if (currentActor && currentActor.isBoss !== undefined) {
+      turnStatusText = `\n⚠️ *Lượt:* **${enemy.name}**`;
+    }
+  }
+
   let descriptionText = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
-                        `⏰ **Thời gian:** <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R> | ✨ **Buff:** ${activeDungeon.blessing === "active" ? "Có" : "Không"}`;
+                        `⏰ **Thời gian:** <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R> | ✨ **Buff:** ${activeDungeon.blessing === "active" ? "Có" : "Không"}${turnStatusText}`;
   if (activeDungeon.isSimulation) {
     descriptionText += ` | ⚡ **Tốc độ:** **${activeDungeon.speed || 1.0}x**`;
   }
@@ -596,7 +605,9 @@ const renderGameScreen = async (channel, activeDungeon) => {
                    `<:healthpotion:1523351206066655333> Bình: **${p.potions}/3**${healBanText}\n` +
                    `Lvl **${p.level}** | **${className}**`;
     const pStatus = getActiveStatusString(p);
-    playersText += `**${classIcon} ${p.name}${pStatus ? " " + pStatus : ""}**\n${hpInfo}\n\n`;
+    const isCurrent = currentActor && currentActor.id === p.id && !activeDungeon.isFinished;
+    const turnIndicator = isCurrent ? " *(👉 Đến lượt)*" : "";
+    playersText += `**${classIcon} ${p.name}${pStatus ? " " + pStatus : ""}**${turnIndicator}\n${hpInfo}\n\n`;
   });
   const text3 = new TextDisplayBuilder().setContent(
     `### 👥 Tổ đội\n` +
@@ -744,45 +755,51 @@ const renderGameScreen = async (channel, activeDungeon) => {
     flags: MessageFlags.IsComponentsV2
   };
   if (activeDungeon.gameMessage) {
+    let editSuccess = false;
     const attachmentId = getAttachmentId(activeDungeon);
     const hasImageChanged = imgFileName !== activeDungeon.lastImgFileName;
-    const editPayload = {
-      content: "",
-      embeds: [],
-      components: payload.components,
-      flags: MessageFlags.IsComponentsV2,
-      skipV2: true,
-    };
-    if (hasImageChanged || !attachmentId) {
-      editPayload.files = payload.files;
-      editPayload.attachments = [];
-    } else {
-      editPayload.attachments = [{ id: attachmentId }];
-    }
-    if (activeDungeon.lastInteraction && activeDungeon.lastInteraction.message.id === activeDungeon.gameMessage.id) {
-      const editedMsg = await activeDungeon.lastInteraction.editReply(editPayload).catch((err) => {
-        console.error("[RPG_DUNGEON] lastInteraction.editReply failed:", err);
-        return null;
-      });
-      if (editedMsg) {
-        activeDungeon.gameMessage = editedMsg;
-      }
-    } else {
-      await activeDungeon.gameMessage.delete().catch(() => null);
-      const newMsg = await channel.send({
+
+    // 1. Try editing gameMessage directly
+    try {
+      const editPayload = {
         content: "",
         embeds: [],
-        components: payload.components,
+        components: [container],
         flags: MessageFlags.IsComponentsV2,
-        files: payload.files,
-      }).catch(() => null);
+      };
+
+      if (hasImageChanged || !attachmentId) {
+        if (files.length > 0) {
+          editPayload.files = files;
+          editPayload.attachments = [];
+        }
+      } else if (attachmentId) {
+        editPayload.attachments = [{ id: attachmentId }];
+      }
+
+      const editedMsg = await activeDungeon.gameMessage.edit(editPayload).catch(() => null);
+      if (editedMsg) {
+        activeDungeon.gameMessage = editedMsg;
+        editSuccess = true;
+      }
+    } catch (e) {
+      console.warn("[RPG_DUNGEON] Direct edit failed:", e.message);
+    }
+
+    // 2. If direct edit failed, resend message
+    if (!editSuccess) {
+      await activeDungeon.gameMessage.delete().catch(() => null);
+      const newMsg = await channel.send(payload).catch(() => null);
       if (newMsg) {
         activeDungeon.gameMessage = newMsg;
+        setupCollector(channel, activeDungeon);
       }
     }
   } else {
-    activeDungeon.gameMessage = await channel.send(payload);
-    setupCollector(channel, activeDungeon);
+    activeDungeon.gameMessage = await channel.send(payload).catch(() => null);
+    if (activeDungeon.gameMessage) {
+      setupCollector(channel, activeDungeon);
+    }
   }
   if (activeDungeon.gameMessage) {
     activeDungeon.lastImgFileName = imgFileName;
