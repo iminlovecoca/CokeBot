@@ -54,15 +54,15 @@ const statLine = (stats, rpgClass = null) => {
 };
 const statLineWithBonus = (baseStats, effectiveStats, rpgClass = null) => {
   const format = (key) => {
-    const eff = effectiveStats[key] !== undefined ? effectiveStats[key] : (baseStats[key] || 0);
+    const eff = Math.min(99, Math.max(0, effectiveStats[key] !== undefined ? effectiveStats[key] : (baseStats[key] || 0)));
     const label = statLabels[key] || key.toUpperCase();
     return `**${label}:** **${eff}**`;
   };
   let critStr = "";
   if (rpgClass) {
     const classCritBonus = rpgClass.bonuses?.critRate || 0;
-    const effArc = effectiveStats.arc || 0;
-    const effDex = effectiveStats.dex || 0;
+    const effArc = Math.min(99, effectiveStats.arc || 0);
+    const effDex = Math.min(99, effectiveStats.dex || 0);
     const effCrit = (effArc * 0.2 + effDex * 0.1) + classCritBonus * 100;
     critStr = `   |   **CRIT:** **${effCrit.toFixed(1)}%**`;
   }

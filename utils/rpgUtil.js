@@ -685,8 +685,10 @@ const getEffectiveRpgStats = (user) => {
     }
   }
 
+  const isBot = Boolean(user?.isBattleBot || user?.userId?.startsWith?.("bot_pvp_"));
   for (const stat of Object.keys(stats)) {
-    stats[stat] = Math.max(0, Math.floor(stats[stat] || 0));
+    const val = Math.max(0, Math.floor(stats[stat] || 0));
+    stats[stat] = isBot ? val : Math.min(99, val);
   }
 
   return stats;
