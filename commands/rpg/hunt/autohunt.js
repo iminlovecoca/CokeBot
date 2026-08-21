@@ -259,7 +259,7 @@ const toSuperscript = (num, minDigits = 3) => {
   }
   return str.split('').map(c => map[c] || c).join('');
 };
-const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
+const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
   const ebotEmoji = ":robot:";
   const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
   const rarityEmojis = {
@@ -302,7 +302,7 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
       const itemStrings = Object.entries(itemsMap).map(([emoji, count]) => {
         return `${emoji}${toSuperscript(count, 3)}`;
       });
-      const chunkSize = 5;
+      const chunkSize = 6;
       for (let i = 0; i < itemStrings.length; i += chunkSize) {
         const chunk = itemStrings.slice(i, i + chunkSize);
         const prefixEmoji = i === 0 ? rarityEmoji : blankEmoji;
@@ -310,7 +310,50 @@ const renderHarvestReport = (elapsedHours, huntsCount, xpGain, essenceGain, gear
       }
     }
   }
-  return lines.join("\n");
+  return lines;
+};
+
+const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
+  const lines = renderHarvestReportLines(
+    elapsedHours,
+    huntsCount,
+    xpGain,
+    essenceGain,
+    gearsDropped,
+    levelsGained,
+    previousLevel,
+    newLevel,
+    botInfo,
+    petsCaught,
+    totalDuplicatePetExp
+  );
+
+  const chunks = [];
+  let cur = [];
+  let curLen = 0;
+
+  for (const line of lines) {
+    const lineLen = line.length + 1;
+    if (curLen + lineLen > 1800 && cur.length > 0) {
+      chunks.push(cur.join("\n"));
+      cur = [line];
+      curLen = lineLen;
+    } else {
+      cur.push(line);
+      curLen += lineLen;
+    }
+  }
+  if (cur.length > 0) {
+    chunks.push(cur.join("\n"));
+  }
+
+  if (chunks.length === 0) return;
+
+  const firstMsg = await message.reply({ content: chunks[0], skipV2: true }).catch(() => null);
+  for (let i = 1; i < chunks.length; i++) {
+    await message.channel.send({ content: chunks[i], skipV2: true }).catch(() => null);
+  }
+  return firstMsg;
 };
 class XautohuntCommand extends BaseCommand {
   constructor() {
@@ -451,8 +494,8 @@ class XautohuntCommand extends BaseCommand {
         user.rpg.autohunt.pendingDuration = 0;
         user.rpg.autohunt.dmReminder = false;
         user.markModified("rpg");
-        await user.save();
-        const reportText = renderHarvestReport(
+        return sendHarvestReport(
+          message,
           elapsedHours,
           huntsCount,
           xpGain,
@@ -463,7 +506,6 @@ class XautohuntCommand extends BaseCommand {
           user.rpg.level,
           botInfo
         );
-        return message.reply({ content: reportText, skipV2: true });
       }
     }
     const subCommand = args[0]?.toLowerCase();
@@ -668,8 +710,8 @@ class XautohuntCommand extends BaseCommand {
       user.rpg.autohunt.pendingDuration = 0;
       user.rpg.autohunt.dmReminder = false;
       user.markModified("rpg");
-      await user.save();
-      const reportText = renderHarvestReport(
+      return sendHarvestReport(
+        message,
         elapsedHours,
         huntsCount,
         xpGain,
@@ -680,7 +722,6 @@ class XautohuntCommand extends BaseCommand {
         user.rpg.level,
         botInfo
       );
-      return message.reply({ content: reportText, skipV2: true });
     }
     if (subCommand) {
       const durInfo = getLvl(user.rpg.autohunt.xp.duration, 0, 'duration');
