@@ -494,6 +494,7 @@ class XautohuntCommand extends BaseCommand {
         user.rpg.autohunt.pendingDuration = 0;
         user.rpg.autohunt.dmReminder = false;
         user.markModified("rpg");
+        await user.save();
         return sendHarvestReport(
           message,
           elapsedHours,
@@ -710,6 +711,7 @@ class XautohuntCommand extends BaseCommand {
       user.rpg.autohunt.pendingDuration = 0;
       user.rpg.autohunt.dmReminder = false;
       user.markModified("rpg");
+      await user.save();
       return sendHarvestReport(
         message,
         elapsedHours,
