@@ -54,14 +54,9 @@ const statLine = (stats, rpgClass = null) => {
 };
 const statLineWithBonus = (baseStats, effectiveStats, rpgClass = null) => {
   const format = (key) => {
-    const base = baseStats[key] || 0;
-    const eff = effectiveStats[key] || 0;
-    const bonus = Math.max(0, eff - base);
+    const eff = effectiveStats[key] !== undefined ? effectiveStats[key] : (baseStats[key] || 0);
     const label = statLabels[key] || key.toUpperCase();
-    if (bonus > 0) {
-      return `**${label}:** **${base}** *(+${bonus})*`;
-    }
-    return `**${label}:** **${base}**`;
+    return `**${label}:** **${eff}**`;
   };
   let critStr = "";
   if (rpgClass) {

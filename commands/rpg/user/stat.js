@@ -117,15 +117,13 @@ class StatCommand extends BaseCommand {
       const renderLine = (key) => {
         const base = Math.min(99, currentStats[key] || 0);
         const eff = effectiveStats[key] || base;
-        const bonus = Math.max(0, eff - base);
-        const barLen = Math.round((base / 99) * 15);
+        const barLen = Math.round((Math.min(99, eff) / 99) * 15);
         const bar = "▰".repeat(barLen) + "▱".repeat(15 - barLen);
         const selected = selectedStat === key ? "➡️ " : "";
-        const bonusStr = bonus > 0 ? ` *(+${bonus} đồ ➔ Tổng: ${eff})*` : "";
-        return `${selected}**${statLabels[key]}**: \`${base}/99\`${bonusStr}\n\`${bar}\``;
+        return `${selected}**${statLabels[key]}**: \`${eff}/99\`\n\`${bar}\``;
       };
       const fields = [
-        { name: "Chỉ số hiện tại (Gốc / Giới hạn)", value: ["vigor", "pr", "mr", "str", "dex", "int", "arc"].map(renderLine).join("\n\n") }
+        { name: "Chỉ số hiện tại", value: ["vigor", "pr", "mr", "str", "dex", "int", "arc"].map(renderLine).join("\n\n") }
       ];
       return new EmbedBuilder()
         .setColor(rpgClass.color)
@@ -136,7 +134,7 @@ class StatCommand extends BaseCommand {
             `*Chọn một chỉ số từ menu bên dưới, sau đó click nút cộng điểm!*`
         )
         .addFields(fields)
-        .setFooter({ text: "Giới hạn 99 điểm gốc/chỉ số." });
+        .setFooter({ text: "Giới hạn 99 điểm/chỉ số." });
     };
     const buildInteractiveComponents = (availablePoints, currentStats) => {
       const selectMenu = new StringSelectMenuBuilder()
