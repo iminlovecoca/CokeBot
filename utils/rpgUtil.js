@@ -558,7 +558,29 @@ const formatStats = (stats = {}) => {
 const getStartingStats = (user) => {
   if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
   const rpgClass = getRpgClass(user.rpg.classKey);
-  return rpgClass?.stats || { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
+  return rpgClass?.stats ? { ...rpgClass.stats } : { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
+};
+
+const sanitizeRpgStats = (user) => {
+  if (!user?.rpg?.classKey || user.isBattleBot || user.userId?.startsWith?.("bot_pvp_")) return false;
+  const starting = getStartingStats(user);
+  if (!user.rpg.stats || typeof user.rpg.stats !== "object") {
+    user.rpg.stats = { ...starting };
+    return true;
+  }
+  let modified = false;
+  for (const key of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
+    const minVal = starting[key] || 0;
+    let curVal = user.rpg.stats[key];
+    if (curVal === undefined || isNaN(curVal) || curVal < minVal) {
+      user.rpg.stats[key] = minVal;
+      modified = true;
+    } else if (curVal > 99) {
+      user.rpg.stats[key] = 99;
+      modified = true;
+    }
+  }
+  return modified;
 };
 
 const getAllocatedPoints = (user) => {
@@ -742,6 +764,11 @@ const requireRpgCharacter = async (userId) => {
     throw new UserFriendlyError(
       `${config.emoji.warning} Bạn chưa có nhân vật RPG. Dùng \`${config.prefix}class\` để chọn class trước khi chơi.`,
     );
+  }
+  if (sanitizeRpgStats(user)) {
+    user.rpg.power = calculateRpgPower(user);
+    if (typeof user.markModified === 'function') user.markModified('rpg');
+    await user.save().catch(() => {});
   }
   return { user, rpgClass: getRpgClass(user.rpg.classKey) };
 };
@@ -1372,6 +1399,7 @@ module.exports = {
   getWeaponPower,
   emptyStats,
   getStartingStats,
+  sanitizeRpgStats,
   getAllocatedPoints,
   getAvailablePoints,
   getWeaponScaling,

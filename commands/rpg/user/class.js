@@ -486,7 +486,7 @@ class ClassCommand extends BaseCommand {
                 const rpgClass = getRpgClass(currentClassKey);
                 updatedUser.rpg.classKey = currentClassKey;
                 updatedUser.rpg.characterAsset = currentAvatar;
-                updatedUser.rpg.stats = rpgClass.stats;
+                updatedUser.rpg.stats = { ...rpgClass.stats };
                 updatedUser.rpg.freeClassChangeUsed = true;
                 updatedUser.rpg.power = calculateRpgPower(updatedUser);
                 updatedUser.markModified("rpg");
@@ -709,7 +709,7 @@ class ClassCommand extends BaseCommand {
             level: config.rpg.starting_level || 1,
             exp: 0,
             power: 0,
-            stats: rpgClass.stats,
+            stats: { ...rpgClass.stats },
             rank: "Novice",
             equipped: {},
             items: [],

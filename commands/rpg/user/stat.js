@@ -56,6 +56,7 @@ class StatCommand extends BaseCommand {
     const stats = {};
     for (const key of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
       stats[key] = user.rpg.stats?.[key] !== undefined ? user.rpg.stats[key] : (startingStats[key] || 0);
+      stats[key] = Math.min(99, Math.max(startingStats[key] || 0, stats[key]));
     }
     const level = user.rpg.level || 1;
     let available = getAvailablePoints(user);
@@ -74,10 +75,15 @@ class StatCommand extends BaseCommand {
       if (available <= 0) {
         return message.reply(`${config.emoji.no} Bạn không có điểm chỉ số nào chưa cộng. Hãy đi săn để tăng cấp!`);
       }
+      const maxCanAdd = Math.min(available, 99 - currentVal);
+      if (maxCanAdd <= 0) {
+        return message.reply(`${config.emoji.warning} Chỉ số **${statLabels[targetStat]}** của bạn đã đạt tối đa (99 điểm)!`);
+      }
+
       let amount = 1;
       if (args[1]) {
         if (args[1].toLowerCase() === "all") {
-          amount = Math.min(available, 99 - currentVal);
+          amount = maxCanAdd;
         } else {
           amount = parseInt(args[1]);
           if (isNaN(amount) || amount <= 0) {
@@ -90,25 +96,25 @@ class StatCommand extends BaseCommand {
       }
       if (currentVal + amount > 99) {
         return message.reply(
-          `${config.emoji.no} Không thể cộng **${amount}** điểm vào **${statLabels[targetStat]}** vì giới hạn tối đa là 99 điểm (hiện có: **${currentVal}**).`
+          `${config.emoji.no} Không thể cộng **${amount}** điểm vào **${statLabels[targetStat]}** vì giới hạn tối đa là 99 điểm (hiện có: **${currentVal}**, có thể cộng thêm tối đa: **${99 - currentVal}**).`
         );
       }
       user.rpg.stats = {
         ...stats,
-        [targetStat]: currentVal + amount
+        [targetStat]: Math.min(99, currentVal + amount)
       };
       user.rpg.power = calculateRpgPower(user);
       user.markModified("rpg");
       await user.save();
       return message.reply(
         `🎉 Bạn đã cộng **+${amount}** điểm vào chỉ số **${statLabels[targetStat]}** thành công!\n` +
-          `Chỉ số mới: **${currentVal + amount}/99** | Điểm còn lại: **${available - amount}**.`
+          `Chỉ số mới: **${Math.min(99, currentVal + amount)}/99** | Điểm còn lại: **${available - amount}**.`
       );
     }
     let selectedStat = "vigor";
     const buildEmbed = (availablePoints, currentStats) => {
       const renderLine = (key) => {
-        const val = currentStats[key] || 0;
+        const val = Math.min(99, currentStats[key] || 0);
         const barLen = Math.round((val / 99) * 15);
         const bar = "▰".repeat(barLen) + "▱".repeat(15 - barLen);
         const selected = selectedStat === key ? "➡️ " : "";
@@ -140,13 +146,13 @@ class StatCommand extends BaseCommand {
           }))
         );
       const hasPoints = availablePoints > 0;
-      const targetVal = currentStats[selectedStat] || 0;
+      const targetVal = Math.min(99, currentStats[selectedStat] || 0);
       const isMax = targetVal >= 99;
       const btn1 = new ButtonBuilder()
         .setCustomId("rpg_stat_add_1")
         .setLabel("+1")
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(!hasPoints || isMax || targetVal + 1 > 99);
+        .setDisabled(!hasPoints || isMax || targetVal + 1 > 99 || availablePoints < 1);
       const btn5 = new ButtonBuilder()
         .setCustomId("rpg_stat_add_5")
         .setLabel("+5")
@@ -188,6 +194,7 @@ class StatCommand extends BaseCommand {
       let currStats = {};
       for (const key of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
         currStats[key] = refreshedUser.rpg.stats?.[key] !== undefined ? refreshedUser.rpg.stats[key] : (starting[key] || 0);
+        currStats[key] = Math.min(99, Math.max(starting[key] || 0, currStats[key]));
       }
       let avail = getAvailablePoints(refreshedUser);
       if (interaction.isStringSelectMenu()) {
@@ -203,8 +210,10 @@ class StatCommand extends BaseCommand {
             flags: 64,
           });
         }
+        const curVal = Math.min(99, currStats[selectedStat] || 0);
+        const maxPossible = Math.min(avail, 99 - curVal);
+
         let addAmt = 0;
-        const curVal = currStats[selectedStat] || 0;
         if (interaction.customId === "rpg_stat_add_1") {
           addAmt = 1;
         } else if (interaction.customId === "rpg_stat_add_5") {
@@ -212,23 +221,31 @@ class StatCommand extends BaseCommand {
         } else if (interaction.customId === "rpg_stat_add_10") {
           addAmt = 10;
         } else if (interaction.customId === "rpg_stat_add_all") {
-          addAmt = Math.min(avail, 99 - curVal);
+          addAmt = maxPossible;
         }
-        if (addAmt > 0) {
-          refreshedUser.rpg.stats = {
-            ...currStats,
-            [selectedStat]: curVal + addAmt
-          };
-          refreshedUser.rpg.power = calculateRpgPower(refreshedUser);
-          refreshedUser.markModified("rpg");
-          await refreshedUser.save();
-          avail -= addAmt;
-          currStats = refreshedUser.rpg.stats;
-          await interaction.update({
-            embeds: [buildEmbed(avail, currStats)],
-            components: buildInteractiveComponents(avail, currStats),
-          }).catch(() => {});
+
+        addAmt = Math.min(addAmt, maxPossible);
+
+        if (addAmt <= 0) {
+          return interaction.reply({
+            content: `❌ Chỉ số **${statLabels[selectedStat]}** đã đạt tối đa 99 điểm hoặc bạn không còn đủ điểm để cộng!`,
+            flags: 64,
+          });
         }
+
+        refreshedUser.rpg.stats = {
+          ...currStats,
+          [selectedStat]: Math.min(99, curVal + addAmt)
+        };
+        refreshedUser.rpg.power = calculateRpgPower(refreshedUser);
+        refreshedUser.markModified("rpg");
+        await refreshedUser.save();
+        avail -= addAmt;
+        currStats = refreshedUser.rpg.stats;
+        await interaction.update({
+          embeds: [buildEmbed(avail, currStats)],
+          components: buildInteractiveComponents(avail, currStats),
+        }).catch(() => {});
       }
     });
     collector.on("end", async () => {

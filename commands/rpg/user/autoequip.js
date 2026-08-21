@@ -11,22 +11,11 @@ const {
 const getBaseStatsWithoutGear = (user) => {
   if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
   const rpgClass = getRpgClass(user.rpg.classKey);
-  const stats = { ...rpgClass.stats };
-  if (user.rpg.stats) {
-    for (const [key, value] of Object.entries(user.rpg.stats)) {
-      const normalized = key.toLowerCase();
-      let targetStat = normalized;
-      if (normalized === "luck") targetStat = "arc";
-      else if (normalized === "vit") targetStat = "vigor";
-      else if (normalized === "def") targetStat = "pr";
-      else if (normalized === "agi") targetStat = "dex";
-      if (stats[targetStat] !== undefined) {
-        stats[targetStat] = (stats[targetStat] || 0) + value;
-      }
-    }
-  }
-  for (const stat of Object.keys(stats)) {
-    stats[stat] = Math.min(99, stats[stat]);
+  const startingStats = rpgClass?.stats || {};
+  const stats = {};
+  for (const stat of ["vigor", "pr", "mr", "str", "dex", "int", "arc"]) {
+    stats[stat] = user.rpg.stats?.[stat] !== undefined ? user.rpg.stats[stat] : (startingStats[stat] || 0);
+    stats[stat] = Math.min(99, Math.max(0, stats[stat]));
   }
   return stats;
 };
