@@ -112,27 +112,31 @@ class StatCommand extends BaseCommand {
       );
     }
     let selectedStat = "vigor";
-    const buildEmbed = (availablePoints, currentStats) => {
+    const buildEmbed = (availablePoints, currentStats, targetUser = user) => {
+      const effectiveStats = getEffectiveRpgStats(targetUser);
       const renderLine = (key) => {
-        const val = Math.min(99, currentStats[key] || 0);
-        const barLen = Math.round((val / 99) * 15);
+        const base = Math.min(99, currentStats[key] || 0);
+        const eff = effectiveStats[key] || base;
+        const bonus = Math.max(0, eff - base);
+        const barLen = Math.round((base / 99) * 15);
         const bar = "▰".repeat(barLen) + "▱".repeat(15 - barLen);
         const selected = selectedStat === key ? "➡️ " : "";
-        return `${selected}**${statLabels[key]}**: \`${val}/99\`\n\`${bar}\``;
+        const bonusStr = bonus > 0 ? ` *(+${bonus} đồ ➔ Tổng: ${eff})*` : "";
+        return `${selected}**${statLabels[key]}**: \`${base}/99\`${bonusStr}\n\`${bar}\``;
       };
       const fields = [
-        { name: "Chỉ số hiện tại", value: ["vigor", "pr", "mr", "str", "dex", "int", "arc"].map(renderLine).join("\n\n") }
+        { name: "Chỉ số hiện tại (Gốc / Giới hạn)", value: ["vigor", "pr", "mr", "str", "dex", "int", "arc"].map(renderLine).join("\n\n") }
       ];
       return new EmbedBuilder()
         .setColor(rpgClass.color)
-        .setTitle(`📊 Cộng điểm chỉ số RPG - ${user.rpg.name || message.author.username}`)
+        .setTitle(`📊 Cộng điểm chỉ số RPG - ${targetUser.rpg?.name || message.author.username}`)
         .setDescription(
           `Cấp độ nhân vật: **Level ${level}**\n` +
             `Điểm chỉ số chưa cộng: **${availablePoints}** điểm\n\n` +
             `*Chọn một chỉ số từ menu bên dưới, sau đó click nút cộng điểm!*`
         )
         .addFields(fields)
-        .setFooter({ text: "Giới hạn 99 điểm/chỉ số." });
+        .setFooter({ text: "Giới hạn 99 điểm gốc/chỉ số." });
     };
     const buildInteractiveComponents = (availablePoints, currentStats) => {
       const selectMenu = new StringSelectMenuBuilder()
@@ -200,7 +204,7 @@ class StatCommand extends BaseCommand {
       if (interaction.isStringSelectMenu()) {
         selectedStat = interaction.values[0];
         await interaction.update({
-          embeds: [buildEmbed(avail, currStats)],
+          embeds: [buildEmbed(avail, currStats, refreshedUser)],
           components: buildInteractiveComponents(avail, currStats),
         }).catch(() => {});
       } else if (interaction.isButton()) {
@@ -243,7 +247,7 @@ class StatCommand extends BaseCommand {
         avail -= addAmt;
         currStats = refreshedUser.rpg.stats;
         await interaction.update({
-          embeds: [buildEmbed(avail, currStats)],
+          embeds: [buildEmbed(avail, currStats, refreshedUser)],
           components: buildInteractiveComponents(avail, currStats),
         }).catch(() => {});
       }
