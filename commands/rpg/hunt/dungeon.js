@@ -842,11 +842,18 @@ const runDiceRoll = async (channel, activeDungeon) => {
   }, getDelay(activeDungeon, 2500));
 };
 const setupCollector = (channel, activeDungeon) => {
-  const client = channel.client;
-  const interactionListener = async (i) => {
-    if (!i.isButton()) return;
-    if (!i.customId.startsWith("rpg_dungeon_action_") && !i.customId.startsWith("rpg_dungeon_coin_")) return;
-    if (!activeDungeon.gameMessage || i.message.id !== activeDungeon.gameMessage.id) return;
+  if (activeDungeon.cleanupListener) {
+    activeDungeon.cleanupListener();
+  }
+  if (!activeDungeon.gameMessage) return;
+
+  const collector = activeDungeon.gameMessage.createMessageComponentCollector({
+    filter: (i) => i.customId.startsWith("rpg_dungeon_action_") || i.customId.startsWith("rpg_dungeon_coin_"),
+    time: 30 * 60 * 1000,
+  });
+
+  collector.on("collect", async (i) => {
+    if (activeDungeon.isFinished) return;
     activeDungeon.lastInteraction = i;
     try {
       const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
@@ -861,7 +868,8 @@ const setupCollector = (channel, activeDungeon) => {
         return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
       }
       activeDungeon.actionInProgress = true;
-      await i.deferUpdate();
+      await i.deferUpdate().catch(() => {});
+
       if (i.customId === "rpg_dungeon_action_heal") {
         if (pExist.healBanRounds && pExist.healBanRounds > 0) {
           activeDungeon.actionInProgress = false;
@@ -905,46 +913,46 @@ const setupCollector = (channel, activeDungeon) => {
         if (isPhase2 && hasCoin && activeDungeon.coinFlipCount >= 2) {
           await askCoinFlip(channel, activeDungeon, pExist);
         } else {
-        await executePlayerAttack(channel, activeDungeon, pExist, 1.0);
-      }
-    } else if (i.customId === "rpg_dungeon_action_skill") {
-      pExist.hasActedThisRound = true;
-      if (pExist.healBanRounds && pExist.healBanRounds > 0) {
-        pExist.healBanRounds -= 1;
-        if (pExist.healBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+          await executePlayerAttack(channel, activeDungeon, pExist, 1.0);
         }
-      }
-      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
-        pExist.skillBanRounds -= 1;
-        if (pExist.skillBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+      } else if (i.customId === "rpg_dungeon_action_skill") {
+        pExist.hasActedThisRound = true;
+        if (pExist.healBanRounds && pExist.healBanRounds > 0) {
+          pExist.healBanRounds -= 1;
+          if (pExist.healBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+          }
         }
-      }
-      await executePlayerSkill(channel, activeDungeon, pExist);
-    } else if (i.customId === "rpg_dungeon_action_crimson") {
-      pExist.hasActedThisRound = true;
-      if (pExist.healBanRounds && pExist.healBanRounds > 0) {
-        pExist.healBanRounds -= 1;
-        if (pExist.healBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
         }
-      }
-      if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
-        pExist.skillBanRounds -= 1;
-        if (pExist.skillBanRounds === 0) {
-          activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+        await executePlayerSkill(channel, activeDungeon, pExist);
+      } else if (i.customId === "rpg_dungeon_action_crimson") {
+        pExist.hasActedThisRound = true;
+        if (pExist.healBanRounds && pExist.healBanRounds > 0) {
+          pExist.healBanRounds -= 1;
+          if (pExist.healBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Lời nguyền cấm hồi máu trên **${pExist.name}** đã được giải trừ.`);
+          }
         }
-      }
-      const hpCost = Math.floor(pExist.maxHp * 0.15);
-      pExist.hp = Math.max(1, pExist.hp - hpCost);
-      activeDungeon.logs.push(`<:bleed:1521938497642958889> **${pExist.name}** hy sinh **${hpCost.toLocaleString()}** HP để kích hoạt **Huyết Sát**!`);
-      activeDungeon.crimsonActivePlayer = pExist.id;
-      activeDungeon.crimsonHpCost = hpCost;
-      await executePlayerAttack(channel, activeDungeon, pExist, 1.36);
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
+        }
+        const hpCost = Math.floor(pExist.maxHp * 0.15);
+        pExist.hp = Math.max(1, pExist.hp - hpCost);
+        activeDungeon.logs.push(`<:bleed:1521938497642958889> **${pExist.name}** hy sinh **${hpCost.toLocaleString()}** HP để kích hoạt **Huyết Sát**!`);
+        activeDungeon.crimsonActivePlayer = pExist.id;
+        activeDungeon.crimsonHpCost = hpCost;
+        await executePlayerAttack(channel, activeDungeon, pExist, 1.36);
       }
     } catch (err) {
-      console.error("[Dungeon] Lỗi trong interactionListener:", err);
+      console.error("[Dungeon] Lỗi trong interaction collect:", err);
       activeDungeon.actionInProgress = false;
       const ignoredErrors = [
         "unknown interaction",
@@ -953,23 +961,22 @@ const setupCollector = (channel, activeDungeon) => {
         "time"
       ];
       const errMsg = String(err.message || "").toLowerCase();
-      const shouldIgnore = ignoredErrors.some(msg => errMsg.includes(msg));
+      const shouldIgnore = ignoredErrors.some((msg) => errMsg.includes(msg));
       if (!shouldIgnore) {
         try {
           await channel.send(`⚠️ Lỗi hệ thống: \`${err.message}\`. Bạn có thể thử lại.`);
         } catch (_) {}
       }
     }
+  });
+
+  activeDungeon.collector = collector;
+  activeDungeon.cleanupListener = () => {
+    try {
+      collector.stop();
+    } catch (_) {}
+    activeDungeon.collector = null;
   };
-  client.on("interactionCreate", interactionListener);
-  activeDungeon.interactionListener = interactionListener;
-  const cleanupListener = () => {
-    if (activeDungeon.interactionListener) {
-      client.removeListener("interactionCreate", activeDungeon.interactionListener);
-      activeDungeon.interactionListener = null;
-    }
-  };
-  activeDungeon.cleanupListener = cleanupListener;
 };
 const askCoinFlip = async (channel, activeDungeon, player) => {
   const row = new ActionRowBuilder().addComponents(
@@ -1334,6 +1341,7 @@ const nextTurn = async (channel, activeDungeon) => {
       }
     }
     activeDungeon.currentActor = nextPlayer;
+    activeDungeon.actionInProgress = false;
     await renderGameScreen(channel, activeDungeon);
     if (activeDungeon.isSimulation) {
       setTimeout(async () => {
