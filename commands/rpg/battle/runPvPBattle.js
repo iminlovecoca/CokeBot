@@ -29,12 +29,19 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   });
 
   const { updateQuestProgress } = require("../../../utils/questUtil");
-  await Promise.all([
+  const isP1Winner = result.winner && result.winner.id === user1.userId;
+  const questPromises = [
     updateQuestProgress(user1, "pvp_battle", 1, message.channel),
     updateQuestProgress(user2, "pvp_battle", 1, message.channel),
-  ]);
-
-  const isP1Winner = result.winner && result.winner.id === user1.userId;
+  ];
+  if (!result.isDraw && result.winner) {
+    if (isP1Winner) {
+      questPromises.push(updateQuestProgress(user1, "pvp_win", 1, message.channel));
+    } else {
+      questPromises.push(updateQuestProgress(user2, "pvp_win", 1, message.channel));
+    }
+  }
+  await Promise.all(questPromises);
 
   const battleDisplay = user1.rpg?.settings?.battleDisplay || "image";
   const battleSpeed = user1.rpg?.settings?.battleSpeed || "instant";

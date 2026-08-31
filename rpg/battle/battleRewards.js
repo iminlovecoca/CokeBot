@@ -85,10 +85,14 @@ class BattleRewards {
 
     // 5. Update Quest Progress
     if (channel) {
-      await Promise.all([
+      const questPromises = [
         updateQuestProgress(user1, "exp_gain", p1PlayerXp, channel),
         updateQuestProgress(user2, "exp_gain", p2PlayerXp, channel),
-      ]);
+      ];
+      if (user1.rpg?.equippedPet) {
+        questPromises.push(updateQuestProgress(user1, "pet_level", user1.rpg.equippedPet.level, channel));
+      }
+      await Promise.all(questPromises);
     }
 
     // Save MongoDB documents

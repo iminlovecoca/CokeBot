@@ -60,7 +60,7 @@ class QuestCommand extends BaseCommand {
     const m = Math.floor(diff.minutes || 0);
     const s = Math.floor(diff.seconds || 0);
     const countdownStr = `${h}H ${m}M ${s}S`;
-    let description = `These quests belong to <@${message.author.id}>\n\n`;
+    let description = `Danh sách nhiệm vụ của <@${message.author.id}>\n\n`;
     if (activeQuests.length === 0) {
       description += `*Bạn đã hoàn thành toàn bộ nhiệm vụ hôm nay! Hãy quay lại vào ngày mai.*`;
     } else {
@@ -75,16 +75,16 @@ class QuestCommand extends BaseCommand {
         }
         description +=
           `**${index + 1}. ${quest.text}**\n` +
-          `  ▫ \`Reward:\` ${rewardStr}\n` +
-          `  ▫ \`Progress:\` \`[${quest.progress}/${quest.target}]\`\n\n`;
+          `  ▫ \`Phần thưởng:\` ${rewardStr}\n` +
+          `  ▫ \`Tiến độ:\` \`[${quest.progress}/${quest.target}]\`\n\n`;
       });
     }
-    description += `**Next quest in:** \`${countdownStr}\`\n`;
-    description += `*Lượt đổi nhiệm vụ hôm nay:* \`${user.rpg.quests.rerollsLeft || 0} lượt còn lại*`;
+    description += `📌 **Nhiệm vụ mới sau:** \`${countdownStr}\`\n`;
+    description += `🔁 *Lượt đổi nhiệm vụ hôm nay:* \`${user.rpg.quests.rerollsLeft || 0} lượt còn lại*`;
     const file = new AttachmentBuilder("./assets/rpgevent/quest.png");
     const embed = new EmbedBuilder()
       .setColor("#5865F2")
-      .setTitle(`${memberName}'s Quest Log`)
+      .setTitle(`${memberName} - Nhật Ký Nhiệm Vụ`)
       .setThumbnail("attachment://quest.png")
       .setDescription(description);
     return message.reply({ embeds: [embed], files: [file], skipV2: true });

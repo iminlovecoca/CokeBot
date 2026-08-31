@@ -11,7 +11,11 @@ const QUEST_GROUPS = {
   slap_received: ["slap_received", "action_receive", "actions_received"],
   kiss_received: ["kiss_received", "action_receive", "actions_received"],
   hug_received: ["hug_received", "action_receive", "actions_received"],
-  bully_received: ["bully_received", "action_receive", "actions_received"]
+  bully_received: ["bully_received", "action_receive", "actions_received"],
+
+  dungeon_win: ["dungeon_win", "dungeon", "dungeon_x"],
+  pvp_win: ["pvp_win", "pvp_battle_win"],
+  pet_level: ["pet_level", "pet level"]
 };
 
 const QUEST_TEMPLATES = {
@@ -24,7 +28,10 @@ const QUEST_TEMPLATES = {
     { type: "curse", text: "Được người khác curse 3 lần", target: 3 },
     { type: "boss_damage", text: "Gây 250 sát thương lên boss", target: 250 },
     { type: "action_send", text: "Tương tác hành động lên người khác 3 lần", target: 3 },
-    { type: "action_receive", text: "Được người khác tương tác hành động 3 lần", target: 3 }
+    { type: "action_receive", text: "Được người khác tương tác hành động 3 lần", target: 3 },
+    { type: "dungeon_win", text: "Hoàn thành 1 phó bản dungeon", target: 1 },
+    { type: "pvp_win", text: "Chiến thắng 1 trận PvP", target: 1 },
+    { type: "pet_level", text: "Nâng Linh thú của bạn lên cấp 10", target: 10 }
   ],
   intermediate: [
     { type: "boss_fight", text: "Tham gia hạ gục boss 5 lần", target: 5 },
@@ -35,7 +42,10 @@ const QUEST_TEMPLATES = {
     { type: "curse", text: "Được người khác curse 5 lần", target: 5 },
     { type: "boss_damage", text: "Gây 1000 sát thương lên boss", target: 1000 },
     { type: "action_send", text: "Tương tác hành động lên người khác 5 lần", target: 5 },
-    { type: "action_receive", text: "Được người khác tương tác hành động 5 lần", target: 5 }
+    { type: "action_receive", text: "Được người khác tương tác hành động 5 lần", target: 5 },
+    { type: "dungeon_win", text: "Hoàn thành 3 phó bản dungeon", target: 3 },
+    { type: "pvp_win", text: "Chiến thắng 3 trận PvP", target: 3 },
+    { type: "pet_level", text: "Nâng Linh thú của bạn lên cấp 25", target: 25 }
   ],
   advanced: [
     { type: "boss_last_hit", text: "Dứt điểm boss 2 lần", target: 2 },
@@ -45,7 +55,10 @@ const QUEST_TEMPLATES = {
     { type: "curse", text: "Được người khác curse 10 lần", target: 10 },
     { type: "boss_damage", text: "Gây 5000 sát thương lên boss", target: 5000 },
     { type: "action_send", text: "Tương tác hành động lên người khác 10 lần", target: 10 },
-    { type: "action_receive", text: "Được người khác tương tác hành động 10 lần", target: 10 }
+    { type: "action_receive", text: "Được người khác tương tác hành động 10 lần", target: 10 },
+    { type: "dungeon_win", text: "Hoàn thành 5 phó bản dungeon", target: 5 },
+    { type: "pvp_win", text: "Chiến thắng 5 trận PvP được thách đấu", target: 5 },
+    { type: "pet_level", text: "Nâng Linh thú của bạn lên cấp 50", target: 50 }
   ]
 };
 
@@ -95,14 +108,17 @@ const generateRandomQuest = (tier, excludeTexts = []) => {
   };
 };
 
-const checkAndResetDailyQuests = async (user) => {
-  if (!user.rpg) return;
+const checkAndResetDailyQuests = async (user, options = {}) => {
+  const { save = true } = options;
+  let changed = false;
+  if (!user.rpg) return changed;
   if (!user.rpg.quests) {
     user.rpg.quests = {
       active: [],
       lastDailyAt: null,
       rerollsLeft: 1,
     };
+    changed = true;
   }
 
   if (Array.isArray(user.rpg.quests.active)) {
@@ -112,6 +128,7 @@ const checkAndResetDailyQuests = async (user) => {
     );
     if (user.rpg.quests.active.length !== originalLen) {
       user.markModified("rpg");
+      changed = true;
     }
   }
 
@@ -148,8 +165,12 @@ const checkAndResetDailyQuests = async (user) => {
 
     user.rpg.quests.lastDailyAt = todayStr;
     user.markModified("rpg");
-    await user.save();
+    changed = true;
+    if (save) {
+      await user.save();
+    }
   }
+  return changed;
 };
 
 const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraData = {}) => {
@@ -170,7 +191,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   if (!user || !user.rpg || !user.rpg.quests) return;
   
   const userId = user.userId;
-  await checkAndResetDailyQuests(user);
+  const resetChanged = await checkAndResetDailyQuests(user, { save: false });
 
   let modified = false;
   
@@ -182,8 +203,13 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
     if (!triggeredTypes.includes(quest.type)) continue;
     
     if (type === "hunt_loot" && String(extraData.rarity || "").toLowerCase() !== String(quest.rarity || "").toLowerCase()) continue;
-    
-    quest.progress = Math.min(quest.target, (quest.progress || 0) + amount);
+
+    if (quest.type === "pet_level") {
+      const petLvl = user.rpg?.equippedPet?.level || 1;
+      quest.progress = Math.min(quest.target, petLvl);
+    } else {
+      quest.progress = Math.min(quest.target, (quest.progress || 0) + amount);
+    }
     modified = true;
     
     if (quest.progress >= quest.target) {
@@ -225,6 +251,9 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
     
     user.markModified("rpg");
     if (user.inventory) user.markModified("inventory");
+  }
+
+  if (modified || resetChanged) {
     await user.save();
   }
 };
