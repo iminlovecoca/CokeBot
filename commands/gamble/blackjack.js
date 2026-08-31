@@ -110,7 +110,7 @@ class BlackjackCommand extends BaseCommand {
 
     collector.on("end", (_, reason) => {
       if (reason == "time")
-        sentMessage.edit(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${config.prefix}bj\` để tiếp tục!`);
+        sentMessage.edit(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${config.prefix}bj\` để tiếp tục!`).catch(() => null);
     });
   }
 
@@ -160,7 +160,7 @@ class BlackjackCommand extends BaseCommand {
       await message.edit({
         embeds: [this.generateEmbed(author, playerHand, dealerHand, bet)],
         skipV2: true
-      });
+      }).catch(() => null);
     }
   }
 
@@ -169,7 +169,7 @@ class BlackjackCommand extends BaseCommand {
     const gambleService = locator.get("gambleService");
     const game = await gameRepo.setGameProcessing(author.id);
     if (!game) {
-      return message.edit(`${emoji.no} Ván bài đã kết thúc!`);
+      return message.edit(`${emoji.no} Ván bài đã kết thúc!`).catch(() => null);
     }
 
     const playerValue = getBestHandValue(playerHand);
@@ -292,7 +292,7 @@ class BlackjackCommand extends BaseCommand {
     await message.edit({
       embeds: [this.generateEmbed(author, playerHand, dealerHand, bet, false, result, color)],
       skipV2: true
-    });
+    }).catch(() => null);
     await gameRepo.deleteGame(author.id);
   }
 }

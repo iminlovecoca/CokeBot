@@ -1,4 +1,6 @@
 const cooldowns = {}
+const activeCooldownTimers = new Map()
+const MAX_CONCURRENT_TIMERS = 20
 
 const checkAndSetCooldown = (userId, commandName, seconds) => {
   if (!cooldowns[userId]) {
@@ -14,19 +16,43 @@ const checkAndSetCooldown = (userId, commandName, seconds) => {
 }
 
 const notifyCooldown = (message, cooldown) => {
+  const timerKey = `${message.author.id}:${message.commandName || 'unknown'}`
   let remaining = cooldown;
+
+  const existingTimer = activeCooldownTimers.get(timerKey);
+  if (existingTimer) {
+    clearInterval(existingTimer.interval);
+    existingTimer.msg.delete().catch(() => {});
+    activeCooldownTimers.delete(timerKey);
+  }
+
+  if (activeCooldownTimers.size >= MAX_CONCURRENT_TIMERS) {
+    const oldestKey = activeCooldownTimers.keys().next().value;
+    const oldestTimer = activeCooldownTimers.get(oldestKey);
+    if (oldestTimer) {
+      clearInterval(oldestTimer.interval);
+      oldestTimer.msg.delete().catch(() => {});
+    }
+    activeCooldownTimers.delete(oldestKey);
+  }
+
   message.reply(`⏱ | Vui lòng chờ **${remaining}s** để dùng lại.`).then(msg => {
+    const cleanup = () => {
+      clearInterval(interval);
+      activeCooldownTimers.delete(timerKey);
+    };
     const interval = setInterval(async () => {
       remaining--;
       if (remaining <= 0) {
-        clearInterval(interval);
+        cleanup();
         msg.delete().catch(() => {});
       } else {
         await msg.edit(`⏱ | Vui lòng chờ **${remaining}s** để dùng lại.`).catch(() => {
-          clearInterval(interval);
+          cleanup();
         });
       }
     }, 1000);
+    activeCooldownTimers.set(timerKey, { interval, msg });
   }).catch(() => {});
 }
 

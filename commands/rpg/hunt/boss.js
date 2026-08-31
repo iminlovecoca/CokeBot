@@ -248,262 +248,271 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
     const [uid] = sortedByDamage[i];
     topBonusMap.set(uid, TOP3_BONUS[i]);
   }
-  const top3Results = []; 
-  for (const [userId, participant] of activeBoss.participants.entries()) {
-    if (rewardedUserIds.includes(userId)) {
-      console.log(`[RPG_BOSS] Skipping already rewarded user ${userId} for boss ${activeBoss.id}`);
-      continue;
+  const participantEntries = [...activeBoss.participants.entries()].filter(
+    ([userId]) => {
+      if (rewardedUserIds.includes(userId)) {
+        console.log(`[RPG_BOSS] Skipping already rewarded user ${userId} for boss ${activeBoss.id}`);
+        return false;
+      }
+      return true;
     }
-    try {
-      const { user, rpgClass } = await requireRpgCharacter(userId);
-      const isLastHit = userId === activeBoss.lastHitUserId;
-      const gears = [];
-      const isHexia = activeBoss.boss.key === "hexia";
-      const isGodhexa = activeBoss.boss.key === "godhexa";
-      const stonesDropped = [];
-      let keyDropped = false;
-      let expGain = 0;
-      let cokeGain = 0;
-      if (isHexia) {
-        const claimed = user.rpg.claimedEvents || [];
-        if (!claimed.includes("hexia_first_clear")) {
-          const axesnakeGear = await generateRpgGearDrop(user, {
-            forceDrop: true,
-            slot: "weapon",
-            subType: "Axesnake",
-            rarity: "Mythic",
-            fromEvent: true
-          });
-          if (axesnakeGear) {
-            axesnakeGear.power = 1450;
-            addRpgGearToUser(user, axesnakeGear);
-            gears.push(axesnakeGear);
+  );
+  const participantResults = await Promise.all(
+    participantEntries.map(([userId, participant]) => (async () => {
+      try {
+        const { user, rpgClass } = await requireRpgCharacter(userId);
+        const isLastHit = userId === activeBoss.lastHitUserId;
+        const gears = [];
+        const isHexia = activeBoss.boss.key === "hexia";
+        const isGodhexa = activeBoss.boss.key === "godhexa";
+        const stonesDropped = [];
+        let keyDropped = false;
+        let expGain = 0;
+        let cokeGain = 0;
+        if (isHexia) {
+          const claimed = user.rpg.claimedEvents || [];
+          if (!claimed.includes("hexia_first_clear")) {
+            const axesnakeGear = await generateRpgGearDrop(user, {
+              forceDrop: true,
+              slot: "weapon",
+              subType: "Axesnake",
+              rarity: "Mythic",
+              fromEvent: true
+            });
+            if (axesnakeGear) {
+              axesnakeGear.power = 1450;
+              addRpgGearToUser(user, axesnakeGear);
+              gears.push(axesnakeGear);
+            }
+            if (!user.inventory) user.inventory = new Map();
+            const curSouls = user.inventory.get("souls") || 0;
+            user.inventory.set("souls", curSouls + 80);
+            user.markModified("inventory");
+            user.rpg.claimedEvents.push("hexia_first_clear");
+            user.markModified("rpg");
+            expGain = 2000;
+            cokeGain = 5000;
+            addRpgExp(user.rpg, expGain);
+            user.coke += cokeGain;
+            stonesDropped.push({
+              id: "souls",
+              name: "Linh Hồn",
+              emoji: "<:souls:1518749776538243082>",
+              quantity: 80
+            });
+          } else {
+            expGain = 2000;
+            cokeGain = 5000;
+            addRpgExp(user.rpg, expGain);
+            user.coke += cokeGain;
           }
+        } else if (isGodhexa) {
           if (!user.inventory) user.inventory = new Map();
           const curSouls = user.inventory.get("souls") || 0;
-          user.inventory.set("souls", curSouls + 80);
+          user.inventory.set("souls", curSouls + 360);
+          const curPieces = user.inventory.get("hexpiece") || 0;
+          user.inventory.set("hexpiece", curPieces + 1);
           user.markModified("inventory");
-          user.rpg.claimedEvents.push("hexia_first_clear");
-          user.markModified("rpg");
-          expGain = 2000;
-          cokeGain = 5000;
+          expGain = 5000;
+          cokeGain = 10000;
           addRpgExp(user.rpg, expGain);
           user.coke += cokeGain;
-          stonesDropped.push({
-            id: "souls",
-            name: "Linh Hồn",
-            emoji: "<:souls:1518749776538243082>",
-            quantity: 80
-          });
+          stonesDropped.push(
+            {
+              id: "souls",
+              name: "Linh Hồn",
+              emoji: "<:souls:1518749776538243082>",
+              quantity: 360
+            },
+            {
+              id: "hexpiece",
+              name: "Mảnh Vũ Khí Hex",
+              emoji: "<:piece:1518749774403338433>",
+              quantity: 1
+            }
+          );
         } else {
-          expGain = 2000;
-          cokeGain = 5000;
-          addRpgExp(user.rpg, expGain);
-          user.coke += cokeGain;
-        }
-      } else if (isGodhexa) {
-        if (!user.inventory) user.inventory = new Map();
-        const curSouls = user.inventory.get("souls") || 0;
-        user.inventory.set("souls", curSouls + 360);
-        const curPieces = user.inventory.get("hexpiece") || 0;
-        user.inventory.set("hexpiece", curPieces + 1);
-        user.markModified("inventory");
-        expGain = 5000;
-        cokeGain = 10000;
-        addRpgExp(user.rpg, expGain);
-        user.coke += cokeGain;
-        stonesDropped.push(
-          {
-            id: "souls",
-            name: "Linh Hồn",
-            emoji: "<:souls:1518749776538243082>",
-            quantity: 360
-          },
-          {
-            id: "hexpiece",
-            name: "Mảnh Vũ Khí Hex",
-            emoji: "<:piece:1518749774403338433>",
-            quantity: 1
-          }
-        );
-      } else {
-        const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
-        const gear1 = await generateRpgGearDrop(user, {
-          forceDrop: true,
-          rarity: rolledRarity1 || undefined,
-          allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
-        });
-        if (gear1) {
-          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-            addRpgGearToUser(user, gear1);
-          }
-          gears.push(gear1);
-        }
-        if (isLastHit) {
-          const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
-          const gear2 = await generateRpgGearDrop(user, {
+          const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
+          const gear1 = await generateRpgGearDrop(user, {
             forceDrop: true,
-            rarity: rolledRarity2 || undefined,
-            allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
+            rarity: rolledRarity1 || undefined,
+            allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
           });
-          if (gear2) {
+          if (gear1) {
             if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-              addRpgGearToUser(user, gear2);
+              addRpgGearToUser(user, gear1);
             }
-            gears.push(gear2);
+            gears.push(gear1);
           }
-          if (rankReward.lastHitBonusRarities) {
-            const gear3 = await generateRpgGearDrop(user, {
+          if (isLastHit) {
+            const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
+            const gear2 = await generateRpgGearDrop(user, {
               forceDrop: true,
-              allowedRarities: rankReward.lastHitBonusRarities,
+              rarity: rolledRarity2 || undefined,
+              allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
             });
-            if (gear3) {
+            if (gear2) {
               if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-                addRpgGearToUser(user, gear3);
+                addRpgGearToUser(user, gear2);
               }
-              gears.push(gear3);
+              gears.push(gear2);
             }
-          }
-        }
-        const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
-        expGain = Math.floor(
-          baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
-        );
-        if (isTwoPhaseBoss) {
-          expGain = Math.floor(expGain * 1.2);
-        }
-        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          addRpgExp(user.rpg, expGain);
-        }
-        cokeGain = isLastHit
-          ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
-          : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
-        if (isTwoPhaseBoss) {
-          cokeGain = Math.floor(cokeGain * 1.2);
-        }
-        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          user.coke += cokeGain;
-        }
-        if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
-          const dropCount = Math.floor(Math.random() * 2) + 1; 
-          const stoneOptions = bossRankKey === "rong"
-            ? ["somber-4", "somber-5", "somber-6"]
-            : ["somber-7", "somber-8", "somber-9"];
-          if (!user.inventory) {
-            user.inventory = new Map();
-          }
-          for (let i = 0; i < dropCount; i++) {
-            const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
-            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-              const currentQty = user.inventory.get(stoneId) || 0;
-              user.inventory.set(stoneId, currentQty + 1);
-            }
-            const found = stonesDropped.find(s => s.id === stoneId);
-            if (found) {
-              found.quantity += 1;
-            } else {
-              const stoneData = client.allItems.find(item => item.item_id === stoneId);
-              stonesDropped.push({
-                id: stoneId,
-                name: stoneData?.name || stoneId,
-                emoji: stoneData?.emoji || "💎",
-                quantity: 1
+            if (rankReward.lastHitBonusRarities) {
+              const gear3 = await generateRpgGearDrop(user, {
+                forceDrop: true,
+                allowedRarities: rankReward.lastHitBonusRarities,
               });
+              if (gear3) {
+                if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+                  addRpgGearToUser(user, gear3);
+                }
+                gears.push(gear3);
+              }
             }
+          }
+          const expMult = isLastHit ? rankReward.lastHitExpMult : rankReward.expMult;
+          expGain = Math.floor(
+            baseExp * expMult * (1 + (rpgClass.bonuses?.expGain || 0)),
+          );
+          if (isTwoPhaseBoss) {
+            expGain = Math.floor(expGain * 1.2);
           }
           if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-            user.markModified("inventory");
+            addRpgExp(user.rpg, expGain);
           }
-        }
-        if (bossRankKey === "thuongnhan" && isLastHit) {
-          if (Math.random() < 0.5) {
-            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-              if (!user.inventory) {
-                user.inventory = new Map();
+          cokeGain = isLastHit
+            ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
+            : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
+          if (isTwoPhaseBoss) {
+            cokeGain = Math.floor(cokeGain * 1.2);
+          }
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+            user.coke += cokeGain;
+          }
+          if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
+            const dropCount = Math.floor(Math.random() * 2) + 1;
+            const stoneOptions = bossRankKey === "rong"
+              ? ["somber-4", "somber-5", "somber-6"]
+              : ["somber-7", "somber-8", "somber-9"];
+            if (!user.inventory) {
+              user.inventory = new Map();
+            }
+            for (let i = 0; i < dropCount; i++) {
+              const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
+              if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+                const currentQty = user.inventory.get(stoneId) || 0;
+                user.inventory.set(stoneId, currentQty + 1);
               }
-              const currentQty = user.inventory.get("dungeonkey") || 0;
-              user.inventory.set("dungeonkey", currentQty + 1);
+              const found = stonesDropped.find(s => s.id === stoneId);
+              if (found) {
+                found.quantity += 1;
+              } else {
+                const stoneData = client.allItems.find(item => item.item_id === stoneId);
+                stonesDropped.push({
+                  id: stoneId,
+                  name: stoneData?.name || stoneId,
+                  emoji: stoneData?.emoji || "💎",
+                  quantity: 1
+                });
+              }
+            }
+            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
               user.markModified("inventory");
             }
-            keyDropped = true;
+          }
+          if (bossRankKey === "thuongnhan" && isLastHit) {
+            if (Math.random() < 0.5) {
+              if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+                if (!user.inventory) {
+                  user.inventory = new Map();
+                }
+                const currentQty = user.inventory.get("dungeonkey") || 0;
+                user.inventory.set("dungeonkey", currentQty + 1);
+                user.markModified("inventory");
+              }
+              keyDropped = true;
+            }
           }
         }
-      }
-      let topBonus = null;
-      if (topBonusMap.has(userId)) {
-        topBonus = topBonusMap.get(userId);
-        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-          if (topBonus.expBonus > 0) {
-            addRpgExp(user.rpg, topBonus.expBonus);
+        let topBonus = null;
+        if (topBonusMap.has(userId)) {
+          topBonus = topBonusMap.get(userId);
+          if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+            if (topBonus.expBonus > 0) {
+              addRpgExp(user.rpg, topBonus.expBonus);
+            }
+            if (topBonus.cokeBonus > 0) {
+              user.coke += topBonus.cokeBonus;
+            }
+            if (topBonus.wcBonus > 0) {
+              if (!user.inventory) user.inventory = new Map();
+              const currentWc = user.inventory.get("wc") || 0;
+              user.inventory.set("wc", currentWc + topBonus.wcBonus);
+              user.markModified("inventory");
+            }
           }
-          if (topBonus.cokeBonus > 0) {
-            user.coke += topBonus.cokeBonus;
-          }
-          if (topBonus.wcBonus > 0) {
-            if (!user.inventory) user.inventory = new Map();
-            const currentWc = user.inventory.get("wc") || 0;
-            user.inventory.set("wc", currentWc + topBonus.wcBonus);
-            user.markModified("inventory");
-          }
+          const discordUser = await client.users.fetch(userId).catch(() => null);
+          var top3Result = {
+            rank: topBonus.rank,
+            label: topBonus.label,
+            color: topBonus.color,
+            userId,
+            displayName: discordUser?.displayName || discordUser?.username || `<@${userId}>`,
+            damage: participant.damage,
+            expBonus: topBonus.expBonus,
+            cokeBonus: topBonus.cokeBonus,
+            wcBonus: topBonus.wcBonus,
+          };
         }
-        const discordUser = await client.users.fetch(userId).catch(() => null);
-        top3Results.push({
-          rank: topBonus.rank,
-          label: topBonus.label,
-          color: topBonus.color,
+        if (activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit) {
+          activeBoss.lastHitEscrow = {
+            userId,
+            gears,
+            expGain,
+            cokeGain,
+            stonesDropped,
+            keyDropped,
+            topBonus
+          };
+          return top3Result || null;
+        }
+        user.rpg.power = calculateRpgPower(user);
+        await user.save();
+        if (dbBoss) {
+          await SpawnedBoss.findByIdAndUpdate(dbBoss._id, {
+            $addToSet: { rewardedUserIds: userId }
+          }).catch(() => null);
+        }
+        const { updateQuestProgress } = require("../../../utils/questUtil");
+        await updateQuestProgress(user, "boss_fight", 1, channel);
+        await updateQuestProgress(user, "exp_gain", expGain, channel);
+        if (isLastHit) {
+          await updateQuestProgress(user, "boss_last_hit", 1, channel);
+        }
+        await sendRewardDm({
+          client,
           userId,
-          displayName: discordUser?.displayName || discordUser?.username || `<@${userId}>`,
+          boss: activeBoss.boss,
+          rankLabel: rankReward.label,
+          rankEmoji: rankReward.emoji,
+          rankColor: rankReward.color,
           damage: participant.damage,
-          expBonus: topBonus.expBonus,
-          cokeBonus: topBonus.cokeBonus,
-          wcBonus: topBonus.wcBonus,
-        });
-      }
-      if (activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit) {
-        activeBoss.lastHitEscrow = {
-          userId,
           gears,
           expGain,
           cokeGain,
-          stonesDropped,
+          isLastHit,
+          stones: stonesDropped,
           keyDropped,
-          topBonus
-        };
-        continue;
+          topBonus,
+        });
+        return top3Result || null;
+      } catch (error) {
+        console.warn("[RPG_BOSS] Reward failed:", userId, error.message);
+        return null;
       }
-      user.rpg.power = calculateRpgPower(user);
-      await user.save();
-      if (dbBoss) {
-        await SpawnedBoss.findByIdAndUpdate(dbBoss._id, {
-          $addToSet: { rewardedUserIds: userId }
-        }).catch(() => null);
-      }
-      const { updateQuestProgress } = require("../../../utils/questUtil");
-      await updateQuestProgress(user, "boss_fight", 1, channel);
-      await updateQuestProgress(user, "exp_gain", expGain, channel);
-      if (isLastHit) {
-        await updateQuestProgress(user, "boss_last_hit", 1, channel);
-      }
-      await sendRewardDm({
-        client,
-        userId,
-        boss: activeBoss.boss,
-        rankLabel: rankReward.label,
-        rankEmoji: rankReward.emoji,
-        rankColor: rankReward.color,
-        damage: participant.damage,
-        gears,
-        expGain,
-        cokeGain,
-        isLastHit,
-        stones: stonesDropped,
-        keyDropped,
-        topBonus,
-      });
-    } catch (error) {
-      console.warn("[RPG_BOSS] Reward failed:", userId, error.message);
-    }
-  }
+    })())
+  );
+  const top3Results = participantResults.filter(Boolean);
   if (top3Results.length > 0) {
     try {
       top3Results.sort((a, b) => a.rank - b.rank);
@@ -1173,36 +1182,43 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     }
   }
   await user.save();
-  await updateQuestProgress(user, "boss_damage", damage, channel);
-  await updateBossMessage(channel, activeBoss, false, interaction);
-  try {
-    const SpawnedBoss = require("../../../models/SpawnedBoss");
-    const participantsObj = {};
-    for (const [uid, part] of activeBoss.participants.entries()) {
-      participantsObj[uid] = part;
+  const bossPersistTask = (async () => {
+    try {
+      const SpawnedBoss = require("../../../models/SpawnedBoss");
+      const participantsObj = {};
+      for (const [uid, part] of activeBoss.participants.entries()) {
+        participantsObj[uid] = part;
+      }
+      const updateData = {
+        hp: activeBoss.hp,
+        maxHp: activeBoss.maxHp,
+        boss: activeBoss.boss,
+        phase: activeBoss.phase || 1,
+        effects: activeBoss.effects || { armorReduced: 0, healReduced: false },
+        lastHitUserId: activeBoss.lastHitUserId,
+        participants: participantsObj,
+        defeated: activeBoss.hp <= 0,
+        poise: activeBoss.poise,
+        poiseMax: activeBoss.poiseMax,
+        poiseBroken: activeBoss.poiseBroken,
+      };
+      if (activeBoss.dbId) {
+        await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
+      } else {
+        await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, updateData).catch(() => null);
+      }
+    } catch (err) {
+      console.error("[RPG_BOSS] Failed to update boss attack state in DB:", err);
     }
-    const updateData = {
-      hp: activeBoss.hp,
-      maxHp: activeBoss.maxHp,
-      boss: activeBoss.boss,
-      phase: activeBoss.phase || 1,
-      effects: activeBoss.effects || { armorReduced: 0, healReduced: false },
-      lastHitUserId: activeBoss.lastHitUserId,
-      participants: participantsObj,
-      defeated: activeBoss.hp <= 0,
-      poise: activeBoss.poise,
-      poiseMax: activeBoss.poiseMax,
-      poiseBroken: activeBoss.poiseBroken,
-    };
-    if (activeBoss.dbId) {
-      await SpawnedBoss.findByIdAndUpdate(activeBoss.dbId, updateData).catch(() => null);
-    } else {
-      await SpawnedBoss.findOneAndUpdate({ bossId: activeBoss.id }, updateData).catch(() => null);
-    }
-  } catch (err) {
-    console.error("[RPG_BOSS] Failed to update boss attack state in DB:", err);
-  }
-  const userDiscord = await client.users.fetch(userId).catch(() => null);
+  })();
+  await Promise.all([
+    updateQuestProgress(user, "boss_damage", damage, channel),
+    updateBossMessage(channel, activeBoss, false, interaction),
+    bossPersistTask,
+  ]);
+  const userDiscord =
+    client.users.cache.get(userId) ||
+    (await client.users.fetch(userId).catch(() => null));
   const embed = buildAttackResultEmbed({
     activeBoss,
     damage,

@@ -83,13 +83,13 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 	collector.on('end', async (collected, reason) => {
 		if (reason === 'confirm') {
 			const finalEmbed = getEmbed().setFooter({ text: isGift ? '🐶 Cokemon đang được gửi đi...' : '🔒 Giao dịch bị khóa! Đang thực hiện trong 5 giây...' })
-			await interactionMsg.edit({ embeds: [finalEmbed], components: [] })
+			await interactionMsg.edit({ embeds: [finalEmbed], components: [] }).catch(() => null)
 			const execute = async () => {
 				if (isGift) {
 					const msg = await giftCokemon(p1Cokemon, p1Id, p2Id)
 					await registerDexEntry(p2Id, p1Cokemon.species_id._id, p1Cokemon.is_shiny)
 					const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: msg })
-					await interactionMsg.edit({ embeds: [successEmbed] })
+					await interactionMsg.edit({ embeds: [successEmbed] }).catch(() => null)
 				} else {
 					const { p1CokemonEvolvedTo, p2CokemonEvolvedTo } = await swapCokemonOwnership(p1Cokemon, p2Cokemon)
 					let resultMessage = `${config.emoji.yes} Trao đổi giữa **${message.author.username}** và **${p2.username}** đã thành công!`
@@ -112,7 +112,7 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 					}
 
 					const successEmbed = getEmbed().setColor('#2ecc71').setFooter({ text: '🐶 Trao đổi hoàn tất!' })
-					await interactionMsg.edit({ embeds: [successEmbed] })
+					await interactionMsg.edit({ embeds: [successEmbed] }).catch(() => null)
 					if (p1CokemonEvolvedTo || p2CokemonEvolvedTo) {
 						await message.channel.send(resultMessage)
 					}
@@ -127,7 +127,7 @@ const startTradeInteraction = async (message, mode, p1, p2, p1Cokemon, p2Cokemon
 		} else {
 			const reasonText = reason === 'cancel' ? 'Yêu cầu đã bị hủy.' : '⌛️ Hết thời gian, yêu cầu đã bị hủy.'
 			const finalEmbed = getEmbed().setColor('#95a5a6').setFooter({ text: reasonText })
-			await interactionMsg.edit({ embeds: [finalEmbed], components: [] })
+			await interactionMsg.edit({ embeds: [finalEmbed], components: [] }).catch(() => null)
 		}
 	})
 }

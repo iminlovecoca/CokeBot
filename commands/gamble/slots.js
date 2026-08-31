@@ -97,7 +97,7 @@ class SlotsCommand extends BaseCommand {
       rslots[0] + ' ' + moving + ' ' + moving +
       ' ` ` ' + name + ' cược ' + betText +
       '\n  `|         |`\n  `|   COKE  |`';
-    await msg.edit(machine);
+    await msg.edit(machine).catch(() => null);
 
     await wait(700);
     machine =
@@ -105,7 +105,7 @@ class SlotsCommand extends BaseCommand {
       rslots[0] + ' ' + moving + ' ' + rslots[2] +
       ' ` ` ' + name + ' cược ' + betText +
       '\n  `|         |`\n  `|   COKE  |`';
-      await msg.edit(machine);
+      await msg.edit(machine).catch(() => null);
 
     await wait(1000);
     machine =
@@ -114,7 +114,7 @@ class SlotsCommand extends BaseCommand {
       ' ` ` ' + name + ' cược ' + betText +
       '\n  `|         |`   và ăn ' + winText +
       '\n  `|   COKE  |`';
-    await msg.edit(machine);
+    await msg.edit(machine).catch(() => null);
   }
 }
 

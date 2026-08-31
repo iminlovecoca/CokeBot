@@ -4,6 +4,8 @@ const config = require("../data/config");
 const { UserFriendlyError } = require("./errors");
 const { getUser } = require("./userUtil");
 
+const _assetPathCache = new Map();
+
 const classEntries = () => Object.entries(config.rpg.classes || {});
 
 const getRpgClass = (classKey) => {
@@ -183,6 +185,10 @@ const getCharacterAssetPath = (avatarFileOrUser) => {
   }
   if (!avatarFile || typeof avatarFile !== "string") avatarFile = "Warrior_male.png";
 
+  if (_assetPathCache.has(avatarFile)) {
+    return _assetPathCache.get(avatarFile);
+  }
+
   const root = path.join(__dirname, "..");
   let assetPath = path.join(root, "assets/characters", avatarFile);
   if (!fs.existsSync(assetPath)) {
@@ -201,6 +207,7 @@ const getCharacterAssetPath = (avatarFileOrUser) => {
       }
     }
   }
+  _assetPathCache.set(avatarFile, assetPath);
   return assetPath;
 };
 
@@ -255,11 +262,23 @@ const getCleanName = (name) => {
   return clean.replace(/\s+/g, " ").trim();
 };
 
+const _readdirCache = new Map();
+const readCachedDir = (dirPath) => {
+  try {
+    if (_readdirCache.has(dirPath)) return _readdirCache.get(dirPath);
+    const files = fs.readdirSync(dirPath);
+    _readdirCache.set(dirPath, files);
+    return files;
+  } catch (e) {
+    return [];
+  }
+};
+
 const findImageInDir = (subDir, subType, name, extraCandidate = null) => {
   const dirPath = path.join(__dirname, "../assets/items", subDir);
   if (!fs.existsSync(dirPath)) return null;
 
-  const files = fs.readdirSync(dirPath);
+  const files = readCachedDir(dirPath);
   const candidates = [];
   if (subType) {
     candidates.push(removeVietnameseTones(subType).toLowerCase().replace(/\s+/g, ""));

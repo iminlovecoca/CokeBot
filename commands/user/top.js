@@ -85,26 +85,17 @@ class TopCommand extends BaseCommand {
       return message.reply('❌ **|** Không có dữ liệu người chơi nào.').catch(() => {});
 
     // Resolve user display names safely without blocking on GuildMembersTimeout
+    // or making N sequential Discord API calls (client.users.fetch per user is slow).
     const userNames = [];
     for (const u of topUsers) {
-      let username = null;
       const member = guild?.members?.cache?.get(u.userId);
-      if (member) {
-        username = `@${member.user.username}`;
+      let username = member?.user?.username || client.users?.cache?.get(u.userId)?.username || null;
+      if (username) {
+        username = `@${username}`;
+      } else if (u.rpg?.name) {
+        username = `@${u.rpg.name}`;
       } else {
-        const cachedUser = client.users?.cache?.get(u.userId);
-        if (cachedUser) {
-          username = `@${cachedUser.username}`;
-        } else {
-          try {
-            const fetched = await client.users.fetch(u.userId).catch(() => null);
-            if (fetched) username = `@${fetched.username}`;
-          } catch (e) {}
-        }
-      }
-
-      if (!username) {
-        username = u.rpg?.name ? `@${u.rpg.name}` : `@Người chơi #${u.userId.slice(-4)}`;
+        username = `@Người chơi #${(u.userId || "").slice(-4)}`;
       }
       userNames.push(username);
     }

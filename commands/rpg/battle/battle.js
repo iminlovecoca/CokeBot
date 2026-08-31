@@ -192,33 +192,19 @@ class BattleCommand extends BaseCommand {
 
     // If no real player matched yet, pick a Bot NPC of the TARGET RANK TIER
     if (!matchedOpponent) {
-      const botsInTier = await User.aggregate([
+      // Single aggregate over the union of target + expanded ranks (avoids 2 sequential queries)
+      const botRanks = Array.from(new Set([...targetRanks, ...expandedRanks]));
+      const botMatch = await User.aggregate([
         {
           $match: {
             isBattleBot: true,
-            "rpg.battleRank": { $in: targetRanks },
+            "rpg.battleRank": { $in: botRanks },
             userId: { $nin: excludedIds }
           }
         },
         { $sample: { size: 1 } }
       ]).catch(() => []);
-
-      if (botsInTier.length > 0) {
-        matchedOpponent = botsInTier[0];
-      } else {
-        // Fallback to expanded bot ranks
-        const botsExpanded = await User.aggregate([
-          {
-            $match: {
-              isBattleBot: true,
-              "rpg.battleRank": { $in: expandedRanks },
-              userId: { $nin: excludedIds }
-            }
-          },
-          { $sample: { size: 1 } }
-        ]).catch(() => []);
-        if (botsExpanded.length > 0) matchedOpponent = botsExpanded[0];
-      }
+      if (botMatch.length > 0) matchedOpponent = botMatch[0];
     }
 
     // Final fallback if all above failed

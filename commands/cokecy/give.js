@@ -129,7 +129,7 @@ class GiveCommand extends BaseCommand {
           .setDescription(`${config.emoji.no} **|** Giao dịch đã bị huỷ.`);
       }
 
-      await confirmMsg.edit({ embeds: [embed], components: [row] });
+      await confirmMsg.edit({ embeds: [embed], components: [row] }).catch(() => null);
     });
 
     collector.on("end", (collected) => {
@@ -138,7 +138,7 @@ class GiveCommand extends BaseCommand {
         embed
           .setColor(0xffcc00)
           .setDescription("⏱ **|** Giao dịch đã hết hạn xác nhận.");
-        confirmMsg.edit({ embeds: [embed], components: [row] });
+        confirmMsg.edit({ embeds: [embed], components: [row] }).catch(() => null);
       }
     });
   }

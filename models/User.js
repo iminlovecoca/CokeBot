@@ -171,5 +171,10 @@ userSchema.index({ tea: -1 });
 userSchema.index({ "rpg.power": -1 });
 userSchema.index({ "rpg.autohunt.totalEssence": -1 });
 userSchema.index({ "rpg.autohunt.isActive": 1 });
+userSchema.index({ "rpg.battleRank": 1 });
+userSchema.index({ "rpg.level": 1 });
+userSchema.index({ isBattleBot: 1 });
+userSchema.index({ "rpg.classKey": 1 });
+userSchema.index({ "rpg.godsetBackup": 1 });
 
 module.exports = mongoose.model("User", userSchema);

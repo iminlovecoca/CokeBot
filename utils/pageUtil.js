@@ -42,8 +42,13 @@ const initPage = async (message, generateDisplay, totalPages, command, currentIn
 	})
 
 	collector.on('end', (_, reason) => {
-		if (reason == 'time')
-			sentMsg.edit(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${command}\` để tiếp tục!`)
+		if (reason == 'time') {
+			const { EmbedBuilder } = require('discord.js')
+			const embed = new EmbedBuilder()
+				.setColor('#E74C3C')
+				.setDescription(`**⏱ |** Đã hết thời gian tương tác. Nhập \`${command}\` để tiếp tục!`)
+			sentMsg.edit({ embeds: [embed], components: [] }).catch(() => null)
+		}
 	})
 }
 

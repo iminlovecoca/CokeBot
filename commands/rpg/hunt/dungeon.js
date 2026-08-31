@@ -1875,10 +1875,10 @@ const handleVictory = async (channel, activeDungeon) => {
   const eliteBonus = 1 + 0.5 * (activeDungeon.elitesKilled || 0);
   const cokeReward = Math.floor(rewCfg.base_coke * activeDungeon.chapter * mult * eliteBonus);
   const expReward = Math.floor(rewCfg.base_exp * activeDungeon.chapter * mult * eliteBonus);
-  const rewardTexts = [];
-  for (const p of activeDungeon.players) {
+  const rewardLines = await Promise.all(
+    activeDungeon.players.map(async (p) => {
     const freshUser = await User.findById(p.userRef._id);
-    if (!freshUser) continue;
+    if (!freshUser) return null;
     if (!freshUser.rpg.clearedDungeons) {
       freshUser.rpg.clearedDungeons = [];
     }
@@ -1991,8 +1991,10 @@ const handleVictory = async (channel, activeDungeon) => {
     if (specialGear && bossReward) {
       rewardLine += `\n  • 🏆 **PHẦN THƯỞNG LẦN ĐẦU TIÊU DIỆT**: Nhận vũ khí độc quyền ${bossReward.emoji} **${specialGear.subType}** (${specialGear.rarity})!`;
     }
-    rewardTexts.push(rewardLine);
-  }
+      return rewardLine;
+    })
+  );
+  const rewardTexts = rewardLines.filter(Boolean);
   const embed = new EmbedBuilder()
     .setColor("#2ECC71")
     .setTitle("🏆 CHIẾN THẮNG PHÓ BẢN! 🏆")

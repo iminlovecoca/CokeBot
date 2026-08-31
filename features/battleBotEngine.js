@@ -22,13 +22,16 @@ class BattleBotEngine {
     await this.syncBotStatsWithTierMap();
 
     // Run periodic bot simulation every 30 minutes
-    this.intervalTimer = setInterval(async () => {
+    const runSimulation = async () => {
       try {
         await this.syncBotStatsWithTierMap();
         await this.simulateBotBattleClimb();
       } catch (err) {
         console.error('[BATTLE_BOT_ENGINE] Simulation error:', err);
       }
+    };
+    this.intervalTimer = setInterval(() => {
+      runSimulation().catch(err => console.error('[BATTLE_BOT_ENGINE] Unhandled interval error:', err));
     }, 30 * 60 * 1000);
   }
 
@@ -47,8 +50,8 @@ class BattleBotEngine {
       bot.rpg.power = targetPower;
 
       bot.markModified('rpg');
-      await bot.save().catch(() => {});
     }
+    await Promise.all(bots.map(bot => bot.save().catch(() => {})));
   }
 
   async simulateBotBattleClimb() {

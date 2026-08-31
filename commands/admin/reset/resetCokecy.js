@@ -116,7 +116,7 @@ class ResetCokecyCommand extends BaseCommand {
               .setDescription("Không có phản hồi, giao dịch đã bị hủy."),
           ],
           components: [],
-        });
+        }).catch(() => null);
       }
     });
     }

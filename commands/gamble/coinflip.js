@@ -99,7 +99,7 @@ class CoinflipCommand extends BaseCommand {
       }
       await msg.edit(
         `**${message.member?.displayName || message.author.username}** đã cược ${emoji.money} **${betAmount.toLocaleString()}** và chọn ${choice === "h" ? "**Ngửa (heads)**" : "**Sấp (tails)**"}\n${resultText}`,
-      );
+      ).catch(() => null);
     }, 2000);
   }
 }

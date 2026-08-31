@@ -241,7 +241,7 @@ class ReleaseCommand extends BaseCommand {
         sentMsg.edit({
           content: "Hết thời gian xác nhận, hành động đã được hủy.",
           components: [],
-        });
+        }).catch(() => null);
       }
     });
   }

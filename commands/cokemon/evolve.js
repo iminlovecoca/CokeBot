@@ -178,7 +178,7 @@ module.exports = new EvolveCommand();
 
 			collector.on('end', (_, reason) => {
 				if (reason === 'time') {
-					sentMsg.edit({ content: 'Hết thời gian xác nhận, yêu cầu đã được hủy.', components: [] })
+					sentMsg.edit({ content: 'Hết thời gian xác nhận, yêu cầu đã được hủy.', components: [] }).catch(() => null)
 				}
 			})
 		} else {

@@ -70,10 +70,31 @@ const initializeSpawner = (client) => {
         ) {
           spawnState.autoCatchProcessed = true;
           const activeNets = await ActiveNet.find({});
-          for (const net of activeNets) {
-            
+          const BATCH_SIZE = 5;
+          const uniqueUserIds = [...new Set(activeNets.map((n) => n.userId))];
+          const userCache = new Map();
+
+          for (let i = 0; i < uniqueUserIds.length; i += BATCH_SIZE) {
+            const chunk = uniqueUserIds.slice(i, i + BATCH_SIZE);
+            const results = await Promise.all(
+              chunk.map((id) =>
+                client.users
+                  .fetch(id)
+                  .then((u) => [id, u])
+                  .catch(() => [id, null]),
+              ),
+            );
+            for (const [id, user] of results) {
+              if (user) userCache.set(id, user);
+            }
+          }
+
+          for (let i = 0; i < activeNets.length; i += BATCH_SIZE) {
+            const batch = activeNets.slice(i, i + BATCH_SIZE);
+            await Promise.all(
+              batch.map(async (net) => {
             if (spawnState.userStates.has(net.userId)) {
-              continue;
+              return;
             }
 
             const cokemon = spawnState.cokemon;
@@ -137,7 +158,7 @@ const initializeSpawner = (client) => {
 
             if (net.uses <= 0) {
               if (net.caught.size > 0) {
-                const user = await client.users.fetch(net.userId);
+                const user = userCache.get(net.userId);
                 const caughtArray = Array.from(net.caught.entries());
                 caughtArray.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
 
@@ -180,6 +201,8 @@ const initializeSpawner = (client) => {
             } else {
               await net.save();
             }
+              })
+            );
           }
         }
       }

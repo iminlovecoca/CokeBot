@@ -55,7 +55,7 @@ class PingCommand extends BaseCommand {
       .setTimestamp()
       .setFooter({ text: `Yêu cầu bởi ${message.author.tag}`, iconURL: message.author.displayAvatarURL() });
 
-    await sent.edit({ content: null, embeds: [embed] });
+    await sent.edit({ content: null, embeds: [embed] }).catch(() => null);
   }
 
   formatUptime(seconds) {

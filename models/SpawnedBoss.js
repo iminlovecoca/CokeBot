@@ -26,4 +26,7 @@ const SpawnedBossSchema = new mongoose.Schema({
   poiseBroken: { type: Boolean, default: false }
 }, { versionKey: false, timestamps: true });
 
+SpawnedBossSchema.index({ bossId: 1 });
+SpawnedBossSchema.index({ defeated: 1, expired: 1, rewarded: 1 });
+
 module.exports = mongoose.model('SpawnedBoss', SpawnedBossSchema);

@@ -108,13 +108,13 @@ class PartyCommand extends BaseCommand {
           return inviteMsg.edit({
             content: `✅ <@${targetId}> đã đồng ý gia nhập party của <@${userId}>! (Thành viên: ${freshGuild.members.length}/3)`,
             components: [],
-          });
+          }).catch(() => null);
         } else {
           collector.stop("declined");
           return inviteMsg.edit({
             content: `❌ <@${targetId}> đã từ chối lời mời gia nhập party.`,
             components: [],
-          });
+          }).catch(() => null);
         }
       });
       collector.on("end", (collected, reason) => {
