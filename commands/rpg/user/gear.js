@@ -202,9 +202,6 @@ class GearCommand extends BaseCommand {
         .setColor(rarityColor[freshItem.rarity] || rpgClass.color)
         .setTitle(titleText)
         .setDescription(desc);
-      if (imageFile) {
-        embed.setThumbnail(`attachment://${path.basename(imageFile)}`);
-      }
       const row = new ActionRowBuilder();
       if (equippedEntry) {
         row.addComponents(
@@ -256,6 +253,7 @@ class GearCommand extends BaseCommand {
         const assetPath = path.join(__dirname, "../../../assets/items", imageFile);
         if (fs.existsSync(assetPath)) {
           attachment = new AttachmentBuilder(assetPath, { name: path.basename(imageFile) });
+          embed.setThumbnail(`attachment://${path.basename(imageFile)}`);
         }
       }
       const replyOptions = { embeds: [embed], components: [row] };

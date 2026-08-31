@@ -105,7 +105,13 @@ const dungeonWeapons = [
   { name: "Spearhex", key: "spearhex", emoji: "<:Spearhex:1518746351784034366>" },
   { name: "Shieldhex", key: "shieldhex", emoji: "<:Shieldhex:1518746348973850818>" },
   { name: "Lunashard", key: "lunashard", emoji: "<:Lunashard:1523374307986772088>" },
-  { name: "Eclipsesoul", key: "eclipsesoul", emoji: "<:Eclipsesoul:1523374305256280065>" }
+  { name: "Eclipsesoul", key: "eclipsesoul", emoji: "<:Eclipsesoul:1523374305256280065>" },
+  { name: "Fallenangel", key: "fallenangel", emoji: "👼" },
+  { name: "Greeddagger", key: "greeddagger", emoji: "🔱" },
+  { name: "Asmodeus", key: "asmodeus", emoji: "👁️" },
+  { name: "Soulreaper", key: "soulreaper", emoji: "⛓️" },
+  { name: "Beelzebub", key: "beelzebub", emoji: "💀" },
+  { name: "Satan", key: "satan", emoji: "⚔️" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
@@ -557,6 +563,12 @@ const WEAPON_SETS = {
   shieldhex: { name: "Quỷ Khiên", color: "#64748b", bonus: { maxHp: 0.08, reflection: 0.10 } },
   lunashard: { name: "Mảnh Trăng", color: "#93c5fd", bonus: { doubleHit: 0.06, critRate: 0.02 } },
   eclipsesoul: { name: "Linh Hồn", color: "#8b5cf6", bonus: { mrPierce: 0.15, bossDamage: 0.04 } },
+  fallenangel: { name: "Sa Ngã", color: "#c0a050", bonus: { reflection: 0.15, critRate: 0.03 } },
+  greeddagger: { name: "Tham Lam", color: "#22c55e", bonus: { lifesteal: 0.06, critRate: 0.03 } },
+  asmodeus: { name: "Dục Vọng", color: "#e11d48", bonus: { critRate: 0.05, pvpDamage: 0.04 } },
+  soulreaper: { name: "Lưỡi Hái", color: "#581c87", bonus: { bossDamage: 0.06, mrPierce: 0.08 } },
+  beelzebub: { name: "Phàm Ăn", color: "#65a30d", bonus: { maxHp: 0.06, healBonus: 0.10 } },
+  satan: { name: "Hỏa Ngục", color: "#dc2626", bonus: { bossDamage: 0.08, pvpDamage: 0.06 } },
 };
 
 const getWeaponSetBonus = (user) => {

@@ -47,6 +47,19 @@ const getHealthBar = (hp, maxHp) => {
   const empty = "▱".repeat(emptyCount);
   return `❤️ **HP:** ${filled}${empty} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
 };
+const getBossForm = (bossCfg, enemy) => {
+  const forms = bossCfg?.forms;
+  if (!forms?.length || !enemy.maxHp) return null;
+  const ratio = enemy.hp / enemy.maxHp;
+  let current = forms[forms.length - 1];
+  for (const f of forms) {
+    if (ratio > f.threshold) {
+      current = f;
+      break;
+    }
+  }
+  return current;
+};
 const getAttachmentId = (activeDungeon) => {
   if (!activeDungeon) return null;
   if (activeDungeon.attachmentId) return activeDungeon.attachmentId;
@@ -617,6 +630,10 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
   let enemyInfo = `${getHealthBar(enemy.hp, enemy.maxHp)}\n`;
   if (enemy.isBoss) {
+    const bossForm = getBossForm(bossCfg, enemy);
+    if (bossForm?.name) {
+      enemyInfo += `👹 **Hình thái:** ${bossForm.name}\n`;
+    }
     enemyInfo += `${getPoiseBar(enemy.poise || 0, enemy.poiseMax || 100)}\n`;
     if (enemy.poiseBroken) {
       enemyInfo += `✨ **Trạng thái:** **BỊ PHÁ VỠ POISE (Suy Yếu: Nhận thêm +50% Sát thương)**\n`;
@@ -763,11 +780,13 @@ const renderGameScreen = async (channel, activeDungeon) => {
   let files = [];
   let imgFileName = null;
   if (enemy.isBoss) {
-    const bossImageFile = bossCfg?.image_phase1 || "TF.png";
-    const bossImagePath = path.join(__dirname, "../../../assets/dungeons", chapter === 5 ? "Chapter2" : "", bossImageFile);
+    const bossForm = getBossForm(bossCfg, enemy);
+    const bossImageFile = bossForm?.image || bossCfg?.image_phase1 || "TF.png";
+    const bossImagePath = path.join(__dirname, "../../../assets/dungeons", bossImageFile.includes("/") ? "" : (chapter === 5 ? "Chapter2" : ""), bossImageFile);
     if (fs.existsSync(bossImagePath)) {
-      files.push(new AttachmentBuilder(bossImagePath, { name: bossImageFile }));
-      imgFileName = bossImageFile;
+      const safeName = (bossImageFile.split("/").pop() || "boss.png").replace(/\.\.+/g, ".");
+      files.push(new AttachmentBuilder(bossImagePath, { name: safeName }));
+      imgFileName = safeName;
     }
   } else {
     let filePath = null;
@@ -1361,6 +1380,15 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
+  if (enemy.isBoss) {
+    const bossCfgLocal = getBossConfig(activeDungeon.chapter);
+    const nextForm = getBossForm(bossCfgLocal, enemy);
+    if (nextForm && nextForm.image !== enemy.currentFormImage) {
+      enemy.currentFormImage = nextForm.image;
+      enemy.currentFormName = nextForm.name;
+      activeDungeon.logs.push(`👹 **${enemy.name}** bị trọng thương, giải phóng sức mạnh tội lỗi — biến hóa thành **[${nextForm.name}]**!`);
+    }
+  }
   if (enemy.isBoss && !enemy.poiseBroken) {
     let poiseDmg = Math.max(6, Math.floor(damage * 0.00032));
     if (player.classKey === "warrior" && isSkill) {

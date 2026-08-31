@@ -509,6 +509,165 @@ const WEAPON_PASSIVES = {
       },
     },
   },
+
+  fallenangel: {
+    name: "Thiên Sứ Sa Ngã",
+    type: PASSIVE_TYPES.REFLECT,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.REFLECT,
+        absorbPct: 0.15,
+        reflectPct: 0.60,
+        threshold: 3,
+        log: () => `🪽 **[Fallen Angel]** Đôi cánh sa ngã hấp thụ 15% sát thương và phản chiếu!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.REFLECT,
+        absorbPct: 0.15,
+        reflectPct: 0.70,
+        threshold: 3,
+        log: () => `🪽 **[Fallen Angel]** Phản chiếu sát thương!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.REFLECT,
+        absorbPct: 0.20,
+        reflectPct: 0.90,
+        threshold: 3,
+        log: () => `⚔️ **[Fallen Angel]** Đôi cánh sa ngã phản chiếu sát thương boss.`,
+      },
+    },
+  },
+
+  greeddagger: {
+    name: "Đoản Đao Tham Lam",
+    type: PASSIVE_TYPES.LIFESTEAL,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.LIFESTEAL,
+        pct: 0.03,
+        healType: "damage",
+        log: (name, healAmt) => `💰 **[Greed Dagger]** Hút máu đối thủ, hồi **${healAmt.toLocaleString()}** HP!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.LIFESTEAL,
+        pct: 0.06,
+        healType: "damage",
+        log: (name, healAmt) => `💰 **[Greed Dagger]** Hút máu, hồi **${healAmt.toLocaleString()}** HP!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.LIFESTEAL,
+        pct: 0.06,
+        healType: "damage",
+        log: (name, healAmt) => `⚔️ **[Greed Dagger]** Hút máu boss, hồi **${healAmt.toLocaleString()}** HP.`,
+      },
+    },
+  },
+
+  asmodeus: {
+    name: "Trường Kiếm Dục Vọng",
+    type: PASSIVE_TYPES.DAMAGE_MULT,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.6,
+        hitCount: 3,
+        log: (name) => `👁️ **[Asmodeus]** Con mắt dục vọng lóe sáng! Đòn thứ 3 gây **${(1.6 * 100).toFixed(0)}%** sát thương.`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.6,
+        hitCount: 3,
+        log: (name) => `👁️ **[Asmodeus]** Đòn thứ 3 sát thương tăng **${(1.6 * 100).toFixed(0)}%**!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.8,
+        hitCount: 3,
+        log: () => `👁️ **[Asmodeus]** Đòn thứ 3 gây gấp đôi sát thương lên boss!`,
+      },
+    },
+  },
+
+  soulreaper: {
+    name: "Lưỡi Hái Linh Hồn",
+    type: PASSIVE_TYPES.HEAL_BAN,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.HEAL_BAN,
+        rounds: 2,
+        log: (name) => `⛓️ **[Soul Reaper]** Lưỡi hái thu thập linh hồn! **${name}** bị cấm hồi máu 2 lượt.`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.HEAL_BAN,
+        rounds: 2,
+        log: () => `⛓️ **[Soul Reaper]** Đối thủ bị cấm hồi máu 2 lượt!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.HEAL_BAN,
+        rounds: 2,
+        log: () => `⚔️ **[Soul Reaper]** Boss bị cấm hồi máu 2 lượt.`,
+      },
+    },
+  },
+
+  beelzebub: {
+    name: "Xúc Tu Ruồi Hoại Tử",
+    type: PASSIVE_TYPES.RANDOM_EFFECT,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.10 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `💀 **[Beelzebub]** Đàn ruồi hoại tử tấn công!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.10 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `💀 **[Beelzebub]** Đàn ruồi hoại tử tấn công!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `💀 **[Beelzebub]** Đàn ruồi hoại tử tấn công boss!`,
+      },
+    },
+  },
+
+  satan: {
+    name: "Ma Kiếm Hỏa Ngục",
+    type: PASSIVE_TYPES.BLEED,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 3,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        log: (name) => `⚔️ **[Satan]** Ngọn lửa địa ngục thiêu đốt **${name}**, gây chảy máu 3 lượt!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 2,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        log: (name) => `⚔️ **[Satan]** Gây chảy máu 2 lượt!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 3,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        log: () => `⚔️ **[Satan]** Boss bị thiêu đốt, chảy máu 3 lượt.`,
+      },
+    },
+  },
 };
 
 const LOCKED_WEAPONS = [];
