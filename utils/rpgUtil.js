@@ -576,6 +576,7 @@ const getWeaponSetBonus = (user) => {
   const equipped = getEquippedItems(user);
   const weaponKey = getDungeonWeaponKey(equipped.weapon?.subType || equipped.weapon?.subtype || "");
   if (!weaponKey) return null;
+  if (String(equipped.weapon?.rarity || "").toLowerCase() === "common") return null;
   return WEAPON_SETS[weaponKey] || null;
 };
 

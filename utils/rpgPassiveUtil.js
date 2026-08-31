@@ -153,6 +153,8 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     ? player.weapon.subType.toLowerCase().replace(/\s+/g, "")
     : "";
 
+  const pWeaponRarity = player.weapon?.rarity || "";
+
   const result = {
     damage: rawDamage,
     mrOrArmor: isMagical ? (enemy.magicResist || 0) : (enemy.armor || 0),
@@ -171,6 +173,8 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
   };
 
   if (isLockedWeapon(pWeaponSubType)) return result;
+
+  if (String(pWeaponRarity).toLowerCase() === "common") return result;
 
   const passiveDef = getWeaponPassive(pWeaponSubType);
   if (!passiveDef) return result;
@@ -442,7 +446,7 @@ const triggerWeaponPassiveOnAttack = (player, enemy, activeDungeon, rawDamage, i
 
 const triggerWorldBossPassive = (cleanSubType, participant, activeBoss, passiveTriggers, damage) => {
   const player = {
-    weapon: { subType: cleanSubType },
+    weapon: { subType: cleanSubType, rarity: participant?.weapon?.rarity },
     stats: participant.effectiveStats || {},
     power: participant.gearPower || 0,
     hp: participant.hp || 0,

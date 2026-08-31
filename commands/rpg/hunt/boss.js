@@ -909,7 +909,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   let spearhexTriggered = false;
   let shieldhexTriggered = false;
   let riverofbloodTriggered = false;
-  const hasTriggered = isDungeonWeapon && Math.random() < 0.45;
+  const hasTriggered = isDungeonWeapon && String(weapon?.rarity || "").toLowerCase() !== "common" && Math.random() < 0.45;
   let blueStaffPierce = false;
   let crimsonDaggerPierce = false;
   let holySwordDouble = false;
