@@ -226,81 +226,9 @@ module.exports = {
         }
       }
 
-      const handledNoituGame = await handleNoituMessage(message, client);
-      if (handledNoituGame) return;
-
-      
-      if (isCommand) {
-        const { leveledUp, oldLevel, newLevel, totalReward } = await addUserXp(
-          user,
-          10,
-        );
-        if (leveledUp) {
-          try {
-            const avatarUrl = message.author.displayAvatarURL({ extension: "png", size: 256 });
-            const title = user.rpg?.name || user.rpg?.rank || getRawRankName(newLevel);
-            const displayName = message.member?.displayName || message.author.username;
-
-            const buffer = await createLevelUpCanvas({
-              newLevel,
-              totalReward,
-              avatarUrl,
-              title,
-            });
-
-            const attachment = new AttachmentBuilder(buffer, { name: "levelup.png" });
-
-            await message.channel.send({
-              content: `🎉 | **${displayName}** | **${title}** leveled up!`,
-              files: [attachment],
-            }).catch(() => {});
-          } catch (err) {
-            console.error("[LEVEL_UP_NOTIFICATION] Error sending level up banner:", err);
-          }
-        }
-      }
-
-      
-      if (needsXpCheck) {
-        if (user.active_cokemon_id) {
-          try {
-            const selectedCokemon = await getActiveCokemon(user); 
-            const xpGained = 5 + Math.floor(selectedCokemon.level * 0.2);
-            const { levelsGained } = await addCokemonXp(
-              selectedCokemon,
-              xpGained,
-            );
-            if (levelsGained > 0) {
-              await message.channel.send(
-                `🎉 Chúc mừng **${selectedCokemon.nickname || selectedCokemon.species_id.name}** của bạn đã tăng lên **cấp ${selectedCokemon.level}**!`,
-              );
-            }
-          } catch (error) {
-            if (!(error instanceof UserFriendlyError)) {
-              console.error("Unexpected error during passive XP gain:", error);
-            }
-          }
-        }
-        client.xpCooldowns.set(
-          userId,
-          now + config.cokemon_settings.xp_cooldown_ms,
-        );
-      }
-
-      if (needsFriendshipCheck) {
-        if (user.active_cokemon_id && Math.random() < 0.2) {
-          await Cokemon.updateOne(
-            { _id: user.active_cokemon_id },
-            { $inc: { friendship: 1 } },
-          );
-        }
-        client.friendshipCooldowns.set(
-          userId,
-          now + config.cokemon_settings.friendship_cooldown_ms,
-        );
-      }
-
-      
+      // Parse and resolve the command EARLY (before XP/passive work) so the
+      // command response is sent without waiting for the side-effect DB writes.
+      let commandDispatch = null;
       if (isCommand) {
         const rawArgs = message.content
           .slice(config.prefix.length)
@@ -315,18 +243,19 @@ module.exports = {
           );
         if (command) {
           const isDev = config.permissions?.dev_ids?.includes(userId) || userId === process.env.OWNER_ID;
+          let isLocked = false;
           if (!isDev && client.lockedFeatures && client.lockedFeatures.length > 0) {
             const cmdName = command.name.toLowerCase();
             const cmdCategory = (command.category || "").toLowerCase();
-            const isLocked = client.lockedFeatures.some(feature => {
+            isLocked = client.lockedFeatures.some(feature => {
               const f = feature.toLowerCase();
               return f === cmdName || f === cmdCategory || (command.aliases && command.aliases.map(a => a.toLowerCase()).includes(f));
             });
-            if (isLocked) {
-              return message.reply(`🚫 Tính năng/lệnh này đã bị chủ bot khóa tạm thời.`);
-            }
           }
-          // Check command cooldown
+          if (isLocked) {
+            return message.reply(`🚫 Tính năng/lệnh này đã bị chủ bot khóa tạm thời.`);
+          }
+          // Check command cooldown (must block before running the command)
           if (command.cooldown && command.cooldown > 0) {
             const { checkAndSetCooldown } = require("../utils/cooldown");
             const cd = checkAndSetCooldown(userId, command.name, command.cooldown);
@@ -340,10 +269,105 @@ module.exports = {
               return message.reply(`⏱ | Bạn phải chờ **${timeString}** để dùng lại lệnh.`).catch(() => {});
             }
           }
-
-          await command.execute(message, parsedArgs, client, client.services);
+          commandDispatch = { message, parsedArgs, command };
         }
       }
+
+      // For non-command messages: noitu game handling still blocks as before.
+      if (!isCommand) {
+        const handledNoituGame = await handleNoituMessage(message, client);
+        if (handledNoituGame) return;
+      }
+
+      // Dispatch the command FIRST so its response is not delayed by the
+      // XP / passive / friendship side-effect DB writes below.
+      if (commandDispatch) {
+        await commandDispatch.command.execute(
+          commandDispatch.message,
+          commandDispatch.parsedArgs,
+          client,
+          client.services,
+        );
+      }
+
+      // ---- Post-dispatch side effects (run in the background, never block) ----
+      const runBackgroundSideEffects = async () => {
+        // XP gain for using a command (+ level-up banner)
+        if (isCommand) {
+          try {
+            const { leveledUp, newLevel, totalReward } = await addUserXp(user, 10);
+            if (leveledUp) {
+              try {
+                const avatarUrl = message.author.displayAvatarURL({ extension: "png", size: 256 });
+                const title = user.rpg?.name || user.rpg?.rank || getRawRankName(newLevel);
+                const displayName = message.member?.displayName || message.author.username;
+                const buffer = await createLevelUpCanvas({
+                  newLevel,
+                  totalReward,
+                  avatarUrl,
+                  title,
+                });
+                const attachment = new AttachmentBuilder(buffer, { name: "levelup.png" });
+                await message.channel.send({
+                  content: `🎉 | **${displayName}** | **${title}** leveled up!`,
+                  files: [attachment],
+                }).catch(() => {});
+              } catch (err) {
+                console.error("[LEVEL_UP_NOTIFICATION] Error sending level up banner:", err);
+              }
+            }
+          } catch (err) {
+            console.error("[COMMAND_XP] Error granting command XP:", err);
+          }
+        }
+
+        // Passive cokemon XP
+        if (needsXpCheck) {
+          if (user.active_cokemon_id) {
+            try {
+              const selectedCokemon = await getActiveCokemon(user);
+              const xpGained = 5 + Math.floor(selectedCokemon.level * 0.2);
+              const { levelsGained } = await addCokemonXp(
+                selectedCokemon,
+                xpGained,
+              );
+              if (levelsGained > 0) {
+                await message.channel.send(
+                  `🎉 Chúc mừng **${selectedCokemon.nickname || selectedCokemon.species_id.name}** của bạn đã tăng lên **cấp ${selectedCokemon.level}**!`,
+                );
+              }
+            } catch (error) {
+              if (!(error instanceof UserFriendlyError)) {
+                console.error("Unexpected error during passive XP gain:", error);
+              }
+            }
+          }
+          client.xpCooldowns.set(
+            userId,
+            now + config.cokemon_settings.xp_cooldown_ms,
+          );
+        }
+
+        // Friendship increment
+        if (needsFriendshipCheck) {
+          if (user.active_cokemon_id && Math.random() < 0.2) {
+            await Cokemon.updateOne(
+              { _id: user.active_cokemon_id },
+              { $inc: { friendship: 1 } },
+            );
+          }
+          client.friendshipCooldowns.set(
+            userId,
+            now + config.cokemon_settings.friendship_cooldown_ms,
+          );
+        }
+      };
+
+      Promise.resolve()
+        .then(runBackgroundSideEffects)
+        .catch((err) => {
+          console.error("[SIDE_EFFECTS] Error in background side effects:", err);
+        });
     } catch (error) {
       await handleCommandError(error, message);
     }
