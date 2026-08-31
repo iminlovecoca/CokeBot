@@ -3,6 +3,8 @@ const {
   getWeaponPower,
   getEquippedItems,
   getWeaponSetBonus,
+  petAttackDamage,
+  getPetAttackLog,
 } = require("../../utils/rpgUtil");
 const {
   resolveWeaponPassive,
@@ -413,6 +415,15 @@ class BattleEngine {
       }
 
       saveState(turn);
+
+      // Pet tham chiến: pet của attacker tấn công defender mỗi lượt
+      if (attacker.pet && defender.hp > 0) {
+        const petDmg = petAttackDamage(attacker.pet, "pvp");
+        if (petDmg > 0) {
+          defender.hp = Math.max(0, defender.hp - petDmg);
+          logs.push(getPetAttackLog(attacker.pet, "pvp", petDmg));
+        }
+      }
 
       if (defender.hp <= 0) {
         break;

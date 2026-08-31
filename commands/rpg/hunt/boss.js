@@ -32,11 +32,14 @@ const {
   getRpgClass,
   getGearDisplayName,
   getEquippedItems,
+  getEquippedPet,
+  petAttackDamage,
   getWeaponPower,
   dungeonKeys,
   getWeaponSetBonus,
 } = require("../../../utils/rpgUtil");
 const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
+const { addPetXp, getBossXp } = require("../../../utils/petXpUtil");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -1109,6 +1112,13 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   participant.lastAttackAt = now;
   activeBoss.participants.set(userId, participant);
   activeBoss.hp = Math.max(0, activeBoss.hp - damage);
+  const equippedPetBoss = getEquippedPet(user);
+  if (equippedPetBoss && activeBoss.hp > 0) {
+    const petDmg = petAttackDamage(equippedPetBoss, "boss");
+    activeBoss.hp = Math.max(0, activeBoss.hp - petDmg);
+    participant.damage += petDmg;
+  }
+  activeBoss.participants.set(userId, participant);
   activeBoss.lastHitUserId = userId;
   let killedPhase1 = false;
   if (activeBoss.hp <= 0) {
@@ -1805,6 +1815,9 @@ const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
       escrow.gears.forEach(g => addRpgGearToUser(user, g));
     }
     addRpgExp(user.rpg, escrow.expGain);
+    if (user.rpg.equippedPet) {
+      addPetXp(user.rpg.equippedPet, getBossXp(), user);
+    }
     user.coke += escrow.cokeGain;
     if (escrow.stonesDropped && escrow.stonesDropped.length > 0) {
       if (!user.inventory) user.inventory = new Map();

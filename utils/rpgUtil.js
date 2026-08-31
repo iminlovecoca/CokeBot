@@ -758,6 +758,55 @@ const addPetExp = (user, amount) => {
   return { leveledUp, level, pet };
 };
 
+// --- Pet combat (pet tham chiến: gây sát thương độc lập theo level + tier) ---
+const PET_TIER_ATK_MULT = {
+  Common: 1.0,
+  Rare: 1.6,
+  Epic: 2.5,
+  Legendary: 4.0,
+  Mythic: 6.5,
+  Ancient: 10.0,
+  Divine: 16.0,
+};
+
+// Heuristic: pet cowsaát thương theo baseAtk/level/tier. PvP dùng hệ số nhỏ hơn
+// vì HP người chơi thấp hơn nhiều so với boss dungeon.
+const PET_MODE_SCALE = {
+  dungeon: 1.0,
+  boss: 1.0,
+  pvp: 0.35,
+};
+
+const getPetCombatStats = (pet) => {
+  if (!pet) return null;
+  const { PET_TIERS } = require("../data/pets");
+  const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
+  const baseAtk = pet.stats?.baseAtk || pet.baseAtk || tierConfig.baseAtk;
+  const baseDef = pet.stats?.baseDef || pet.baseDef || tierConfig.baseDef;
+  const level = pet.level || 1;
+  return { tier: pet.tier, level, baseAtk, baseDef };
+};
+
+// Sát thương pet (độc lập) cho 1 đòn, theo mode.
+const petAttackDamage = (pet, mode = "dungeon") => {
+  const cs = getPetCombatStats(pet);
+  if (!cs) return 0;
+  const atkMult = PET_TIER_ATK_MULT[cs.tier] || PET_TIER_ATK_MULT.Common;
+  const modeScale = PET_MODE_SCALE[mode] ?? 1.0;
+  // (baseAtk + level*2) * tierMult * modeScale
+  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2) * atkMult * modeScale));
+};
+
+const getPetAttackLog = (pet, mode = "dungeon", damage) => {
+  if (!pet) return "";
+  const emoji = pet.emoji || "🐾";
+  const name = pet.nickname || pet.name || "Thú cưng";
+  const dmg = damage !== undefined ? damage : petAttackDamage(pet, mode);
+  const dmgStr = dmg.toLocaleString();
+  if (mode === "pvp") return `${emoji} **[${name}]** lao vào tấn công! Gây **${dmgStr}** sát thương.`;
+  return `${emoji} **[${name}]** tấn công! Gây **${dmgStr}** sát thương.`;
+};
+
 const getEffectiveRpgStats = (user) => {
   const stats = emptyStats();
   if (!user?.rpg?.classKey) return stats;
@@ -1468,6 +1517,9 @@ module.exports = {
   getEquippedPet,
   getEquippedPetBonuses,
   addPetExp,
+  getPetCombatStats,
+  petAttackDamage,
+  getPetAttackLog,
   classEntries,
   getRpgClass,
   getClassAssetPath,

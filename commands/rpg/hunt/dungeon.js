@@ -28,8 +28,12 @@ const {
   addRpgExp,
   getDungeonWeaponKey,
   getWeaponSetBonus,
+  getEquippedPet,
+  petAttackDamage,
+  getPetAttackLog,
 } = require("../../../utils/rpgUtil");
 const { incBalance } = require("../../../utils/userUtil");
+const { addPetXp } = require("../../../utils/petXpUtil");
 const config = require("../../../data/config");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
@@ -1410,6 +1414,15 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     await executePlayerAttack(channel, activeDungeon, player, multiplier, isSkill, true);
   }
   if (!doubleHitTriggered) {
+    if (enemy.hp > 0) {
+      const petUser = player.userRef;
+      const pet = petUser ? getEquippedPet(petUser) : null;
+      if (pet) {
+        const petDmg = petAttackDamage(pet, "dungeon");
+        enemy.hp = Math.max(0, enemy.hp - petDmg);
+        activeDungeon.logs.push(getPetAttackLog(pet, "dungeon", petDmg));
+      }
+    }
     activeDungeon.actionInProgress = false;
     if (enemy.hp <= 0) {
       if (activeDungeon.crimsonActivePlayer === player.id) {
@@ -1896,6 +1909,10 @@ const handleVictory = async (channel, activeDungeon) => {
     await incBalance(freshUser.userId, userCokeReward);
     addRpgExp(freshUser.rpg, userExpReward);
     freshUser.markModified("rpg");
+    if (freshUser.rpg.equippedPet) {
+      const dungeonPetXp = 200 + activeDungeon.chapter * 25;
+      addPetXp(freshUser.rpg.equippedPet, dungeonPetXp, freshUser);
+    }
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
