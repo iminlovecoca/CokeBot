@@ -956,7 +956,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const baseAttack = isMagical
     ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
     : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
-  const gearPower = calculateRpgPower(user);
+  const gearPower = user.rpg?.power || 0;
   let rawDamage = baseAttack + gearPower;
   if (clawhexTriggered) {
     rawDamage *= 1.15;
