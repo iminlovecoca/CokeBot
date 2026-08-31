@@ -516,6 +516,92 @@ const getWeaponPower = (item, effectiveStats) => {
   return finalPower;
 };
 
+// =========================================================
+// Phase 2: Stat-Gameplay Integration
+// Unified combat math shared by dungeon / PvP / world boss.
+// =========================================================
+
+// Mitigation: armor / (armor + 150 + level * 2).
+// At level 1 a defense of ~150 gives ~50% reduction and the
+// value of each point of PR/MR stays meaningful as level grows.
+const getPhysicalMitigation = (armor, level = 1) => {
+  const a = Math.max(0, armor || 0);
+  return a / (a + 150 + (level || 1) * 2);
+};
+
+const getMagicalMitigation = (mr, level = 1) => {
+  const m = Math.max(0, mr || 0);
+  return m / (m + 150 + (level || 1) * 2);
+};
+
+// Weapon "sets": each set grants a global bonus when the player
+// owns that weapon, regardless of mode. This gives weapon choice a
+// character-wide identity instead of only affecting attack rolls.
+const WEAPON_SETS = {
+  shadowdagger: { name: "Bóng Đêm", color: "#6b6b6b", bonus: { critRate: 0.03, evasion: 0.06 } },
+  poisondagger: { name: "Chất Độc", color: "#3fae53", bonus: { critRate: 0.03, poison: 0.15 } },
+  firesword: { name: "Hỏa Ngục", color: "#d14b2b", bonus: { bossDamage: 0.05, burn: 0.15 } },
+  greenstaff: { name: "Sinh Khí", color: "#2fbf6f", bonus: { healBonus: 0.15, maxHp: 0.05 } },
+  bluestaff: { name: "Băng Giá", color: "#3b82f6", bonus: { mrPierce: 0.10, freezeChance: 0.05 } },
+  crimsondagger: { name: "Khát Máu", color: "#b91c1c", bonus: { critRate: 0.05, lifesteal: 0.03 } },
+  holysword: { name: "Thánh Quang", color: "#e3b341", bonus: { bossDamage: 0.08, healBonus: 0.10 } },
+  darksword: { name: "Bóng Tối", color: "#374151", bonus: { pvpDamage: 0.05, critRate: 0.03 } },
+  darkstaff: { name: "Hư Vô", color: "#4c1d95", bonus: { pvpDamage: 0.05, mrPierce: 0.10 } },
+  gravitybow: { name: "Hấp Dẫn", color: "#7c3aed", bonus: { doubleHit: 0.05, critRate: 0.02 } },
+  duskanddawn: { name: "Hoàng Hôn", color: "#a855f7", bonus: { dual: true, critRate: 0.04 } },
+  riverofblood: { name: "Dòng Máu", color: "#dc2626", bonus: { lifesteal: 0.05, bleedPower: 0.20 } },
+  axesnake: { name: "Mãng Xà", color: "#166534", bonus: { armorShred: 0.05 } },
+  sunbow: { name: "Thái Dương", color: "#f59e0b", bonus: { pierceAll: 0.05 } },
+  clawhex: { name: "Quỷ Trảo", color: "#047857", bonus: { bleedPower: 0.25, critRate: 0.02 } },
+  spearhex: { name: "Quỷ Thương", color: "#0f766e", bonus: { pierceAll: 0.05, pvpDamage: 0.03 } },
+  shieldhex: { name: "Quỷ Khiên", color: "#64748b", bonus: { maxHp: 0.08, reflection: 0.10 } },
+  lunashard: { name: "Mảnh Trăng", color: "#93c5fd", bonus: { doubleHit: 0.06, critRate: 0.02 } },
+  eclipsesoul: { name: "Linh Hồn", color: "#8b5cf6", bonus: { mrPierce: 0.15, bossDamage: 0.04 } },
+};
+
+const getWeaponSetBonus = (user) => {
+  if (!user?.rpg) return null;
+  const equipped = getEquippedItems(user);
+  const weaponKey = getDungeonWeaponKey(equipped.weapon?.subType || equipped.weapon?.subtype || "");
+  if (!weaponKey) return null;
+  return WEAPON_SETS[weaponKey] || null;
+};
+
+// Extend effective stats with set-bonus derived combat layers, so the
+// rest of the pipeline (dungeon / PvP / boss) can consume one shape.
+const computeCombatStats = (user, effectiveStats) => {
+  const stats = effectiveStats || getEffectiveRpgStats(user);
+  const level = user?.rpg?.level || 1;
+  const equipped = getEquippedItems(user);
+
+  let physicalDef = (stats.pr || 0) * 10;
+  let magicalDef = (stats.mr || 0) * 10;
+  for (const item of Object.values(equipped)) {
+    if (item.slot === "weapon") continue;
+    physicalDef += (item.power || 0) * 1.5;
+    magicalDef += (item.power || 0) * 1.5;
+  }
+
+  const set = getWeaponSetBonus(user);
+  let maxHpBonus = 0;
+  if (set?.bonus?.maxHp) maxHpBonus = set.bonus.maxHp;
+
+  let power = calculateRpgPower(user);
+  if (set?.bonus?.maxHp) power += 0;
+
+  return {
+    stats,
+    level,
+    set,
+    physicalDef,
+    magicalDef,
+    maxHpBonus,
+    physMitigation: getPhysicalMitigation(physicalDef, level),
+    magMitigation: getMagicalMitigation(magicalDef, level),
+    power,
+  };
+};
+
 const emptyStats = () => ({
   vigor: 0,
   pr: 0,
@@ -1399,6 +1485,11 @@ module.exports = {
   getGearDisplayName,
   getItemImageFile,
   getWeaponPower,
+  WEAPON_SETS,
+  getWeaponSetBonus,
+  computeCombatStats,
+  getPhysicalMitigation,
+  getMagicalMitigation,
   emptyStats,
   getStartingStats,
   sanitizeRpgStats,

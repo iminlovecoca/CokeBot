@@ -140,7 +140,7 @@ class PartyCommand extends BaseCommand {
       .setTitle("🛡️ Thông Tin Party RPG")
       .addFields(
         { name: "Thành viên", value: memberLines },
-        { name: "Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/6** chương của Chapter 1` }
+        { name: "Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/14** chương của Phó Bản` }
       )
       .setTimestamp();
     return message.reply({ embeds: [embed] });

@@ -1,4 +1,13 @@
 const config = require("../data/config");
+const {
+  WEAPON_PASSIVE_TRIGGER_RATE,
+  PASSIVE_TYPES,
+  WEAPON_PASSIVES,
+  LOCKED_WEAPONS,
+  getWeaponPassive,
+  isLockedWeapon,
+  getPassiveForMode,
+} = require("../data/rpg/weaponPassives");
 
 const EMOJIS = {
   healreduction: "<:healreduction:1523340558855045190>",
@@ -19,47 +28,22 @@ const EMOJIS = {
 const getActiveStatusString = (target) => {
   if (!target) return "";
   const parts = [];
-  
-  if (target.poisonRounds && target.poisonRounds > 0) {
-    parts.push(`${EMOJIS.poisonous}(${target.poisonRounds}L)`);
-  }
-  if (target.bleedRounds && target.bleedRounds > 0) {
-    parts.push(`${EMOJIS.bleed}(${target.bleedRounds}L)`);
-  }
-  if (target.burnRounds && target.burnRounds > 0) {
-    parts.push(`${EMOJIS.burn}(${target.burnRounds}L)`);
-  }
-  if (target.freezeRounds && target.freezeRounds > 0) {
-    parts.push(`${EMOJIS.freeze}(${target.freezeRounds}L)`);
-  }
-  if (target.frostbiteRounds && target.frostbiteRounds > 0) {
-    parts.push(`${EMOJIS.frostbite}(${target.frostbiteRounds}L)`);
-  }
-  if (target.stunRounds && target.stunRounds > 0) {
-    parts.push(`${EMOJIS.stun}(${target.stunRounds}L)`);
-  }
-  if (target.breakRounds && target.breakRounds > 0) {
-    parts.push(`${EMOJIS.break}(${target.breakRounds}L)`);
-  }
-  if (target.healBanRounds && target.healBanRounds > 0) {
-    parts.push(`${EMOJIS.healreduction}(${target.healBanRounds}L)`);
-  }
-  if (target.tauntRounds && target.tauntRounds > 0) {
-    parts.push(`${EMOJIS.taunt}(${target.tauntRounds}L)`);
-  }
-  if (target.atkUp) {
-    parts.push(EMOJIS.atkup);
-  }
-  if (target.atkDown) {
-    parts.push(EMOJIS.atkdown);
-  }
-  
+  if (target.poisonRounds && target.poisonRounds > 0) parts.push(`${EMOJIS.poisonous}(${target.poisonRounds}L)`);
+  if (target.bleedRounds && target.bleedRounds > 0) parts.push(`${EMOJIS.bleed}(${target.bleedRounds}L)`);
+  if (target.burnRounds && target.burnRounds > 0) parts.push(`${EMOJIS.burn}(${target.burnRounds}L)`);
+  if (target.freezeRounds && target.freezeRounds > 0) parts.push(`${EMOJIS.freeze}(${target.freezeRounds}L)`);
+  if (target.frostbiteRounds && target.frostbiteRounds > 0) parts.push(`${EMOJIS.frostbite}(${target.frostbiteRounds}L)`);
+  if (target.stunRounds && target.stunRounds > 0) parts.push(`${EMOJIS.stun}(${target.stunRounds}L)`);
+  if (target.breakRounds && target.breakRounds > 0) parts.push(`${EMOJIS.break}(${target.breakRounds}L)`);
+  if (target.healBanRounds && target.healBanRounds > 0) parts.push(`${EMOJIS.healreduction}(${target.healBanRounds}L)`);
+  if (target.tauntRounds && target.tauntRounds > 0) parts.push(`${EMOJIS.taunt}(${target.tauntRounds}L)`);
+  if (target.atkUp) parts.push(EMOJIS.atkup);
+  if (target.atkDown) parts.push(EMOJIS.atkdown);
   return parts.length > 0 ? parts.join(" ") : "";
 };
 
 const applyStatusEffect = (target, effectType, rounds, options = {}) => {
   if (!target) return;
-  
   switch (effectType) {
     case "poison":
       target.poisonRounds = (target.poisonRounds || 0) + rounds;
@@ -103,16 +87,13 @@ const applyStatusEffect = (target, effectType, rounds, options = {}) => {
 
 const tickStatusEffects = (target, activeDungeon) => {
   if (!target) return { skipTurn: false, logs: [] };
-  
   const logs = [];
-  
-  
+
   const isStunned = target.stunRounds && target.stunRounds > 0;
   const isFrozen = target.freezeRounds && target.freezeRounds > 0;
   if (isStunned || isFrozen) {
     const skipReason = isFrozen ? `ĐÓNG BĂNG ${EMOJIS.freeze}` : `CHOÁNG ${EMOJIS.stun}`;
     logs.push(`⚠️ **${target.name}** đang bị ${skipReason} — mất lượt hành động!`);
-    
     if (isFrozen) {
       target.freezeRounds -= 1;
       if (target.freezeRounds === 0) logs.push(`❄️ **${target.name}** giải đóng băng.`);
@@ -121,20 +102,13 @@ const tickStatusEffects = (target, activeDungeon) => {
       target.stunRounds -= 1;
       if (target.stunRounds === 0) logs.push(`⚡ **${target.name}** hết choáng.`);
     }
-    
-    if (target.breakRounds && target.breakRounds > 0) {
-      target.breakRounds -= 1;
-    }
-    
+    if (target.breakRounds && target.breakRounds > 0) target.breakRounds -= 1;
     return { skipTurn: true, logs };
   }
-  
-  if (target.breakRounds && target.breakRounds > 0) {
-    target.breakRounds -= 1;
-  }
-  
+
+  if (target.breakRounds && target.breakRounds > 0) target.breakRounds -= 1;
+
   let totalDotDmg = 0;
-  
   if (target.poisonRounds && target.poisonRounds > 0) {
     const dmg = target.poisonDamage || Math.floor(target.maxHp * 0.05);
     target.poisonRounds -= 1;
@@ -149,9 +123,7 @@ const tickStatusEffects = (target, activeDungeon) => {
   }
   if (target.burnRounds && target.burnRounds > 0) {
     let dmg = target.burnDamage || Math.floor(target.maxHp * 0.04);
-    if (target.freezeRounds && target.freezeRounds > 0) {
-      dmg *= 2;
-    }
+    if (target.freezeRounds && target.freezeRounds > 0) dmg *= 2;
     target.burnRounds -= 1;
     totalDotDmg += dmg;
     logs.push(`${EMOJIS.burn} **${target.name}** mất **${dmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${target.burnRounds} lượt).`);
@@ -162,171 +134,355 @@ const tickStatusEffects = (target, activeDungeon) => {
     totalDotDmg += dmg;
     logs.push(`${EMOJIS.frostbite} **${target.name}** mất **${dmg.toLocaleString()}** HP do Frostbite (Còn ${target.frostbiteRounds} lượt).`);
   }
-  
   if (totalDotDmg > 0) {
     const actualDmg = Math.min(target.hp, totalDotDmg);
     target.hp = Math.max(0, target.hp - totalDotDmg);
-    activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
-    
-    if (target.hp <= 0) {
-      logs.push(`💀 **${target.name}** đã tử nạn do sát thương DoT duy trì!`);
+    if (activeDungeon) {
+      activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
     }
+    if (target.hp <= 0) logs.push(`💀 **${target.name}** đã tử nạn do sát thương DoT duy trì!`);
   }
-  
+
   return { skipTurn: false, logs };
 };
 
-const triggerWeaponPassiveOnAttack = (player, enemy, activeDungeon, rawDamage, isMagical, isSecondHit, multiplier, isSkill) => {
-  const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  
-  const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
-  if (LOCKED_WEAPONS.includes(pWeaponSubType)) {
-    return {
-      damage: rawDamage,
-      mrOrArmor: isMagical ? enemy.magicResist : enemy.armor,
-      doubleHitTriggered: false,
-      logs: []
-    };
+const resolveWeaponPassive = (player, enemy, context = {}) => {
+  const { mode = "dungeon", rawDamage = 0, isMagical = false, isSecondHit = false, isSkill = false } = context;
+
+  const pWeaponSubType = player.weapon?.subType
+    ? player.weapon.subType.toLowerCase().replace(/\s+/g, "")
+    : "";
+
+  const result = {
+    damage: rawDamage,
+    mrOrArmor: isMagical ? (enemy.magicResist || 0) : (enemy.armor || 0),
+    doubleHitTriggered: false,
+    logs: [],
+    bleedDamage: 0,
+    healAmount: 0,
+    nextAttackMult: 1.0,
+    hitCounterInc: false,
+    hitCountReached: false,
+    absorbedDamage: 0,
+    shouldReflect: false,
+    reflectDamage: 0,
+    selfDamageReduce: 0,
+    pierceFlags: { blueStaff: false, crimsonDagger: false, sunbow: false, spearhex: false },
+  };
+
+  if (isLockedWeapon(pWeaponSubType)) return result;
+
+  const passiveDef = getWeaponPassive(pWeaponSubType);
+  if (!passiveDef) return result;
+
+  const passive = passiveDef.mode[mode];
+  if (!passive) return result;
+
+  const hasTriggered = Math.random() < WEAPON_PASSIVE_TRIGGER_RATE;
+  const stats = player.stats || {};
+  const power = player.power || 0;
+
+  const calcScaling = (scalingFn) => {
+    if (typeof scalingFn === "function") return Math.floor(scalingFn(stats, power));
+    return 0;
+  };
+
+  switch (passive.type) {
+    case PASSIVE_TYPES.BLEED: {
+      if (!hasTriggered) break;
+      const bleedDmg = calcScaling(passive.scaling);
+      applyStatusEffect(enemy, "bleed", passive.rounds, { damage: bleedDmg });
+      result.bleedDamage = bleedDmg;
+      if (passive.damageMult) {
+        result.damage = Math.floor(result.damage * passive.damageMult);
+      }
+      result.logs.push(passiveDef.name
+        ? `🛡️ **[${passiveDef.name}]** Gây chảy máu ${passive.rounds} lượt${passive.damageMult ? ` + ${Math.round((passive.damageMult - 1) * 100)}% sát thương` : ""}!`
+        : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.BURN: {
+      if (!hasTriggered) break;
+      const burnDmg = calcScaling(passive.scaling);
+      applyStatusEffect(enemy, "burn", passive.rounds, { damage: burnDmg });
+      if (passive.alsoApplies) {
+        if (passive.alsoApplies.type === PASSIVE_TYPES.HEAL_BAN) {
+          applyStatusEffect(enemy, "heal_ban", passive.alsoApplies.rounds);
+        }
+      }
+      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.FREEZE: {
+      if (!hasTriggered) break;
+      const chance = passive.chance || 1.0;
+      if (Math.random() < chance) {
+        applyStatusEffect(enemy, "freeze", passive.rounds);
+        result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.STUN: {
+      if (!hasTriggered) break;
+      applyStatusEffect(enemy, "stun", passive.rounds);
+      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.HEAL_BAN: {
+      if (!hasTriggered) break;
+      applyStatusEffect(enemy, "heal_ban", passive.rounds);
+      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.LIFESTEAL: {
+      if (!hasTriggered) break;
+      let healBase = 0;
+      if (passive.healType === "damage") {
+        healBase = Math.max(1, Math.floor(result.damage * passive.pct));
+      } else if (passive.healType === "missing_hp") {
+        const missing = (player.maxHp || 0) - (player.hp || 0);
+        healBase = Math.floor(missing * passive.pct);
+      }
+      result.healAmount = healBase;
+      result.logs.push(passive.log ? passive.log(player.name, healBase) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.DAMAGE_MULT: {
+      const hitCounterKey = `_${pWeaponSubType}Hits`;
+      player[hitCounterKey] = (player[hitCounterKey] || 0) + 1;
+      if (player[hitCounterKey] >= (passive.hitCount || 3)) {
+        player[hitCounterKey] = 0;
+        result.damage = Math.floor(result.damage * passive.mult);
+        result.logs.push(passive.log ? passive.log() : "");
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.ARMOR_PIERCE: {
+      if (!hasTriggered) break;
+      const amount = passive.amount || 0.10;
+      if (pWeaponSubType === "crimsondagger") result.pierceFlags.crimsonDagger = true;
+      if (pWeaponSubType === "spearhex") result.pierceFlags.spearhex = true;
+      if (passive.alsoPierceMR) {
+        if (pWeaponSubType === "sunbow") result.pierceFlags.sunbow = true;
+        result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - amount));
+      } else {
+        result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - amount));
+      }
+      result.logs.push(passive.log ? passive.log() : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.MR_PIERCE: {
+      if (!hasTriggered) break;
+      const amount = passive.amount || 0.25;
+      if (pWeaponSubType === "bluestaff") result.pierceFlags.blueStaff = true;
+      result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - amount));
+      if (passive.alsoRoll) {
+        if (Math.random() < (passive.alsoRoll.chance || 0.25)) {
+          applyStatusEffect(enemy, "freeze", passive.alsoRoll.rounds || 1);
+          result.logs.push(`❄️ **[Blue Staff]** Làm đóng băng **${enemy.name}**!`);
+        }
+      }
+      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.ARMOR_SHRED: {
+      if (!hasTriggered) break;
+      const amount = passive.amount || 0.10;
+      if (passive.cap) {
+        const currentReduced = enemy._armorReduced || 0;
+        const newReduced = Math.min(passive.cap, currentReduced + amount);
+        enemy._armorReduced = newReduced;
+      }
+      enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - amount)));
+      if (passive.alsoShredMR) {
+        enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * (1 - amount)));
+      }
+      result.logs.push(passive.log ? passive.log(enemy.name, {
+        armor: enemy.armor,
+        mr: enemy.magicResist || 0,
+        totalReduced: enemy._armorReduced || amount,
+      }) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.DOUBLE_HIT: {
+      if (isSecondHit) break;
+      if (enemy.hp > 0 && Math.random() < (passive.chance || 0.30)) {
+        result.doubleHitTriggered = true;
+        result.logs.push(passive.log ? passive.log() : "");
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.REFLECT: {
+      const shieldSub = "shieldhex";
+      if (pWeaponSubType.includes(shieldSub)) {
+        result.mrOrArmor = result.mrOrArmor;
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.HEAL_ON_SKILL: {
+      if (isSkill) {
+        const missing = (player.maxHp || 0) - (player.hp || 0);
+        const healAmt = Math.max(1, Math.floor(missing * 0.10));
+        result.healAmount = healAmt;
+        result.logs.push(passive.log ? passive.log(player.name, healAmt) : "");
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.NEXT_ATTACK_MULT: {
+      if (hasTriggered) {
+        result.nextAttackMult = passive.mult || 1.4;
+        result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.RANDOM_EFFECT: {
+      if (!hasTriggered) break;
+      const effects = passive.effects || [];
+      if (effects.length === 0) break;
+      const chosen = effects[Math.floor(Math.random() * effects.length)];
+      switch (chosen.type) {
+        case PASSIVE_TYPES.BLEED: {
+          const bleedDmg = calcScaling(chosen.scaling);
+          applyStatusEffect(enemy, "bleed", chosen.rounds || 2, { damage: bleedDmg });
+          result.logs.push(`🔮 **[Dark Staff]** Hắc ám gây chảy máu!`);
+          break;
+        }
+        case PASSIVE_TYPES.BURN: {
+          const burnDmg = calcScaling(chosen.scaling);
+          applyStatusEffect(enemy, "burn", chosen.rounds || 2, { damage: burnDmg });
+          result.logs.push(`🔥 **[Dark Staff]** Hắc ám thiêu đốt!`);
+          break;
+        }
+        case PASSIVE_TYPES.ARMOR_SHRED: {
+          enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - (chosen.amount || 0.15))));
+          result.logs.push(`⚔️ **[Dark Staff]** Hắc ám phá giáp!`);
+          break;
+        }
+        case PASSIVE_TYPES.MR_PIERCE: {
+          result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - (chosen.amount || 0.25)));
+          result.logs.push(`❄️ **[Dark Staff]** Hắc ám xuyên phép!`);
+          break;
+        }
+        case PASSIVE_TYPES.STUN: {
+          applyStatusEffect(enemy, "stun", chosen.rounds || 1);
+          result.logs.push(`⚡ **[Dark Staff]** Hắc ám choáng!`);
+          break;
+        }
+      }
+      break;
+    }
+
+    case PASSIVE_TYPES.DEFLECT: {
+      break;
+    }
+
+    case PASSIVE_TYPES.NONE:
+    default:
+      break;
   }
 
-  const hasWeaponTriggered = Math.random() < 0.45;
-  const logs = [];
-  let finalDamage = rawDamage;
-  let doubleHitTriggered = false;
-  
-  
-  if (pWeaponSubType === "clawhex" && hasWeaponTriggered) {
-    applyStatusEffect(enemy, "bleed", 3, {
-      damage: Math.floor(player.stats.str * 0.5 + player.stats.dex * 0.5)
-    });
-    enemy.clawhexBleed = true;
-    finalDamage *= 1.15;
-    logs.push(`🛡️ **[Clawhex]** Gây sát thương chảy máu lên mục tiêu và tăng thêm 15% sát thương!`);
-  } else if (enemy.bleedRounds && enemy.bleedRounds > 0 && enemy.clawhexBleed) {
-    finalDamage *= 1.15;
+  if (passive.selfDamageReduce) {
+    result.selfDamageReduce = passive.selfDamageReduce;
   }
-  
-  
-  if (pWeaponSubType === "axesnake" && hasWeaponTriggered) {
-    enemy.armor = Math.max(0, Math.floor(enemy.armor * 0.90));
-    enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * 0.90));
-    logs.push(`🐍 **[Axesnake]** Phá hủy 10% giáp vật lý và phép của đối thủ! Giáp còn: ${enemy.armor.toLocaleString()} PR / ${enemy.magicResist.toLocaleString()} MR.`);
+
+  return result;
+};
+
+const resolveShieldhexDefense = (target, damage, activeDungeon) => {
+  const playerSubType = target.weapon?.subType
+    ? target.weapon.subType.toLowerCase().replace(/\s+/g, "")
+    : "";
+  if (!playerSubType.includes("shieldhex")) return { damage, absorbed: 0, shouldReflect: false };
+
+  if (!target.effects) target.effects = {};
+  const absorbPct = 0.20;
+  const absorbed = Math.floor(damage * absorbPct);
+  const reducedDamage = damage - absorbed;
+
+  target.effects.shieldhexAbsorbed = (target.effects.shieldhexAbsorbed || 0) + absorbed;
+  target.effects.shieldhexRounds = (target.effects.shieldhexRounds || 0) + 1;
+
+  return { damage: reducedDamage, absorbed, shouldReflect: false, reflectDamage: 0 };
+};
+
+const triggerWeaponPassiveOnAttack = (player, enemy, activeDungeon, rawDamage, isMagical, isSecondHit, multiplier, isSkill) => {
+  const result = resolveWeaponPassive(player, enemy, {
+    mode: "dungeon",
+    rawDamage,
+    isMagical,
+    isSecondHit,
+    isSkill,
+  });
+
+  if (result.healAmount > 0 && player.hp !== undefined && player.maxHp !== undefined) {
+    player.hp = Math.min(player.maxHp, player.hp + result.healAmount);
   }
-  
-  
-  let mrOrArmor = isMagical ? enemy.magicResist : enemy.armor;
-  
-  if (isMagical && pWeaponSubType === "bluestaff" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.75); 
-    if (Math.random() < 0.25) {
-      applyStatusEffect(enemy, "freeze", 1);
-      logs.push(`❄️ **[Blue Staff]** Giải phóng băng hàn làm đóng băng **${enemy.name}**!`);
-    }
-  }
-  if (!isMagical && pWeaponSubType === "crimsondagger" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.50); 
-  }
-  if (!isMagical && pWeaponSubType === "spearhex" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.90);
-  }
-  if (pWeaponSubType === "sunbow" && hasWeaponTriggered) {
-    mrOrArmor = Math.floor(mrOrArmor * 0.90);
-  }
-  
-  
-  if (pWeaponSubType === "firesword" && hasWeaponTriggered) {
-    applyStatusEffect(enemy, "burn", 2, {
-      damage: Math.floor(player.stats.str * 0.4 + player.stats.dex * 0.4)
-    });
-    applyStatusEffect(enemy, "heal_ban", 2);
-    logs.push(`🔥 **[Fire Sword]** Đòn chém rực lửa gây Thiêu Đốt và Giảm Hồi Máu lên đối thủ!`);
-  }
-  
-  
-  if (pWeaponSubType === "gravitybow" && hasWeaponTriggered) {
-    applyStatusEffect(enemy, "stun", 1);
-    logs.push(`⚡ **[Gravity Bow]** Bắn ra mũi tên trọng lực làm choáng **${enemy.name}** trong 1 lượt!`);
-  }
-  
-  
-  if (pWeaponSubType === "duskanddawn" && !isSecondHit && enemy.hp > 0) {
-    if (Math.random() < 0.30) {
-      doubleHitTriggered = true;
-    }
-  }
-  
+
   return {
-    damage: finalDamage,
-    mrOrArmor,
-    doubleHitTriggered,
-    logs
+    damage: result.damage,
+    mrOrArmor: result.mrOrArmor,
+    doubleHitTriggered: result.doubleHitTriggered,
+    logs: result.logs,
   };
 };
 
 const triggerWorldBossPassive = (cleanSubType, participant, activeBoss, passiveTriggers, damage) => {
-  let blueStaffPierce = false;
-  let crimsonDaggerPierce = false;
-  let holySwordDouble = false;
-  let riverofbloodTriggered = false;
+  const player = {
+    weapon: { subType: cleanSubType },
+    stats: participant.effectiveStats || {},
+    power: participant.gearPower || 0,
+    hp: participant.hp || 0,
+    maxHp: participant.maxHp || 0,
+  };
+  const enemy = {
+    armor: activeBoss.boss?.armor || 0,
+    magicResist: activeBoss.boss?.magicResist || 0,
+    name: activeBoss.boss?.name || "Boss",
+  };
 
-  if (cleanSubType === "riverofblood") {
-    riverofbloodTriggered = true;
-    passiveTriggers.push(`⚔️ **[River of Blood]** Chém hồi máu bằng 5% sát thương gây ra.`);
-  } else if (cleanSubType === "shadowdagger") {
-    activeBoss.effects.armorReduced = 0.30;
-    passiveTriggers.push(`⚔️ **[Shadow Dagger]** Đã phá giáp boss! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
-  } else if (cleanSubType === "poisondagger") {
-    participant.nextAttackMult = 1.5;
-    passiveTriggers.push(`⚔️ **[Poison Dagger]** Sát khí hội tụ! Đòn đánh tiếp theo của bạn sẽ gây thêm 50% sát thương.`);
-  } else if (cleanSubType === "firesword") {
-    activeBoss.effects.healReduced = true;
-    activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
-    passiveTriggers.push(`⚔️ **[Fire Sword]** Thiêu đốt boss! Giảm 30% hồi máu của boss trong 30 giây.`);
-  } else if (cleanSubType === "bluestaff") {
-    blueStaffPierce = true;
-    passiveTriggers.push(`⚔️ **[Blue Staff]** Đòn đánh xuyên 50% kháng phép của boss.`);
-  } else if (cleanSubType === "crimsondagger") {
-    crimsonDaggerPierce = true;
-    passiveTriggers.push(`⚔️ **[Crimson Dagger]** Đòn đánh xuyên 50% phòng ngự vật lý của boss.`);
-  } else if (cleanSubType === "holysword") {
-    participant.holySwordHits = (participant.holySwordHits || 0) + 1;
-    if (participant.holySwordHits >= 3) {
-      participant.holySwordHits = 0;
-      holySwordDouble = true;
-      passiveTriggers.push(`⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`);
-    }
-  } else if (cleanSubType === "darksword") {
-    participant.bossDamageReduced = true;
-    passiveTriggers.push(`⚔️ **[Dark Sword]** Yếu khí bao phủ! Boss bị giảm 30% sát thương gây ra lên bạn lượt này.`);
-  } else if (cleanSubType === "darkstaff") {
-    const effects = ["burn", "weakness", "pierce"];
-    const chosenEffect = effects[Math.floor(Math.random() * effects.length)];
-    if (chosenEffect === "burn") {
-      activeBoss.effects.healReduced = true;
-      activeBoss.effects.healReducedUntil = Date.now() + 30 * 1000;
-      passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thiêu đốt! Giảm 30% hồi máu của boss trong 30 giây.`);
-    } else if (chosenEffect === "weakness") {
-      activeBoss.effects.armorReduced = 0.30;
-      passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám phá giáp! Phòng ngự vật lý của boss giảm 30% cho đến hết trận đấu.`);
-    } else if (chosenEffect === "pierce") {
-      blueStaffPierce = true;
-      passiveTriggers.push(`⚔️ **[Dark Staff]** Hắc ám thấu xương! Đòn đánh xuyên 50% kháng phép của boss.`);
-    }
-  }
+  const result = resolveWeaponPassive(player, enemy, {
+    mode: "boss",
+    rawDamage: damage,
+    isMagical: false,
+  });
+
+  passiveTriggers.push(...result.logs);
 
   return {
-    blueStaffPierce,
-    crimsonDaggerPierce,
-    holySwordDouble,
-    riverofbloodTriggered
+    blueStaffPierce: result.pierceFlags.blueStaff,
+    crimsonDaggerPierce: result.pierceFlags.crimsonDagger,
+    sunbowPierce: result.pierceFlags.sunbow,
+    holySwordDouble: result.damage > damage,
+    riverofbloodTriggered: result.healAmount > 0,
   };
 };
 
 module.exports = {
   EMOJIS,
+  PASSIVE_TYPES,
+  WEAPON_PASSIVE_TRIGGER_RATE,
   getActiveStatusString,
   applyStatusEffect,
   tickStatusEffects,
+  resolveWeaponPassive,
+  resolveShieldhexDefense,
   triggerWeaponPassiveOnAttack,
   triggerWorldBossPassive,
+  getWeaponPassive,
+  isLockedWeapon,
+  getPassiveForMode,
 };

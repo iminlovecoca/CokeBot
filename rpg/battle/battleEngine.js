@@ -2,8 +2,12 @@ const {
   getEffectiveRpgStats,
   getWeaponPower,
   getEquippedItems,
-  dungeonKeys,
+  getWeaponSetBonus,
 } = require("../../utils/rpgUtil");
+const {
+  resolveWeaponPassive,
+  resolveShieldhexDefense,
+} = require("../../utils/rpgPassiveUtil");
 
 const CLASS_COUNTERS = {
   warrior: "archer",
@@ -21,19 +25,6 @@ const CLASS_ATTACK_TYPES = {
   paladin: "physical",
   wretch: "physical",
 };
-
-const LOCKED_WEAPONS = [
-  "poisondagger",
-  "duskanddawn",
-  "riverofblood",
-  "axesnake",
-  "clawhex",
-  "spearhex",
-  "shieldhex",
-  "darksword",
-  "darkstaff",
-  "holysword",
-];
 
 /**
  * Combat Simulator Engine for PvP RPG Battles.
@@ -66,6 +57,12 @@ class BattleEngine {
       // Scaled base HP (ensures fights last at least 4-15 turns)
       const baseHp = 1200 + (stats.vigor || 10) * 45 + (user.rpg.level || 1) * 35 + defensePower * 2;
       let maxHp = baseHp;
+
+      // Weapon set bonus (character-weapon synergy)
+      const setBonus = getWeaponSetBonus(user);
+      if (setBonus?.bonus?.maxHp) {
+        maxHp += Math.floor(baseHp * setBonus.bonus.maxHp);
+      }
 
       // Pet bonuses
       const pet = user.rpg.equippedPet;
@@ -100,6 +97,7 @@ class BattleEngine {
         pet,
         gearPower,
         defensePower,
+        setBonus,
         maxHp: Math.floor(maxHp),
         hp: Math.floor(maxHp),
         rage: 0,
@@ -233,16 +231,11 @@ class BattleEngine {
         }
       }
 
-      // Weapon Passives
-      let attackerSubType = attacker.weapon?.subType
+      // Shieldhex Reflect (pre-attack)
+      const atkSubForShield = attacker.weapon?.subType
         ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "")
         : "";
-      if (LOCKED_WEAPONS.includes(attackerSubType)) {
-        attackerSubType = "";
-      }
-
-      // Shieldhex Reflect
-      if (attackerSubType.includes("shieldhex") && attacker.effects.shieldhexRounds >= 3) {
+      if (atkSubForShield.includes("shieldhex") && attacker.effects.shieldhexRounds >= 3) {
         const reflectDmg = Math.floor((attacker.effects.shieldhexAbsorbed || 0) * 0.75);
         defender.hp = Math.max(0, defender.hp - reflectDmg);
         attacker.effects.shieldhexAbsorbed = 0;
@@ -253,63 +246,14 @@ class BattleEngine {
 
       // Evasion calculation
       const defenderEvasion = Math.min(
-        0.15,
+        0.20,
         ((defender.effectiveStats.dex || 0) * 0.08 + (defender.effectiveStats.arc || 0) * 0.04) / 100
-      );
+      ) + (defender.setBonus?.bonus?.evasion || 0);
       const isEvaded = Math.random() < defenderEvasion;
 
-      // Dungeon Weapon Triggers
-      let cleanSubType = attacker.weapon?.subType
-        ? attacker.weapon.subType.toLowerCase().replace(/\s+/g, "")
-        : "";
-      if (LOCKED_WEAPONS.includes(cleanSubType)) {
-        cleanSubType = "";
-      }
-      const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
-      const hasTriggered = isDungeonWeapon && Math.random() < 0.40;
-
-      let blueStaffPierce = false;
-      let crimsonDaggerPierce = false;
-      let holySwordDouble = false;
-      let clawhexTriggered = false;
-      let spearhexTriggered = false;
-      let sunbowTriggered = false;
-      let riverofbloodTriggered = false;
-
-      if (hasTriggered) {
-        if (cleanSubType === "axesnake") {
-          defender.effects.armorReduced = Math.min(0.8, (defender.effects.armorReduced || 0) + 0.10);
-        } else if (cleanSubType === "sunbow") {
-          sunbowTriggered = true;
-        } else if (cleanSubType === "clawhex") {
-          clawhexTriggered = true;
-          defender.effects.bleedRounds = 3;
-          defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.str || 10) * 6 + (attacker.effectiveStats.dex || 10) * 6);
-        } else if (cleanSubType === "spearhex") {
-          spearhexTriggered = true;
-        } else if (cleanSubType === "riverofblood") {
-          riverofbloodTriggered = true;
-        } else if (cleanSubType === "shadowdagger") {
-          defender.effects.armorReduced = 0.25;
-        } else if (cleanSubType === "poisondagger") {
-          attacker.nextAttackMult = 1.4;
-        } else if (cleanSubType === "firesword") {
-          defender.effects.healReduced = true;
-          defender.effects.healReducedRounds = 2;
-        } else if (cleanSubType === "bluestaff") {
-          blueStaffPierce = true;
-        } else if (cleanSubType === "crimsondagger") {
-          crimsonDaggerPierce = true;
-        } else if (cleanSubType === "holysword") {
-          attacker.holySwordHits = (attacker.holySwordHits || 0) + 1;
-          if (attacker.holySwordHits >= 3) {
-            attacker.holySwordHits = 0;
-            holySwordDouble = true;
-          }
-        }
-      }
-
+      // Unified Weapon Passive Resolution
       let poisonMult = 1.0;
+
       if (attacker.nextAttackMult) {
         poisonMult = attacker.nextAttackMult;
         delete attacker.nextAttackMult;
@@ -328,9 +272,9 @@ class BattleEngine {
           isCrit = true;
         } else {
           const attackerCritRate = Math.min(
-            0.50,
+            0.55,
             0.05 + ((attacker.effectiveStats.arc || 0) * 0.15 + (attacker.effectiveStats.dex || 0) * 0.1) / 100
-          );
+          ) + (attacker.setBonus?.bonus?.critRate || 0);
           isCrit = Math.random() < attackerCritRate;
         }
         const critMult = 1.5 + (attacker.effectiveStats.dex || 0) * 0.002;
@@ -342,32 +286,84 @@ class BattleEngine {
           : (attacker.effectiveStats.str || 10) * 12 + (attacker.effectiveStats.dex || 10) * 6 + attacker.gearPower * 2.5 + attacker.level * 5;
 
         let rawDamage = baseAtk;
-        if (clawhexTriggered) rawDamage *= 1.15;
         rawDamage *= 0.88 + Math.random() * 0.24;
-
         if (isCastingSkill) rawDamage *= skillMult;
         if (isCrit) rawDamage *= critMult;
+
+        // Resolve weapon passive for this attack
+        const passivePlayer = {
+          weapon: attacker.weapon,
+          stats: attacker.effectiveStats,
+          power: attacker.gearPower,
+          hp: attacker.hp,
+          maxHp: attacker.maxHp,
+          _clawhexHits: attacker._clawhexHits || 0,
+          _holyswordHits: attacker.holySwordHits || 0,
+        };
+        const passiveEnemy = {
+          armor: defender.defensePower || 0,
+          magicResist: 0,
+          name: defender.name,
+          _armorReduced: defender.effects.armorReduced || 0,
+        };
+        const passiveResult = resolveWeaponPassive(passivePlayer, passiveEnemy, {
+          mode: "pvp",
+          rawDamage,
+          isMagical,
+          isSecondHit: false,
+          isSkill: isCastingSkill,
+        });
+
+        rawDamage = passiveResult.damage;
+
+        // Sync hit counters back
+        if (passivePlayer._clawhexHits !== undefined) attacker._clawhexHits = passivePlayer._clawhexHits;
+        if (passivePlayer._holyswordHits !== undefined) attacker.holySwordHits = passivePlayer._holyswordHits;
+
+        // Apply bleed from passive
+        if (passiveResult.bleedDamage > 0) {
+          defender.effects.bleedRounds = 3;
+          defender.effects.bleedDamage = passiveResult.bleedDamage;
+        }
+
+        // Apply next attack mult from passive
+        if (passiveResult.nextAttackMult > 1.0) {
+          attacker.nextAttackMult = passiveResult.nextAttackMult;
+        }
+
+        // Apply heal from passive (lifesteal / green staff)
+        if (passiveResult.healAmount > 0) {
+          let healReduceFactor = attacker.effects.healReduced ? 0.7 : 1.0;
+          const finalHealAmt = Math.floor(passiveResult.healAmount * healReduceFactor);
+          attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
+          logs.push(`✨ **${attacker.name}** hồi **${finalHealAmt.toLocaleString()}** HP từ hiệu ứng vũ khí!`);
+        }
+
+        // Log weapon passive triggers
+        if (passiveResult.logs.length > 0) {
+          for (const logMsg of passiveResult.logs) {
+            if (logMsg) logs.push(logMsg);
+          }
+        }
 
         // Defense Mitigation Calculation
         let defenderMitigation = 0;
         if (isMagical) {
           let mr = (defender.effectiveStats.mr || 10) * 10 + defender.defensePower * 1.5;
-          if (blueStaffPierce) mr *= 0.75;
-          if (sunbowTriggered) mr *= 0.90;
           if (skillIgnoreMR) mr *= 0.60;
-          defenderMitigation = mr / (mr + defender.level * 30 + 400);
+          defenderMitigation = mr / (mr + 150 + defender.level * 2);
         } else {
           let armor = (defender.effectiveStats.pr || 10) * 10 + defender.defensePower * 1.5;
           if (defender.effects.armorBoostedRounds > 0) {
             armor *= 1 + (defender.effects.armorBoosted || 0);
           }
-          if (defender.effects.armorReduced) {
+          // Apply armor shred from passive (axesnake, shadowdagger, etc.)
+          if (passiveEnemy._armorReduced > 0) {
+            armor *= 1 - passiveEnemy._armorReduced;
+          } else if (defender.effects.armorReduced) {
             armor *= 1 - defender.effects.armorReduced;
           }
-          if (crimsonDaggerPierce) armor *= 0.5;
-          if (spearhexTriggered) armor *= 0.90;
-          if (sunbowTriggered) armor *= 0.90;
-          defenderMitigation = armor / (armor + defender.level * 30 + 400);
+          defenderMitigation = armor / (armor + 150 + defender.level * 2);
         }
 
         // Apply Class Counter (+2% bonus damage)
@@ -377,8 +373,9 @@ class BattleEngine {
         }
 
         let finalMult = (1 - defenderMitigation) * counterMult;
-        if (holySwordDouble) finalMult *= 1.8;
         if (poisonMult > 1.0) finalMult *= poisonMult;
+        if (attacker.setBonus?.bonus?.pvpDamage) finalMult *= 1 + attacker.setBonus.bonus.pvpDamage;
+        if (attacker.setBonus?.bonus?.bossDamage) finalMult *= 1 + attacker.setBonus.bonus.bossDamage;
 
         if (attacker.effects.damageReduced) {
           finalMult *= 1 - attacker.effects.damageReduced;
@@ -387,17 +384,11 @@ class BattleEngine {
 
         let damage = Math.max(25, Math.floor(rawDamage * finalMult));
 
-        // Shieldhex Absorption
-        let defenderSubType = defender.weapon?.subType
-          ? defender.weapon.subType.toLowerCase().replace(/\s+/g, "")
-          : "";
-        if (LOCKED_WEAPONS.includes(defenderSubType)) {
-          defenderSubType = "";
-        }
-        if (defenderSubType.includes("shieldhex")) {
-          damage = Math.floor(damage * 0.80);
-          defender.effects.shieldhexAbsorbed = (defender.effects.shieldhexAbsorbed || 0) + damage;
-          defender.effects.shieldhexRounds = (defender.effects.shieldhexRounds || 0) + 1;
+        // Shieldhex Absorption (defense side)
+        const shieldResult = resolveShieldhexDefense(defender, damage);
+        damage = shieldResult.damage;
+        if (shieldResult.absorbed > 0) {
+          logs.push(`🛡️ **${defender.name}** hấp thụ **${shieldResult.absorbed.toLocaleString()}** sát thương từ Shieldhex!`);
         }
 
         defender.hp = Math.max(0, defender.hp - damage);
@@ -415,17 +406,6 @@ class BattleEngine {
           if (isCrit) logMsg += " (Chí mạng!)";
         }
         logs.push(logMsg + "!");
-
-        // Lifesteal weapon effects
-        if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
-          let baseHeal = riverofbloodTriggered
-            ? Math.max(1, Math.floor(damage * 0.05))
-            : Math.floor((attacker.maxHp - attacker.hp) * 0.12);
-          let healReduceFactor = attacker.effects.healReduced ? 0.7 : 1.0;
-          const finalHealAmt = Math.floor(baseHeal * healReduceFactor);
-          attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
-          logs.push(`✨ **${attacker.name}** hồi **${finalHealAmt.toLocaleString()}** HP từ hiệu ứng vũ khí!`);
-        }
       }
 
       if (!isCastingSkill) {

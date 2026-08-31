@@ -34,8 +34,9 @@ const {
   getEquippedItems,
   getWeaponPower,
   dungeonKeys,
+  getWeaponSetBonus,
 } = require("../../../utils/rpgUtil");
-const { triggerWorldBossPassive } = require("../../../utils/rpgPassiveUtil");
+const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -890,9 +891,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   user.rpg.power = calculateRpgPower(user);
   const equipped = getEquippedItems(user);
   const weapon = equipped.weapon;
-  const LOCKED_WEAPONS = ["poisondagger", "duskanddawn", "riverofblood", "axesnake", "clawhex", "spearhex", "shieldhex", "darksword", "darkstaff", "holysword"];
   let cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  if (LOCKED_WEAPONS.includes(cleanSubType)) {
+  if (isLockedWeapon(cleanSubType)) {
     cleanSubType = "";
   }
   const isDungeonWeapon = dungeonKeys.includes(cleanSubType);
@@ -949,6 +949,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     delete participant.nextAttackMult;
   }
   const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
+  const setBonus = getWeaponSetBonus(user);
   const baseAttack = isMagical
     ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
     : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
@@ -960,9 +961,10 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const attackVariance = 0.85 + Math.random() * 0.3;
   rawDamage *= attackVariance;
   const classCritBonus = rpgClass.bonuses?.critRate || 0;
+  const setCritBonus = setBonus?.bonus?.critRate || 0;
   const critRate = Math.min(
-    0.75,
-    (effectiveStats.arc * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus,
+    0.85,
+    (effectiveStats.arc * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus + setCritBonus,
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + effectiveStats.dex * 0.002;
@@ -978,7 +980,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     if (sunbowTriggered) {
       mr *= 0.90;
     }
-    mitigation = mr / (mr + 250);
+    mitigation = mr / (mr + 150 + user.rpg.level * 2);
   } else {
     let armor = activeBoss.boss.armor || 0;
     if (activeBoss.effects.armorReduced) {
@@ -993,10 +995,13 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     if (sunbowTriggered) {
       armor *= 0.90;
     }
-    mitigation = armor / (armor + 250);
+    mitigation = armor / (armor + 150 + user.rpg.level * 2);
   }
   const classBossBonus = rpgClass.bonuses?.bossDamage || 0;
   let finalMult = 1 + classBossBonus;
+  if (setBonus?.bonus?.bossDamage) {
+    finalMult *= 1 + setBonus.bonus.bossDamage;
+  }
   if (holySwordDouble) {
     finalMult *= 2.0;
   }
@@ -1014,7 +1019,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     damage = activeBoss.hp;
   }
   if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
-    let poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
+    let poiseDmg = Math.max(6, Math.floor(damage * 0.00032));
     if (cleanSubType === "greatsword") {
       poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
       passiveTriggers.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Plaxidusax!`);

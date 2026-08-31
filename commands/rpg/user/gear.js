@@ -27,6 +27,7 @@ const {
   getWeaponPower,
   getWeaponScaling,
   getDungeonWeaponKey,
+  WEAPON_SETS,
 } = require("../../../utils/rpgUtil");
 const ITEMS_PER_PAGE = 10;
 const slotEmoji = {
@@ -149,6 +150,14 @@ class GearCommand extends BaseCommand {
         desc += `**Lực chiến cơ bản:** ${freshItem.power.toLocaleString()}\n` +
                 `**Lực chiến thực tế:** ${powerText}\n` +
                 `**Scale:** \`${scalingText}\`\n\n`;
+        const setInfo = WEAPON_SETS[freshItem.subType?.toLowerCase().replace(/\s+/g, "")];
+        if (setInfo) {
+          const bonusText = Object.entries(setInfo.bonus).map(([k, v]) => {
+            if (typeof v === "number") return k === "dual" ? "" : `+${Math.round(v * 100)}% ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`;
+            return "";
+          }).filter(Boolean).join(", ");
+          desc += `✦ **Bộ Vũ Khí:** \`${setInfo.name}\` — ${bonusText}\n\n`;
+        }
         desc += `__**Description**__\n`;
         const dungKey = getDungeonWeaponKey(freshItem.subType || freshItem.subtype);
         if (dungKey) {

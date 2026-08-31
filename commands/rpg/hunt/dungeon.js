@@ -27,6 +27,7 @@ const {
   addRpgGearToUser,
   addRpgExp,
   getDungeonWeaponKey,
+  getWeaponSetBonus,
 } = require("../../../utils/rpgUtil");
 const { incBalance } = require("../../../utils/userUtil");
 const config = require("../../../data/config");
@@ -75,7 +76,7 @@ const getDelay = (activeDungeon, baseDelay) => {
   const speed = activeDungeon.speed ?? 1.0;
   return Math.max(100, Math.floor(baseDelay / speed));
 };
-const { getActiveStatusString, tickStatusEffects, triggerWeaponPassiveOnAttack, applyStatusEffect, EMOJIS } = require("../../../utils/rpgPassiveUtil");
+const { getActiveStatusString, tickStatusEffects, triggerWeaponPassiveOnAttack, applyStatusEffect, EMOJIS, resolveShieldhexDefense } = require("../../../utils/rpgPassiveUtil");
 const selectBossTarget = (alivePlayers) => {
   if (!alivePlayers || alivePlayers.length === 0) return null;
   const classWeights = {
@@ -108,7 +109,9 @@ const getChapterRarities = (chapter) => {
   if (chapter === 3) return ["Rare", "Epic"];
   if (chapter === 4) return ["Rare", "Epic", "Legendary"];
   if (chapter === 5) return ["Epic", "Legendary"];
-  return ["Epic", "Legendary", "Mythic"];
+  if (chapter <= 9) return ["Epic", "Legendary", "Mythic"];
+  if (chapter <= 12) return ["Legendary", "Mythic", "Ancient"];
+  return ["Mythic", "Ancient", "Divine"];
 };
 class DungeonCommand extends BaseCommand {
   constructor() {
@@ -190,16 +193,62 @@ class DungeonCommand extends BaseCommand {
         .setStyle(progress >= 5 ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setDisabled(progress < 5)
     );
+    const row3 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_7")
+        .setLabel("Chương 7")
+        .setStyle(progress >= 6 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 6),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_8")
+        .setLabel("Chương 8")
+        .setStyle(progress >= 7 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 7),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_9")
+        .setLabel("Chương 9")
+        .setStyle(progress >= 8 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 8)
+    );
+    const row4 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_10")
+        .setLabel("Chương 10")
+        .setStyle(progress >= 9 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 9),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_11")
+        .setLabel("Chương 11")
+        .setStyle(progress >= 10 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 10),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_12")
+        .setLabel("Chương 12")
+        .setStyle(progress >= 11 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 11)
+    );
+    const row5 = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_13")
+        .setLabel("Chương 13")
+        .setStyle(progress >= 12 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 12),
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_start_14")
+        .setLabel("Chương 14")
+        .setStyle(progress >= 13 ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(progress < 13)
+    );
     const container = new ContainerBuilder()
       .setAccentColor(0x9B59B6)
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
           `# 🗺️ Bản đồ phó bản Dungeon (Chapter 1)\n` +
-          `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn. Đi lần lượt từ chương 1 đến chương 6.\n\n` +
-          `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(6, progress + 1)}**`
+          `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn. Đi lần lượt từ chương 1 đến chương 14.\n\n` +
+          `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** (tối đa Chương 14)`
         )
       )
-      .addActionRowComponents(row1, row2);
+      .addActionRowComponents(row1, row2, row3, row4, row5);
     const selectMsg = await message.reply({
       content: "",
       embeds: [],
@@ -212,9 +261,6 @@ class DungeonCommand extends BaseCommand {
       await i.deferUpdate();
       const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
       collector.stop("selected");
-      if (chapter >= 7) {
-        return message.reply("❌ Dungeon Chương 7 trở đi hiện đang tạm thời đóng để bảo trì phát triển!");
-      }
       await askBlessing(message, selectMsg, guild, chapter, i);
     });
     collector.on("end", (collected, reason) => {
@@ -304,6 +350,10 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
       const gearPower = calculateRpgPower(freshUserObject(user));
       const weapon = getEquippedItems(user).weapon;
       let maxHp = 150 + stats.vigor * 20 + user.rpg.level * 20;
+      const setBonus = getWeaponSetBonus(user);
+      if (setBonus?.bonus?.maxHp) {
+        maxHp += Math.floor(maxHp * setBonus.bonus.maxHp);
+      }
       if (blessing === "active") {
         maxHp = Math.floor(maxHp * 1.1);
       }
@@ -318,6 +368,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
         stats: stats,
         power: gearPower,
         weapon: weapon,
+        setBonus: setBonus,
         rpgClass: rpgClass,
         userRef: user, 
         rage: 0,
@@ -384,10 +435,22 @@ const setupRound = (activeDungeon, channel) => {
   const setupNormalMonster = () => {
     let name = `Quái Vật Gác Đền (Vòng ${round})`;
     let key = `creep${round}`;
-    let maxHp = Math.max(15000, Math.min(65000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
-    let atk = Math.min(580, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
+    let maxHp = Math.max(15000, Math.min(180000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
+    let atk = Math.min(900, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
     let armor = Math.floor(normCfg.base_defense * chapter);
     let magicResist = Math.floor(normCfg.base_defense * chapter);
+    let isElite = false;
+    const isBossRoundNow = round === 5;
+    if (!isBossRoundNow && round >= 3 && Math.random() < 0.28) {
+      isElite = true;
+      name = `⭐ Quái Vật Tinh Anh (Vòng ${round})`;
+      key = `elite${round}`;
+      maxHp = Math.floor(maxHp * 2.2);
+      atk = Math.floor(atk * 1.4);
+      armor = Math.floor(armor * 1.25);
+      magicResist = Math.floor(magicResist * 1.25);
+      activeDungeon.logs.push(`⭐ Một con **Quái Vật Tinh Anh** xuất hiện! Nó mạnh hơn hẳn nhưng rơi **nhiều EXP & Coke** gấp rưỡi khi bị hạ gục.`);
+    }
     if (chapter === 4 && round === 3) {
       name = "Draugor (Tướng Tiên Phong)";
       key = "draugor";
@@ -396,6 +459,7 @@ const setupRound = (activeDungeon, channel) => {
       armor = 240;
       magicResist = 240;
     }
+    activeDungeon.elitesKilled = activeDungeon.elitesKilled || 0;
     activeDungeon.enemy = {
       name: name,
       key: key,
@@ -405,6 +469,7 @@ const setupRound = (activeDungeon, channel) => {
       armor: armor,
       magicResist: magicResist,
       isBoss: false,
+      isElite: isElite,
     };
     activeDungeon.diceRolled = false;
     activeDungeon.diceMultiplier = 1.0;
@@ -425,7 +490,7 @@ const setupRound = (activeDungeon, channel) => {
     }
     const targetLevel = totalLevel / count;
     const targetPower = totalPower / count;
-    const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
+    const leaderScaler = 1 + (targetLevel * 0.006) + (targetPower * 0.00005);
     const chapterScaler = 1 + (chapter - 1) * 0.20;
     const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
     const poiseMax = 80 + chapter * 20;
@@ -596,7 +661,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     let resourceText = "";
     if (p.classKey === "mage") {
       resourceText = `\n🔮 MP: **${p.mana ?? 100}/100**`;
-    } else if (p.classKey !== "wretch") {
+    } else {
       resourceText = `\n⚡ Nộ: **${p.rage ?? 0}%**`;
     }
     const hpInfo = `${statusText}` +
@@ -650,7 +715,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       .setDisabled(disableControls)
   );
   const isPlayerTurn = !activeDungeon.isFinished && currentActor && currentActor.id;
-  if (isPlayerTurn && currentActor.classKey !== "wretch") {
+  if (isPlayerTurn) {
     let skillLabel = "Kỹ Năng ✨";
     let isSkillDisabled = disableControls;
     if (currentActor.classKey === "mage") {
@@ -1116,6 +1181,34 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     player.hasActedThisRound = true;
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);
+  } else if (player.classKey === "wretch") {
+    const fateRoll = Math.random();
+    let skillMult;
+    let fateName;
+    let fateEmoji;
+    if (fateRoll < 0.25) {
+      skillMult = 4.5;
+      fateName = "Số Phận Mỉm Cười";
+      fateEmoji = "🍀";
+    } else if (fateRoll < 0.60) {
+      skillMult = 2.4;
+      fateName = "Cú Đập May Rủi";
+      fateEmoji = "🎲";
+    } else if (fateRoll < 0.85) {
+      skillMult = 1.2;
+      fateName = "Số Phận Thử Thách";
+      fateEmoji = "⚖️";
+    } else {
+      skillMult = 1.0;
+      fateName = "Trò Đùa Vận Rủi";
+      fateEmoji = "💢";
+      player.rage = Math.max(0, (player.rage || 0) - 30);
+      activeDungeon.logs.push(`💢 **${player.name}** vận rủi giáng xuống chính mình: **-30% Nộ**!`);
+    }
+    activeDungeon.logs.push(`${fateEmoji} **${player.name}** giao phó số phận cho lưỡi dao: **[${fateName}]** (x${skillMult.toFixed(1)} sát thương) lao vào **${enemy.name}**!`);
+    player.rage = 0;
+    await executePlayerAttack(channel, activeDungeon, player, skillMult, true);
+    player.rage = 0;
   } else {
     activeDungeon.actionInProgress = false;
     return channel.send(`❌ Class này không có kỹ năng đặc biệt.`);
@@ -1129,7 +1222,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     if (Math.random() < deflectionChance) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`🏹 **[Cung Trọng Trường]** Trọng lực bẻ cong đòn đánh! Đòn tấn công của **${player.name}** bị lệch hướng và trượt!`);
-      if (player.classKey !== "mage" && player.classKey !== "wretch") {
+      if (player.classKey !== "mage") {
         player.rage = Math.min(100, (player.rage || 0) + 10);
       }
       await nextTurn(channel, activeDungeon);
@@ -1142,7 +1235,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     if (Math.random() < dodgeChance) {
       activeDungeon.actionInProgress = false;
       activeDungeon.logs.push(`⚡ **${enemy.name}** di chuyển chớp nhoáng, né tránh đòn tấn công của **${player.name}**!`);
-      if (player.classKey !== "mage" && player.classKey !== "wretch") {
+      if (player.classKey !== "mage") {
         player.rage = Math.min(100, (player.rage || 0) + 10);
       }
       await nextTurn(channel, activeDungeon);
@@ -1150,7 +1243,6 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
   }
   const pWeaponSubType = player.weapon?.subType ? player.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
-  const hasWeaponTriggered = Math.random() < 0.45;
   let isMagical = CLASS_ATTACK_TYPES[player.classKey] === "magical";
   if (pWeaponSubType === "duskanddawn") {
     if (player.duskDawnNext === undefined) {
@@ -1177,9 +1269,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   }
   const finalRawDamage = passiveResult.damage * (0.85 + Math.random() * 0.3);
   const classCritBonus = player.rpgClass?.bonuses?.critRate || 0;
+  const setCritBonus = player.setBonus?.bonus?.critRate || 0;
   const critRate = Math.min(
-    0.75,
-    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus
+    0.85,
+    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus + setCritBonus
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + player.stats.dex * 0.002;
@@ -1188,10 +1281,13 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     finalCalculatedDamage *= critMult;
   }
   const mrOrArmor = passiveResult.mrOrArmor;
-  const mitigation = mrOrArmor / (mrOrArmor + 250);
+  const mitigation = mrOrArmor / (mrOrArmor + 150 + (player.level || 1) * 2);
   let damage = Math.max(10, Math.floor(finalCalculatedDamage * (1 - mitigation)));
   if (player.userRef?.rpg?.isGodMode) {
     damage = enemy.hp;
+  }
+  if (enemy.isBoss && player.setBonus?.bonus?.bossDamage && !enemy.isElite) {
+    damage = Math.floor(damage * (1 + player.setBonus.bonus.bossDamage));
   }
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(activeDungeon.chapter);
@@ -1265,13 +1361,8 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
   activeDungeon.logs.push(`🗡️ **${player.name}** tấn công **${enemy.name}** gây ${critText}**${damage.toLocaleString()}** sát thương.`);
-  if (pWeaponSubType === "riverofblood" && hasWeaponTriggered) {
-    const healAmt = Math.max(1, Math.floor(damage * 0.02));
-    player.hp = Math.min(player.maxHp, player.hp + healAmt);
-    activeDungeon.logs.push(`<:heal:1521938487907975198> **${healAmt.toLocaleString()}** (River of Blood hồi phục cho **${player.name}**).`);
-  }
   if (enemy.isBoss && !enemy.poiseBroken) {
-    let poiseDmg = Math.max(8, Math.floor(damage * 0.0008));
+    let poiseDmg = Math.max(6, Math.floor(damage * 0.00032));
     if (player.classKey === "warrior" && isSkill) {
       poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
       activeDungeon.logs.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Boss!`);
@@ -1282,7 +1373,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
       activeDungeon.logs.push(`🛡️ **[PHÁ VỠ POISE]** Sức tấn công của nhóm đã làm **${enemy.name}** bị quỵ ngã! Boss nhận thêm **100% sát thương** cho đến lượt đi tiếp theo!`);
     }
   }
-  if (player.classKey !== "mage" && player.classKey !== "wretch") {
+  if (player.classKey !== "mage") {
     player.rage = Math.min(100, (player.rage || 0) + 10);
   }
   let doubleHitTriggered = passiveResult.doubleHitTriggered;
@@ -1458,7 +1549,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       const actualDmg = Math.min(p.hp, damage);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + actualDmg;
       p.hp = Math.max(0, p.hp - damage);
-      if (p.hp > 0 && p.classKey !== "mage" && p.classKey !== "wretch") {
+      if (p.hp > 0 && p.classKey !== "mage") {
         p.rage = Math.min(100, (p.rage || 0) + 10);
       }
       activeDungeon.logs.push(`💥 Gây **${damage.toLocaleString()}** st lên **${p.name}**.`);
@@ -1612,7 +1703,7 @@ const runEnemyTurn = async (channel, activeDungeon) => {
         activeDungeon.logs.push(`💀 **${target.name}** đã tử nạn!`);
       }
     }
-    if (target.hp > 0 && target.classKey !== "mage" && target.classKey !== "wretch") {
+    if (target.hp > 0 && target.classKey !== "mage") {
       target.rage = Math.min(100, (target.rage || 0) + 10);
     }
   }
@@ -1652,7 +1743,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       }
       const targetLevel = totalLevel / count;
       const targetPower = totalPower / count;
-      const leaderScaler = 1 + (targetLevel * 0.004) + (targetPower * 0.00003);
+const leaderScaler = 1 + (targetLevel * 0.006) + (targetPower * 0.00005);
       const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
       const poiseMax = 80 + chapter * 20;
       enemy.name = bossCfg.name_phase2;
@@ -1686,7 +1777,10 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       await handleVictory(channel, activeDungeon);
     }
   } else {
-    if (enemy.key === "draugor") {
+    if (enemy.isElite) {
+      activeDungeon.elitesKilled = (activeDungeon.elitesKilled || 0) + 1;
+      activeDungeon.logs.push(`⭐ Đã hạ gục **Quái Vật Tinh Anh**! Thưởng cuối phó bản tăng **+50%** EXP & Coke (x${(activeDungeon.elitesKilled || 1) + 1}).`);
+    } else if (enemy.key === "draugor") {
       activeDungeon.logs.push(`🗣️ **Draugor** hét lên phẫn nộ: *"Các người... các người sẽ phải chịu đựng cơn thịnh nộ của ngài ấy... lũ sinh vật thấp kém!"*`);
     } else {
       activeDungeon.logs.push(`🎉 **Đã tiêu diệt ${enemy.name}!** Sắp bước sang vòng kế tiếp.`);
@@ -1728,8 +1822,9 @@ const handleVictory = async (channel, activeDungeon) => {
   const rewCfg = dCfg.rewards || { base_coke: 30000, base_exp: 1500 };
   const isChallenge = activeDungeon.blessing === "none";
   const mult = isChallenge ? 1.2 : 1.0;
-  const cokeReward = Math.floor(rewCfg.base_coke * activeDungeon.chapter * mult);
-  const expReward = Math.floor(rewCfg.base_exp * activeDungeon.chapter * mult);
+  const eliteBonus = 1 + 0.5 * (activeDungeon.elitesKilled || 0);
+  const cokeReward = Math.floor(rewCfg.base_coke * activeDungeon.chapter * mult * eliteBonus);
+  const expReward = Math.floor(rewCfg.base_exp * activeDungeon.chapter * mult * eliteBonus);
   const rewardTexts = [];
   for (const p of activeDungeon.players) {
     const freshUser = await User.findById(p.userRef._id);
@@ -1738,6 +1833,13 @@ const handleVictory = async (channel, activeDungeon) => {
       freshUser.rpg.clearedDungeons = [];
     }
     const hasClearedBefore = freshUser.rpg.clearedDungeons.includes(activeDungeon.chapter);
+    const todayKey = new Date().toISOString().slice(0, 10);
+    if (!freshUser.rpg.dailyClears) freshUser.rpg.dailyClears = {};
+    const dailyKey = `${activeDungeon.chapter}_${todayKey}`;
+    const isDailyFirstClear = !freshUser.rpg.dailyClears[dailyKey];
+    if (isDailyFirstClear) {
+      freshUser.rpg.dailyClears[dailyKey] = true;
+    }
     let userCokeReward = cokeReward;
     let userExpReward = expReward;
     if (hasClearedBefore) {
@@ -1746,6 +1848,22 @@ const handleVictory = async (channel, activeDungeon) => {
     } else {
       freshUser.rpg.clearedDungeons.push(activeDungeon.chapter);
       freshUser.markModified("rpg");
+    }
+    if (isDailyFirstClear) {
+      userCokeReward = Math.floor(userCokeReward * 1.5);
+      userExpReward = Math.floor(userExpReward * 1.5);
+    }
+    if (!freshUser.rpg.winStreak) freshUser.rpg.winStreak = 0;
+    freshUser.rpg.winStreak += 1;
+    const streak = freshUser.rpg.winStreak;
+    const streakMult = Math.min(1.5, 1 + (streak - 1) * 0.05);
+    userCokeReward = Math.floor(userCokeReward * streakMult);
+    userExpReward = Math.floor(userExpReward * streakMult);
+    let challengeBonusText = "";
+    if (activeDungeon.blessing === "none") {
+      userCokeReward = Math.floor(userCokeReward * 1.2);
+      userExpReward = Math.floor(userExpReward * 1.2);
+      challengeBonusText = ` | 🏆 **Thử thách** x1.2`;
     }
     await incBalance(freshUser.userId, userCokeReward);
     addRpgExp(freshUser.rpg, userExpReward);
@@ -1803,8 +1921,13 @@ const handleVictory = async (channel, activeDungeon) => {
       ? `**${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`
       : "Không nhận được";
     let rewardLine = `👤 <@${p.id}>:\n` +
-      `  • nhận **+${userCokeReward.toLocaleString()}** <:cokecy:1509951335016173662>${hasClearedBefore ? " *(Phó bản đã vượt: nhận 1/3)*" : ""}\n` +
-      `  • nhận **+${userExpReward.toLocaleString()} EXP RPG**${hasClearedBefore ? " *(Phó bản đã vượt: nhận 1/3)*" : ""}\n` +
+      `  • nhận **+${userCokeReward.toLocaleString()}** <:cokecy:1509951335016173662>` +
+      `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
+      `${isDailyFirstClear ? " *(Lần đầu trong ngày: x1.5)*" : ""}` +
+      `${streak > 1 ? ` *(Chuỗi x${streakMult.toFixed(1)})*` : ""}${challengeBonusText}\n` +
+      `  • nhận **+${userExpReward.toLocaleString()} EXP RPG**` +
+      `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
+      `${isDailyFirstClear ? " *(Lần đầu trong ngày: x1.5)*" : ""}${challengeBonusText}\n` +
       `  • Linh Hồn: ${soulText}\n` +
       `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
       `  • nhận Trang bị: ${gearText}`;
@@ -1834,6 +1957,16 @@ const handleDefeat = async (channel, activeDungeon) => {
     activeDungeon.cleanupListener();
   }
   channel.client.rpgDungeons.delete(channel.id);
+  for (const p of activeDungeon.players) {
+    try {
+      const freshUser = await User.findById(p.userRef._id);
+      if (freshUser && freshUser.rpg.winStreak > 0) {
+        freshUser.rpg.winStreak = 0;
+        freshUser.markModified("rpg");
+        await freshUser.save();
+      }
+    } catch {}
+  }
   const embed = new EmbedBuilder()
     .setColor("#C0392B")
     .setTitle("💀 THẤT BẠI! 💀")
@@ -1884,7 +2017,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
   }
   let useSkill = false;
   const hasSkillBan = player.skillBanRounds && player.skillBanRounds > 0;
-  if (player.classKey !== "wretch" && !hasSkillBan) {
+  if (!hasSkillBan) {
     if (player.classKey === "mage") {
       if ((player.mana ?? 100) >= 25) useSkill = true;
     } else if (player.classKey === "paladin") {
