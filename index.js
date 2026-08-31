@@ -44,16 +44,22 @@ const { startNetworkMonitor } = require("./utils/networkMonitor");
 
 process.on("unhandledRejection", (error) => {
   console.error("❌ Unhandled rejection:", error);
-  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
-    console.error("Shutting down process due to network failure to let PM2 handle...");
-    process.exit(1);
-  }
+  // KHÔNG exit process vì lỗi mạng nhất thời (EAI_AGAIN/getaddrinfo/ENOTFOUND/ECONNRESET).
+  // Discord.js tự reconnect + networkMonitor xử lý mất mạng kéo dài. Exit ngay ở đây
+  // khiến bot chết oan mỗi lần VPS mạng chập chờn vài giây.
 });
 
 process.on("uncaughtException", (error) => {
   console.error("❌ Uncaught exception:", error);
-  if (error && error.message && (error.message.includes("EAI_AGAIN") || error.message.includes("getaddrinfo") || error.message.includes("ENOTFOUND") || error.message.includes("ECONNRESET"))) {
-    console.error("Shutting down process due to network failure to let PM2 handle...");
+  // Giống unhandledRejection: không exit vì lỗi mạng nhất thời. Chỉ exit nếu
+  // thực sự là lỗi không thể phục hồi (không phải lỗi mạng).
+  if (
+    error &&
+    !(error.message || "").match(
+      /EAI_AGAIN|getaddrinfo|ENOTFOUND|ECONNRESET|UND_ERR_CONNECT_TIMEOUT|ECONNTIMEDOUT|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ECONNREFUSED|EPIPE/i,
+    )
+  ) {
+    console.error("Shutting down process due to unrecoverable error...");
     process.exit(1);
   }
 });

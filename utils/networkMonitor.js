@@ -1,20 +1,50 @@
 const dns = require("dns");
 const { Events } = require("discord.js");
+const { request } = require("undici");
 
-function checkInternet(timeout = 5000) {
+function checkInternet(timeout = 4000) {
   return new Promise((resolve) => {
+    const probes = [];
     let resolved = false;
     const done = (status) => {
       if (resolved) return;
       resolved = true;
       resolve(status);
     };
-    
-    dns.lookup("discord.com", (err) => { if (!err) done(true); });
-    
-    dns.lookup("google.com", (err) => { if (!err) done(true); });
-    
-    setTimeout(() => done(false), timeout);
+
+    // Probe 1: DNS lookup discord.com
+    probes.push(
+      new Promise((res) =>
+        dns.lookup("discord.com", (err) => res(!err)),
+      ),
+    );
+    // Probe 2: DNS lookup google.com
+    probes.push(
+      new Promise((res) =>
+        dns.lookup("google.com", (err) => res(!err)),
+      ),
+    );
+    // Probe 3: HTTP request đến Discord endpoint thật
+    probes.push(
+      request("https://discord.com/api/v10/gateway", {
+        headersTimeout: timeout,
+        connectTimeout: 3000,
+        method: "GET",
+      })
+        .then((res) => {
+          res.body?.cancel?.();
+          return true;
+        })
+        .catch(() => false),
+    );
+
+    // Mạng online nếu BẤT KỲ probe nào thành công.
+    Promise.all(probes)
+      .then((results) => done(results.includes(true)))
+      .catch(() => done(false));
+
+    // An toàn: force resolve sau timeout tổng.
+    setTimeout(() => done(false), timeout * 2);
   });
 }
 
@@ -22,10 +52,10 @@ function startNetworkMonitor(client) {
   let consecutiveFailures = 0;
   let firstFailureTime = 0;
   let shardDisconnectTimes = {};
-  const CHECK_INTERVAL = 30_000;  
-  const MAX_FAILURES = 5;         
-  const TRANSIENT_THRESHOLD = 60_000; 
-  const SHARD_DISCONNECT_TIMEOUT = 60_000;
+  const CHECK_INTERVAL = 30_000;
+  const MAX_FAILURES = 3;
+  const MIN_DURATION_MS = 90_000;
+  const SHARD_DISCONNECT_TIMEOUT = 90_000;
 
   console.log("🔍 Network Monitor khởi động (kiểm tra mạng mỗi 30 giây).");
 
@@ -45,17 +75,20 @@ function startNetworkMonitor(client) {
       consecutiveFailures++;
       const elapsed = Date.now() - firstFailureTime;
 
-      if (consecutiveFailures < MAX_FAILURES) {
-        console.warn(`⚠️ Mất kết nối mạng lần ${consecutiveFailures}/${MAX_FAILURES} (${Math.round(elapsed / 1000)}s).`);
-      } else {
+      // Chỉ restart khi ĐỦ số lần fail VÀ kéo dài ĐỦ lâu (>90s)
+      const shouldRestart =
+        consecutiveFailures >= MAX_FAILURES && elapsed >= MIN_DURATION_MS;
+
+      if (shouldRestart) {
         console.error(`❌ Mất mạng ${consecutiveFailures} lần liên tiếp trong ${Math.round(elapsed / 1000)}s. Restart process...`);
         clearInterval(intervalId);
         process.exit(1);
+      } else {
+        console.warn(`⚠️ Mất kết nối mạng lần ${consecutiveFailures}/${MAX_FAILURES} (${Math.round(elapsed / 1000)}s).`);
       }
     }
   }, CHECK_INTERVAL);
 
-  
   client.on(Events.ShardDisconnect, (event, shardId) => {
     console.warn(`⚠️ Shard ${shardId} mất kết nối gateway (code: ${event?.code}). Discord.js sẽ tự reconnect.`);
     shardDisconnectTimes[shardId] = Date.now();
@@ -78,7 +111,7 @@ function startNetworkMonitor(client) {
         process.exit(1);
       }
     }
-  }, 10_000);
+  }, 15_000);
 }
 
 module.exports = { startNetworkMonitor };
