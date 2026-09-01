@@ -35,7 +35,7 @@ class EnhanceCommand extends BaseCommand {
       itemId = equipped.weapon;
     }
     const items = user.rpg.items || [];
-    const itemIndex = items.findIndex((it) => it.id === itemId);
+    const itemIndex = items.findIndex((it) => it.id === Number(itemId));
     if (itemIndex === -1) {
       return message.reply(`${config.emoji.no} Không tìm thấy trang bị này trong túi đồ của bạn.`);
     }
@@ -132,7 +132,7 @@ class EnhanceCommand extends BaseCommand {
           });
         }
         const freshItems = freshUser.rpg.items || [];
-        const freshItemIndex = freshItems.findIndex((it) => it.id === itemId);
+        const freshItemIndex = freshItems.findIndex((it) => it.id === Number(itemId));
         if (freshItemIndex === -1) {
           return interaction.update({
             content: "❌ Không tìm thấy vũ khí này trong túi đồ của bạn nữa.",

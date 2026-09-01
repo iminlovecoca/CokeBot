@@ -78,7 +78,7 @@ const getEquippedItems = (user) => {
   const equipped = user.rpg?.equipped || {};
   const res = Object.fromEntries(
     Object.entries(equipped)
-      .map(([slot, itemId]) => [slot, items.find((item) => item.id === itemId)])
+      .map(([slot, itemId]) => [slot, items.find((item) => Number(item.id) === Number(itemId))])
       .filter(([, item]) => item),
   );
   if (!res.weapon && user.rpg?.equippedWeapon) res.weapon = user.rpg.equippedWeapon;
@@ -1335,7 +1335,7 @@ const addRpgGearToUser = (user, item) => {
 };
 
 const findRpgItem = (user, itemId) =>
-  getRpgItems(user).find((item) => item.id === Number(itemId));
+  getRpgItems(user).find((item) => Number(item.id) === Number(itemId));
 
 const equipRpgItem = async (userId, itemId) => {
   const user = await getUser(userId);
@@ -1396,7 +1396,7 @@ const sellRpgItem = async (userId, itemId) => {
     );
   }
 
-  if (Object.values(user.rpg.equipped || {}).includes(item.id)) {
+  if (Object.values(user.rpg.equipped || {}).some((equippedId) => Number(equippedId) === Number(item.id))) {
     throw new UserFriendlyError(
       `${config.emoji.no} Bạn đang mặc trang bị này. Hãy đổi sang món khác trước khi bán.`,
     );
@@ -1476,7 +1476,7 @@ const findRpgItemGlobal = async (itemId) => {
   const User = require("../models/User");
   const owner = await User.findOne({ "rpg.items.id": Number(itemId) }).exec();
   if (!owner) return null;
-  const item = owner.rpg.items.find((it) => it.id === Number(itemId));
+  const item = owner.rpg.items.find((it) => Number(it.id) === Number(itemId));
   return { item, owner };
 };
 

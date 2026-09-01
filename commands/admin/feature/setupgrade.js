@@ -46,7 +46,7 @@ class SetupgradeCommand extends BaseCommand {
     } else {
       const weaponId = dbUser.rpg.equipped?.weapon;
       if (weaponId) {
-        targetGear = dbUser.rpg.items.find(item => item.id === weaponId);
+        targetGear = dbUser.rpg.items.find(item => item.id === Number(weaponId));
       }
       if (!targetGear) {
         targetGear = dbUser.rpg.items.find(item => item.slot === "weapon");
