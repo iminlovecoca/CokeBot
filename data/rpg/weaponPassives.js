@@ -667,6 +667,8 @@ const WEAPON_PASSIVES = {
         log: () => `⚔️ **[Satan]** Boss bị thiêu đốt, chảy máu 3 lượt.`,
       },
     },
+  },
+
   bladesorrow: {
     name: "Bladesorrow",
     type: PASSIVE_TYPES.BLEED,
@@ -702,7 +704,7 @@ const WEAPON_PASSIVES = {
   },
 
   frostgauntlet: {
-    name: "Frostgauntlet",
+    name: "Găng Tay Băng Giá",
     type: PASSIVE_TYPES.FREEZE,
     mode: {
       dungeon: {
