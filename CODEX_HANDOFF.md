@@ -1,8 +1,8 @@
 # CokeBot RPG Dungeon & Battle Bot Handoff
 
-- Phase/status: Dungeon V1 UI and battle-bot roster optimization implemented; local validation passed. Deployment/restart smoke test remains pending.
+- Phase/status: Dungeon V1 UI, battle-bot roster optimization, and legacy equipment-read compatibility implemented; local validation passed. Deployment/restart smoke test remains pending.
 - Goal: Restore Dungeon to compact traditional Embed/ActionRow UI, keep every combat action, surface custom passive/status emojis, balance September Gacha weapons, and make Battle Bots stable player-like opponents.
-- Latest work: Removed Dungeon Components V2 payloads and attachment-builder reuse, added canonical Frost naming and magic/control scaling, applied Bladesorrow armor shred with mode caps, added passive emoji formatting, expanded the roster by 10 bots per rank, and changed startup seeding to read/repair only when needed.
+- Latest work: Removed Dungeon Components V2 payloads and attachment-builder reuse, added canonical Frost naming and magic/control scaling, applied Bladesorrow armor shred with mode caps, added passive emoji formatting, expanded the roster by 10 bots per rank, changed startup seeding to read/repair only when needed, and made class/combat equipment lookup tolerant of legacy IDs, slot aliases, Map values, and full-item pointers.
 - Roster: 89 total bots (19 existing + 70 generated), with 13 per Common through Mythic and 12 per Ancient/Divine because the original roster has two bots in those ranks. New bots carry class, rarity, quality, uid, upgradeLevel, weapon emoji, imageKey, equipped gear, and pet data.
 - Important files: `commands/rpg/hunt/dungeon.js`, `utils/rpgUtil.js`, `utils/rpgPassiveUtil.js`, `data/rpg/weaponPassives.js`, `data/gachaBanner.js`, `commands/rpg/user/gear.js`, `commands/admin/feature/weaponlist.js`, `seeders/battleBots.js`, `features/battleBotEngine.js`.
 - Verification: All changed JavaScript files pass `node --check`; RPG/module-load, passive armor-cap, Frost key/scaling, 89-bot roster, render payload, battle-balance scenarios, and `git diff --check` passed.

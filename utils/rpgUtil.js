@@ -28,6 +28,37 @@ const getRpgRank = (level) => {
   return "Novice";
 };
 
+const normalizeRpgItemId = (value) => {
+  const rawId = value && typeof value === "object"
+    ? (value.id ?? value.itemId ?? value.item_id)
+    : value;
+  const cleanId = String(rawId ?? "").trim().replace(/^g\s*/i, "");
+  return /^\d+$/.test(cleanId) ? Number(cleanId) : null;
+};
+
+const normalizeRpgSlot = (slot) => {
+  const cleanSlot = String(slot || "").trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const aliases = {
+    weapon: "weapon",
+    mainhand: "weapon",
+    equippedweapon: "weapon",
+    armor: "armor",
+    chest: "armor",
+    equippedarmor: "armor",
+    helmet: "helmet",
+    head: "helmet",
+    equippedhelmet: "helmet",
+    boots: "boots",
+    feet: "boots",
+    equippedboots: "boots",
+    ring: "ring",
+    equippedring: "ring",
+    necklace: "necklace",
+    equippednecklace: "necklace",
+  };
+  return aliases[cleanSlot] || null;
+};
+
 const getRpgItems = (user) => {
   const items = user.rpg?.items || [];
   const isBattleBot = Boolean(user?.isBattleBot || String(user?.userId || "").startsWith("bot_pvp_"));
@@ -77,15 +108,43 @@ const getRpgItems = (user) => {
 const getEquippedItems = (user) => {
   const items = getRpgItems(user);
   const equipped = user.rpg?.equipped || {};
-  const res = Object.fromEntries(
-    Object.entries(equipped)
-      .map(([slot, itemId]) => [slot, items.find((item) => Number(item.id) === Number(itemId))])
-      .filter(([, item]) => item),
-  );
-  if (!res.weapon && user.rpg?.equippedWeapon) res.weapon = user.rpg.equippedWeapon;
-  if (!res.armor && user.rpg?.equippedArmor) res.armor = user.rpg.equippedArmor;
-  if (!res.helmet && user.rpg?.equippedHelmet) res.helmet = user.rpg.equippedHelmet;
-  if (!res.boots && user.rpg?.equippedBoots) res.boots = user.rpg.equippedBoots;
+  const res = {};
+  const findById = (value) => {
+    const itemId = normalizeRpgItemId(value);
+    return itemId === null ? null : items.find((item) => normalizeRpgItemId(item.id) === itemId);
+  };
+  const assign = (slot, value) => {
+    const normalizedSlot = normalizeRpgSlot(slot);
+    if (!normalizedSlot || res[normalizedSlot]) return;
+    const item = findById(value) || (
+      value && typeof value === "object" && normalizeRpgItemId(value) !== null ? value : null
+    );
+    if (!item) return;
+    res[normalizedSlot] = item.slot === normalizedSlot
+      ? item
+      : { ...item, slot: normalizedSlot };
+  };
+  const equippedEntries = equipped instanceof Map
+    ? [...equipped.entries()]
+    : Object.entries(equipped);
+  for (const [slot, item] of equippedEntries) assign(slot, item);
+
+  const legacyFields = {
+    weapon: ["equippedWeapon", "equipped_weapon"],
+    armor: ["equippedArmor", "equipped_armor"],
+    helmet: ["equippedHelmet", "equipped_helmet"],
+    boots: ["equippedBoots", "equipped_boots"],
+    ring: ["equippedRing", "equipped_ring"],
+    necklace: ["equippedNecklace", "equipped_necklace"],
+  };
+  for (const [slot, fields] of Object.entries(legacyFields)) {
+    for (const field of fields) {
+      if (user.rpg?.[field] !== undefined && user.rpg?.[field] !== null) {
+        assign(slot, user.rpg[field]);
+        break;
+      }
+    }
+  }
   return res;
 };
 
