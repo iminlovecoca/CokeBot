@@ -459,13 +459,35 @@ class SimCommand extends BaseCommand {
           new ActionRowBuilder().addComponents(rankInput),
           new ActionRowBuilder().addComponents(enhanceInput)
         );
-        await interaction.showModal(modal);
+        try {
+          await interaction.showModal(modal);
+        } catch (err) {
+          const errorCode = err?.code || err?.rawError?.code;
+          const errorText = String(err?.message || "").toLowerCase();
+          const isExpiredInteraction = errorCode === 10062 || errorCode === 40060 ||
+            errorText.includes("unknown interaction") || errorText.includes("already acknowledged");
+          if (!isExpiredInteraction) {
+            console.error("[SIM] Modal open failed:", err);
+          }
+          return;
+        }
         const modalSubmit = await interaction.awaitModalSubmit({
           filter: (i) => i.customId === `sim_edit_modal_${idx}` && i.user.id === message.author.id,
           time: 120000,
         }).catch(() => null);
         if (!modalSubmit) return;
-        await modalSubmit.deferUpdate();
+        try {
+          await modalSubmit.deferUpdate();
+        } catch (err) {
+          const errorCode = err?.code || err?.rawError?.code;
+          const errorText = String(err?.message || "").toLowerCase();
+          const isExpiredInteraction = errorCode === 10062 || errorCode === 40060 ||
+            errorText.includes("unknown interaction") || errorText.includes("already acknowledged");
+          if (!isExpiredInteraction) {
+            console.error("[SIM] Modal acknowledge failed:", err);
+          }
+          return;
+        }
         const classKey = modalSubmit.fields.getTextInputValue("sim_class").trim().toLowerCase();
         const level = parseInt(modalSubmit.fields.getTextInputValue("sim_level").trim());
         const weaponName = modalSubmit.fields.getTextInputValue("sim_weapon_name").trim();
