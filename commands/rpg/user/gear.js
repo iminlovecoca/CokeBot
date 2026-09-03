@@ -150,7 +150,9 @@ class GearCommand extends BaseCommand {
         desc += `**Lực chiến cơ bản:** ${freshItem.power.toLocaleString()}\n` +
                 `**Lực chiến thực tế:** ${powerText}\n` +
                 `**Scale:** \`${scalingText}\`\n\n`;
-        const setInfo = WEAPON_SETS[freshItem.subType?.toLowerCase().replace(/\s+/g, "")];
+        const freshWeaponSubtype = freshItem.subType || freshItem.subtype;
+        const freshWeaponKey = getDungeonWeaponKey(freshWeaponSubtype) || String(freshWeaponSubtype || "").toLowerCase().replace(/\s+/g, "");
+        const setInfo = WEAPON_SETS[freshWeaponKey];
         if (setInfo) {
           const bonusText = Object.entries(setInfo.bonus).map(([k, v]) => {
             if (typeof v === "number") return k === "dual" ? "" : `+${Math.round(v * 100)}% ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`;
@@ -159,7 +161,7 @@ class GearCommand extends BaseCommand {
           desc += `✦ **Bộ Vũ Khí:** \`${setInfo.name}\` — ${bonusText}\n\n`;
         }
         desc += `__**Description**__\n`;
-        const dungKey = getDungeonWeaponKey(freshItem.subType || freshItem.subtype);
+        const dungKey = freshWeaponKey;
         if (dungKey) {
           const passives = {
             shadowdagger: "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)",
@@ -181,8 +183,11 @@ class GearCommand extends BaseCommand {
             shieldhex: "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4",
             lunashard: "Tăng 15% Tỷ lệ Bạo kích & 25% Sát thương Bạo kích, 20% cơ hội xuyên 15% phòng thủ đối thủ",
             eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép",
-            bladesorrow: "Gây chảy máu nặng trong 3 lượt và xé rách 20% giáp đối thủ",
-            frostgauntlet: "30% cơ hội đóng băng đối thủ trong 1 lượt"
+            bladesorrow: "Gây chảy máu trong 3 lượt và giảm 15% giáp mỗi lần kích hoạt (tối đa 30% trong Dungeon)",
+            frostgauntlet: "30% cơ hội đóng băng đối thủ trong 1 lượt; Scale INT (S) / ARC (A) / DEX (B)",
+            demonbook: "Giải phóng ngẫu nhiên Thiêu Đốt, Phá Giáp hoặc Choáng",
+            thorshammer: "Sấm sét có 45% cơ hội làm Choáng đối thủ trong 1 lượt; Scale STR (S) / ARC (A) / DEX (B)",
+            odinhammer: "Đòn đánh thứ 3 được tiên tri, gây 1.7x sát thương; Scale INT (S) / ARC (A) / STR (B)",
           };
           const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];
@@ -541,4 +546,4 @@ class GearCommand extends BaseCommand {
     return sentMessage;
   }
 }
-module.exports = new GearCommand();
+module.exports = new GearCommand();

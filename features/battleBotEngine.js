@@ -2,13 +2,13 @@ const User = require('../models/User');
 const BattleRankService = require('../services/battleRankService');
 
 const TIER_POWER_MAP = {
-  Common: { minPower: 5000, maxPower: 7000, minLvl: 18, maxLvl: 22 },
-  Rare: { minPower: 9500, maxPower: 12000, minLvl: 30, maxLvl: 35 },
-  Epic: { minPower: 15000, maxPower: 19000, minLvl: 45, maxLvl: 50 },
-  Legendary: { minPower: 25000, maxPower: 32000, minLvl: 62, maxLvl: 70 },
-  Mythic: { minPower: 40000, maxPower: 55000, minLvl: 78, maxLvl: 85 },
-  Ancient: { minPower: 54000, maxPower: 60000, minLvl: 95, maxLvl: 98 },
-  Divine: { minPower: 78000, maxPower: 90000, minLvl: 120, maxLvl: 125 }
+  Common: { minPower: 6000, maxPower: 13000, minLvl: 18, maxLvl: 29 },
+  Rare: { minPower: 13000, maxPower: 21000, minLvl: 30, maxLvl: 44 },
+  Epic: { minPower: 25000, maxPower: 35000, minLvl: 45, maxLvl: 61 },
+  Legendary: { minPower: 45000, maxPower: 62000, minLvl: 62, maxLvl: 79 },
+  Mythic: { minPower: 76000, maxPower: 110000, minLvl: 78, maxLvl: 95 },
+  Ancient: { minPower: 125000, maxPower: 185000, minLvl: 95, maxLvl: 119 },
+  Divine: { minPower: 190000, maxPower: 310000, minLvl: 120, maxLvl: 140 }
 };
 
 class BattleBotEngine {
@@ -21,11 +21,13 @@ class BattleBotEngine {
     console.log('🤖 Battle Bot Engine initializing with Tier-Locked Power & Equipment...');
     await this.syncBotStatsWithTierMap();
 
-    // Run periodic bot simulation every 30 minutes
+    if (this.intervalTimer) clearInterval(this.intervalTimer);
+
+    // Validate the static roster every 30 minutes. Bot rank/gear stays stable;
+    // player-vs-bot matchmaking remains competitive without background rerolls.
     const runSimulation = async () => {
       try {
         await this.syncBotStatsWithTierMap();
-        await this.simulateBotBattleClimb();
       } catch (err) {
         console.error('[BATTLE_BOT_ENGINE] Simulation error:', err);
       }
@@ -36,22 +38,28 @@ class BattleBotEngine {
   }
 
   async syncBotStatsWithTierMap() {
-    const bots = await User.find({ isBattleBot: true });
+    const bots = await User.find({ isBattleBot: true }, 'userId level rpg.level rpg.power rpg.battleRank').exec();
+    const repairs = [];
     for (const bot of bots) {
       const rank = bot.rpg?.battleRank || 'Common';
       const tierConfig = TIER_POWER_MAP[rank] || TIER_POWER_MAP.Common;
 
-      const targetLvl = Math.floor(tierConfig.minLvl + Math.random() * (tierConfig.maxLvl - tierConfig.minLvl + 1));
-      const targetPower = Math.floor(tierConfig.minPower + Math.random() * (tierConfig.maxPower - tierConfig.minPower));
-
-      bot.level = Math.max(bot.level || 1, targetLvl);
-      if (!bot.rpg) bot.rpg = {};
-      bot.rpg.level = bot.level;
-      bot.rpg.power = targetPower;
-
-      bot.markModified('rpg');
+      const currentLevel = Number(bot.rpg?.level || bot.level || 0);
+      const currentPower = Number(bot.rpg?.power || 0);
+      const nextLevel = currentLevel > 0 ? currentLevel : tierConfig.minLvl;
+      const nextPower = currentPower > 0 ? currentPower : tierConfig.minPower;
+      if (nextLevel !== currentLevel || nextPower !== currentPower) {
+        repairs.push(User.updateOne(
+          { userId: bot.userId },
+          { $set: { level: nextLevel, 'rpg.level': nextLevel, 'rpg.power': nextPower } }
+        ));
+      }
+      if (currentPower < tierConfig.minPower || currentPower > tierConfig.maxPower || currentLevel < tierConfig.minLvl || currentLevel > tierConfig.maxLvl) {
+        console.warn(`[BATTLE_BOT_ENGINE] ${bot.userId} nằm ngoài dải ${rank}: level=${currentLevel}, power=${currentPower}. Giữ nguyên gear để không reroll.`);
+      }
     }
-    await Promise.all(bots.map(bot => bot.save().catch(() => {})));
+    if (repairs.length) await Promise.all(repairs);
+    if (repairs.length) console.log(`🔧 Battle Bot Engine repaired ${repairs.length} missing level/power fields.`);
   }
 
   async simulateBotBattleClimb() {

@@ -4,14 +4,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  AttachmentBuilder,
-  ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  MessageFlags,
-  MediaGalleryBuilder,
-  MediaGalleryItemBuilder
+  AttachmentBuilder
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -27,6 +20,7 @@ const {
   addRpgGearToUser,
   addRpgExp,
   getDungeonWeaponKey,
+  getGearDisplayName,
   getWeaponSetBonus,
   getEquippedPet,
   petAttackDamage,
@@ -64,23 +58,6 @@ const getBossForm = (bossCfg, enemy) => {
   }
   return current;
 };
-const getAttachmentId = (activeDungeon) => {
-  if (!activeDungeon) return null;
-  if (activeDungeon.attachmentId) return activeDungeon.attachmentId;
-  if (activeDungeon.imageUrl) {
-    try {
-      const cleanUrl = activeDungeon.imageUrl.split("?")[0];
-      const parts = cleanUrl.split("/");
-      const index = parts.indexOf("attachments");
-      if (index !== -1 && parts[index + 2]) {
-        return parts[index + 2];
-      }
-    } catch (e) {
-      console.warn("[RPG_DUNGEON] Failed to parse attachmentId from imageUrl:", e.message);
-    }
-  }
-  return null;
-};
 const getPoiseBar = (poise, poiseMax) => {
   const percentage = Math.max(0, Math.min(1, poise / poiseMax));
   const filledCount = Math.round(percentage * 10);
@@ -93,7 +70,7 @@ const getDelay = (activeDungeon, baseDelay) => {
   const speed = activeDungeon.speed ?? 1.0;
   return Math.max(100, Math.floor(baseDelay / speed));
 };
-const { getActiveStatusString, tickStatusEffects, triggerWeaponPassiveOnAttack, applyStatusEffect, EMOJIS, resolveShieldhexDefense } = require("../../../utils/rpgPassiveUtil");
+const { getActiveStatusString, tickStatusEffects, triggerWeaponPassiveOnAttack, applyStatusEffect, EMOJIS, getWeaponPassiveEmoji, resolveShieldhexDefense } = require("../../../utils/rpgPassiveUtil");
 const selectBossTarget = (alivePlayers) => {
   if (!alivePlayers || alivePlayers.length === 0) return null;
   const classWeights = {
@@ -256,21 +233,22 @@ class DungeonCommand extends BaseCommand {
         .setStyle(progress >= 13 ? ButtonStyle.Success : ButtonStyle.Secondary)
         .setDisabled(progress < 13)
     );
-    const container = new ContainerBuilder()
-      .setAccentColor(0x9B59B6)
-      .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(
-          `# 🗺️ Bản đồ phó bản Dungeon (Chapter 1)\n` +
-          `Hãy chọn một chương để bắt đầu khiêu chiến cùng tổ đội của bạn. Đi lần lượt từ chương 1 đến chương 14.\n\n` +
-          `**Tiến trình của bạn:** Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** (tối đa Chương 14)`
-        )
+    const mapEmbed = new EmbedBuilder()
+      .setColor(0x9B59B6)
+      .setTitle("🗺️ Bản đồ phó bản Dungeon V1")
+      .setDescription(
+        "Chọn chương để bắt đầu khiêu chiến cùng tổ đội. Đi lần lượt từ Chương 1 đến Chương 14."
       )
-      .addActionRowComponents(row1, row2, row3, row4, row5);
+      .addFields({
+        name: "📍 Tiến trình",
+        value: `Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** / **14**`,
+        inline: false,
+      });
     const selectMsg = await message.reply({
       content: "",
-      embeds: [],
-      components: [container],
-      flags: MessageFlags.IsComponentsV2,
+      embeds: [mapEmbed],
+      components: [row1, row2, row3, row4, row5],
+      skipV2: true,
     });
     const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_dungeon_start_");
     const collector = selectMsg.createMessageComponentCollector({ filter, time: 30000 });
@@ -300,22 +278,24 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
       .setLabel("⚔️ Thử Thách (+20% EXP & Coke)")
       .setStyle(ButtonStyle.Secondary)
   );
-  const container = new ContainerBuilder()
-    .setAccentColor(0xF1C40F)
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `# ✨ LỰA CHỌN PHƯỚC LÀNH TỔ ĐỘI ✨\n` +
-        `Trước khi bước vào Dungeon **Chương ${chapter}**, Trưởng nhóm hãy chọn chế độ hỗ trợ cho cả tổ đội:\n\n` +
-        `✨ **Phước Lành Dungeon:** Tăng **+10% HP tối đa** & **+20% Sát thương cơ bản** cho toàn bộ thành viên. (Sử dụng tối đa 3 bình máu).\n` +
-        `⚔️ **Không nhận Phước Lành (Thử thách):** Giữ nguyên chỉ số mặc định (3 bình máu), nhận thêm **+20% Coke & EXP** khi chiến thắng!`
-      )
-    )
-    .addActionRowComponents(row);
+  const blessingEmbed = new EmbedBuilder()
+    .setColor(0xF1C40F)
+    .setTitle("✨ Lựa chọn Phước Lành tổ đội")
+    .setDescription(`Trước khi bước vào Dungeon **Chương ${chapter}**, Trưởng nhóm hãy chọn chế độ hỗ trợ cho cả tổ đội.`)
+    .addFields(
+      {
+        name: "✨ Phước Lành Dungeon",
+        value: "Tăng **+10% HP tối đa** và **+20% sát thương cơ bản** cho toàn bộ thành viên. Tối đa 3 bình máu.",
+      },
+      {
+        name: "⚔️ Thử thách",
+        value: "Giữ nguyên chỉ số, nhận thêm **+20% Coke & EXP** khi chiến thắng.",
+      }
+    );
   const payload = {
     content: "",
-    embeds: [],
-    components: [container],
-    flags: MessageFlags.IsComponentsV2,
+    embeds: [blessingEmbed],
+    components: [row],
     skipV2: true,
   };
   if (startInteraction) {
@@ -587,7 +567,7 @@ const setupRound = (activeDungeon, channel) => {
           files.push(new AttachmentBuilder(eyesPath, { name: "eyes.png" }));
           introEmbed.setImage("attachment://eyes.png");
         }
-        const msg = await channel.send({ embeds: [introEmbed], files }).catch(() => null);
+        const msg = await channel.send({ embeds: [introEmbed], files, skipV2: true }).catch(() => null);
         setTimeout(async () => {
           if (msg) {
             await msg.delete().catch(() => {});
@@ -607,7 +587,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     active: "✨ Phước Lành Dungeon (+20% HP & +20% Sát thương)",
     none: "🛡️ Không có phước lành",
   };
-  const blessingName = BLESSING_NAMES[activeDungeon.blessing || "none"];
+  const blessingName = BLESSING_NAMES[activeDungeon.blessing || "none"] || BLESSING_NAMES.none;
   let turnStatusText = "";
   if (!activeDungeon.isFinished) {
     if (currentActor && currentActor.id) {
@@ -617,18 +597,12 @@ const renderGameScreen = async (channel, activeDungeon) => {
     }
   }
 
-  let descriptionText = `▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n` +
-                        `⏰ **Thời gian:** <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R> | ✨ **Buff:** ${activeDungeon.blessing === "active" ? "Có" : "Không"}${turnStatusText}`;
+  let descriptionText = `⏰ **Thời gian:** <t:${Math.floor(activeDungeon.roundEndTime / 1000)}:R> | ✨ **Buff:** ${activeDungeon.blessing === "active" ? "Có" : "Không"}${turnStatusText}`;
   if (activeDungeon.isSimulation) {
     descriptionText += ` | ⚡ **Tốc độ:** **${activeDungeon.speed || 1.0}x**`;
   }
-  descriptionText += `\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬`;
+  descriptionText += `\n`;
   const accentColor = enemy.isBoss ? 0xE74C3C : 0xE67E22;
-  const container = new ContainerBuilder().setAccentColor(accentColor);
-  const text1 = new TextDisplayBuilder().setContent(
-    `# ⚔️ DUNGEON: CHƯƠNG ${chapter} - VÒNG ${round}/5 ⚔️\n` +
-    `${descriptionText}`
-  );
   const bossCfg = enemy.isBoss ? getBossConfig(chapter) : null;
   const hasDice = bossCfg?.mechanics?.dice_roll ?? false;
   const hasCoin = bossCfg?.mechanics?.coin_flip ?? false;
@@ -669,54 +643,58 @@ const renderGameScreen = async (channel, activeDungeon) => {
     }
   }
   const enemyStatus = getActiveStatusString(enemy);
-  const text2 = new TextDisplayBuilder().setContent(
-    `### 👹 Kẻ địch: ${enemy.name}${enemyStatus ? " " + enemyStatus : ""}\n` +
-    `${enemyInfo}`
-  );
-  let playersText = "";
-  players.forEach((p, idx) => {
+  const embed = new EmbedBuilder()
+    .setColor(accentColor)
+    .setTitle(`⚔️ Dungeon V1 • Chương ${chapter} • Vòng ${round}/5`)
+    .setDescription(descriptionText)
+    .setTimestamp()
+    .setFooter({ text: blessingName });
+  embed.addFields({
+    name: `👹 Kẻ địch: ${enemy.name}${enemyStatus ? ` ${enemyStatus}` : ""}`,
+    value: enemyInfo.trim(),
+    inline: false,
+  });
+  players.forEach((p) => {
     const classIcon = p.rpgClass?.emoji || "👤";
     const className = p.rpgClass?.name || p.classKey.toUpperCase();
-    const statusText = p.hp <= 0 ? "💀 **Tử nạn**\n" : "";
+    const statusText = p.hp <= 0 ? "💀 Tử nạn" : "Đang chiến đấu";
     const healBanText = (p.hp > 0 && p.healBanRounds && p.healBanRounds > 0) ? ` (🚫 Cấm ${p.healBanRounds} lượt)` : "";
     let resourceText = "";
     if (p.classKey === "mage") {
-      resourceText = `\n🔮 MP: **${p.mana ?? 100}/100**`;
+      resourceText = `🔮 MP **${p.mana ?? 100}/100**`;
     } else {
-      resourceText = `\n⚡ Nộ: **${p.rage ?? 0}%**`;
+      resourceText = `⚡ Nộ **${p.rage ?? 0}%**`;
     }
-    const hpInfo = `${statusText}` +
-                   `❤️ HP: **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**` +
-                   `${resourceText}\n` +
-                   `<:healthpotion:1523351206066655333> Bình: **${p.potions}/3**${healBanText}\n` +
-                   `Lvl **${p.level}** | **${className}**`;
+    const weaponText = p.weapon
+      ? getGearDisplayName(p.weapon) || p.weapon.name || "Vũ khí"
+      : "Chưa trang bị";
+    const weaponPassiveEmoji = p.weapon
+      ? getWeaponPassiveEmoji(p.weapon.subType || p.weapon.subtype, "dungeon")
+      : "";
     const pStatus = getActiveStatusString(p);
     const isCurrent = currentActor && currentActor.id === p.id && !activeDungeon.isFinished;
-    const turnIndicator = isCurrent ? " *(👉 Đến lượt)*" : "";
-    playersText += `**${classIcon} ${p.name}${pStatus ? " " + pStatus : ""}**${turnIndicator}\n${hpInfo}\n\n`;
+    const turnIndicator = isCurrent ? " 👉" : "";
+    const playerValue = [
+      `**${statusText}**${turnIndicator}`,
+      `❤️ HP **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**`,
+      resourceText,
+      `<:healthpotion:1523351206066655333> Bình **${p.potions}/3**${healBanText}`,
+      `🧬 Lv.${p.level} • ${className}`,
+      `🗡️ ${weaponText}${weaponPassiveEmoji ? ` ${weaponPassiveEmoji}` : ""}`,
+      pStatus ? `Trạng thái: ${pStatus}` : "",
+    ].filter(Boolean).join("\n");
+    embed.addFields({
+      name: `${classIcon} ${p.name}${pStatus ? ` ${pStatus}` : ""}`,
+      value: playerValue,
+      inline: true,
+    });
   });
-  const text3 = new TextDisplayBuilder().setContent(
-    `### 👥 Tổ đội\n` +
-    `${playersText.trim()}`
-  );
-  const recentLogs = logs.slice(-5).join("\n");
-  const text4 = new TextDisplayBuilder().setContent(
-    `### 📝 Nhật ký chiến trường\n` +
-    `${recentLogs || "*Trận đấu đang diễn ra...*"}`
-  );
-  const sep1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const sep2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const sep3 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const sep4 = new SeparatorBuilder().setDivider(false).setSpacing(SeparatorSpacingSize.Small);
-  container
-    .addTextDisplayComponents(text1)
-    .addSeparatorComponents(sep1)
-    .addTextDisplayComponents(text2)
-    .addSeparatorComponents(sep2)
-    .addTextDisplayComponents(text3)
-    .addSeparatorComponents(sep3)
-    .addTextDisplayComponents(text4)
-    .addSeparatorComponents(sep4);
+  const recentLogs = (((logs || []).slice(-5).join("\n")) || "*Trận đấu đang diễn ra...*").slice(-1000);
+  embed.addFields({
+    name: "📝 Nhật ký chiến trường",
+    value: recentLogs,
+    inline: false,
+  });
   const row = new ActionRowBuilder();
   let disableControls = activeDungeon.actionInProgress || activeDungeon.isFinished || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
   if (activeDungeon.isSimulation) {
@@ -780,27 +758,30 @@ const renderGameScreen = async (channel, activeDungeon) => {
       );
     }
   }
-  container.addActionRowComponents(row);
   const bossForm = enemy.isBoss ? getBossForm(bossCfg, enemy) : null;
   const imageCacheKey = enemy.isBoss
     ? `boss:${bossCfg?.key || ""}:${bossForm?.name || ""}:${bossForm?.image || bossCfg?.image_phase1 || "TF.png"}`
     : `creep:${chapter}:${round}`;
-  let files = [];
+  let filePath = null;
   let imgFileName = null;
-  if (activeDungeon.imageCache && activeDungeon.imageCache.key === imageCacheKey) {
-    files = activeDungeon.imageCache.files;
+  if (activeDungeon.imageCache && activeDungeon.imageCache.key === imageCacheKey && activeDungeon.imageCache.filePath) {
+    filePath = activeDungeon.imageCache.filePath;
     imgFileName = activeDungeon.imageCache.imgFileName;
   } else {
     if (enemy.isBoss) {
       const bossImageFile = bossForm?.image || bossCfg?.image_phase1 || "TF.png";
-      const bossImagePath = path.join(__dirname, "../../../assets/dungeons", bossImageFile.includes("/") ? "" : (chapter === 5 ? "Chapter2" : ""), bossImageFile);
+      const bossImagePath = path.join(
+        __dirname,
+        "../../../assets/dungeons",
+        bossImageFile.includes("/") ? "" : (chapter >= 7 ? "Chapter2" : "Chapter1"),
+        bossImageFile
+      );
       if (fs.existsSync(bossImagePath)) {
         const safeName = (bossImageFile.split("/").pop() || "boss.png").replace(/\.\.+/g, ".");
-        files.push(new AttachmentBuilder(bossImagePath, { name: safeName }));
+        filePath = bossImagePath;
         imgFileName = safeName;
       }
     } else {
-      let filePath = null;
       let fileName = null;
       if (chapter === 4) {
         if (round === 3) {
@@ -832,43 +813,38 @@ const renderGameScreen = async (channel, activeDungeon) => {
         }
       }
       if (filePath && fs.existsSync(filePath)) {
-        files.push(new AttachmentBuilder(filePath, { name: fileName }));
         imgFileName = fileName;
       }
     }
-    activeDungeon.imageCache = { key: imageCacheKey, files, imgFileName };
+    activeDungeon.imageCache = { key: imageCacheKey, filePath, imgFileName };
   }
   if (imgFileName) {
-    const gallery = new MediaGalleryBuilder().addItems(
-      new MediaGalleryItemBuilder().setURL(`attachment://${imgFileName}`)
-    );
-    container.addMediaGalleryComponents(gallery);
+    embed.setImage(`attachment://${imgFileName}`);
   }
   const payload = {
     content: "",
-    embeds: [],
-    components: [container],
-    files,
-    flags: MessageFlags.IsComponentsV2
+    embeds: [embed],
+    components: [row],
+    skipV2: true,
   };
   if (activeDungeon.gameMessage) {
     let editSuccess = false;
-    const attachmentId = getAttachmentId(activeDungeon);
+    const attachmentId = activeDungeon.attachmentId || activeDungeon.gameMessage.attachments?.first?.()?.id;
     const hasImageChanged = imgFileName !== activeDungeon.lastImgFileName;
 
     // 1. Try editing gameMessage directly
     try {
       const editPayload = {
         content: "",
-        embeds: [],
-        components: [container],
-        flags: MessageFlags.IsComponentsV2,
+        embeds: [embed],
+        components: [row],
+        skipV2: true,
       };
 
       if (hasImageChanged || !attachmentId) {
-        if (files.length > 0) {
-          editPayload.files = files;
-          editPayload.attachments = [];
+        editPayload.attachments = [];
+        if (filePath && imgFileName) {
+          editPayload.files = [new AttachmentBuilder(filePath, { name: imgFileName })];
         }
       } else if (attachmentId) {
         editPayload.attachments = [{ id: attachmentId }];
@@ -886,14 +862,22 @@ const renderGameScreen = async (channel, activeDungeon) => {
     // 2. If direct edit failed, resend message
     if (!editSuccess) {
       await activeDungeon.gameMessage.delete().catch(() => null);
-      const newMsg = await channel.send(payload).catch(() => null);
+      const fallbackPayload = { ...payload };
+      if (filePath && imgFileName) {
+        fallbackPayload.files = [new AttachmentBuilder(filePath, { name: imgFileName })];
+      }
+      const newMsg = await channel.send(fallbackPayload).catch(() => null);
       if (newMsg) {
         activeDungeon.gameMessage = newMsg;
         setupCollector(channel, activeDungeon);
       }
     }
   } else {
-    activeDungeon.gameMessage = await channel.send(payload).catch(() => null);
+    const initialPayload = { ...payload };
+    if (filePath && imgFileName) {
+      initialPayload.files = [new AttachmentBuilder(filePath, { name: imgFileName })];
+    }
+    activeDungeon.gameMessage = await channel.send(initialPayload).catch(() => null);
     if (activeDungeon.gameMessage) {
       setupCollector(channel, activeDungeon);
     }
@@ -1086,19 +1070,15 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
       .setLabel("Tails (Sấp) 🪙")
       .setStyle(ButtonStyle.Primary)
   );
-  const container = new ContainerBuilder()
-    .setAccentColor(0xF1C40F)
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `# 🪙 CƠ HỘI NHÂN ĐÔI SÁT THƯƠNG!\n` +
-        `<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x2 sát thương**!`
-      )
-    )
-    .addActionRowComponents(row);
+  const coinEmbed = new EmbedBuilder()
+    .setColor(0xF1C40F)
+    .setTitle("🪙 Cơ hội nhân đôi sát thương")
+    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x2 sát thương**!`);
   const coinMsg = await channel.send({
     content: `<@${player.id}>`,
-    components: [container],
-    flags: MessageFlags.IsComponentsV2
+    embeds: [coinEmbed],
+    components: [row],
+    skipV2: true,
   });
   const filter = (i) => i.user.id === player.id && i.customId.startsWith("rpg_dungeon_coin_");
   const comp = await coinMsg.awaitMessageComponent({ filter, time: 20000 }).catch(() => null);
@@ -1115,6 +1095,7 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
     content: `🪙 Đồng xu đang quay... ${config.emoji.coinflip}`,
     embeds: [],
     components: [],
+    skipV2: true,
   }).catch(() => {});
   setTimeout(async () => {
     const isHeads = Math.random() < 0.5;
@@ -1856,7 +1837,7 @@ const handleVictory = async (channel, activeDungeon) => {
       .setTitle("🎉 MÔ PHỎNG CHIẾN THẮNG! 🎉")
       .setDescription(`Tổ đội giả lập đã xuất sắc chinh phục thành công Dungeon Chương **${activeDungeon.chapter}**!`)
       .setTimestamp();
-    await channel.send({ embeds: [embed] });
+    await channel.send({ embeds: [embed], skipV2: true });
     return;
   }
   const guild = await RpgGuild.findById(activeDungeon.guildId);
@@ -2003,7 +1984,7 @@ const handleVictory = async (channel, activeDungeon) => {
       `**Phần thưởng vượt phó bản:**\n\n${rewardTexts.join("\n\n")}`
     )
     .setTimestamp();
-  await channel.send({ embeds: [embed] });
+  await channel.send({ embeds: [embed], skipV2: true });
 };
 const handleDefeat = async (channel, activeDungeon) => {
   activeDungeon.isFinished = true;
@@ -2034,7 +2015,7 @@ const handleDefeat = async (channel, activeDungeon) => {
       `Hãy rèn luyện thêm lực chiến và thử lại!`
     )
     .setTimestamp();
-  await channel.send({ embeds: [embed] });
+  await channel.send({ embeds: [embed], skipV2: true });
 };
 const handleTimeout = async (channel, activeDungeon) => {
   activeDungeon.isFinished = true;
@@ -2055,7 +2036,7 @@ const handleTimeout = async (channel, activeDungeon) => {
       `Chiến dịch chinh phục **Chương ${activeDungeon.chapter}** thất bại.`
     )
     .setTimestamp();
-  await channel.send({ embeds: [embed] });
+  await channel.send({ embeds: [embed], skipV2: true });
 };
 const runSimulatedTurn = async (channel, activeDungeon, player) => {
   if (!channel.client.rpgDungeons.has(channel.id)) return;
@@ -2136,4 +2117,4 @@ module.exports.nextTurn = nextTurn;
 module.exports.executePlayerAttack = executePlayerAttack;
 module.exports.executePlayerSkill = executePlayerSkill;
 module.exports.runEnemyTurn = runEnemyTurn;
-module.exports.runSimulatedTurn = runSimulatedTurn;
+module.exports.runSimulatedTurn = runSimulatedTurn;

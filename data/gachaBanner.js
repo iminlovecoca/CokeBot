@@ -12,9 +12,9 @@ module.exports = {
       expiresAt: "2026-09-30T23:59:00+07:00",
     },
     {
-      bannerName: "GACHA THÁNG 9: FROSTGAUNTLET",
+      bannerName: "GACHA THÁNG 9: GĂNG TAY BĂNG GIÁ",
       weaponKey: "frostgauntlet",
-      weaponName: "Frostgauntlet",
+      weaponName: "Găng Tay Băng Giá",
       weaponType: "weapon",
       weaponEmoji: "<:frostgauntlet:1544258397564567602>",
       rarity: "Ancient",
@@ -24,9 +24,9 @@ module.exports = {
     },
   ],
   weapon: {
-    bannerName: "GACHA THÁNG 9: BLADESORROW & FROSTGAUNTLET",
+    bannerName: "GACHA THÁNG 9: BLADESORROW & GĂNG TAY BĂNG GIÁ",
     weaponKey: "bladesorrow",
-    weaponName: "Bladesorrow & Frostgauntlet",
+    weaponName: "Bladesorrow & Găng Tay Băng Giá",
     weaponType: "weapon",
     weaponEmoji: "<:Bladesorrow:1523374302685298848> <:frostgauntlet:1544258397564567602>",
     rarity: "Ancient",
@@ -35,5 +35,3 @@ module.exports = {
     expiresAt: "2026-09-30T23:59:00+07:00",
   },
 };
-
-

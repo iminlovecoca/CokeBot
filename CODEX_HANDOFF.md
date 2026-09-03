@@ -1,9 +1,11 @@
-# CokeBot RPG Weapon Handoff
+# CokeBot RPG Dungeon & Battle Bot Handoff
 
-- Phase/status: Runtime syntax fix complete; awaiting deployment/restart smoke test.
-- Goal: Add a normal hammer that can branch into a physical/ARC Thor weapon or a magic/ARC Odin weapon without breaking existing enhancement data.
-- Latest work: Added Warhammer/Búa Rèn, generated its transparent asset, added `evolveweapon` with confirmation buttons, aligned Odin to INT (S) + ARC (A) + STR (B), and repaired the missing `satan` object closure in `weaponPassives.js`.
-- Important files: `utils/rpgUtil.js`, `data/rpg/weaponEvolutions.js`, `utils/weaponEvolutionUtil.js`, `commands/rpg/user/evolveweapon.js`, `commands/admin/feature/weaponlist.js`, `commands/admin/git/dir.js`, `assets/items/Weapon/`.
-- Verification: `node --check` and RPG module-load passed; Búa Rèn generation, both evolution branches, all new weapon passive smoke tests, image mapping, asset size/alpha checks, and `git diff --check` passed.
-- Known risk: Evolution is one-way and currently requires exactly +10 enhancement, 250,000 Coke, and one Somber-9; the target weapons remain available to Admin through `addgear`.
-- Next safest task: Deploy the corrected `weaponPassives.js` to `/home/coca/CokeBot`, restart PM2, and confirm the bot no longer crashes during module loading.
+- Phase/status: Dungeon V1 UI and battle-bot roster optimization implemented; local validation passed. Deployment/restart smoke test remains pending.
+- Goal: Restore Dungeon to compact traditional Embed/ActionRow UI, keep every combat action, surface custom passive/status emojis, balance September Gacha weapons, and make Battle Bots stable player-like opponents.
+- Latest work: Removed Dungeon Components V2 payloads and attachment-builder reuse, added canonical Frost naming and magic/control scaling, applied Bladesorrow armor shred with mode caps, added passive emoji formatting, expanded the roster by 10 bots per rank, and changed startup seeding to read/repair only when needed.
+- Roster: 89 total bots (19 existing + 70 generated), with 13 per Common through Mythic and 12 per Ancient/Divine because the original roster has two bots in those ranks. New bots carry class, rarity, quality, uid, upgradeLevel, weapon emoji, imageKey, equipped gear, and pet data.
+- Important files: `commands/rpg/hunt/dungeon.js`, `utils/rpgUtil.js`, `utils/rpgPassiveUtil.js`, `data/rpg/weaponPassives.js`, `data/gachaBanner.js`, `commands/rpg/user/gear.js`, `commands/admin/feature/weaponlist.js`, `seeders/battleBots.js`, `features/battleBotEngine.js`.
+- Verification: All changed JavaScript files pass `node --check`; RPG/module-load, passive armor-cap, Frost key/scaling, 89-bot roster, render payload, battle-balance scenarios, and `git diff --check` passed.
+- Known risk: Discord/Mongo/PM2 production smoke testing was not run from this workspace. The first production startup will repair the 19 legacy bot records and create the 70 new records; later restarts should report them as unchanged.
+- DEBUG_HANDOFF.md: Not created; no unresolved repeated runtime defect remains after the earlier syntax repair.
+- Next safest task: Deploy the changed files, restart PM2 once, confirm the roster summary is `89 (... unchanged)` on the next restart, then run one Dungeon and one PvP match to verify buttons, attachments, weapon icons, and passive logs in Discord.

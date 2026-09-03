@@ -25,6 +25,39 @@ const EMOJIS = {
   atkdown: "<:atkdown:1521938474587000913>",
 };
 
+const PASSIVE_EMOJIS = {
+  [PASSIVE_TYPES.BLEED]: EMOJIS.bleed,
+  [PASSIVE_TYPES.BURN]: EMOJIS.burn,
+  [PASSIVE_TYPES.FREEZE]: EMOJIS.freeze,
+  [PASSIVE_TYPES.STUN]: EMOJIS.stun,
+  [PASSIVE_TYPES.HEAL_BAN]: EMOJIS.healreduction,
+  [PASSIVE_TYPES.LIFESTEAL]: EMOJIS.heal,
+  [PASSIVE_TYPES.DAMAGE_MULT]: EMOJIS.atkup,
+  [PASSIVE_TYPES.ARMOR_PIERCE]: EMOJIS.break,
+  [PASSIVE_TYPES.MR_PIERCE]: EMOJIS.break,
+  [PASSIVE_TYPES.ARMOR_SHRED]: EMOJIS.break,
+  [PASSIVE_TYPES.MR_SHRED]: EMOJIS.break,
+  [PASSIVE_TYPES.DOUBLE_HIT]: EMOJIS.atkup,
+  [PASSIVE_TYPES.HEAL_ON_SKILL]: EMOJIS.heal,
+  [PASSIVE_TYPES.NEXT_ATTACK_MULT]: EMOJIS.atkup,
+  [PASSIVE_TYPES.REFLECT]: EMOJIS.break,
+  [PASSIVE_TYPES.DEFLECT]: EMOJIS.break,
+  [PASSIVE_TYPES.RANDOM_EFFECT]: `${EMOJIS.burn} ${EMOJIS.break} ${EMOJIS.stun}`,
+};
+
+const getPassiveEmoji = (passiveType) => PASSIVE_EMOJIS[passiveType] || "✨";
+
+const formatPassiveLog = (message, passiveType) => {
+  if (!message) return "";
+  const emoji = getPassiveEmoji(passiveType);
+  return message.startsWith(emoji) ? message : `${emoji} ${message}`;
+};
+
+const getWeaponPassiveEmoji = (subType, mode = "dungeon") => {
+  const passive = getPassiveForMode(subType, mode);
+  return passive ? getPassiveEmoji(passive.type) : "";
+};
+
 const getActiveStatusString = (target) => {
   if (!target) return "";
   const parts = [];
@@ -182,6 +215,11 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
   const passive = passiveDef.mode[mode];
   if (!passive) return result;
 
+  const addPassiveLog = (message, passiveType = passive.type) => {
+    const formatted = formatPassiveLog(message, passiveType);
+    if (formatted) result.logs.push(formatted);
+  };
+
   const hasTriggered = Math.random() < WEAPON_PASSIVE_TRIGGER_RATE;
   const stats = player.stats || {};
   const power = player.power || 0;
@@ -200,9 +238,24 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (passive.damageMult) {
         result.damage = Math.floor(result.damage * passive.damageMult);
       }
-      result.logs.push(passiveDef.name
-        ? `🛡️ **[${passiveDef.name}]** Gây chảy máu ${passive.rounds} lượt${passive.damageMult ? ` + ${Math.round((passive.damageMult - 1) * 100)}% sát thương` : ""}!`
-        : "");
+      addPassiveLog(passive.log
+        ? passive.log(enemy.name)
+        : (passiveDef.name
+          ? `🛡️ **[${passiveDef.name}]** Gây chảy máu ${passive.rounds} lượt${passive.damageMult ? ` + ${Math.round((passive.damageMult - 1) * 100)}% sát thương` : ""}!`
+          : ""), passive.type);
+      for (const extraEffect of passive.extraEffects || []) {
+        if (extraEffect.type !== PASSIVE_TYPES.ARMOR_SHRED) continue;
+        const amount = extraEffect.amount || 0.10;
+        const cap = extraEffect.cap || 0.40;
+        const currentReduced = enemy._armorReduced || 0;
+        const applied = Math.min(amount, Math.max(0, cap - currentReduced));
+        if (applied <= 0) continue;
+        enemy._armorReduced = currentReduced + applied;
+        enemy.armor = Math.max(0, Math.floor((enemy.armor || 0) * (1 - applied)));
+        if (extraEffect.alsoShredMR) {
+          enemy.magicResist = Math.max(0, Math.floor((enemy.magicResist || 0) * (1 - applied)));
+        }
+      }
       break;
     }
 
@@ -215,7 +268,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
           applyStatusEffect(enemy, "heal_ban", passive.alsoApplies.rounds);
         }
       }
-      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
@@ -224,7 +277,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       const chance = passive.chance || 1.0;
       if (Math.random() < chance) {
         applyStatusEffect(enemy, "freeze", passive.rounds);
-        result.logs.push(passive.log ? passive.log(enemy.name) : "");
+        addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       }
       break;
     }
@@ -232,14 +285,14 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     case PASSIVE_TYPES.STUN: {
       if (!hasTriggered) break;
       applyStatusEffect(enemy, "stun", passive.rounds);
-      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
     case PASSIVE_TYPES.HEAL_BAN: {
       if (!hasTriggered) break;
       applyStatusEffect(enemy, "heal_ban", passive.rounds);
-      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
@@ -253,7 +306,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         healBase = Math.floor(missing * passive.pct);
       }
       result.healAmount = healBase;
-      result.logs.push(passive.log ? passive.log(player.name, healBase) : "");
+      addPassiveLog(passive.log ? passive.log(player.name, healBase) : "");
       break;
     }
 
@@ -263,7 +316,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (player[hitCounterKey] >= (passive.hitCount || 3)) {
         player[hitCounterKey] = 0;
         result.damage = Math.floor(result.damage * passive.mult);
-        result.logs.push(passive.log ? passive.log() : "");
+        addPassiveLog(passive.log ? passive.log() : "");
       }
       break;
     }
@@ -279,7 +332,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       } else {
         result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - amount));
       }
-      result.logs.push(passive.log ? passive.log() : "");
+      addPassiveLog(passive.log ? passive.log() : "");
       break;
     }
 
@@ -291,10 +344,10 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (passive.alsoRoll) {
         if (Math.random() < (passive.alsoRoll.chance || 0.25)) {
           applyStatusEffect(enemy, "freeze", passive.alsoRoll.rounds || 1);
-          result.logs.push(`❄️ **[Blue Staff]** Làm đóng băng **${enemy.name}**!`);
+          addPassiveLog(`**[Blue Staff]** Làm đóng băng **${enemy.name}**!`, PASSIVE_TYPES.FREEZE);
         }
       }
-      result.logs.push(passive.log ? passive.log(enemy.name) : "");
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
@@ -310,7 +363,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (passive.alsoShredMR) {
         enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * (1 - amount)));
       }
-      result.logs.push(passive.log ? passive.log(enemy.name, {
+      addPassiveLog(passive.log ? passive.log(enemy.name, {
         armor: enemy.armor,
         mr: enemy.magicResist || 0,
         totalReduced: enemy._armorReduced || amount,
@@ -322,7 +375,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (isSecondHit) break;
       if (enemy.hp > 0 && Math.random() < (passive.chance || 0.30)) {
         result.doubleHitTriggered = true;
-        result.logs.push(passive.log ? passive.log() : "");
+        addPassiveLog(passive.log ? passive.log() : "");
       }
       break;
     }
@@ -340,7 +393,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         const missing = (player.maxHp || 0) - (player.hp || 0);
         const healAmt = Math.max(1, Math.floor(missing * 0.10));
         result.healAmount = healAmt;
-        result.logs.push(passive.log ? passive.log(player.name, healAmt) : "");
+        addPassiveLog(passive.log ? passive.log(player.name, healAmt) : "");
       }
       break;
     }
@@ -348,7 +401,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     case PASSIVE_TYPES.NEXT_ATTACK_MULT: {
       if (hasTriggered) {
         result.nextAttackMult = passive.mult || 1.4;
-        result.logs.push(passive.log ? passive.log(enemy.name) : "");
+        addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       }
       break;
     }
@@ -362,28 +415,28 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         case PASSIVE_TYPES.BLEED: {
           const bleedDmg = calcScaling(chosen.scaling);
           applyStatusEffect(enemy, "bleed", chosen.rounds || 2, { damage: bleedDmg });
-          result.logs.push(`🔮 **[${passiveDef.name}]** Lời nguyền gây chảy máu!`);
+          addPassiveLog(`🔮 **[${passiveDef.name}]** Lời nguyền gây chảy máu!`, chosen.type);
           break;
         }
         case PASSIVE_TYPES.BURN: {
           const burnDmg = calcScaling(chosen.scaling);
           applyStatusEffect(enemy, "burn", chosen.rounds || 2, { damage: burnDmg });
-          result.logs.push(`🔥 **[${passiveDef.name}]** Lời nguyền thiêu đốt!`);
+          addPassiveLog(`🔥 **[${passiveDef.name}]** Lời nguyền thiêu đốt!`, chosen.type);
           break;
         }
         case PASSIVE_TYPES.ARMOR_SHRED: {
           enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - (chosen.amount || 0.15))));
-          result.logs.push(`⚔️ **[${passiveDef.name}]** Lời nguyền phá giáp!`);
+          addPassiveLog(`⚔️ **[${passiveDef.name}]** Lời nguyền phá giáp!`, chosen.type);
           break;
         }
         case PASSIVE_TYPES.MR_PIERCE: {
           result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - (chosen.amount || 0.25)));
-          result.logs.push(`❄️ **[${passiveDef.name}]** Lời nguyền xuyên kháng phép!`);
+          addPassiveLog(`❄️ **[${passiveDef.name}]** Lời nguyền xuyên kháng phép!`, chosen.type);
           break;
         }
         case PASSIVE_TYPES.STUN: {
           applyStatusEffect(enemy, "stun", chosen.rounds || 1);
-          result.logs.push(`⚡ **[${passiveDef.name}]** Lời nguyền làm choáng!`);
+          addPassiveLog(`⚡ **[${passiveDef.name}]** Lời nguyền làm choáng!`, chosen.type);
           break;
         }
       }
@@ -477,6 +530,8 @@ const triggerWorldBossPassive = (cleanSubType, participant, activeBoss, passiveT
 
 module.exports = {
   EMOJIS,
+  getPassiveEmoji,
+  getWeaponPassiveEmoji,
   PASSIVE_TYPES,
   WEAPON_PASSIVE_TRIGGER_RATE,
   getActiveStatusString,

@@ -1,9 +1,10 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 const User = require("../models/User");
+const { dungeonWeapons } = require("../utils/rpgUtil");
 
 const BOT_NPC_LIST = [
-  // --- Common Bots (Lv. 20 - 24, Beginner Tier, Power ~2,000 - 3,500) ---
+  // --- Common Bots (Lv. 20 - 24, Beginner Tier, Power ~6,000 - 10,000) ---
   {
     userId: "bot_pvp_1",
     name: "Shadow",
@@ -59,7 +60,7 @@ const BOT_NPC_LIST = [
     petLvl: 22,
   },
 
-  // --- Rare Bots (Lv. 30 - 38, Skilled Tier, Power ~5,000 - 9,000) ---
+  // --- Rare Bots (Lv. 30 - 38, Skilled Tier, Power ~13,000 - 19,000) ---
   {
     userId: "bot_pvp_4",
     name: "Kratos",
@@ -115,7 +116,7 @@ const BOT_NPC_LIST = [
     petLvl: 35,
   },
 
-  // --- Epic Bots (Lv. 48 - 55, Veteran Tier, Power ~12,000 - 20,000) ---
+  // --- Epic Bots (Lv. 48 - 55, Veteran Tier, Power ~25,000 - 35,000) ---
   {
     userId: "bot_pvp_7",
     name: "Ignis",
@@ -171,7 +172,7 @@ const BOT_NPC_LIST = [
     petLvl: 52,
   },
 
-  // --- Legendary Bots (Lv. 65 - 75, Elite Master Tier, Power ~25,000 - 45,000) ---
+  // --- Legendary Bots (Lv. 65 - 75, Elite Master Tier, Power ~45,000 - 62,000) ---
   {
     userId: "bot_pvp_10",
     name: "Hawkeye",
@@ -227,7 +228,7 @@ const BOT_NPC_LIST = [
     petLvl: 72,
   },
 
-  // --- Mythic Bots (Lv. 82 - 90, Champion Tier, Power ~55,000 - 95,000) ---
+  // --- Mythic Bots (Lv. 82 - 90, Champion Tier, Power ~76,000 - 110,000) ---
   {
     userId: "bot_pvp_13",
     name: "Titan",
@@ -283,7 +284,7 @@ const BOT_NPC_LIST = [
     petLvl: 86,
   },
 
-  // --- Ancient Bots (Lv. 95 - 105, Overlord Tier, Power ~110,000 - 180,000) ---
+  // --- Ancient Bots (Lv. 95 - 105, Overlord Tier, Power ~125,000 - 185,000) ---
   {
     userId: "bot_pvp_16",
     name: "Aegis",
@@ -321,7 +322,7 @@ const BOT_NPC_LIST = [
     petLvl: 96,
   },
 
-  // --- Divine Bots (Lv. 120 - 130, Supreme God Tier, Power ~220,000 - 350,000) ---
+  // --- Divine Bots (Lv. 120 - 130, Supreme God Tier, Power ~190,000 - 310,000) ---
   {
     userId: "bot_pvp_18",
     name: "Phantom",
@@ -360,170 +361,227 @@ const BOT_NPC_LIST = [
   }
 ];
 
+const RANK_PROFILES = {
+  Common: { level: 20, statPts: 120, enhance: 4, weapon: 450, armor: 250, helmet: 180, boots: 180, lp: 20 },
+  Rare: { level: 30, statPts: 250, enhance: 6, weapon: 950, armor: 550, helmet: 400, boots: 400, lp: 35 },
+  Epic: { level: 45, statPts: 480, enhance: 8, weapon: 1800, armor: 1050, helmet: 750, boots: 750, lp: 50 },
+  Legendary: { level: 62, statPts: 780, enhance: 10, weapon: 3400, armor: 2000, helmet: 1450, boots: 1450, lp: 65 },
+  Mythic: { level: 80, statPts: 1300, enhance: 12, weapon: 6000, armor: 3800, helmet: 2800, boots: 2800, lp: 80 },
+  Ancient: { level: 96, statPts: 2200, enhance: 14, weapon: 9500, armor: 6200, helmet: 4500, boots: 4500, lp: 95 },
+  Divine: { level: 120, statPts: 3400, enhance: 15, weapon: 14000, armor: 9000, helmet: 6800, boots: 6800, lp: 110 },
+};
+
+const BOT_NAMES = {
+  Common: ["Pebble", "Cinder", "Mist", "Scout", "Quill", "Riven", "Drift", "Ember", "Stray", "Pulse"],
+  Rare: ["Silverfang", "Ironveil", "Stormguard", "Nightbloom", "Redmark", "Dawnpiercer", "Wildthorn", "Riftwalker", "Ashen", "Blueflare"],
+  Epic: ["Spellrend", "Frostwing", "Grimward", "Starfall", "Emberkin", "Voidstep", "Thornveil", "Mooncrest", "Arcshot", "Hexbinder"],
+  Legendary: ["Sunbreaker", "Warhowl", "Skyhunter", "Bloodnova", "Stormreign", "Dreadlance", "Dawnfire", "Nightcrest", "Ironstorm", "Soulflare"],
+  Mythic: ["Titanborn", "Astralfang", "Dragonwake", "Netherguard", "Flamewraith", "Frostwrath", "Oathbreaker", "Celestial", "Doomcaller", "Riftlord"],
+  Ancient: ["AncientOne", "Worldsplitter", "Voidmarshal", "Starforged", "Runebane", "Stormoracle", "Deathcrown", "Aetherion", "Dawnrelic", "Nightsovereign"],
+  Divine: ["Godslayer", "Eternalknight", "Seraphim", "Ragnarok", "ImmortalEdge", "DivineWard", "Heavensfall", "Soulking", "Omniarch", "LastJudgement"],
+};
+
+const BOT_ARCHETYPES = [
+  { classKey: "warrior", weaponKey: "firesword", asset: "Warrior_male.png" },
+  { classKey: "assassin", weaponKey: "shadowdagger", asset: "Assassin_male.png" },
+  { classKey: "archer", weaponKey: "gravitybow", asset: "Archer_male.png" },
+  { classKey: "mage", weaponKey: "bluestaff", asset: "Mage_male.png" },
+  { classKey: "paladin", weaponKey: "shieldhex", asset: "Paladin_male.png" },
+  { classKey: "warrior", weaponKey: "spearhex", asset: "Warrior_female.png" },
+  { classKey: "assassin", weaponKey: "bladesorrow", asset: "Assassin_female.png" },
+  { classKey: "mage", weaponKey: "demonbook", asset: "Mage_female.png" },
+  { classKey: "warrior", weaponKey: "thorshammer", asset: "Warrior_male.png" },
+  { classKey: "mage", weaponKey: "odinhammer", asset: "Mage_female.png" },
+];
+
+const PET_PROFILES = [
+  ["bee", "Ong", "🐝"],
+  ["snail", "Ốc Sên", "🐌"],
+  ["ladybug", "Bọ Rùa", "🐞"],
+  ["duck", "Vịt", "🦆"],
+  ["rooster", "Gà Trống", "🐓"],
+  ["cow", "Bò", "🐄"],
+  ["monkey", "Khỉ", "🐒"],
+  ["horse", "Ngựa", "🐎"],
+  ["scorpion", "Bọ Cạp", "🦂"],
+  ["eagle", "Đại Bàng", "🦅"],
+];
+
+const createAdditionalBots = () => Object.entries(RANK_PROFILES).flatMap(([rank, profile]) =>
+  Array.from({ length: 10 }, (_, index) => {
+    const archetype = BOT_ARCHETYPES[index];
+    const weapon = dungeonWeapons.find((item) => item.key === archetype.weaponKey);
+    const pet = PET_PROFILES[index];
+    const variation = index * 2;
+    const gearVariation = index * 30;
+    return {
+      userId: `bot_pvp_extra_${rank.toLowerCase()}_${index + 1}`,
+      name: BOT_NAMES[rank][index],
+      classKey: archetype.classKey,
+      characterAsset: archetype.asset,
+      battleRank: rank,
+      battleLp: profile.lp + index * 2,
+      lvl: profile.level + Math.floor(index / 3),
+      statPts: profile.statPts + variation,
+      weapon: {
+        name: weapon?.name || archetype.weaponKey,
+        enhance: profile.enhance,
+        power: profile.weapon + gearVariation,
+        subType: archetype.weaponKey,
+      },
+      armor: { name: `${rank} Armor`, enhance: profile.enhance, power: profile.armor + index * 15 },
+      helmet: { name: `${rank} Helm`, enhance: profile.enhance, power: profile.helmet + index * 10 },
+      boots: { name: `${rank} Boots`, enhance: profile.enhance, power: profile.boots + index * 10 },
+      petKey: pet[0],
+      petName: pet[1],
+      petEmoji: pet[2],
+      petLvl: Math.min(100, profile.level - 2 + index),
+    };
+  })
+);
+
+BOT_NPC_LIST.push(...createAdditionalBots());
+
+const allocateBotStats = (botData) => {
+  const pts = botData.statPts;
+  if (botData.classKey === "paladin") {
+    return {
+      vigor: Math.floor(pts * 0.48), pr: Math.floor(pts * 0.22), mr: Math.floor(pts * 0.16),
+      str: Math.floor(pts * 0.14), dex: Math.max(15, Math.floor(pts * 0.04)), int: 10, arc: 10,
+    };
+  }
+  if (botData.classKey === "assassin") {
+    return {
+      dex: Math.floor(pts * 0.42), str: Math.floor(pts * 0.26), arc: Math.floor(pts * 0.14),
+      vigor: Math.floor(pts * 0.14), pr: Math.max(10, Math.floor(pts * 0.04)), mr: 10, int: 10,
+    };
+  }
+  if (botData.classKey === "mage") {
+    return {
+      int: Math.floor(pts * 0.46), arc: Math.floor(pts * 0.24), mr: Math.floor(pts * 0.14),
+      vigor: Math.floor(pts * 0.14), pr: 10, str: 10, dex: Math.max(15, Math.floor(pts * 0.04)),
+    };
+  }
+  if (botData.classKey === "archer") {
+    return {
+      dex: Math.floor(pts * 0.45), str: Math.floor(pts * 0.22), vigor: Math.floor(pts * 0.18),
+      pr: Math.floor(pts * 0.10), arc: Math.floor(pts * 0.05), int: 10, mr: 10,
+    };
+  }
+  return {
+    str: Math.floor(pts * 0.38), vigor: Math.floor(pts * 0.34), pr: Math.floor(pts * 0.14),
+    dex: Math.floor(pts * 0.14), int: 10, mr: 10, arc: 10,
+  };
+};
+
+const getWeaponCatalog = (subType) => dungeonWeapons.find((item) => item.key === subType);
+
+const buildItem = (botData, slot, itemData) => {
+  const isWeapon = slot === "weapon";
+  const weaponCatalog = isWeapon ? getWeaponCatalog(itemData.subType) : null;
+  const cleanName = String(itemData.name || slot).replace(/\s+\+\d+$/, "");
+  return {
+    id: `${slot[0]}_${botData.userId}`,
+    uid: `bot-${botData.userId}-${slot}`,
+    name: cleanName,
+    slot,
+    type: slot,
+    subType: isWeapon ? (weaponCatalog?.name || itemData.subType || "") : undefined,
+    rarity: botData.battleRank,
+    quality: 100,
+    enhance: itemData.enhance,
+    upgradeLevel: itemData.enhance,
+    power: itemData.power,
+    tier: botData.battleRank,
+    emoji: weaponCatalog?.emoji || (isWeapon ? "🗡️" : undefined),
+    imageKey: isWeapon && weaponCatalog ? `Weapon/${weaponCatalog.key}.png` : undefined,
+  };
+};
+
+const buildBotState = (botData) => {
+  const weaponItem = buildItem(botData, "weapon", botData.weapon);
+  const armorItem = buildItem(botData, "armor", botData.armor);
+  const helmetItem = buildItem(botData, "helmet", botData.helmet);
+  const bootsItem = buildItem(botData, "boots", botData.boots);
+  const itemsList = [weaponItem, armorItem, helmetItem, bootsItem];
+  const totalGearPower = itemsList.reduce((sum, item) => sum + (item.power || 0), 0);
+  const calculatedPower = botData.statPts * 30 + totalGearPower * 3;
+  const petObj = {
+    id: `pet_${botData.userId}`,
+    key: botData.petKey,
+    speciesKey: botData.petKey,
+    name: botData.petName,
+    level: botData.petLvl,
+    tier: botData.battleRank,
+    emoji: botData.petEmoji,
+  };
+  return {
+    isBattleBot: true,
+    coke: 5000000,
+    level: botData.lvl,
+    "rpg.name": botData.name,
+    "rpg.classKey": botData.classKey,
+    "rpg.characterAsset": botData.characterAsset,
+    "rpg.level": botData.lvl,
+    "rpg.stats": allocateBotStats(botData),
+    "rpg.power": calculatedPower,
+    "rpg.battleRank": botData.battleRank,
+    "rpg.battleLp": botData.battleLp,
+    "rpg.seasonWins": 35,
+    "rpg.seasonLosses": 8,
+    "rpg.items": itemsList,
+    "rpg.equipped": { weapon: weaponItem.id, armor: armorItem.id, helmet: helmetItem.id, boots: bootsItem.id },
+    "rpg.equippedWeapon": weaponItem,
+    "rpg.equippedArmor": armorItem,
+    "rpg.equippedHelmet": helmetItem,
+    "rpg.equippedBoots": bootsItem,
+    "rpg.equippedPet": petObj,
+    "rpg.pets": [petObj],
+  };
+};
+
+const isBotReady = (existing, botData, desiredState) => {
+  if (!existing?.isBattleBot || existing.rpg?.classKey !== botData.classKey) return false;
+  if (existing.rpg?.battleRank !== botData.battleRank || Number(existing.rpg?.power) !== Number(desiredState["rpg.power"])) return false;
+  const items = existing.rpg?.items || [];
+  return ["weapon", "armor", "helmet", "boots"].every((slot) => {
+    const actual = items.find((item) => item.slot === slot);
+    const expected = desiredState["rpg.items"].find((item) => item.slot === slot);
+    return actual && expected && actual.uid && actual.rarity === expected.rarity &&
+      Number(actual.upgradeLevel) === Number(expected.upgradeLevel) &&
+      (!expected.subType || actual.subType === expected.subType) &&
+      (!expected.emoji || actual.emoji === expected.emoji);
+  });
+};
+
 async function seedBattleBots() {
   if (mongoose.connection.readyState !== 1) {
     const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
     if (uri) await mongoose.connect(uri);
   }
 
-  console.log("🚀 Seeding & Buffing 19 Extreme High-Tier Competitive Battle Bot NPCs in MongoDB...");
+  const botIds = BOT_NPC_LIST.map((bot) => bot.userId);
+  const existingBots = await User.find({ userId: { $in: botIds } }).exec();
+  const existingById = new Map(existingBots.map((bot) => [bot.userId, bot]));
+  const writes = [];
+  let created = 0;
+  let repaired = 0;
+  let unchanged = 0;
 
   for (const botData of BOT_NPC_LIST) {
-    const pts = botData.statPts;
-    let statsObj;
-
-    // Allocate stats dynamically based on Class Archetype
-    if (botData.classKey === "paladin") {
-      // Tank: Heavy Vigor & Solid Defenses
-      statsObj = {
-        vigor: Math.floor(pts * 0.48),
-        pr: Math.floor(pts * 0.22),
-        mr: Math.floor(pts * 0.16),
-        str: Math.floor(pts * 0.14),
-        dex: Math.max(15, Math.floor(pts * 0.04)),
-        int: 10,
-        arc: 10
-      };
-    } else if (botData.classKey === "assassin") {
-      // Assassin: High Speed DEX, Lethal Damage STR & Crit ARC
-      statsObj = {
-        dex: Math.floor(pts * 0.42),
-        str: Math.floor(pts * 0.26),
-        arc: Math.floor(pts * 0.14),
-        vigor: Math.floor(pts * 0.14),
-        pr: Math.max(10, Math.floor(pts * 0.04)),
-        mr: 10,
-        int: 10
-      };
-    } else if (botData.classKey === "mage") {
-      // Mage: Devastating INT Spell Power & Mana ARC
-      statsObj = {
-        int: Math.floor(pts * 0.46),
-        arc: Math.floor(pts * 0.24),
-        mr: Math.floor(pts * 0.14),
-        vigor: Math.floor(pts * 0.14),
-        pr: 10,
-        str: 10,
-        dex: Math.max(15, Math.floor(pts * 0.04))
-      };
-    } else if (botData.classKey === "archer") {
-      // Archer: High Range DEX & Speed
-      statsObj = {
-        dex: Math.floor(pts * 0.45),
-        str: Math.floor(pts * 0.22),
-        vigor: Math.floor(pts * 0.18),
-        pr: Math.floor(pts * 0.10),
-        arc: Math.floor(pts * 0.05),
-        int: 10,
-        mr: 10
-      };
-    } else {
-      // Warrior: Balanced DPS & Resilient Bruiser
-      statsObj = {
-        str: Math.floor(pts * 0.38),
-        vigor: Math.floor(pts * 0.34),
-        pr: Math.floor(pts * 0.14),
-        dex: Math.floor(pts * 0.14),
-        int: 10,
-        mr: 10,
-        arc: 10
-      };
+    const desiredState = buildBotState(botData);
+    const existing = existingById.get(botData.userId);
+    if (isBotReady(existing, botData, desiredState)) {
+      unchanged += 1;
+      continue;
     }
-
-    const weaponItem = {
-      id: `w_${botData.userId}`,
-      name: botData.weapon.name,
-      slot: "weapon",
-      type: "weapon",
-      subType: botData.weapon.subType || "",
-      enhance: botData.weapon.enhance,
-      power: botData.weapon.power,
-      tier: botData.battleRank
-    };
-
-    const armorItem = {
-      id: `a_${botData.userId}`,
-      name: botData.armor.name,
-      slot: "armor",
-      type: "armor",
-      enhance: botData.armor.enhance,
-      power: botData.armor.power,
-      tier: botData.battleRank
-    };
-
-    const helmetItem = {
-      id: `h_${botData.userId}`,
-      name: botData.helmet.name,
-      slot: "helmet",
-      type: "helmet",
-      enhance: botData.helmet.enhance,
-      power: botData.helmet.power,
-      tier: botData.battleRank
-    };
-
-    const bootsItem = {
-      id: `b_${botData.userId}`,
-      name: botData.boots.name,
-      slot: "boots",
-      type: "boots",
-      enhance: botData.boots.enhance,
-      power: botData.boots.power,
-      tier: botData.battleRank
-    };
-
-    const itemsList = [weaponItem, armorItem, helmetItem, bootsItem];
-    const totalGearPower = weaponItem.power + armorItem.power + helmetItem.power + bootsItem.power;
-    const calculatedPower = pts * 30 + totalGearPower * 3;
-
-    const petObj = {
-      id: `pet_${botData.userId}`,
-      key: botData.petKey,
-      speciesKey: botData.petKey,
-      name: botData.petName,
-      level: botData.petLvl,
-      tier: botData.battleRank,
-      emoji: botData.petEmoji
-    };
-
-    await User.updateOne(
-      { userId: botData.userId },
-      {
-        $set: {
-          isBattleBot: true,
-          coke: 5000000,
-          level: botData.lvl,
-          "rpg.name": botData.name,
-          "rpg.classKey": botData.classKey,
-          "rpg.characterAsset": botData.characterAsset,
-          "rpg.level": botData.lvl,
-          "rpg.stats": statsObj,
-          "rpg.power": calculatedPower,
-          "rpg.battleRank": botData.battleRank,
-          "rpg.battleLp": botData.battleLp,
-          "rpg.seasonWins": 35,
-          "rpg.seasonLosses": 8,
-          "rpg.items": itemsList,
-          "rpg.equipped": {
-            weapon: weaponItem.id,
-            armor: armorItem.id,
-            helmet: helmetItem.id,
-            boots: bootsItem.id
-          },
-          "rpg.equippedWeapon": weaponItem,
-          "rpg.equippedArmor": armorItem,
-          "rpg.equippedHelmet": helmetItem,
-          "rpg.equippedBoots": bootsItem,
-          "rpg.equippedPet": petObj,
-          "rpg.pets": [petObj]
-        }
-      },
-      { upsert: true }
-    );
-
-    console.log(`✅ Buffed Bot: ${botData.name} (${botData.battleRank} | ${botData.classKey} | Power: ${calculatedPower.toLocaleString()} | Weapon: ${weaponItem.name} [Power ${weaponItem.power}])`);
+    writes.push(User.updateOne({ userId: botData.userId }, { $set: desiredState }, { upsert: true }));
+    if (existing) repaired += 1;
+    else created += 1;
   }
 
-  console.log("🎉 All 19 Battle Bot NPCs successfully upgraded with Full High-End Gear and Competitive Stats!");
+  await Promise.all(writes);
+  console.log(`✅ Battle Bot roster ready: ${BOT_NPC_LIST.length} (${created} created, ${repaired} repaired, ${unchanged} unchanged).`);
 }
 
 if (require.main === module) {
@@ -534,3 +592,5 @@ if (require.main === module) {
 }
 
 module.exports = seedBattleBots;
+module.exports.BOT_NPC_LIST = BOT_NPC_LIST;
+module.exports.buildBotState = buildBotState;

@@ -30,13 +30,14 @@ const getRpgRank = (level) => {
 
 const getRpgItems = (user) => {
   const items = user.rpg?.items || [];
+  const isBattleBot = Boolean(user?.isBattleBot || String(user?.userId || "").startsWith("bot_pvp_"));
   let modified = false;
   for (const item of items) {
     if (!item.uid) {
       item.uid = `w-legacy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       modified = true;
     }
-    if (item.slot === "weapon") {
+    if (item.slot === "weapon" && !isBattleBot) {
       // Force level = 1 to completely remove hidden level of weapons
       if (item.level !== 1) {
         item.level = 1;
@@ -115,13 +116,15 @@ const dungeonWeapons = [
   { name: "Beelzebub", key: "beelzebub", emoji: "💀" },
   { name: "Satan", key: "satan", emoji: "⚔️" },
   { name: "Bladesorrow", key: "bladesorrow", emoji: "<:Bladesorrow:1523374302685298848>" },
-  { name: "Frostgauntlet", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
   { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
+  { name: "Quỷ Thư", key: "demonbook", emoji: "📖" },
+  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: "🔨" },
+  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: "🦉" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
-const NORMAL_WEAPONS = ["longsword", "dagger", "staff"];
-const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet"];
+const NORMAL_WEAPONS = ["longsword", "dagger", "staff", "warhammer"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet", "demonbook", "thorshammer", "odinhammer"];
 
 const getWeaponCategory = (subType) => {
   if (!subType) return null;
@@ -427,6 +430,7 @@ const getWeaponScalingStats = (subType) => {
 const getWeaponScaling = (item) => {
   const isDungeon = isDungeonWeapon(item);
   const subTypeClean = String(item.subType || "").toLowerCase().replace(/\s+/g, "");
+  const weaponKey = getDungeonWeaponKey(item.subType) || subTypeClean;
   const isStaff = subTypeClean.includes("staff") || subTypeClean.includes("trượng");
   const isDagger = subTypeClean.includes("dagger") || subTypeClean.includes("đao") || subTypeClean.includes("đoản đao");
   const isDuskAndDawn = subTypeClean.includes("dusk");
@@ -445,36 +449,45 @@ const getWeaponScaling = (item) => {
   const subType = String(item.subType || "Longsword").toLowerCase().replace(/\s+/g, "");
   const rarity = item.rarity || "Common";
   
-  if (subType.includes("gravitybow") || subType.includes("gravity bow")) {
+  if (weaponKey.includes("gravitybow")) {
     return { str: "-", dex: "S", int: "A", arc: "B" };
   }
 
-  if (subType.includes("lunashard")) {
+  if (weaponKey.includes("lunashard")) {
     return { str: "B", dex: "S", int: "-", arc: "A" };
   }
-  if (subType.includes("eclipsesoul")) {
+  if (weaponKey.includes("eclipsesoul")) {
     return { str: "-", dex: "B", int: "S", arc: "A" };
   }
-  if (subType.includes("axesnake")) {
+  if (weaponKey.includes("axesnake")) {
     return { str: "S", dex: "-", int: "-", arc: "-" };
   }
-  if (subType.includes("sunbow")) {
+  if (weaponKey.includes("sunbow")) {
     return { str: "-", dex: "S", int: "S", arc: "-" };
   }
-  if (subType.includes("clawhex")) {
+  if (weaponKey.includes("clawhex")) {
     return { str: "S", dex: "S", int: "-", arc: "-" };
   }
-  if (subType.includes("spearhex")) {
+  if (weaponKey.includes("spearhex")) {
     return { str: "S", dex: "-", int: "-", arc: "S" };
   }
-  if (subType.includes("shieldhex")) {
+  if (weaponKey.includes("shieldhex")) {
     return { str: "-", dex: "-", int: "-", arc: "S", pr: "S", mr: "S" };
   }
-  if (subType.includes("bladesorrow")) {
+  if (weaponKey.includes("bladesorrow")) {
     return { str: "S", dex: "A", int: "-", arc: "B" };
   }
-  if (subType.includes("frostgauntlet")) {
-    return { str: "S", dex: "B", int: "A", arc: "-" };
+  if (weaponKey.includes("frostgauntlet")) {
+    return { str: "-", dex: "B", int: "S", arc: "A" };
+  }
+  if (weaponKey.includes("demonbook")) {
+    return { str: "-", dex: "B", int: "S", arc: "A" };
+  }
+  if (weaponKey.includes("thorshammer")) {
+    return { str: "S", dex: "B", int: "-", arc: "A" };
+  }
+  if (weaponKey.includes("odinhammer")) {
+    return { str: "B", dex: "-", int: "S", arc: "A" };
   }
   
   const { prim, sec } = getWeaponScalingStats(subType);
@@ -1128,6 +1141,7 @@ const getGearDisplayName = (item) => {
   const dungWeapon = dungeonWeapons.find(dw => dw.key === getDungeonWeaponKey(subTypeName));
   if (dungWeapon) {
     emoji = dungWeapon.emoji;
+    subTypeName = dungWeapon.name;
   } else if (!subTypeName || emoji === slotEmoji[item.slot]) {
     const mapping = getLegacyMapping(item.slot);
     if (mapping.subType) {
@@ -1257,8 +1271,8 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   let scaling = null;
   if (slot === "weapon") {
-    const subName = chosenSubtype.name.toLowerCase();
-    if (subName.includes("gravitybow") || subName.includes("gravity bow")) {
+    const subName = getDungeonWeaponKey(chosenSubtype.name) || chosenSubtype.name.toLowerCase();
+    if (subName.includes("gravitybow")) {
       scaling = { str: "-", dex: "S", int: "A", arc: "B" };
     } else if (subName.includes("lunashard")) {
       scaling = { str: "B", dex: "S", int: "-", arc: "A" };
@@ -1267,7 +1281,13 @@ const generateRpgGearDrop = async (user, options = {}) => {
     } else if (subName.includes("bladesorrow")) {
       scaling = { str: "S", dex: "A", int: "-", arc: "B" };
     } else if (subName.includes("frostgauntlet")) {
-      scaling = { str: "S", dex: "B", int: "A", arc: "-" };
+      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+    } else if (subName.includes("demonbook")) {
+      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+    } else if (subName.includes("thorshammer")) {
+      scaling = { str: "S", dex: "B", int: "-", arc: "A" };
+    } else if (subName.includes("odinhammer")) {
+      scaling = { str: "B", dex: "-", int: "S", arc: "A" };
     } else {
       scaling = { str: "-", dex: "-", int: "-", arc: "-" };
       const { prim, sec } = getWeaponScalingStats(subName);

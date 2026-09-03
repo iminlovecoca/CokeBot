@@ -678,25 +678,25 @@ const WEAPON_PASSIVES = {
         rounds: 3,
         scaling: PASSIVE_SCALING.STR_DEX,
         extraEffects: [
-          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.25 },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15, cap: 0.30 },
         ],
-        log: (name) => `🗡️ **[Bladesorrow]** Lưỡi kiếm bi thương chém sâu, khiến **${name}** bị chảy máu nặng và xé rách 25% giáp!`,
+        log: (name) => `🗡️ **[Bladesorrow]** Lưỡi kiếm bi thương khiến **${name}** chảy máu 3 lượt và giảm 15% giáp (tối đa 30%)!`,
       },
       pvp: {
         type: PASSIVE_TYPES.BLEED,
         rounds: 3,
         scaling: PASSIVE_SCALING.STR_DEX,
         extraEffects: [
-          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.20 },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.12, cap: 0.25 },
         ],
-        log: (name) => `🗡️ **[Bladesorrow]** Vết chém bi thương khiến đối thủ bị xuất huyết và giảm 20% giáp!`,
+        log: (name) => `🗡️ **[Bladesorrow]** Vết chém bi thương khiến đối thủ bị xuất huyết và giảm 12% giáp (tối đa 25%)!`,
       },
       boss: {
         type: PASSIVE_TYPES.BLEED,
         rounds: 3,
         scaling: PASSIVE_SCALING.STR_DEX,
         extraEffects: [
-          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.20 },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15, cap: 0.30 },
         ],
         log: () => `🗡️ **[Bladesorrow]** Lưỡi kiếm bi thương găm sâu vào Boss, gây chảy máu và phá giáp!`,
       },
