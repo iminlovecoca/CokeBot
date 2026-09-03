@@ -362,28 +362,28 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         case PASSIVE_TYPES.BLEED: {
           const bleedDmg = calcScaling(chosen.scaling);
           applyStatusEffect(enemy, "bleed", chosen.rounds || 2, { damage: bleedDmg });
-          result.logs.push(`🔮 **[Dark Staff]** Hắc ám gây chảy máu!`);
+          result.logs.push(`🔮 **[${passiveDef.name}]** Lời nguyền gây chảy máu!`);
           break;
         }
         case PASSIVE_TYPES.BURN: {
           const burnDmg = calcScaling(chosen.scaling);
           applyStatusEffect(enemy, "burn", chosen.rounds || 2, { damage: burnDmg });
-          result.logs.push(`🔥 **[Dark Staff]** Hắc ám thiêu đốt!`);
+          result.logs.push(`🔥 **[${passiveDef.name}]** Lời nguyền thiêu đốt!`);
           break;
         }
         case PASSIVE_TYPES.ARMOR_SHRED: {
           enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - (chosen.amount || 0.15))));
-          result.logs.push(`⚔️ **[Dark Staff]** Hắc ám phá giáp!`);
+          result.logs.push(`⚔️ **[${passiveDef.name}]** Lời nguyền phá giáp!`);
           break;
         }
         case PASSIVE_TYPES.MR_PIERCE: {
           result.mrOrArmor = Math.floor(result.mrOrArmor * (1 - (chosen.amount || 0.25)));
-          result.logs.push(`❄️ **[Dark Staff]** Hắc ám xuyên phép!`);
+          result.logs.push(`❄️ **[${passiveDef.name}]** Lời nguyền xuyên kháng phép!`);
           break;
         }
         case PASSIVE_TYPES.STUN: {
           applyStatusEffect(enemy, "stun", chosen.rounds || 1);
-          result.logs.push(`⚡ **[Dark Staff]** Hắc ám choáng!`);
+          result.logs.push(`⚡ **[${passiveDef.name}]** Lời nguyền làm choáng!`);
           break;
         }
       }

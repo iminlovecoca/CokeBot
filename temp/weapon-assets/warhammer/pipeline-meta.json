@@ -1,0 +1,19 @@
+{
+  "target": "asset",
+  "mode": "single",
+  "prompt": "Plain forged warhammer base weapon for a fantasy RPG, clean HD pixel-art item icon, solid magenta #FF00FF background.",
+  "role": "",
+  "input": "C:\\Users\\khang\\.codex\\generated_images\\01a05b73-7653-71c1-bd2e-181d9335b7a5\\exec-0ab88377-02f4-4105-8f5c-75112b5b2a91.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 200,
+  "single_size": 1024,
+  "qc_config": {
+    "strict_qc": true,
+    "reject_edge_touch": false,
+    "allow_source_edge_touch": false,
+    "max_body_scale_cv": null,
+    "max_anchor_y_std": null,
+    "max_profile_scale_drift": null
+  }
+}

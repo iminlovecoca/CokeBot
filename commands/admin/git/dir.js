@@ -123,6 +123,51 @@ const entries = [
     origin: "Thanh katana bị nguyền rủa, hấp thụ máu của hàng ngàn kẻ bại trận khiến lưỡi kiếm nhuộm một màu đỏ thẫm kinh hoàng.",
     power: "📈 **Tỷ lệ Scale:** ARC (Chính), DEX (Phụ)\n🩸 **Đặc tính:** Đòn đánh cận chiến cực kỳ sắc bén, tăng mạnh khả năng gây chảy máu sâu (Bleed) cho mục tiêu.",
     acquisition: "Đánh bại Thế giới Boss (World Boss) cấp Thần trở lên để có cơ hội sở hữu."
+  },
+  {
+    type: "weapon",
+    name: "Búa Rèn",
+    emoji: "🔨",
+    image: "warhammer.png",
+    origin: "Chiếc búa thép được rèn tại lò búa của những thợ rèn đầu tiên, không mang phép thuật nhưng đủ bền để tiếp nhận sức mạnh cổ đại.",
+    power: "📈 **Tỷ lệ Scale:** STR/DEX theo độ hiếm của vũ khí\n🔨 **Đặc tính:** Vũ khí thường, có thể rèn tiến hóa thành Búa Lôi Thần Thor hoặc Búa Toàn Tri Odin.",
+    acquisition: "Có thể nhận như vũ khí thường; đạt **+10** rồi dùng lệnh `evolveweapon` để chọn một nhánh tiến hóa."
+  },
+  {
+    type: "weapon",
+    name: "Găng Tay Băng Giá",
+    emoji: "❄️",
+    image: "frostgauntlet.png",
+    origin: "Chiếc quyền giáp được kết tinh từ lõi của một bão tuyết vĩnh cửu, đóng băng cả nắm đấm lẫn ý chí của kẻ đối đầu.",
+    power: "📈 **Tỷ lệ Scale:** STR (S), INT (A), DEX (B)\n❄️ **Nội tại [Hàn Quyền]:** Khi nội tại kích hoạt, có 30% cơ hội đóng băng đối thủ trong 1 lượt.",
+    acquisition: "Hiện khả dụng qua lệnh `addgear` dành cho Admin; có thể gắn vào phần thưởng Dungeon/Event sau."
+  },
+  {
+    type: "weapon",
+    name: "Quỷ Thư",
+    emoji: "📖",
+    image: "demonbook.png",
+    origin: "Cuốn tà thư bị niêm phong bằng xích linh hồn, tự lật từng trang để tìm ra lời nguyền phù hợp với kẻ xấu số trước mặt.",
+    power: "📈 **Tỷ lệ Scale:** INT (S), ARC (A), DEX (B)\n📖 **Nội tại [Vạn Nguyền]:** Khi kích hoạt, ngẫu nhiên thiêu đốt, phá giáp hoặc làm choáng mục tiêu.",
+    acquisition: "Hiện khả dụng qua lệnh `addgear` dành cho Admin; có thể gắn vào phần thưởng Dungeon/Event sau."
+  },
+  {
+    type: "weapon",
+    name: "Búa Lôi Thần Thor",
+    emoji: "⚡",
+    image: "thorshammer.png",
+    origin: "Chiến chùy mythic được rèn trong tâm bão, mỗi đường vân trên đầu búa giữ lại một tia sét chưa từng tắt.",
+    power: "📈 **Tỷ lệ Scale:** STR (S), ARC (A), DEX (B)\n⚡ **Nội tại [Lôi Phạt]:** Có 45% cơ hội gọi sấm sét làm choáng mục tiêu trong 1 lượt.",
+    acquisition: "Tiến hóa từ Búa Rèn bằng lệnh `evolveweapon`; hiện cũng khả dụng qua lệnh `addgear` dành cho Admin."
+  },
+  {
+    type: "weapon",
+    name: "Búa Toàn Tri Odin",
+    emoji: "🦉",
+    image: "odinhammer.png",
+    origin: "Cổ búa mang những ký tự tiên tri của vị thần lang thang, chỉ nặng như một lời phán nhưng giáng xuống đúng điểm yếu của đối thủ.",
+    power: "📈 **Tỷ lệ Scale:** INT (S), ARC (A), STR (B)\n🦉 **Nội tại [Tri Kiến]:** Đòn đánh thứ 3 gây 1.7x sát thương trong Dungeon, sau khi đã tích đủ dấu ấn.",
+    acquisition: "Tiến hóa từ Búa Rèn bằng lệnh `evolveweapon`; hiện cũng khả dụng qua lệnh `addgear` dành cho Admin."
   }
 ];
 const BaseCommand = require("../../../core/BaseCommand");

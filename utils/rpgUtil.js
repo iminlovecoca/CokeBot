@@ -114,11 +114,14 @@ const dungeonWeapons = [
   { name: "Soulreaper", key: "soulreaper", emoji: "⛓️" },
   { name: "Beelzebub", key: "beelzebub", emoji: "💀" },
   { name: "Satan", key: "satan", emoji: "⚔️" },
+  { name: "Bladesorrow", key: "bladesorrow", emoji: "<:Bladesorrow:1523374302685298848>" },
+  { name: "Frostgauntlet", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
+  { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
 const NORMAL_WEAPONS = ["longsword", "dagger", "staff"];
-const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet"];
 
 const getWeaponCategory = (subType) => {
   if (!subType) return null;
@@ -467,6 +470,12 @@ const getWeaponScaling = (item) => {
   if (subType.includes("shieldhex")) {
     return { str: "-", dex: "-", int: "-", arc: "S", pr: "S", mr: "S" };
   }
+  if (subType.includes("bladesorrow")) {
+    return { str: "S", dex: "A", int: "-", arc: "B" };
+  }
+  if (subType.includes("frostgauntlet")) {
+    return { str: "S", dex: "B", int: "A", arc: "-" };
+  }
   
   const { prim, sec } = getWeaponScalingStats(subType);
   
@@ -588,6 +597,8 @@ const WEAPON_SETS = {
   soulreaper: { name: "Lưỡi Hái", color: "#581c87", bonus: { bossDamage: 0.06, mrPierce: 0.08 } },
   beelzebub: { name: "Phàm Ăn", color: "#65a30d", bonus: { maxHp: 0.06, healBonus: 0.10 } },
   satan: { name: "Hỏa Ngục", color: "#dc2626", bonus: { bossDamage: 0.08, pvpDamage: 0.06 } },
+  bladesorrow: { name: "Bi Thương", color: "#a855f7", bonus: { critRate: 0.04, bossDamage: 0.05 } },
+  frostgauntlet: { name: "Băng Quyền", color: "#22d3ee", bonus: { critRate: 0.03, bossDamage: 0.04 } },
 };
 
 const getWeaponSetBonus = (user) => {
@@ -1253,6 +1264,10 @@ const generateRpgGearDrop = async (user, options = {}) => {
       scaling = { str: "B", dex: "S", int: "-", arc: "A" };
     } else if (subName.includes("eclipsesoul")) {
       scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+    } else if (subName.includes("bladesorrow")) {
+      scaling = { str: "S", dex: "A", int: "-", arc: "B" };
+    } else if (subName.includes("frostgauntlet")) {
+      scaling = { str: "S", dex: "B", int: "A", arc: "-" };
     } else {
       scaling = { str: "-", dex: "-", int: "-", arc: "-" };
       const { prim, sec } = getWeaponScalingStats(subName);

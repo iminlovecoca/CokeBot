@@ -38,6 +38,11 @@ class WeaponlistCommand extends BaseCommand {
       else if (dw.key === "duskanddawn") desc = "Tấn công thường chém vật lý/phép xen kẽ, 30% cơ hội tấn công thêm 1 lần trong lượt";
       else if (dw.key === "lunashard") desc = "Tăng 15% Crit Rate & 25% Crit Damage, 20% cơ hội xuyên 15% phòng thủ đối thủ | Scale: DEX (S) | ARC (A) | STR (B)";
       else if (dw.key === "eclipsesoul") desc = "Thiêu đốt làm giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép | Scale: INT (S) | ARC (A) | DEX (B)";
+      else if (dw.key === "bladesorrow") desc = "Đòn đánh gây chảy máu trong 3 lượt và xé rách 20% giáp đối thủ | Scale: STR (S) | DEX (A) | ARC (B)";
+      else if (dw.key === "frostgauntlet") desc = "Khi nội tại kích hoạt, 30% cơ hội đóng băng đối thủ trong 1 lượt | Scale: STR (S) | INT (A) | DEX (B)";
+      else if (dw.key === "demonbook") desc = "Giải phóng ngẫu nhiên thiêu đốt, phá giáp hoặc choáng | Scale: INT (S) | ARC (A) | DEX (B)";
+      else if (dw.key === "thorshammer") desc = "Sấm sét có 45% cơ hội làm choáng đối thủ trong 1 lượt | Scale: STR (S) | ARC (A) | DEX (B)";
+      else if (dw.key === "odinhammer") desc = "Đòn đánh thứ 3 được tiên tri, gây 1.7x sát thương | Scale: INT (S) | ARC (A) | STR (B)";
       return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
     };
     const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 6).map(getDungeonWeaponLine).join("\n");
@@ -53,7 +58,8 @@ class WeaponlistCommand extends BaseCommand {
           value:
             `• **Longsword** (Mã: \`longsword\` hoặc \`w\`) - <:longsword:1514231939865903104>\n` +
             `• **Staff** (Mã: \`staff\`) - <:staff:1514231936581898240>\n` +
-            `• **Dagger** (Mã: \`dagger\`) - <:dagger:1514231934191009853>`,
+            `• **Dagger** (Mã: \`dagger\`) - <:dagger:1514231934191009853>\n` +
+            `• **Búa Rèn** (Mã: \`warhammer\`) - 🔨 (Tiến hóa ở +10)`,
           inline: false,
         },
         {
@@ -79,7 +85,8 @@ class WeaponlistCommand extends BaseCommand {
             `• Cấp Shadow Dagger Epic lv50 (+0 cường hóa):\n` +
             `  \`${config.prefix}addgear @user weapon epic 50 1 0 shadowdagger\`\n` +
             `• Cấp Holy Sword Thần Thánh (+10 cường hóa):\n` +
-            `  \`${config.prefix}addgear @user weapon divine 50 1 10 holysword\``,
+            `  \`${config.prefix}addgear @user weapon divine 50 1 10 holysword\`\n\n` +
+            `**Tiến hóa Búa Rèn:** \`${config.prefix}evolveweapon [ID búa]\` (cần +10, Coke và Somber 9).`,
           inline: false,
         }
       )

@@ -36,6 +36,7 @@ const {
   petAttackDamage,
   getWeaponPower,
   dungeonKeys,
+  getDungeonWeaponKey,
   getWeaponSetBonus,
 } = require("../../../utils/rpgUtil");
 const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
@@ -904,6 +905,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const equipped = getEquippedItems(user);
   const weapon = equipped.weapon;
   let cleanSubType = weapon?.subType ? weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
+  cleanSubType = getDungeonWeaponKey(weapon?.subType) || cleanSubType;
   if (isLockedWeapon(cleanSubType)) {
     cleanSubType = "";
   }

@@ -667,20 +667,169 @@ const WEAPON_PASSIVES = {
         log: () => `⚔️ **[Satan]** Boss bị thiêu đốt, chảy máu 3 lượt.`,
       },
     },
+  bladesorrow: {
+    name: "Bladesorrow",
+    type: PASSIVE_TYPES.BLEED,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 3,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        extraEffects: [
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.25 },
+        ],
+        log: (name) => `🗡️ **[Bladesorrow]** Lưỡi kiếm bi thương chém sâu, khiến **${name}** bị chảy máu nặng và xé rách 25% giáp!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 3,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        extraEffects: [
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.20 },
+        ],
+        log: (name) => `🗡️ **[Bladesorrow]** Vết chém bi thương khiến đối thủ bị xuất huyết và giảm 20% giáp!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.BLEED,
+        rounds: 3,
+        scaling: PASSIVE_SCALING.STR_DEX,
+        extraEffects: [
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.20 },
+        ],
+        log: () => `🗡️ **[Bladesorrow]** Lưỡi kiếm bi thương găm sâu vào Boss, gây chảy máu và phá giáp!`,
+      },
+    },
+  },
+
+  frostgauntlet: {
+    name: "Frostgauntlet",
+    type: PASSIVE_TYPES.FREEZE,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.FREEZE,
+        rounds: 1,
+        chance: 0.30,
+        log: (name) => `❄️ **[Găng Tay Băng Giá]** Hàn khí đóng băng **${name}** trong 1 lượt!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.FREEZE,
+        rounds: 1,
+        chance: 0.25,
+        log: (name) => `❄️ **[Găng Tay Băng Giá]** Đối thủ bị đóng băng trong 1 lượt!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.FREEZE,
+        rounds: 1,
+        chance: 0.20,
+        log: () => `❄️ **[Găng Tay Băng Giá]** Hàn khí làm chậm nhịp hành động của boss!`,
+      },
+    },
+  },
+
+  demonbook: {
+    name: "Quỷ Thư",
+    type: PASSIVE_TYPES.RANDOM_EFFECT,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `📖 **[Quỷ Thư]** Một lời nguyền ngẫu nhiên được giải phóng!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `📖 **[Quỷ Thư]** Lời nguyền biến đổi, xé rách phòng thủ đối thủ!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.RANDOM_EFFECT,
+        effects: [
+          { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.20 },
+          { type: PASSIVE_TYPES.STUN, rounds: 1 },
+        ],
+        log: () => `📖 **[Quỷ Thư]** Tà thuật cổ đại gieo một lời nguyền lên boss!`,
+      },
+    },
+  },
+
+  thorshammer: {
+    name: "Búa Lôi Thần Thor",
+    type: PASSIVE_TYPES.STUN,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.STUN,
+        rounds: 1,
+        log: (name) => `⚡ **[Búa Lôi Thần Thor]** Sấm sét giáng xuống, làm choáng **${name}**!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.STUN,
+        rounds: 1,
+        log: (name) => `⚡ **[Búa Lôi Thần Thor]** Đòn búa sấm sét làm choáng đối thủ!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.STUN,
+        rounds: 1,
+        log: () => `⚡ **[Búa Lôi Thần Thor]** Sấm thần làm gián đoạn boss trong 1 lượt!`,
+      },
+    },
+  },
+
+  odinhammer: {
+    name: "Búa Toàn Tri Odin",
+    type: PASSIVE_TYPES.DAMAGE_MULT,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.70,
+        hitCount: 3,
+        log: () => `🦉 **[Búa Toàn Tri Odin]** Runes tiên tri mở lối! Đòn đánh thứ 3 gây 1.7x sát thương.`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.60,
+        hitCount: 3,
+        log: () => `🦉 **[Búa Toàn Tri Odin]** Đòn đánh thứ 3 xuyên qua điểm yếu đã được tiên tri!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.80,
+        hitCount: 3,
+        log: () => `🦉 **[Búa Toàn Tri Odin]** Odin đã nhìn thấy điểm yếu! Đòn thứ 3 gây 1.8x sát thương lên boss.`,
+      },
+    },
   },
 };
 
 const LOCKED_WEAPONS = [];
+const PASSIVE_KEY_BY_NAME = Object.fromEntries(
+  Object.entries(WEAPON_PASSIVES).map(([key, passive]) => [
+    passive.name?.toLowerCase().replace(/\s+/g, ""),
+    key,
+  ])
+);
+
+const normalizePassiveKey = (subType) => {
+  const clean = String(subType || "").toLowerCase().replace(/\s+/g, "");
+  return WEAPON_PASSIVES[clean] ? clean : (PASSIVE_KEY_BY_NAME[clean] || clean);
+};
 
 const getWeaponPassive = (subType) => {
   if (!subType) return null;
-  const clean = String(subType).toLowerCase().replace(/\s+/g, "");
+  const clean = normalizePassiveKey(subType);
   return WEAPON_PASSIVES[clean] || null;
 };
 
 const isLockedWeapon = (subType) => {
   if (!subType) return false;
-  const clean = String(subType).toLowerCase().replace(/\s+/g, "");
+  const clean = normalizePassiveKey(subType);
   return WEAPON_PASSIVES[clean] === undefined;
 };
 

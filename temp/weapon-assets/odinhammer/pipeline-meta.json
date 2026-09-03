@@ -1,0 +1,19 @@
+{
+  "target": "asset",
+  "mode": "single",
+  "prompt": "Single standalone fantasy RPG weapon prop, project-native pixel art, centered on a solid magenta background.",
+  "role": "",
+  "input": "C:\\Users\\khang\\.codex\\generated_images\\01a05b73-7653-71c1-bd2e-181d9335b7a5\\exec-6a348fe1-d9ad-43b0-8e76-cdd2a2d8d8ce.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 200,
+  "single_size": 1024,
+  "qc_config": {
+    "strict_qc": true,
+    "reject_edge_touch": true,
+    "allow_source_edge_touch": false,
+    "max_body_scale_cv": null,
+    "max_anchor_y_std": null,
+    "max_profile_scale_drift": null
+  }
+}

@@ -180,7 +180,9 @@ class GearCommand extends BaseCommand {
             spearhex: "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ",
             shieldhex: "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4",
             lunashard: "Tăng 15% Tỷ lệ Bạo kích & 25% Sát thương Bạo kích, 20% cơ hội xuyên 15% phòng thủ đối thủ",
-            eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép"
+            eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép",
+            bladesorrow: "Gây chảy máu nặng trong 3 lượt và xé rách 20% giáp đối thủ",
+            frostgauntlet: "30% cơ hội đóng băng đối thủ trong 1 lượt"
           };
           const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];
