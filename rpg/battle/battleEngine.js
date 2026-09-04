@@ -2,6 +2,7 @@ const {
   getEffectiveRpgStats,
   getWeaponPower,
   getEquippedItems,
+  getRpgClass,
   getWeaponSetBonus,
   petAttackDamage,
   getPetAttackLog,
@@ -9,7 +10,29 @@ const {
 const {
   resolveWeaponPassive,
   resolveShieldhexDefense,
+  applyStatusEffect,
+  tickStatusEffects,
 } = require("../../utils/rpgPassiveUtil");
+
+const STATUS_FIELDS = [
+  "poisonRounds",
+  "bleedRounds",
+  "burnRounds",
+  "freezeRounds",
+  "frostbiteRounds",
+  "stunRounds",
+  "breakRounds",
+  "healBanRounds",
+  "tauntRounds",
+  "ccImmunityRounds",
+];
+
+const STATUS_VALUE_FIELDS = [
+  "poisonDamage",
+  "bleedDamage",
+  "burnDamage",
+  "frostbiteDamage",
+];
 
 const CLASS_COUNTERS = {
   warrior: "archer",
@@ -54,7 +77,16 @@ class BattleEngine {
       if (equipped.helmet) defensePower += equipped.helmet.power || 0;
       if (equipped.boots) defensePower += equipped.boots.power || 0;
 
-      let gearPower = weapon ? weapon.power || 0 : 0;
+      // Player weapon power must match the value used by the RPG sheet: base
+      // power + upgrade + scaling. Battle bots already store their final
+      // weapon power and use deliberately expanded stats, so keep their
+      // legacy raw value to avoid applying the upgrade formula twice.
+      const isBattleBot = Boolean(user?.isBattleBot || user?.userId?.startsWith?.("bot_pvp_"));
+      const gearPower = weapon
+        ? isBattleBot
+          ? weapon.power || 0
+          : getWeaponPower(weapon, stats)
+        : 0;
 
       // Scaled base HP (ensures fights last at least 4-15 turns)
       const baseHp = 1200 + (stats.vigor || 10) * 45 + (user.rpg.level || 1) * 35 + defensePower * 2;
@@ -75,6 +107,7 @@ class BattleEngine {
       }
 
       const classKey = (user.rpg.classKey || "warrior").toLowerCase();
+      const classConfig = getRpgClass(classKey);
 
       // Class HP Multiplier (Paladin is frontline Tank with highest HP pool)
       const CLASS_HP_MULTIPLIERS = {
@@ -93,6 +126,11 @@ class BattleEngine {
         name: user.rpg.name || `Player #${user.userId.slice(-4)}`,
         level: user.rpg.level || 1,
         classKey,
+        pvpDefense: Math.min(0.15, classConfig?.bonuses?.pvpDefense || 0),
+        critRateBonus: classConfig?.bonuses?.critRate || 0,
+        // Anti-sustain is a short combat window, not a permanent class
+        // advantage. Assassin pressure must be maintained through hits.
+        classHealReduction: Math.min(0.35, classConfig?.bonuses?.healReduction || 0),
         effectiveStats: stats,
         equipped,
         weapon,
@@ -105,10 +143,8 @@ class BattleEngine {
         rage: 0,
         effects: {
           armorReduced: 0,
-          healReduced: false,
+          healReduced: 0,
           healReducedRounds: 0,
-          bleedRounds: 0,
-          bleedDamage: 0,
           shieldhexAbsorbed: 0,
           shieldhexRounds: 0,
           armorBoosted: 0,
@@ -124,18 +160,26 @@ class BattleEngine {
     const logs = [];
     const history = [];
 
+    const snapshotEffects = (combatant) => {
+      const effects = { ...combatant.effects };
+      for (const field of STATUS_FIELDS) {
+        if (combatant[field] > 0) effects[field] = combatant[field];
+      }
+      return effects;
+    };
+
     const saveState = (currentTurn) => {
       history.push({
         turn: currentTurn,
         p1: {
           hp: Math.max(0, p1.hp),
           rage: p1.rage,
-          effects: { ...p1.effects },
+          effects: snapshotEffects(p1),
         },
         p2: {
           hp: Math.max(0, p2.hp),
           rage: p2.rage,
-          effects: { ...p2.effects },
+          effects: snapshotEffects(p2),
         },
       });
     };
@@ -166,19 +210,25 @@ class BattleEngine {
       const attacker = turnOrder[0];
       const defender = turnOrder[1];
 
-      // Handle Bleed
-      if (attacker.effects.bleedRounds > 0) {
-        attacker.hp = Math.max(0, attacker.hp - attacker.effects.bleedDamage);
-        attacker.effects.bleedRounds -= 1;
-        logs.push(`<:bleed:1521938497642958889> **${attacker.name}** bị mất **${attacker.effects.bleedDamage.toLocaleString()}** HP do chảy máu!`);
-        if (attacker.hp <= 0) break;
+      // Resolve shared status effects before the actor spends a turn. This
+      // keeps weapon CC/DoT behavior consistent with Dungeon and prevents a
+      // passive from becoming log-only in PvP.
+      const statusResult = tickStatusEffects(attacker, null);
+      if (statusResult.logs.length > 0) logs.push(...statusResult.logs);
+      if (attacker.healBanRounds > 0) attacker.healBanRounds -= 1;
+      if (statusResult.skipTurn) {
+        saveState(turn);
+        turnOrder = [defender, attacker];
+        turn += 1;
+        continue;
       }
+      if (attacker.hp <= 0) break;
 
       // Handle Heal Reduction countdown
       if (attacker.effects.healReducedRounds > 0) {
         attacker.effects.healReducedRounds -= 1;
         if (attacker.effects.healReducedRounds <= 0) {
-          attacker.effects.healReduced = false;
+          attacker.effects.healReduced = 0;
         }
       }
 
@@ -209,8 +259,16 @@ class BattleEngine {
           skillName = "Mưa Tên";
           skillMult = 1.35;
           if (Math.random() < 0.6) {
-            defender.effects.bleedRounds = 2;
-            defender.effects.bleedDamage = Math.floor((attacker.effectiveStats.dex || 10) * 8);
+            // Use the shared root status fields so Archer's anti-tank pressure
+            // is actually processed by tickStatusEffects in the next turns.
+            const bleedDamage = Math.min(
+              Math.floor(defender.maxHp * 0.06),
+              Math.max(
+                Math.floor(defender.maxHp * 0.04),
+                Math.floor((attacker.effectiveStats.dex || 10) * 8)
+              )
+            );
+            applyStatusEffect(defender, "bleed", 2, { damage: bleedDamage });
           }
         } else if (classKey === "mage") {
           skillName = "Bão Phép Thuật";
@@ -224,12 +282,19 @@ class BattleEngine {
           skillName = "Thánh Lực Bảo Hộ";
           skillMult = 1.1;
           const healAmt = Math.floor(attacker.maxHp * 0.15);
-          let healReduceFactor = attacker.effects.healReduced ? 0.7 : 1.0;
+          const healReduction = Math.min(
+            0.55,
+            Math.max(
+              attacker.healBanRounds > 0 ? 0.30 : 0,
+              Number(attacker.effects.healReduced) || 0
+            )
+          );
+          const healReduceFactor = 1 - healReduction;
           const finalHealAmt = Math.floor(healAmt * healReduceFactor);
           attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
         } else if (classKey === "wretch") {
           skillName = "Cú Đập May Rủi";
-          skillMult = 0.6 + Math.random() * 1.6;
+          skillMult = 0.85 + Math.random() * 0.75;
         }
       }
 
@@ -248,9 +313,12 @@ class BattleEngine {
 
       // Evasion calculation
       const defenderEvasion = Math.min(
-        0.20,
-        ((defender.effectiveStats.dex || 0) * 0.08 + (defender.effectiveStats.arc || 0) * 0.04) / 100
-      ) + (defender.setBonus?.bonus?.evasion || 0);
+        0.25,
+        Math.min(
+          0.20,
+          ((defender.effectiveStats.dex || 0) * 0.08 + (defender.effectiveStats.arc || 0) * 0.04) / 100
+        ) + (defender.setBonus?.bonus?.evasion || 0)
+      );
       const isEvaded = Math.random() < defenderEvasion;
 
       // Unified Weapon Passive Resolution
@@ -274,9 +342,9 @@ class BattleEngine {
           isCrit = true;
         } else {
           const attackerCritRate = Math.min(
-            0.55,
-            0.05 + ((attacker.effectiveStats.arc || 0) * 0.15 + (attacker.effectiveStats.dex || 0) * 0.1) / 100
-          ) + (attacker.setBonus?.bonus?.critRate || 0);
+            0.65,
+            0.05 + ((attacker.effectiveStats.arc || 0) * 0.15 + (attacker.effectiveStats.dex || 0) * 0.1) / 100 + attacker.critRateBonus + (attacker.setBonus?.bonus?.critRate || 0)
+          );
           isCrit = Math.random() < attackerCritRate;
         }
         const critMult = 1.5 + (attacker.effectiveStats.dex || 0) * 0.002;
@@ -302,12 +370,16 @@ class BattleEngine {
           _clawhexHits: attacker._clawhexHits || 0,
           _holyswordHits: attacker.holySwordHits || 0,
         };
+        const baseArmor = (defender.effectiveStats.pr || 10) * 10 + defender.defensePower * 1.5;
+        const baseMagicResist = (defender.effectiveStats.mr || 10) * 10 + defender.defensePower * 1.5;
         const passiveEnemy = {
-          armor: defender.defensePower || 0,
-          magicResist: 0,
+          armor: baseArmor * (1 - (defender.effects.armorReduced || 0)),
+          magicResist: baseMagicResist,
           name: defender.name,
           _armorReduced: defender.effects.armorReduced || 0,
         };
+        for (const field of STATUS_FIELDS) passiveEnemy[field] = defender[field] || 0;
+        for (const field of STATUS_VALUE_FIELDS) passiveEnemy[field] = defender[field] || 0;
         const passiveResult = resolveWeaponPassive(passivePlayer, passiveEnemy, {
           mode: "pvp",
           rawDamage,
@@ -318,15 +390,13 @@ class BattleEngine {
 
         rawDamage = passiveResult.damage;
 
+        defender.effects.armorReduced = passiveEnemy._armorReduced || defender.effects.armorReduced || 0;
+        for (const field of STATUS_FIELDS) defender[field] = passiveEnemy[field] || 0;
+        for (const field of STATUS_VALUE_FIELDS) defender[field] = passiveEnemy[field] || 0;
+
         // Sync hit counters back
         if (passivePlayer._clawhexHits !== undefined) attacker._clawhexHits = passivePlayer._clawhexHits;
         if (passivePlayer._holyswordHits !== undefined) attacker.holySwordHits = passivePlayer._holyswordHits;
-
-        // Apply bleed from passive
-        if (passiveResult.bleedDamage > 0) {
-          defender.effects.bleedRounds = 3;
-          defender.effects.bleedDamage = passiveResult.bleedDamage;
-        }
 
         // Apply next attack mult from passive
         if (passiveResult.nextAttackMult > 1.0) {
@@ -335,7 +405,14 @@ class BattleEngine {
 
         // Apply heal from passive (lifesteal / green staff)
         if (passiveResult.healAmount > 0) {
-          let healReduceFactor = attacker.effects.healReduced ? 0.7 : 1.0;
+          const healReduction = Math.min(
+            0.55,
+            Math.max(
+              attacker.healBanRounds > 0 ? 0.30 : 0,
+              Number(attacker.effects.healReduced) || 0
+            )
+          );
+          const healReduceFactor = 1 - healReduction;
           const finalHealAmt = Math.floor(passiveResult.healAmount * healReduceFactor);
           attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAmt);
           logs.push(`✨ **${attacker.name}** hồi **${finalHealAmt.toLocaleString()}** HP từ hiệu ứng vũ khí!`);
@@ -351,21 +428,25 @@ class BattleEngine {
         // Defense Mitigation Calculation
         let defenderMitigation = 0;
         if (isMagical) {
-          let mr = (defender.effectiveStats.mr || 10) * 10 + defender.defensePower * 1.5;
+          let mr = passiveResult.mrOrArmor;
           if (skillIgnoreMR) mr *= 0.60;
           defenderMitigation = mr / (mr + 150 + defender.level * 2);
         } else {
-          let armor = (defender.effectiveStats.pr || 10) * 10 + defender.defensePower * 1.5;
+          let armor = passiveResult.mrOrArmor;
           if (defender.effects.armorBoostedRounds > 0) {
             armor *= 1 + (defender.effects.armorBoosted || 0);
           }
-          // Apply armor shred from passive (axesnake, shadowdagger, etc.)
-          if (passiveEnemy._armorReduced > 0) {
-            armor *= 1 - passiveEnemy._armorReduced;
-          } else if (defender.effects.armorReduced) {
-            armor *= 1 - defender.effects.armorReduced;
-          }
           defenderMitigation = armor / (armor + 150 + defender.level * 2);
+        }
+
+        // PvP needs a bounded damage floor. Gear-heavy tank builds should
+        // still outlast burst, but 97-98% mitigation made every matchup a
+        // draw and erased the value of bleed, anti-heal, and mage pressure.
+        defenderMitigation = Math.min(0.96, defenderMitigation);
+        if (skillIgnoreMR) {
+          // Mage's burst is a timed anti-tank window. It bypasses the global
+          // mitigation ceiling only while the skill is being cast.
+          defenderMitigation = Math.min(0.85, defenderMitigation);
         }
 
         // Apply Class Counter (+2% bonus damage)
@@ -375,9 +456,9 @@ class BattleEngine {
         }
 
         let finalMult = (1 - defenderMitigation) * counterMult;
+        finalMult *= 1 - (defender.pvpDefense || 0);
         if (poisonMult > 1.0) finalMult *= poisonMult;
         if (attacker.setBonus?.bonus?.pvpDamage) finalMult *= 1 + attacker.setBonus.bonus.pvpDamage;
-        if (attacker.setBonus?.bonus?.bossDamage) finalMult *= 1 + attacker.setBonus.bonus.bossDamage;
 
         if (attacker.effects.damageReduced) {
           finalMult *= 1 - attacker.effects.damageReduced;
@@ -396,16 +477,35 @@ class BattleEngine {
         defender.hp = Math.max(0, defender.hp - damage);
         defender.rage = Math.min(100, defender.rage + 15);
 
+        // Assassin is a sustain counter only while it keeps connecting. The
+        // stronger reduction wins, but reductions do not stack into a hard
+        // heal lock when combined with a weapon passive.
+        if (attacker.classHealReduction > 0 && defender.hp > 0) {
+          defender.effects.healReduced = Math.max(
+            Number(defender.effects.healReduced) || 0,
+            attacker.classHealReduction
+          );
+          // The countdown is consumed at the start of the target's turns;
+          // three ticks preserve two full target actions after this hit.
+          defender.effects.healReducedRounds = Math.max(
+            defender.effects.healReducedRounds || 0,
+            3
+          );
+        }
+
         let logMsg = "";
         if (isCastingSkill) {
           logMsg = `Lượt ${turn}: **${attacker.name}** dùng kỹ năng [${skillName}] gây **${damage.toLocaleString()}** sát thương`;
           if (isCrit) logMsg += " (Chí mạng!)";
           if (attacker.classKey === "warrior") logMsg += " và tăng 25% Giáp";
-          if (attacker.classKey === "archer" && defender.effects.bleedRounds > 0) logMsg += " và gây Chảy máu";
+          if (attacker.classKey === "archer" && defender.bleedRounds > 0) logMsg += " và gây Chảy máu";
           if (attacker.classKey === "paladin") logMsg += " và hồi máu";
         } else {
           logMsg = `Lượt ${turn}: **${attacker.name}** tấn công thường gây **${damage.toLocaleString()}** sát thương`;
           if (isCrit) logMsg += " (Chí mạng!)";
+        }
+        if (attacker.classHealReduction > 0 && defender.hp > 0) {
+          logMsg += ` và <:healreduction:1523340558855045190> áp chế ${Math.round(attacker.classHealReduction * 100)}% hồi máu`;
         }
         logs.push(logMsg + "!");
       }

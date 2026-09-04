@@ -470,7 +470,7 @@ module.exports = {
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],
-      multiplier: 0.6, 
+      multiplier: 0.75,
     },
     rewards: {
       base_coke: 80000,

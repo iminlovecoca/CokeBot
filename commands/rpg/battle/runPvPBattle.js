@@ -104,8 +104,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const getActiveStatusEmojis = (effects) => {
     if (!effects) return "";
     const list = [];
+    if (effects.poisonRounds > 0) list.push("<:poisonous:1522374367542247424>");
     if (effects.bleedRounds > 0) list.push("<:bleed:1521938497642958889>");
-    if (effects.healReduced) list.push("<:healreduction:1523340558855045190>");
+    if (effects.burnRounds > 0) list.push("<:burn:1521938494094835774>");
+    if (effects.freezeRounds > 0) list.push("<:freeze:1521938500478566639>");
+    if (effects.stunRounds > 0) list.push("<:stun:1521938490605178910>");
+    if (effects.healBanRounds > 0 || effects.healReduced) list.push("<:healreduction:1523340558855045190>");
     if (effects.armorReduced > 0) list.push("<:break:1521938480337391736>");
     if (effects.armorBoosted > 0) list.push("<:atkup:1521938477359300648>");
     return list.length > 0 ? " " + list.join(" ") : "";

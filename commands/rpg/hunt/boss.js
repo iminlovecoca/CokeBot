@@ -179,9 +179,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
     participantRarities: ["Epic"],
     lastHitRarities: ["Epic"],
-    cokeMin: 500, cokeMax: 1000,
-    lastHitCokeMin: 2000, lastHitCokeMax: 5000,
-    expMult: 1, lastHitExpMult: 1.5,
+    cokeMin: 550, cokeMax: 1100,
+    lastHitCokeMin: 2200, lastHitCokeMax: 5500,
+    expMult: 1.05, lastHitExpMult: 1.55,
   };
   const rollRarityForBoss = (rankKey, type) => {
     const r = Math.random() * 100;
@@ -923,7 +923,10 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   let spearhexTriggered = false;
   let shieldhexTriggered = false;
   let riverofbloodTriggered = false;
-  const hasTriggered = isDungeonWeapon && String(weapon?.rarity || "").toLowerCase() !== "common" && Math.random() < 0.45;
+  let bossControlTriggered = false;
+  let passiveDamageMultiplier = 1.0;
+  const isOdinHammer = cleanSubType === "odinhammer";
+  const hasTriggered = isDungeonWeapon && String(weapon?.rarity || "").toLowerCase() !== "common" && (isOdinHammer || Math.random() < 0.45);
   let blueStaffPierce = false;
   let crimsonDaggerPierce = false;
   let holySwordDouble = false;
@@ -945,11 +948,18 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       shieldhexTriggered = true;
       passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
     } else {
-      const res = triggerWorldBossPassive(cleanSubType, participant, activeBoss, passiveTriggers, 0);
+      const res = triggerWorldBossPassive(cleanSubType, {
+        ...participant,
+        weapon,
+        effectiveStats,
+        gearPower: user.rpg?.power || 0,
+      }, activeBoss, passiveTriggers, 1);
       blueStaffPierce = res.blueStaffPierce;
       crimsonDaggerPierce = res.crimsonDaggerPierce;
       holySwordDouble = res.holySwordDouble;
       riverofbloodTriggered = res.riverofbloodTriggered;
+      bossControlTriggered = res.controlTriggered;
+      passiveDamageMultiplier = res.damageMultiplier || 1.0;
     }
   } else if (cleanSubType === "holysword") {
     participant.holySwordHits = (participant.holySwordHits || 0) + 1;
@@ -971,6 +981,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   let rawDamage = baseAttack + gearPower;
   if (clawhexTriggered) {
     rawDamage *= 1.15;
+  }
+  if (passiveDamageMultiplier > 1.0) {
+    rawDamage *= passiveDamageMultiplier;
   }
   const attackVariance = 0.85 + Math.random() * 0.3;
   rawDamage *= attackVariance;
@@ -1065,11 +1078,16 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   let bossMissed = false;
   let bossHealedAmount = 0;
   if (activeBoss.hp - damage > 0) {
-    const playerEvasion = Math.min(
-      0.35,
-      (effectiveStats.dex * 0.1 + effectiveStats.arc * 0.05) / 100,
-    );
-    bossMissed = Math.random() < playerEvasion;
+    if (bossControlTriggered) {
+      bossMissed = true;
+      passiveTriggers.push(`⏳ **${activeBoss.boss.name}** bị gián đoạn, bỏ qua đòn phản công kế tiếp.`);
+    } else {
+      const playerEvasion = Math.min(
+        0.35,
+        (effectiveStats.dex * 0.1 + effectiveStats.arc * 0.05) / 100,
+      );
+      bossMissed = Math.random() < playerEvasion;
+    }
     if (!bossMissed) {
       const bossRaw =
         (activeBoss.boss.attackPower || 50) * (0.85 + Math.random() * 0.3);
@@ -1913,4 +1931,4 @@ bossCommand.handleFightInteraction = handleFightInteraction;
 bossCommand.handleReviveInteraction = handleReviveInteraction;
 bossCommand.performBossAttack = performBossAttack;
 bossCommand.finishBoss = finishBoss;
-module.exports = bossCommand;
+module.exports = bossCommand;

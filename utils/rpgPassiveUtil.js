@@ -91,14 +91,18 @@ const applyStatusEffect = (target, effectType, rounds, options = {}) => {
       if (options.damage) target.burnDamage = options.damage;
       break;
     case "freeze":
+      if ((target.ccImmunityRounds || 0) > 0) break;
       target.freezeRounds = (target.freezeRounds || 0) + rounds;
+      target.ccImmunityRounds = Math.max(target.ccImmunityRounds || 0, 2);
       break;
     case "frostbite":
       target.frostbiteRounds = (target.frostbiteRounds || 0) + rounds;
       if (options.damage) target.frostbiteDamage = options.damage;
       break;
     case "stun":
+      if ((target.ccImmunityRounds || 0) > 0) break;
       target.stunRounds = (target.stunRounds || 0) + rounds;
+      target.ccImmunityRounds = Math.max(target.ccImmunityRounds || 0, 2);
       break;
     case "break":
       target.breakRounds = (target.breakRounds || 0) + rounds;
@@ -121,6 +125,10 @@ const applyStatusEffect = (target, effectType, rounds, options = {}) => {
 const tickStatusEffects = (target, activeDungeon) => {
   if (!target) return { skipTurn: false, logs: [] };
   const logs = [];
+
+  if (target.ccImmunityRounds && target.ccImmunityRounds > 0) {
+    target.ccImmunityRounds -= 1;
+  }
 
   const isStunned = target.stunRounds && target.stunRounds > 0;
   const isFrozen = target.freezeRounds && target.freezeRounds > 0;
@@ -252,6 +260,9 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         if (applied <= 0) continue;
         enemy._armorReduced = currentReduced + applied;
         enemy.armor = Math.max(0, Math.floor((enemy.armor || 0) * (1 - applied)));
+        if (!isMagical) {
+          result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
+        }
         if (extraEffect.alsoShredMR) {
           enemy.magicResist = Math.max(0, Math.floor((enemy.magicResist || 0) * (1 - applied)));
         }
@@ -275,7 +286,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     case PASSIVE_TYPES.FREEZE: {
       if (!hasTriggered) break;
       const chance = passive.chance || 1.0;
-      if (Math.random() < chance) {
+      if ((enemy.ccImmunityRounds || 0) <= 0 && Math.random() < chance) {
         applyStatusEffect(enemy, "freeze", passive.rounds);
         addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       }
@@ -284,8 +295,10 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
 
     case PASSIVE_TYPES.STUN: {
       if (!hasTriggered) break;
-      applyStatusEffect(enemy, "stun", passive.rounds);
-      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
+      if ((enemy.ccImmunityRounds || 0) <= 0) {
+        applyStatusEffect(enemy, "stun", passive.rounds);
+        addPassiveLog(passive.log ? passive.log(enemy.name) : "");
+      }
       break;
     }
 
@@ -354,14 +367,22 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     case PASSIVE_TYPES.ARMOR_SHRED: {
       if (!hasTriggered) break;
       const amount = passive.amount || 0.10;
+      let applied = amount;
       if (passive.cap) {
         const currentReduced = enemy._armorReduced || 0;
-        const newReduced = Math.min(passive.cap, currentReduced + amount);
-        enemy._armorReduced = newReduced;
+        applied = Math.min(amount, Math.max(0, passive.cap - currentReduced));
+        enemy._armorReduced = currentReduced + applied;
       }
-      enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - amount)));
+      if (applied <= 0) break;
+      enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - applied)));
+      if (!isMagical) {
+        result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
+      }
       if (passive.alsoShredMR) {
-        enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * (1 - amount)));
+        enemy.magicResist = Math.max(0, Math.floor(enemy.magicResist * (1 - applied)));
+        if (isMagical) {
+          result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
+        }
       }
       addPassiveLog(passive.log ? passive.log(enemy.name, {
         armor: enemy.armor,
@@ -425,7 +446,11 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
           break;
         }
         case PASSIVE_TYPES.ARMOR_SHRED: {
-          enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - (chosen.amount || 0.15))));
+          const amount = chosen.amount || 0.15;
+          enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - amount)));
+          if (!isMagical) {
+            result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - amount)));
+          }
           addPassiveLog(`⚔️ **[${passiveDef.name}]** Lời nguyền phá giáp!`, chosen.type);
           break;
         }
@@ -435,8 +460,10 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
           break;
         }
         case PASSIVE_TYPES.STUN: {
-          applyStatusEffect(enemy, "stun", chosen.rounds || 1);
-          addPassiveLog(`⚡ **[${passiveDef.name}]** Lời nguyền làm choáng!`, chosen.type);
+          if ((enemy.ccImmunityRounds || 0) <= 0) {
+            applyStatusEffect(enemy, "stun", chosen.rounds || 1);
+            addPassiveLog(`⚡ **[${passiveDef.name}]** Lời nguyền làm choáng!`, chosen.type);
+          }
           break;
         }
       }
@@ -498,13 +525,17 @@ const triggerWeaponPassiveOnAttack = (player, enemy, activeDungeon, rawDamage, i
 };
 
 const triggerWorldBossPassive = (cleanSubType, participant, activeBoss, passiveTriggers, damage) => {
+  const passiveProbeDamage = Math.max(100, damage || 0);
   const player = {
-    weapon: { subType: cleanSubType, rarity: participant?.weapon?.rarity },
+    weapon: participant?.weapon || { subType: cleanSubType, rarity: participant?.weapon?.rarity },
     stats: participant.effectiveStats || {},
     power: participant.gearPower || 0,
     hp: participant.hp || 0,
     maxHp: participant.maxHp || 0,
   };
+  for (const key of Object.keys(participant || {})) {
+    if (key.endsWith("Hits")) player[key] = participant[key];
+  }
   const enemy = {
     armor: activeBoss.boss?.armor || 0,
     magicResist: activeBoss.boss?.magicResist || 0,
@@ -513,18 +544,24 @@ const triggerWorldBossPassive = (cleanSubType, participant, activeBoss, passiveT
 
   const result = resolveWeaponPassive(player, enemy, {
     mode: "boss",
-    rawDamage: damage,
+    rawDamage: passiveProbeDamage,
     isMagical: false,
   });
 
   passiveTriggers.push(...result.logs);
 
+  for (const key of Object.keys(player)) {
+    if (key.endsWith("Hits")) participant[key] = player[key];
+  }
+
   return {
     blueStaffPierce: result.pierceFlags.blueStaff,
     crimsonDaggerPierce: result.pierceFlags.crimsonDagger,
     sunbowPierce: result.pierceFlags.sunbow,
-    holySwordDouble: result.damage > damage,
+    holySwordDouble: result.damage > passiveProbeDamage,
+    damageMultiplier: result.damage / passiveProbeDamage,
     riverofbloodTriggered: result.healAmount > 0,
+    controlTriggered: Boolean(enemy.freezeRounds > 0 || enemy.stunRounds > 0),
   };
 };
 

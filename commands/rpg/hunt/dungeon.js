@@ -711,7 +711,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       .setLabel("Bình máu")
       .setEmoji("1523351206066655333")
       .setStyle(ButtonStyle.Success)
-      .setDisabled(disableControls)
+      .setDisabled(disableControls),
   );
   const isPlayerTurn = !activeDungeon.isFinished && currentActor && currentActor.id;
   if (isPlayerTurn) {
@@ -908,12 +908,12 @@ const runDiceRoll = async (channel, activeDungeon) => {
     const diceEmoji = config.emoji[`dice_${diceValue}`] || "🎲";
     const isOdd = diceValue % 2 !== 0;
     if (isOdd) {
-      activeDungeon.diceMultiplier = 0.5;
-      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Lẻ**): Giảm 50% sát thương của tổ đội (x0.5)!`);
+      activeDungeon.diceMultiplier = 0.85;
+      activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Lẻ**): Giảm 15% sát thương của tổ đội (x0.85).`);
     } else {
-      let mult = 1.5;
-      if (diceValue === 4) mult = 2.0;
-      else if (diceValue === 6) mult = 2.5;
+      let mult = 1.10;
+      if (diceValue === 4) mult = 1.25;
+      else if (diceValue === 6) mult = 1.40;
       activeDungeon.diceMultiplier = mult;
       activeDungeon.logs.push(`🎲 <@${roller.id}> lắc ra số ${diceEmoji} (**Chẵn**): Tăng sát thương của tổ đội lên **x${mult}**!`);
     }
@@ -1072,8 +1072,8 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
   );
   const coinEmbed = new EmbedBuilder()
     .setColor(0xF1C40F)
-    .setTitle("🪙 Cơ hội nhân đôi sát thương")
-    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x2 sát thương**!`);
+    .setTitle("🪙 Cơ hội tăng sát thương")
+    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x1.5–x1.8 sát thương**!`);
   const coinMsg = await channel.send({
     content: `<@${player.id}>`,
     embeds: [coinEmbed],
@@ -1106,7 +1106,7 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
     let multiplier = 1.0;
     if (guess === result) {
       activeDungeon.consecutiveCoinSuccess = (activeDungeon.consecutiveCoinSuccess || 0) + 1;
-      multiplier = 2.0 + (activeDungeon.consecutiveCoinSuccess - 1) * 0.5;
+      multiplier = Math.min(1.8, 1.5 + (activeDungeon.consecutiveCoinSuccess - 1) * 0.15);
       activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán CHÍNH XÁC! Nhận chuỗi thắng liên tiếp **${activeDungeon.consecutiveCoinSuccess}** và sát thương được nhân **x${multiplier}**!`);
     } else {
       activeDungeon.consecutiveCoinSuccess = 0;
@@ -1200,15 +1200,15 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     let fateName;
     let fateEmoji;
     if (fateRoll < 0.25) {
-      skillMult = 4.5;
+      skillMult = 2.2;
       fateName = "Số Phận Mỉm Cười";
       fateEmoji = "🍀";
     } else if (fateRoll < 0.60) {
-      skillMult = 2.4;
+      skillMult = 1.6;
       fateName = "Cú Đập May Rủi";
       fateEmoji = "🎲";
     } else if (fateRoll < 0.85) {
-      skillMult = 1.2;
+      skillMult = 1.15;
       fateName = "Số Phận Thử Thách";
       fateEmoji = "⚖️";
     } else {
@@ -1692,16 +1692,16 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       }
     } else if (enemy.key === "mourngait" && enemy.hp < enemy.maxHp * 0.40 && Math.random() < 0.60) {
       isCustomSkillUsed = true;
-      const hpLoss = Math.floor(target.hp * 0.5);
+      let hpLoss = Math.min(Math.floor(target.maxHp * 0.30), Math.floor(target.hp * 0.5));
       target.hp = Math.max(1, target.hp - hpLoss);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + hpLoss;
-      activeDungeon.logs.push(`💀 **${enemy.name}** bị hắc hỏa dồn vào hiểm cảnh! Giải phóng **[Đoạt Hồn Phong Ấn]** lên **${target.name}**, đoạt đi 50% máu hiện tại (mất **${hpLoss.toLocaleString()}** HP)!`);
+      activeDungeon.logs.push(`💀 **${enemy.name}** bị hắc hỏa dồn vào hiểm cảnh! Giải phóng **[Đoạt Hồn Phong Ấn]** lên **${target.name}**, đoạt 50% máu hiện tại (tối đa 30% máu tối đa, mất **${hpLoss.toLocaleString()}** HP)!`);
     } else if (enemy.key === "veilreaper" && Math.random() < 0.30) {
       isCustomSkillUsed = true;
-      const hpLoss = Math.floor(target.hp * 0.55);
+      let hpLoss = Math.min(Math.floor(target.maxHp * 0.35), Math.floor(target.hp * 0.55));
       target.hp = Math.max(1, target.hp - hpLoss);
       activeDungeon.totalDamageTaken = (activeDungeon.totalDamageTaken || 0) + hpLoss;
-      activeDungeon.logs.push(`💀 **${enemy.name}** tung cánh, giải phóng **[Đoạt Hồn Hắc Ám]** lên **${target.name}**, đoạt đi 55% máu hiện tại (mất **${hpLoss.toLocaleString()}** HP)!`);
+      activeDungeon.logs.push(`💀 **${enemy.name}** tung cánh, giải phóng **[Đoạt Hồn Hắc Ám]** lên **${target.name}**, đoạt 55% máu hiện tại (tối đa 35% máu tối đa, mất **${hpLoss.toLocaleString()}** HP)!`);
     }
     if (!isCustomSkillUsed) {
       let damageMult = 1.0;
@@ -2097,7 +2097,7 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
       let multiplier = 1.0;
       if (guess === result) {
         activeDungeon.consecutiveCoinSuccess = (activeDungeon.consecutiveCoinSuccess || 0) + 1;
-        multiplier = 2.0 + (activeDungeon.consecutiveCoinSuccess - 1) * 0.5;
+        multiplier = Math.min(1.8, 1.5 + (activeDungeon.consecutiveCoinSuccess - 1) * 0.15);
         activeDungeon.logs.push(`🪙 Kết quả là ${resultEmoji} (**${resultLabel}**). **${player.name}** đoán CHÍNH XÁC! Nhận chuỗi thắng liên tiếp **${activeDungeon.consecutiveCoinSuccess}** và sát thương được nhân **x${multiplier}**!`);
       } else {
         activeDungeon.consecutiveCoinSuccess = 0;
