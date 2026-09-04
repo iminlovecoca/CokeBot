@@ -16,7 +16,7 @@ const {
 } = require("discord.js");
 const { DateTime } = require("luxon");
 const config = require("../data/config");
-const { getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../utils/rpgUi");
+const { getRpgColor, getRpgColorNumber, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../utils/rpgUi");
 
 const healthBar = (hp, maxHp) => {
   return formatRpgBar(hp, maxHp, 10);
@@ -225,7 +225,7 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
       infoLine = `Đòn kết liễu: <@${activeBoss.lastHitUserId}>`;
   }
 
-  const accentColor = defeated ? getRpgColor("success") : (expired || transitioned) ? getRpgColor("neutral") : getRpgColor("danger");
+  const accentColor = defeated ? getRpgColorNumber("success") : (expired || transitioned) ? getRpgColorNumber("neutral") : getRpgColorNumber("danger");
 
   const container = new ContainerBuilder().setAccentColor(accentColor);
 

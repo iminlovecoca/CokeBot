@@ -17,6 +17,7 @@ const {
   SectionBuilder,
   ThumbnailBuilder
 } = require("discord.js");
+const { getRpgColorNumber } = require("./rpgUi");
 
 function convertToV2(options, force = false, existingAttachments = []) {
   if (!options) return options;
@@ -81,8 +82,8 @@ function convertToV2(options, force = false, existingAttachments = []) {
     const data = typeof embed.toJSON === "function" ? embed.toJSON() : embed;
 
     const container = new ContainerBuilder();
-    if (data.color) {
-      container.setAccentColor(data.color);
+    if (data.color !== undefined && data.color !== null) {
+      container.setAccentColor(getRpgColorNumber(data.color));
     }
 
     // 1. Author (if has iconURL, render as Section; otherwise prepend to contentText)

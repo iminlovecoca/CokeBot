@@ -9,6 +9,18 @@ const getRpgColor = (colorKey, fallback = colors.brand || "#5865F2") => {
   return fallback;
 };
 
+const getRpgColorNumber = (colorKey, fallback = colors.brand || "#5865F2") => {
+  if (typeof colorKey === "number" && Number.isFinite(colorKey)) return colorKey;
+  if (Array.isArray(colorKey) && colorKey.length === 3) return colorKey;
+  const color = getRpgColor(colorKey, fallback);
+  if (typeof color === "number" && Number.isFinite(color)) return color;
+  if (Array.isArray(color) && color.length === 3) return color;
+  if (typeof color === "string" && /^#?[0-9a-f]{6}$/i.test(color)) {
+    return parseInt(color.replace(/^#/, ""), 16);
+  }
+  return 0x5865F2;
+};
+
 const getClassEmoji = (classKey) =>
   ui.classEmojis?.[String(classKey || "").toLowerCase()] || ui.icons?.rpg || "⚔️";
 
@@ -109,6 +121,7 @@ module.exports = {
   ui,
   colors,
   getRpgColor,
+  getRpgColorNumber,
   getClassEmoji,
   getRarityEmoji,
   getRarityColor,
