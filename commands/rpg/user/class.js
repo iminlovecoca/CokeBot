@@ -29,7 +29,7 @@ const {
   getStartingStats,
   getCharacterAssetPath,
 } = require("../../../utils/rpgUtil");
-const { getClassEmoji, getSlotLabel, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
+const { getClassEmoji, getSlotLabel, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
 const statLabels = {
   vigor: "Vigor",
   pr: "PR",
@@ -96,7 +96,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     .setDescription(rpgClass.description)
     .setImage(`attachment://${assetName}`)
     .addFields({
-      name: "📊 Chỉ số nền",
+      name: "Chỉ số nền",
       value: statsValue,
     });
   const bonusesStr = Object.entries(rpgClass.bonuses || {})
@@ -119,24 +119,22 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     const nameLine = `Tên nhân vật: **${userData.rpg.name || "Chưa đặt"}**\n`;
     const currentPower = calculateRpgPower(userData);
     const availablePoints = getAvailablePoints(userData);
-    const petLine = equippedPet
-      ? `Linh thú: ${equippedPet.emoji} **${equippedPet.name}** Lvl.**${equippedPet.level || 1}**\n`
-      : `Linh thú: ❌ **Chưa trang bị**\n`;
+    const petLine = equippedPet ? `Linh thú: ${equippedPet.emoji}\n` : "";
     embed.addFields(
       {
-        name: "🧙 Nhân vật của bạn",
+        name: "Nhân vật",
         value:
           nameLine +
-          `Level: **${userData.rpg.level}**\n` +
-          `Rank: **${userData.rpg.rank}**\n` +
+          `Cấp: **${userData.rpg.level}**\n` +
+          `Bậc: **${userData.rpg.rank}**\n` +
           petLine +
           `Lực chiến: **${Math.floor(currentPower).toLocaleString()}**\n` +
           `EXP: **${userData.rpg.exp}/${getRpgXpNeeded(userData.rpg.level)}**\n` +
-          `Điểm chưa cộng: **${availablePoints}**`,
+          `Điểm dư: **${availablePoints}**`,
         inline: true,
       },
       {
-        name: "✦ Thiên hướng",
+        name: "Thiên hướng",
         value: bonusesStr,
         inline: true,
       }
@@ -162,23 +160,23 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       }
     }).join("\n");
     embed.addFields({
-      name: "🛡️ Trang bị hiện tại",
+      name: "Trang bị",
       value: equipLines,
       inline: false,
     });
   } else {
     embed.addFields({
-      name: "✦ Thiên hướng",
+      name: "Thiên hướng",
       value: bonusesStr,
       inline: true,
     });
   }
-  return embed.setFooter(formatRpgFooter(equippedPet ? `Linh thú: ${equippedPet.name}` : "Dùng pet để mở thêm chỉ số hỗ trợ"));
+  return embed;
 };
 const buildClassSelectRow = (selectedClassKey, disabled = false) => {
   const menu = new StringSelectMenuBuilder()
     .setCustomId("rpg_class_select_menu")
-    .setPlaceholder("① Chọn class nhân vật")
+    .setPlaceholder("Chọn class nhân vật")
     .setDisabled(disabled)
     .addOptions(
       classEntries().map(([key, rpgClass]) => ({
@@ -206,7 +204,7 @@ const buildAvatarSelectRow = (classKey, selectedAvatar, disabled = false) => {
   ];
   const menu = new StringSelectMenuBuilder()
     .setCustomId("rpg_avatar_select_menu")
-    .setPlaceholder("② Chọn avatar nhân vật")
+    .setPlaceholder("Chọn avatar nhân vật")
     .setDisabled(disabled)
     .addOptions(
       options.map((opt) => ({
@@ -265,13 +263,11 @@ class ClassCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId("rpg_class_action_classes")
           .setLabel("Class")
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji("⚔️"),
+          .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_name")
           .setLabel("Đổi tên")
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji("📝"),
+          .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_skins")
           .setLabel("Skin")
@@ -339,7 +335,7 @@ class ClassCommand extends BaseCommand {
               .setStyle(ButtonStyle.Secondary)
           );
           await safeInteractionUpdate(interaction, {
-            content: `✨ **Chọn skin cho ${getClassEmoji(classKey)} ${classKey.toUpperCase()}**`,
+            content: `Chọn skin cho ${classKey.toUpperCase()}`,
             embeds: [],
             files: [],
             components: [row, btnRow]
@@ -434,8 +430,8 @@ class ClassCommand extends BaseCommand {
             });
             return {
               content: isFree
-                ? `⚔️ **Đổi class • miễn phí**\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`
-                : `⚔️ **Đổi class • đã trừ 100k Coke**\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`,
+                ? `Đổi class • miễn phí\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`
+                : `Đổi class • đã trừ 100k Coke\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`,
               embeds: [embed],
               files: [attachment],
               components: [

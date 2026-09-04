@@ -15,7 +15,7 @@ const {
   getEffectiveRpgStats,
   getItemImageFile,
 } = require("../../../utils/rpgUtil");
-const { ui, getRarityEmoji, getSlotEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const { getRarityEmoji, getSlotEmoji, getSlotLabel, getRpgColor, formatRpgTitle } = require("../../../utils/rpgUi");
 class HuntCommand extends BaseCommand {
   constructor() {
     super({
@@ -70,11 +70,10 @@ class HuntCommand extends BaseCommand {
       await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
     }
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
-    const blankEmo = config.emoji.blank || "";
-    let text = `${ui.icons?.hunt || "🏹"} **${characterName}** đã hoàn thành một chuyến đi săn!\n` +
-      `${blankEmo} **|** ${huntGround.emoji} ${huntGround.name} đã bị dọn sạch\n` +
-      `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()} EXP**, **${cokeGain.toLocaleString()} Coke**`;
-    const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../../data/pets");
+    let text = `**${characterName}** đã hoàn thành chuyến săn.\n` +
+      `Khu vực: **${huntGround.name}**\n` +
+      `${rpgClass.name}: **+${expGain.toLocaleString()} EXP** • **+${cokeGain.toLocaleString()} Coke**`;
+    const { rollHuntPetDrop, generatePetStats } = require("../../../data/pets");
     const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
     if (user.rpg.equippedPet) {
       const rarity = droppedItem ? droppedItem.rarity : "Common";
@@ -88,14 +87,13 @@ class HuntCommand extends BaseCommand {
       user.rpg.pets = user.rpg.pets || [];
       const isAlreadyOwned = user.rpg.pets.some((p) => p.key === caughtSpecies.key);
       if (isAlreadyOwned) {
-        const tierEmo = PET_TIERS[caughtSpecies.tier]?.emoji || "";
         const expBonus = getDuplicatePetXp(caughtSpecies.tier);
         if (user.rpg.equippedPet) {
           const petRes = addPetXpUtil(user.rpg.equippedPet, expBonus, user);
           user.markModified("rpg");
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! Linh thú đang trang bị ${user.rpg.equippedPet.emoji} nhận **+${expBonus} EXP**!${petRes.leveledUp ? ` 🆙 **Lên Cấp ${user.rpg.equippedPet.level}!**` : ""}`;
+          petText = `\nLinh thú trùng: ${caughtSpecies.emoji} **${caughtSpecies.name}** • ${user.rpg.equippedPet.emoji} nhận **+${expBonus} EXP**${petRes.leveledUp ? ` • Lên cấp **${user.rpg.equippedPet.level}**` : ""}`;
         } else {
-          petText = `\n${blankEmo} **|** 🐾 Bắt gặp lại ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**! (Trang bị Linh thú để nhận **+${expBonus} EXP**)`;
+          petText = `\nLinh thú trùng: ${caughtSpecies.emoji} **${caughtSpecies.name}** • Trang bị linh thú để nhận **+${expBonus} EXP**`;
         }
       } else {
         const newPet = {
@@ -115,32 +113,30 @@ class HuntCommand extends BaseCommand {
           user.rpg.equippedPet = newPet;
         }
         user.markModified("rpg");
-        const tierEmo = PET_TIERS[caughtSpecies.tier]?.emoji || "";
-        petText = `\n${blankEmo} **|** 🎉 **BẮT ĐƯỢC LINH THÚ MỚI!** Bạn đã thu phục ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**!`;
+        petText = `\nLinh thú mới: ${caughtSpecies.emoji} **${caughtSpecies.name}**`;
       }
     }
     if (droppedItem) {
       const slotVi = getSlotLabel(droppedItem.slot).toLowerCase();
       const rank = getRarityEmoji(droppedItem.rarity);
       const emoji = droppedItem.emoji || getSlotEmoji(droppedItem.slot);
-      text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${emoji} **${droppedItem.subType}** (\`G${String(droppedItem.id).padStart(3, "0")}\`)`;
+      text += `\nNhặt được ${slotVi}: ${rank} ${emoji} **${droppedItem.subType}** (\`G${String(droppedItem.id).padStart(3, "0")}\`)`;
     }
     if (petText) {
       text += petText;
     }
     if (levelsGained > 0) {
-      text += `\n${blankEmo} **|** 🆙 **LÊN CẤP!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
+      text += `\nLên cấp: **${previousLevel} → ${user.rpg.level}**`;
     }
     await user.save();
     const embed = new EmbedBuilder()
       .setColor(rpgClass.color || getRpgColor("brand"))
-      .setTitle(formatRpgTitle("Kết quả chuyến săn", ui.icons?.hunt || "🏹"))
+      .setTitle(formatRpgTitle("Kết quả chuyến săn", "🏹"))
       .setDescription(text)
       .addFields(
-        { name: "⚔️ Lực chiến hiện tại", value: `**${user.rpg.power.toLocaleString()}**`, inline: true },
-        { name: "📈 Cấp độ", value: `**${user.rpg.level}**`, inline: true },
-      )
-      .setFooter(formatRpgFooter(`Cooldown ${cooldownSeconds}s • dùng ${config.prefix}gear để xem kho đồ`));
+        { name: "Lực chiến", value: `**${user.rpg.power.toLocaleString()}**`, inline: true },
+        { name: "Cấp độ", value: `**${user.rpg.level}**`, inline: true },
+      );
     return message.reply({ embeds: [embed] });
   }
 }

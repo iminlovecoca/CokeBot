@@ -184,7 +184,7 @@ class PetCommand extends BaseCommand {
     const pets = user.rpg.pets || [];
     const ownedKeys = new Set(pets.map((p) => p.key));
     const username = message.member?.displayName || message.author.displayName || message.author.username;
-    let text = "";
+    let text = `🌿🌱🌳 **${username}'s zoo!** 🌳🌱🌿\n`;
     const tierOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
 
     tierOrder.forEach((tierKey) => {
@@ -198,12 +198,7 @@ class PetCommand extends BaseCommand {
       }
     });
 
-    const embed = new EmbedBuilder()
-      .setColor(getRpgColor("success"))
-      .setTitle(formatRpgTitle(`Bộ sưu tập linh thú • ${username}`, "🐾"))
-      .setDescription(text || "Chưa có linh thú nào trong dữ liệu.")
-      .setFooter(formatRpgFooter(`Đã sở hữu ${pets.length}/${PET_SPECIES.length} loài • ❓ = chưa sở hữu`));
-    return message.channel.send({ embeds: [embed] });
+    return message.channel.send(text);
   }
 }
 
