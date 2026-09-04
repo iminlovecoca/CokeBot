@@ -6,6 +6,7 @@ const {
   sellRpgItem,
   getGearDisplayName,
 } = require("../../../utils/rpgUtil");
+const { getRarityEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class SellgearCommand extends BaseCommand {
   constructor() {
     super({
@@ -30,27 +31,28 @@ class SellgearCommand extends BaseCommand {
     if (Number.isInteger(itemId) && itemId > 0) {
       const { item, cokeGain } = await sellRpgItem(message.author.id, itemId);
       const embed = new EmbedBuilder()
-        .setColor("#FEE75C")
-        .setTitle("Đã bán trang bị RPG")
+        .setColor(getRpgColor("warning"))
+        .setTitle(formatRpgTitle("Đã bán trang bị", "💰"))
         .setDescription(
           `Bạn đã bán **${getGearDisplayName(item)}** và nhận **${cokeGain.toLocaleString()} Coke**.`
         )
         .addFields(
           {
-            name: "Trang bị",
+            name: "📦 Trang bị",
             value:
-              `ID: \`${item.id}\`\n` +
-              `Slot: **${config.rpg.gear_slot_names[item.slot]}**\n` +
-              `Rarity: **${item.rarity}**\n` +
+              `Mã: \`G${String(item.id).padStart(3, "0")}\`\n` +
+              `Ô: **${getSlotLabel(item.slot)}**\n` +
+              `Độ hiếm: ${getRarityEmoji(item.rarity)} **${item.rarity}**\n` +
               `Lực chiến: **+${item.power.toLocaleString()}**`,
             inline: true,
           },
           {
-            name: "Số dư Coke",
+            name: `${config.emoji.money} Số dư Coke`,
             value: `**${user.coke.toLocaleString()}**`,
             inline: true,
           }
-        );
+        )
+        .setFooter(formatRpgFooter("Giao dịch hoàn tất • trang bị đang mặc không thể bán"));
       return message.reply({ embeds: [embed] });
     } else {
       const rarityMapping = {
@@ -103,18 +105,19 @@ class SellgearCommand extends BaseCommand {
         .map(([rarity, count]) => `• ${rarity}: **${count}** món`)
         .join("\n");
       const embed = new EmbedBuilder()
-        .setColor("#FEE75C")
-        .setTitle("Đã bán hàng loạt trang bị RPG")
+        .setColor(getRpgColor("warning"))
+        .setTitle(formatRpgTitle("Đã bán hàng loạt trang bị", "💰"))
         .setDescription(
           `Bạn đã bán thành công **${itemsToSell.length}** trang bị và nhận **${totalCoke.toLocaleString()} Coke**.\n\n` +
             `**Chi tiết:**\n${statsLines}`
         )
         .addFields({
-          name: "Số dư Coke mới",
+          name: `${config.emoji.money} Số dư Coke mới`,
           value: `**${user.coke.toLocaleString()} Coke**`,
-        });
+        })
+        .setFooter(formatRpgFooter("Đã bỏ qua vật phẩm yêu thích và đang trang bị"));
       return message.reply({ embeds: [embed] });
     }
   }
 }
-module.exports = new SellgearCommand();
+module.exports = new SellgearCommand();

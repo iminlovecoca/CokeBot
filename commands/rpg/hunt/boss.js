@@ -41,6 +41,7 @@ const {
 } = require("../../../utils/rpgUtil");
 const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
 const { addPetXp, getBossXp } = require("../../../utils/petXpUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -101,12 +102,12 @@ const sendRewardDm = async ({
     ? stones.map(s => `${s.emoji} **${s.name}** (x${s.quantity})`).join("\n")
     : null;
   const embed = new EmbedBuilder()
-    .setColor(topBonus ? topBonus.color : isLastHit ? "#FEE75C" : (rankColor || "#57F287"))
+    .setColor(topBonus ? topBonus.color : isLastHit ? getRpgColor("warning") : (rankColor || getRpgColor("success")))
     .setAuthor({
       name: discordUser.displayName || discordUser.username,
       iconURL: discordUser.displayAvatarURL({ dynamic: true })
     })
-    .setTitle(`${boss.emoji} Thưởng đánh boss: ${boss.name}`)
+    .setTitle(formatRpgTitle(`Thưởng đánh boss • ${boss.name}`, boss.emoji || "👹"))
     .setDescription(
       isLastHit
         ? `🎉 Bạn là người kết liễu boss nên nhận thêm quà cực khủng!\n${rankEmoji || ""} **${rankLabel || "Cấp Thường"}**`
@@ -126,7 +127,8 @@ const sendRewardDm = async ({
         value: gearLines || "Không có",
         inline: true,
       },
-    );
+    )
+    .setFooter(formatRpgFooter(isLastHit ? "Đòn kết liễu • thưởng thêm đã áp dụng" : "Phần thưởng tham gia đã được gửi qua DM"));
   if (topBonus) {
     let bonusValue = `+${topBonus.cokeBonus.toLocaleString()} <:cokecy:1509951335016173662>\n+${topBonus.expBonus.toLocaleString()} EXP`;
     if (topBonus.wcBonus > 0) bonusValue += `\n<:crate:1512793698025603282> Lootbox x${topBonus.wcBonus}`;
@@ -523,10 +525,10 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         return `${t.label}: **${t.displayName}** — ${t.damage.toLocaleString()} ST\n┗ Thưởng thêm: ${bonusText}`;
       }).join("\n\n");
       const top3Embed = new EmbedBuilder()
-        .setColor("#FFD700")
-        .setTitle(`${activeBoss.boss.emoji} Bảng Xếp Hạng Sát Thương — ${activeBoss.boss.name}`)
+        .setColor(getRpgColor("reward"))
+        .setTitle(formatRpgTitle(`Bảng xếp hạng sát thương • ${activeBoss.boss.name}`, activeBoss.boss.emoji || "🏆"))
         .setDescription(top3Lines)
-        .setFooter({ text: "Phần thưởng đã được gửi qua DM. Chúc mừng top sát thương!" });
+        .setFooter(formatRpgFooter("Phần thưởng top đã được gửi qua DM"));
       await channel.send({ embeds: [top3Embed] }).catch(() => null);
     } catch (err) {
       console.warn("[RPG_BOSS] Failed to send top3 ranking message:", err.message);
@@ -548,9 +550,10 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         payload.files = [getAttachment(activeBoss.boss)];
       }
       if (interaction && msgId === interaction.message?.id) {
-        await interaction.editReply(payload).catch((err) => {
-          console.error("[RPG_BOSS] finishBoss interaction.editReply failed:", err);
-        });
+        const edited = await safeInteractionEditReply(interaction, payload);
+        if (!edited) {
+          await bossMessage.edit(payload).catch(() => null);
+        }
       } else {
         await bossMessage.delete().catch(() => null);
         await channel.send({
@@ -639,8 +642,8 @@ const buildAttackResultEmbed = ({
     }
   }
   const embed = new EmbedBuilder()
-    .setColor(activeBoss.hp <= 0 ? "#57F287" : participant.hp <= 0 ? "#ED4245" : rpgClass.color)
-    .setTitle(`${activeBoss.boss.emoji} ${activeBoss.boss.name} - Nhật Ký Trận Đấu`)
+    .setColor(activeBoss.hp <= 0 ? getRpgColor("success") : participant.hp <= 0 ? getRpgColor("danger") : rpgClass.color)
+    .setTitle(formatRpgTitle(`${activeBoss.boss.name} • nhật ký lượt đánh`, activeBoss.boss.emoji || "👹"))
     .setDescription(battleLog);
   if (discordUser) {
     embed.setAuthor({
@@ -651,7 +654,7 @@ const buildAttackResultEmbed = ({
   return embed
     .addFields(
       {
-        name: "Nhân vật",
+        name: "🧙 Nhân vật",
         value:
           `Lớp nhân vật: **${rpgClass.name}**\n` +
           `HP của bạn: **${Math.max(0, participant.hp).toLocaleString()} / ${maxHp.toLocaleString()}**\n` +
@@ -659,7 +662,7 @@ const buildAttackResultEmbed = ({
         inline: true,
       },
       {
-        name: "Lượt đánh boss",
+        name: "⚔️ Lượt đánh boss",
         value:
           `Tổng lượt: **${participant.attacks}**\n` +
           `Phí lượt này: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} <:cokecy:1509951335016173662>` : "Miễn phí"}**\n` +
@@ -705,10 +708,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
               }
               let edited = null;
               if (interaction && msgId === interaction.message?.id) {
-                edited = await interaction.editReply(editPayload).catch((err) => {
-                  console.error("[RPG_BOSS] updateBossMessage interaction.editReply failed:", err);
-                  return null;
-                });
+                edited = (await safeInteractionEditReply(interaction, editPayload)) ? interaction.message : null;
+                if (!edited) {
+                  edited = await msg.edit(editPayload).catch(() => null);
+                }
               } else {
                 await msg.delete().catch(() => null);
                 const newMsg = await channel.send({
@@ -775,7 +778,10 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
               editPayload.files = [getAttachment(activeBoss.boss)];
             }
             if (interaction && msgId === interaction.message?.id) {
-              await interaction.editReply(editPayload).catch(() => null);
+              const edited = await safeInteractionEditReply(interaction, editPayload);
+              if (!edited) {
+                await msg.edit(editPayload).catch(() => null);
+              }
             } else {
               await msg.delete().catch(() => null);
             }
@@ -1295,21 +1301,21 @@ const handleFightInteraction = async (interaction) => {
   const finalChannelId = channelId || interaction.channelId;
   const activeBoss = interaction.client.rpgBosses?.get(finalChannelId);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
-    return interaction.reply({
+    return safeInteractionReply(interaction, {
       content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
       flags: 64,
-    }).catch(() => {});
+    });
   }
   const channel = await interaction.client.channels
     .fetch(finalChannelId)
     .catch(() => null);
   if (!channel || !channel.isTextBased()) {
-    return interaction.reply({
+    return safeInteractionReply(interaction, {
       content: "Không tìm thấy channel boss.",
       flags: 64,
-    }).catch(() => {});
+    });
   }
-  await interaction.deferUpdate().catch(() => {});
+  if (!(await safeDeferUpdate(interaction))) return;
   if (!activeBoss.attackQueue) {
     activeBoss.attackQueue = Promise.resolve();
   }
@@ -1325,11 +1331,11 @@ const handleFightInteraction = async (interaction) => {
         interaction,
       });
       if (!result.ok) {
-        await interaction.followUp({
+        await safeInteractionFollowUp(interaction, {
           content: result.content,
           components: result.components || [],
           flags: 64,
-        }).catch(() => {});
+        });
       }
     } catch (err) {
       console.error("[RPG_BOSS] Error during queued attack:", err);
@@ -1342,23 +1348,23 @@ const handleReviveInteraction = async (interaction) => {
     .fetch(channelId || interaction.channelId)
     .catch(() => null);
   if (!channel || !channel.isTextBased()) {
-    return interaction.reply({
+    return safeInteractionReply(interaction, {
       content: "Không tìm thấy channel boss.",
       flags: 64,
     });
   }
   const activeBoss = interaction.client.rpgBosses?.get(channel.id);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
-    return interaction.reply({
+    return safeInteractionReply(interaction, {
       content: "Boss đã bị tiêu diệt hoặc đã rời đi.",
       flags: 64,
     });
   }
-  await interaction.deferReply({ flags: 64 }).catch(() => {});
+  if (!(await safeInteractionCall(interaction, "deferReply", { flags: 64 }))) return;
   const { user } = await requireRpgCharacter(interaction.user.id);
   const participant = activeBoss.participants.get(interaction.user.id);
   if (!participant || participant.hp > 0) {
-    return interaction.editReply({
+    return safeInteractionEditReply(interaction, {
       content: "Bạn không ở trạng thái hạ gục.",
     });
   }
@@ -1366,14 +1372,14 @@ const handleReviveInteraction = async (interaction) => {
     const elapsed = Date.now() - (participant.diedAt || 0);
     if (elapsed < 10000) {
       const waitRemaining = Math.ceil((10000 - elapsed) / 1000);
-      return interaction.editReply({
+      return safeInteractionEditReply(interaction, {
         content: `❌ **Sức mạnh hắc ám của Diablo** cấm bạn hồi sinh ngay lập tức! Bạn phải chờ thêm **${waitRemaining}s** mới có thể hồi sinh.`,
       });
     }
   }
   const reviveCost = user.rpg?.godsetBackup ? 0 : 1000;
   if (user.coke < reviveCost) {
-    return interaction.editReply({
+    return safeInteractionEditReply(interaction, {
       content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>, bạn có: **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>)`,
     });
   }
@@ -1398,8 +1404,8 @@ const handleReviveInteraction = async (interaction) => {
     console.error("[RPG_BOSS] Failed to update boss revive status in DB:", err);
   }
   await user.save();
-  return interaction.editReply({
-    content: `✅ Bạn đã hồi sinh thành công bằng **1,000** <:cokecy:1509951335016173662>! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Fight!** để tiếp tục tấn công boss.`,
+  return safeInteractionEditReply(interaction, {
+    content: `✅ Bạn đã hồi sinh thành công bằng **1,000** <:cokecy:1509951335016173662>! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Đánh boss** để tiếp tục tấn công boss.`,
   });
 };
 const fs = require("fs");
@@ -1435,7 +1441,7 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   const filter = (i) => i.user.id === userId && i.customId.startsWith("soul_invite_");
   const collector = inviteMsg.createMessageComponentCollector({ filter, time: 60000 });
   collector.on("collect", async (i) => {
-    await i.deferUpdate();
+    if (!(await safeDeferUpdate(i))) return;
     const action = i.customId.replace("soul_invite_", "").split(":")[0];
     collector.stop(action);
   });
@@ -1649,7 +1655,12 @@ const startSoulRealmBattle = async (client, channel, userId) => {
           logs.push(`⏳ Quá thời gian suy nghĩ! Tự động tấn công.`);
           await executePlayerSoulAttack(playerState, bossState, logs, 1.0);
         } else {
-          await interaction.deferUpdate().catch(() => {});
+          if (!(await safeDeferUpdate(interaction))) {
+            await executePlayerSoulAttack(playerState, bossState, logs, 1.0);
+            if (bossState.hp <= 0) break;
+            currentTurn = "boss";
+            continue;
+          }
           if (interaction.customId === "soul_combat_attack") {
             await executePlayerSoulAttack(playerState, bossState, logs, 1.0);
           } else if (interaction.customId === "soul_combat_heal") {
@@ -1790,18 +1801,19 @@ const giveSoulRealmWinReward = async (client, channel, userId) => {
     await user.save();
     const discordUser = await client.users.fetch(userId).catch(() => null);
     const winEmbed = new EmbedBuilder()
-      .setColor("#FF007F")
+      .setColor(getRpgColor("premium"))
       .setAuthor({
         name: discordUser ? discordUser.displayName || discordUser.username : "Player",
         iconURL: discordUser ? discordUser.displayAvatarURL({ dynamic: true }) : undefined
       })
-      .setTitle("🏆 CHIẾN THẮNG HUYỀN THOẠI! 🏆")
+      .setTitle(formatRpgTitle("Chiến thắng huyền thoại", "🏆"))
       .setDescription(
         `🎉 Chúc mừng <@${userId}> đã chiến thắng **Linh Hồn Malzareth** tại Cõi Linh Hồn!\n\n` +
         `✨ Ngươi đã nhận được thần khí: **${getGearDisplayName(gear)}** (UID: \`${gear.uid.slice(0, 8)}\`)\n` +
         `• Phẩm chất: **Mythic** (Sức mạnh ngang Ancient)\n` +
         `• Lực chiến: **+${gear.power.toLocaleString()}**`
       )
+      .setFooter(formatRpgFooter("Thần khí đã được trao vào kho đồ"))
       .setTimestamp();
     await channel.send({ content: `<@${userId}>`, embeds: [winEmbed] });
     if (discordUser) {
@@ -1822,18 +1834,19 @@ const giveSoulRealmDefeatReward = async (client, channel, userId) => {
     await user.save();
     const discordUser = await client.users.fetch(userId).catch(() => null);
     const loseEmbed = new EmbedBuilder()
-      .setColor("#747F8D")
+      .setColor(getRpgColor("neutral"))
       .setAuthor({
         name: discordUser ? discordUser.displayName || discordUser.username : "Player",
         iconURL: discordUser ? discordUser.displayAvatarURL({ dynamic: true }) : undefined
       })
-      .setTitle("🥀 THẤT BẠI TẠI CÕI LINH HỒN 🥀")
+      .setTitle(formatRpgTitle("Thất bại tại Cõi Linh Hồn", "🥀"))
       .setDescription(
         `Ngươi đã gục ngã trước sức mạnh hắc ám của Malzareth.\n` +
         `Ngươi không nhận được gì ngoài phần thưởng an ủi:\n` +
         `• Coke: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
         `• RPG EXP: **+${expGain.toLocaleString()}**`
       )
+      .setFooter(formatRpgFooter("Phần thưởng an ủi đã được trao"))
       .setTimestamp();
     await channel.send({ content: `<@${userId}>`, embeds: [loseEmbed] });
     if (discordUser) {

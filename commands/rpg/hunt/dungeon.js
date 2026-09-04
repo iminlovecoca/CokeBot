@@ -29,6 +29,7 @@ const {
 const { incBalance } = require("../../../utils/userUtil");
 const { addPetXp } = require("../../../utils/petXpUtil");
 const config = require("../../../data/config");
+const { ui, getClassEmoji, getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -38,12 +39,7 @@ const CLASS_ATTACK_TYPES = {
   wretch: "physical",
 };
 const getHealthBar = (hp, maxHp) => {
-  const percentage = Math.max(0, Math.min(1, hp / maxHp));
-  const filledCount = Math.round(percentage * 10);
-  const emptyCount = 10 - filledCount;
-  const filled = "▰".repeat(filledCount);
-  const empty = "▱".repeat(emptyCount);
-  return `❤️ **HP:** ${filled}${empty} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
+  return `❤️ **HP:** ${formatRpgBar(hp, maxHp, 10)} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
 };
 const getBossForm = (bossCfg, enemy) => {
   const forms = bossCfg?.forms;
@@ -59,12 +55,7 @@ const getBossForm = (bossCfg, enemy) => {
   return current;
 };
 const getPoiseBar = (poise, poiseMax) => {
-  const percentage = Math.max(0, Math.min(1, poise / poiseMax));
-  const filledCount = Math.round(percentage * 10);
-  const emptyCount = 10 - filledCount;
-  const filled = "▰".repeat(filledCount);
-  const empty = "▱".repeat(emptyCount);
-  return `🛡️ **Poise:** ${filled}${empty} [${poise.toLocaleString()}/${poiseMax.toLocaleString()}]`;
+  return `🛡️ **Poise:** ${formatRpgBar(poise, poiseMax, 10)} [${poise.toLocaleString()}/${poiseMax.toLocaleString()}]`;
 };
 const getDelay = (activeDungeon, baseDelay) => {
   const speed = activeDungeon.speed ?? 1.0;
@@ -234,8 +225,8 @@ class DungeonCommand extends BaseCommand {
         .setDisabled(progress < 13)
     );
     const mapEmbed = new EmbedBuilder()
-      .setColor(0x9B59B6)
-      .setTitle("🗺️ Bản đồ phó bản Dungeon V1")
+      .setColor(getRpgColor("accent"))
+      .setTitle(formatRpgTitle("Bản đồ Dungeon V1", "🗺️"))
       .setDescription(
         "Chọn chương để bắt đầu khiêu chiến cùng tổ đội. Đi lần lượt từ Chương 1 đến Chương 14."
       )
@@ -243,7 +234,8 @@ class DungeonCommand extends BaseCommand {
         name: "📍 Tiến trình",
         value: `Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** / **14**`,
         inline: false,
-      });
+      })
+      .setFooter(formatRpgFooter("Chỉ Trưởng nhóm có thể bắt đầu • cần đủ 3 thành viên"));
     const selectMsg = await message.reply({
       content: "",
       embeds: [mapEmbed],
@@ -253,7 +245,7 @@ class DungeonCommand extends BaseCommand {
     const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_dungeon_start_");
     const collector = selectMsg.createMessageComponentCollector({ filter, time: 30000 });
     collector.on("collect", async (i) => {
-      await i.deferUpdate();
+      if (!(await safeDeferUpdate(i))) return;
       const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
       collector.stop("selected");
       await askBlessing(message, selectMsg, guild, chapter, i);
@@ -279,8 +271,8 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
       .setStyle(ButtonStyle.Secondary)
   );
   const blessingEmbed = new EmbedBuilder()
-    .setColor(0xF1C40F)
-    .setTitle("✨ Lựa chọn Phước Lành tổ đội")
+    .setColor(getRpgColor("reward"))
+    .setTitle(formatRpgTitle("Chọn phước lành tổ đội", "✨"))
     .setDescription(`Trước khi bước vào Dungeon **Chương ${chapter}**, Trưởng nhóm hãy chọn chế độ hỗ trợ cho cả tổ đội.`)
     .addFields(
       {
@@ -291,7 +283,8 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
         name: "⚔️ Thử thách",
         value: "Giữ nguyên chỉ số, nhận thêm **+20% Coke & EXP** khi chiến thắng.",
       }
-    );
+    )
+    .setFooter(formatRpgFooter("Lựa chọn này áp dụng cho cả đội trong chương hiện tại"));
   const payload = {
     content: "",
     embeds: [blessingEmbed],
@@ -299,16 +292,14 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
     skipV2: true,
   };
   if (startInteraction) {
-    await startInteraction.editReply(payload).catch((err) => {
-      console.error("[RPG_DUNGEON] askBlessing editReply failed:", err);
-    });
+    await safeInteractionEditReply(startInteraction, payload);
   } else {
     await selectMsg.edit(payload).catch(() => {});
   }
   const filter = (i) => i.user.id === userId && i.customId.startsWith("rpg_blessing_");
   const blessingCollector = selectMsg.createMessageComponentCollector({ filter, time: 30000 });
   blessingCollector.on("collect", async (i) => {
-    await i.deferUpdate();
+    if (!(await safeDeferUpdate(i))) return;
     const blessing = i.customId.replace("rpg_blessing_", "");
     blessingCollector.stop("selected");
     await selectMsg.delete().catch(() => {});
@@ -645,17 +636,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const enemyStatus = getActiveStatusString(enemy);
   const embed = new EmbedBuilder()
     .setColor(accentColor)
-    .setTitle(`⚔️ Dungeon V1 • Chương ${chapter} • Vòng ${round}/5`)
+    .setTitle(formatRpgTitle(`Dungeon V1 • Chương ${chapter} • Vòng ${round}/5`, "⚔️"))
     .setDescription(descriptionText)
     .setTimestamp()
-    .setFooter({ text: blessingName });
+    .setFooter(formatRpgFooter(`${blessingName} • thao tác của người đang tới lượt`));
   embed.addFields({
     name: `👹 Kẻ địch: ${enemy.name}${enemyStatus ? ` ${enemyStatus}` : ""}`,
     value: enemyInfo.trim(),
     inline: false,
   });
   players.forEach((p) => {
-    const classIcon = p.rpgClass?.emoji || "👤";
+    const classIcon = getClassEmoji(p.classKey);
     const className = p.rpgClass?.name || p.classKey.toUpperCase();
     const statusText = p.hp <= 0 ? "💀 Tử nạn" : "Đang chiến đấu";
     const healBanText = (p.hp > 0 && p.healBanRounds && p.healBanRounds > 0) ? ` (🚫 Cấm ${p.healBanRounds} lượt)` : "";
@@ -703,7 +694,8 @@ const renderGameScreen = async (channel, activeDungeon) => {
   row.addComponents(
     new ButtonBuilder()
       .setCustomId("rpg_dungeon_action_attack")
-      .setLabel("Tấn công 🗡️")
+      .setLabel("Tấn công")
+      .setEmoji(ui.icons?.weapon || "🗡️")
       .setStyle(ButtonStyle.Danger)
       .setDisabled(disableControls),
     new ButtonBuilder()
@@ -939,28 +931,31 @@ const setupCollector = (channel, activeDungeon) => {
     try {
       const pExist = activeDungeon.players.find((p) => p.id === i.user.id);
       if (!pExist) {
-        return i.reply({ content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
+        return safeInteractionReply(i, { content: "❌ Bạn không thuộc tổ đội khiêu chiến phó bản này!", ephemeral: true });
       }
       if (activeDungeon.actionInProgress) {
-        return i.reply({ content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
+        return safeInteractionReply(i, { content: "⏳ Hệ thống đang xử lý lượt trước, hãy đợi một chút!", ephemeral: true });
       }
       const currentActor = activeDungeon.currentActor;
       if (!currentActor || currentActor.id !== i.user.id) {
-        return i.reply({ content: "❌ Không phải lượt của bạn!", ephemeral: true });
+        return safeInteractionReply(i, { content: "❌ Không phải lượt của bạn!", ephemeral: true });
       }
       activeDungeon.actionInProgress = true;
-      await i.deferUpdate().catch(() => {});
+      if (!(await safeDeferUpdate(i))) {
+        activeDungeon.actionInProgress = false;
+        return;
+      }
 
       if (i.customId === "rpg_dungeon_action_heal") {
         if (pExist.healBanRounds && pExist.healBanRounds > 0) {
           activeDungeon.actionInProgress = false;
           const bossCfg = getBossConfig(activeDungeon.chapter);
           const passiveName = bossCfg.passive?.name || "Lời Nguyền Xương";
-          return i.followUp({ content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
+          return safeInteractionFollowUp(i, { content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
         }
         if (pExist.potions <= 0) {
           activeDungeon.actionInProgress = false;
-          return i.followUp({ content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
+          return safeInteractionFollowUp(i, { content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
         }
         pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * 0.3));
         pExist.potions -= 1;
@@ -1061,19 +1056,22 @@ const setupCollector = (channel, activeDungeon) => {
 };
 const askCoinFlip = async (channel, activeDungeon, player) => {
   const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("rpg_dungeon_coin_heads")
-      .setLabel("Heads (Ngửa) 🪙")
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_coin_heads")
+      .setLabel("Ngửa")
+      .setEmoji("🪙")
       .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("rpg_dungeon_coin_tails")
-      .setLabel("Tails (Sấp) 🪙")
+      new ButtonBuilder()
+        .setCustomId("rpg_dungeon_coin_tails")
+      .setLabel("Sấp")
+      .setEmoji("🪙")
       .setStyle(ButtonStyle.Primary)
   );
   const coinEmbed = new EmbedBuilder()
-    .setColor(0xF1C40F)
-    .setTitle("🪙 Cơ hội tăng sát thương")
-    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội chuẩn bị kích hoạt tung đồng xu.\nHãy đoán mặt xuất hiện để nhận cơ hội **x1.5–x1.8 sát thương**!`);
+    .setColor(getRpgColor("reward"))
+    .setTitle(formatRpgTitle("Cơ hội tăng sát thương", "🪙"))
+    .setDescription(`<@${player.id}>, đòn đánh thứ 3 của tổ đội sắp tung đồng xu.\nĐoán đúng để nhận **x1.5–x1.8 sát thương**.`)
+    .setFooter(formatRpgFooter("Chọn ngửa hoặc sấp trong 20 giây"));
   const coinMsg = await channel.send({
     content: `<@${player.id}>`,
     embeds: [coinEmbed],
@@ -1089,14 +1087,20 @@ const askCoinFlip = async (channel, activeDungeon, player) => {
     activeDungeon.coinFlipCount = 0; 
     return executePlayerAttack(channel, activeDungeon, player, 1.0);
   }
-  await comp.deferUpdate();
+  if (!(await safeDeferUpdate(comp))) {
+    await coinMsg.delete().catch(() => {});
+    activeDungeon.logs.push(`⏳ Lựa chọn đồng xu đã hết hiệu lực! Sát thương bình thường (x1.0). Chuỗi đoán đúng bị ngắt!`);
+    activeDungeon.consecutiveCoinSuccess = 0;
+    activeDungeon.coinFlipCount = 0;
+    return executePlayerAttack(channel, activeDungeon, player, 1.0);
+  }
   const guess = comp.customId === "rpg_dungeon_coin_heads" ? "h" : "t";
-  await comp.editReply({
+  await safeInteractionEditReply(comp, {
     content: `🪙 Đồng xu đang quay... ${config.emoji.coinflip}`,
     embeds: [],
     components: [],
     skipV2: true,
-  }).catch(() => {});
+  });
   setTimeout(async () => {
     const isHeads = Math.random() < 0.5;
     const result = isHeads ? "h" : "t";
@@ -1977,12 +1981,13 @@ const handleVictory = async (channel, activeDungeon) => {
   );
   const rewardTexts = rewardLines.filter(Boolean);
   const embed = new EmbedBuilder()
-    .setColor("#2ECC71")
-    .setTitle("🏆 CHIẾN THẮNG PHÓ BẢN! 🏆")
+    .setColor(getRpgColor("success"))
+    .setTitle(formatRpgTitle("Chiến thắng phó bản", "🏆"))
     .setDescription(
       `Tổ đội của bạn đã xuất sắc chinh phục thành công **Chương ${activeDungeon.chapter}**!${isChallenge ? "\n🔥 **Bảo vật Thử Thách:** Tổ đội đã chọn chế độ mặc định (không buff) và nhận thêm **+20% Coke & EXP**!" : ""}\n\n` +
       `**Phần thưởng vượt phó bản:**\n\n${rewardTexts.join("\n\n")}`
     )
+    .setFooter(formatRpgFooter("Phần thưởng đã được trao cho tổ đội"))
     .setTimestamp();
   await channel.send({ embeds: [embed], skipV2: true });
 };
@@ -2008,12 +2013,13 @@ const handleDefeat = async (channel, activeDungeon) => {
     } catch {}
   }
   const embed = new EmbedBuilder()
-    .setColor("#C0392B")
-    .setTitle("💀 THẤT BẠI! 💀")
+    .setColor(getRpgColor("danger"))
+    .setTitle(formatRpgTitle("Thất bại tại Dungeon", "💀"))
     .setDescription(
       `Toàn bộ thành viên trong tổ đội đã tử nạn! Chiến dịch chinh phục **Chương ${activeDungeon.chapter}** thất bại.\n` +
       `Hãy rèn luyện thêm lực chiến và thử lại!`
     )
+    .setFooter(formatRpgFooter("Rèn luyện thêm và thử lại chương này"))
     .setTimestamp();
   await channel.send({ embeds: [embed], skipV2: true });
 };
@@ -2029,12 +2035,13 @@ const handleTimeout = async (channel, activeDungeon) => {
   }
   channel.client.rpgDungeons.delete(channel.id);
   const embed = new EmbedBuilder()
-    .setColor("#C0392B")
-    .setTitle("💀 HẾT THỜI GIAN! 💀")
+    .setColor(getRpgColor("danger"))
+    .setTitle(formatRpgTitle("Dungeon hết thời gian", "⏱️"))
     .setDescription(
       `Đã quá 5 phút mà tổ đội của bạn chưa vượt qua được vòng đấu này!\n` +
       `Chiến dịch chinh phục **Chương ${activeDungeon.chapter}** thất bại.`
     )
+    .setFooter(formatRpgFooter("Chiến dịch thất bại vì vượt quá 5 phút"))
     .setTimestamp();
   await channel.send({ embeds: [embed], skipV2: true });
 };

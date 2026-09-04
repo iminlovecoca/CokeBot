@@ -4,6 +4,7 @@ const RpgGuild = require("../../../models/RpgGuild");
 const { hasRpgCharacter, requireRpgCharacter } = require("../../../utils/rpgUtil");
 const { getUser } = require("../../../utils/userUtil");
 const config = require("../../../data/config");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionEditReply } = require("../../../utils/rpgUi");
 class PartyCommand extends BaseCommand {
   constructor() {
     super({
@@ -81,26 +82,36 @@ class PartyCommand extends BaseCommand {
           .setLabel("Từ chối")
           .setStyle(ButtonStyle.Danger)
       );
+      const inviteEmbed = new EmbedBuilder()
+        .setColor(getRpgColor("info"))
+        .setTitle(formatRpgTitle("Lời mời gia nhập tổ đội", "👥"))
+        .setDescription(`<@${targetId}>, bạn được <@${userId}> mời tham gia tổ đội Dungeon.`)
+        .addFields(
+          { name: "👑 Trưởng nhóm", value: `<@${userId}>`, inline: true },
+          { name: "👥 Quy mô", value: `${guild.members.length}/3 thành viên`, inline: true },
+        )
+        .setFooter(formatRpgFooter("Lời mời có hiệu lực trong 60 giây"));
       const inviteMsg = await message.reply({
-        content: `⚔️ **Lời Mời Gia Nhập Party** ⚔️\n<@${targetId}>, bạn đã được <@${userId}> mời gia nhập party. Đồng ý tham gia chứ?`,
+        content: `<@${targetId}>`,
+        embeds: [inviteEmbed],
         components: [row],
       });
       const filter = (i) => i.user.id === targetId && i.customId.startsWith("rpg_guild_");
       const collector = inviteMsg.createMessageComponentCollector({ filter, time: 60000 });
       collector.on("collect", async (i) => {
         const isAccept = i.customId.startsWith("rpg_guild_accept_");
-        await i.deferUpdate();
+        if (!(await safeDeferUpdate(i))) return;
         if (isAccept) {
           const freshGuild = await RpgGuild.findById(guild._id);
           if (!freshGuild) {
-            return i.editReply({ content: "❌ Lỗi: Party không còn tồn tại.", components: [] });
+            return safeInteractionEditReply(i, { content: "❌ Lỗi: Party không còn tồn tại.", components: [] });
           }
           if (freshGuild.members.length >= 3) {
-            return i.editReply({ content: "❌ Lỗi: Party đã đầy.", components: [] });
+            return safeInteractionEditReply(i, { content: "❌ Lỗi: Party đã đầy.", components: [] });
           }
           const freshTargetGuild = await RpgGuild.findOne({ members: targetId });
           if (freshTargetGuild) {
-            return i.editReply({ content: "❌ Bạn đã gia nhập một party khác.", components: [] });
+            return safeInteractionEditReply(i, { content: "❌ Bạn đã gia nhập một party khác.", components: [] });
           }
           freshGuild.members.push(targetId);
           await freshGuild.save();
@@ -136,13 +147,14 @@ class PartyCommand extends BaseCommand {
       return `${index + 1}. <@${id}> - **${role}**`;
     }).join("\n");
     const embed = new EmbedBuilder()
-      .setColor("#3498DB")
-      .setTitle("🛡️ Thông Tin Party RPG")
+      .setColor(getRpgColor("info"))
+      .setTitle(formatRpgTitle("Thông tin tổ đội RPG", "👥"))
+      .setDescription("Tổ đội phối hợp để vượt qua Dungeon và mở khóa chương tiếp theo.")
       .addFields(
-        { name: "Thành viên", value: memberLines },
-        { name: "Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/14** chương của Phó Bản` }
+        { name: `👥 Thành viên • ${guild.members.length}/3`, value: memberLines },
+        { name: "🗺️ Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/14** chương` }
       )
-      .setTimestamp();
+      .setFooter(formatRpgFooter(`Trưởng nhóm: <@${guild.leaderId}>`));
     return message.reply({ embeds: [embed] });
   }
 }

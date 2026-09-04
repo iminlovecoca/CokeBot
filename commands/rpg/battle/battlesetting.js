@@ -2,6 +2,7 @@ const BaseCommand = require("../../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const { requireRpgCharacter } = require("../../../utils/rpgUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class BattlesettingCommand extends BaseCommand {
   constructor() {
     super({
@@ -39,31 +40,15 @@ class BattlesettingCommand extends BaseCommand {
     const currentLogs = user.rpg.settings.battleLogs || "false";
     if (args.length === 0) {
       const embed = new EmbedBuilder()
-        .setColor("#5865F2")
-        .setAuthor({
-          name: `${message.author.username}'s battle settings`,
-          iconURL: message.author.displayAvatarURL({ dynamic: true }),
-        })
-        .setDescription(
-          `**Display =** \`${currentDisplay}\`\n` +
-          `**Speed =** \`${currentSpeed}\`\n` +
-          `**Logs =** \`${currentLogs}\`\n\n` +
-          `***\n\n` +
-          `💡 **Cách thay đổi cài đặt / How to change settings:**\n` +
-          `• Sử dụng lệnh: \`${config.prefix}bs {setting}={value}\` hoặc \`${config.prefix}bs {value}\`\n\n` +
-          `**Logs (Nhật ký):**\n` +
-          `• \`true\`: Hiển thị nhật ký trận đấu dưới dạng văn bản\n` +
-          `• \`false\`: Không hiển thị nhật ký trận đấu\n` +
-          `• \`link\`: Cung cấp đường dẫn đến nhật ký trận đấu\n\n` +
-          `**Display (Hiển thị):**\n` +
-          `• \`image\`: Hiển thị trận đấu dạng ảnh\n` +
-          `• \`text\`: Hiển thị trận đấu dạng văn bản (không ảnh)\n` +
-          `• \`compact\`: Hiển thị trận đấu dạng văn bản thu gọn\n\n` +
-          `**Speed (Tốc độ):**\n` +
-          `• \`instant\`: Kết thúc trận đấu ngay lập tức\n` +
-          `• \`short\`: Kết thúc trận đấu sau 1-3 lượt chỉnh sửa tin nhắn\n` +
-          `• \`lengthy\`: Hiển thị chi tiết từng lượt đấu`
-        );
+        .setColor(getRpgColor("brand"))
+        .setTitle(formatRpgTitle(`Cài đặt trận đấu • ${message.author.username}`, "⚙️"))
+        .setDescription(`Dùng \`${config.prefix}bs display=...\`, \`${config.prefix}bs speed=...\` hoặc \`${config.prefix}bs logs=...\` để thay đổi.`)
+        .addFields(
+          { name: "🖼️ Hiển thị", value: `Đang dùng: **${currentDisplay}**\nimage · text · compact`, inline: true },
+          { name: "⏱️ Tốc độ", value: `Đang dùng: **${currentSpeed}**\ninstant · short · lengthy`, inline: true },
+          { name: "📜 Nhật ký", value: `Đang dùng: **${currentLogs}**\ntrue · false · link`, inline: true },
+        )
+        .setFooter(formatRpgFooter("Cài đặt chỉ áp dụng cho trận PvP của bạn"));
       return message.reply({ embeds: [embed] });
     }
     const input = args.join(" ").toLowerCase().trim();
@@ -112,17 +97,15 @@ class BattlesettingCommand extends BaseCommand {
     const finalSpeed = user.rpg.settings.battleSpeed || "instant";
     const finalLogs = user.rpg.settings.battleLogs || "false";
     const embed = new EmbedBuilder()
-      .setColor("#57F287")
-      .setAuthor({
-        name: `${message.author.username}'s battle settings`,
-        iconURL: message.author.displayAvatarURL({ dynamic: true }),
-      })
-      .setDescription(
-        `**Display =** \`${finalDisplay}\`\n` +
-        `**Speed =** \`${finalSpeed}\`\n` +
-        `**Logs =** \`${finalLogs}\`\n\n` +
-        `${config.emoji.yes} Đã cập nhật thành công!`
-      );
+      .setColor(getRpgColor("success"))
+      .setTitle(formatRpgTitle("Đã cập nhật cài đặt", "✅"))
+      .setDescription(`Cấu hình mới của **${message.author.username}** đã được lưu.`)
+      .addFields(
+        { name: "🖼️ Hiển thị", value: `**${finalDisplay}**`, inline: true },
+        { name: "⏱️ Tốc độ", value: `**${finalSpeed}**`, inline: true },
+        { name: "📜 Nhật ký", value: `**${finalLogs}**`, inline: true },
+      )
+      .setFooter(formatRpgFooter("Cấu hình đã lưu"));
     return message.reply({ embeds: [embed] });
   }
 }

@@ -6,6 +6,7 @@ const {
   getGearDisplayName,
   getItemImageFile,
 } = require("../../../utils/rpgUtil");
+const { getRarityEmoji, getSlotEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 module.exports = {
   name: "equip",
   aliases: ["eq"],
@@ -26,26 +27,27 @@ module.exports = {
     const fs = require("fs");
     const { AttachmentBuilder } = require("discord.js");
     const embed = new EmbedBuilder()
-      .setColor("#57F287")
-      .setTitle("Đã mặc trang bị")
+      .setColor(getRpgColor("success"))
+      .setTitle(formatRpgTitle("Trang bị thành công", getSlotEmoji(item.slot)))
       .setDescription(
-        `Bạn đã mặc **${getGearDisplayName(item)}** vào slot **${config.rpg.gear_slot_names[item.slot]}**.`,
+        `**${getGearDisplayName(item)}** đã được trang bị vào ô **${getSlotLabel(item.slot)}**.`,
       )
       .addFields(
         {
-          name: "Trang bị",
+          name: "📦 Trang bị",
           value:
-            `ID: \`${item.id}\`\n` +
-            `Rarity: **${item.rarity}**\n` +
+            `Mã: \`G${String(item.id).padStart(3, "0")}\`\n` +
+            `Độ hiếm: ${getRarityEmoji(item.rarity)} **${item.rarity}**\n` +
             `Lực chiến: **+${item.power.toLocaleString()}**`,
           inline: true,
         },
         {
-          name: "Lực chiến hiện tại",
+          name: "⚔️ Lực chiến hiện tại",
           value: `**${user.rpg.power.toLocaleString()}**`,
           inline: true,
         },
-      );
+      )
+      .setFooter(formatRpgFooter("Trang bị đã được lưu vào nhân vật"));
     let itemAttachment = null;
     const imgKey = item.imageKey || getItemImageFile(item);
     if (imgKey) {
@@ -61,4 +63,4 @@ module.exports = {
     }
     return message.reply(payload);
   },
-};
+};

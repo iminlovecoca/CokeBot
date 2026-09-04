@@ -3,6 +3,7 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const gachaBanner = require("../../../data/gachaBanner");
 const { DateTime } = require("luxon");
+const { getRarityColor, getRarityEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class BannerCommand extends BaseCommand {
   constructor() {
     super({
@@ -22,7 +23,7 @@ class BannerCommand extends BaseCommand {
     }
 
     if (bannersToShow.length === 0) {
-      return message.reply("❌ Hiện tại không có banner gacha vũ khí nào đang diễn ra.");
+      return message.reply(`${config.emoji.no} Hiện tại không có banner gacha vũ khí nào đang diễn ra.`);
     }
 
     const { AttachmentBuilder } = require("discord.js");
@@ -39,18 +40,20 @@ class BannerCommand extends BaseCommand {
       const expireDate = DateTime.fromISO(banner.expiresAt).setZone(timezone);
       if (expireDate < now) continue;
 
-      const timeStr = expireDate.toFormat("HH:mm");
-      const dateStr = expireDate.toFormat("dd/MM/yyyy");
+       const timeStr = expireDate.toFormat("HH:mm dd/MM/yyyy");
+       const remaining = expireDate.diff(now, ["days", "hours", "minutes"]).toHuman({ listStyle: "short" });
 
-      const embed = new EmbedBuilder()
-        .setColor("#FFD700")
-        .setTitle(`✨ ${banner.bannerName} ✨`)
-        .setDescription(
-          `• Vũ khí: ${banner.weaponEmoji} **${banner.weaponName}**\n` +
-          `• Cấp bậc: **${banner.rarity}**\n` +
-          `⏰ Thời hạn: **${timeStr}** ngày **${dateStr}**`
-        )
-        .setTimestamp();
+       const embed = new EmbedBuilder()
+         .setColor(getRarityColor(banner.rarity, "#FFD700"))
+         .setTitle(formatRpgTitle(banner.bannerName, "🎴"))
+         .setDescription("Banner giới hạn • Tỉ lệ và bảo hiểm áp dụng theo mùa hiện tại.")
+         .addFields(
+           { name: "⚔️ Vũ khí nổi bật", value: `${banner.weaponEmoji} **${banner.weaponName}**`, inline: true },
+           { name: "✦ Độ hiếm", value: `${getRarityEmoji(banner.rarity)} **${banner.rarity}**`, inline: true },
+           { name: "⌛ Kết thúc", value: `**${timeStr}**\nCòn khoảng **${remaining}**`, inline: false },
+         )
+         .setFooter(formatRpgFooter("Gacha vũ khí • dùng xgacha 1/10 hoặc xgacha banner"))
+         .setTimestamp();
 
       if (banner.imageKey) {
         const itemPath = path.join(__dirname, "../../../assets/items", banner.imageKey);
@@ -78,7 +81,7 @@ class BannerCommand extends BaseCommand {
     }
 
     if (embeds.length === 0) {
-      return message.reply("❌ Tất cả các banner gacha đã kết thúc hoặc không khả dụng.");
+      return message.reply(`${config.emoji.no} Tất cả banner gacha đã kết thúc hoặc không khả dụng.`);
     }
 
     const payload = { embeds };
@@ -88,4 +91,4 @@ class BannerCommand extends BaseCommand {
     return message.reply(payload);
   }
 }
-module.exports = new BannerCommand();
+module.exports = new BannerCommand();

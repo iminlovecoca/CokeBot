@@ -4,15 +4,7 @@ const User = require("../../../models/User");
 const { calculateRpgPower, getEquippedItems } = require("../../../utils/rpgUtil");
 const runPvPBattle = require("./runPvPBattle");
 const confirmationManager = require("../../../utils/confirmationManager");
-
-const CLASS_EMOJIS = {
-  warrior: "⚙️",
-  archer: "🌿",
-  paladin: "🪨",
-  assassin: "💧",
-  mage: "🔥",
-  wretch: "🪵",
-};
+const { getClassEmoji, getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionReply } = require("../../../utils/rpgUi");
 
 const pendingChallenges = confirmationManager.pendingRequests;
 
@@ -36,8 +28,8 @@ const sendChallenge = async (
   const targetMember = message.guild?.members.cache.get(receiverId);
   const targetName = targetMember?.displayName || targetMention.displayName || targetMention.username;
 
-  const senderClassEmoji = CLASS_EMOJIS[senderUser.rpg.classKey] || "⚔️";
-  const receiverClassEmoji = CLASS_EMOJIS[receiverUser.rpg.classKey] || "⚔️";
+  const senderClassEmoji = getClassEmoji(senderUser.rpg.classKey);
+  const receiverClassEmoji = getClassEmoji(receiverUser.rpg.classKey);
 
   const senderPwr = Math.floor(calculateRpgPower(senderUser));
   const receiverPwr = Math.floor(calculateRpgPower(receiverUser));
@@ -45,46 +37,41 @@ const sendChallenge = async (
   const senderStreak = senderUser.rpg?.pvpStreak || 0;
   const receiverStreak = receiverUser.rpg?.pvpStreak || 0;
 
-  const senderAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
-
   const equipped1 = getEquippedItems(senderUser);
   const equipped2 = getEquippedItems(receiverUser);
   const weapon1Emoji = equipped1.weapon?.emoji ? ` | ${equipped1.weapon.emoji}` : "";
   const weapon2Emoji = equipped2.weapon?.emoji ? ` | ${equipped2.weapon.emoji}` : "";
 
   const challengeEmbed = new EmbedBuilder()
-    .setColor(senderClass.color || "#5865F2")
-    .setAuthor({
-      name: `${targetName.toUpperCase()}, ${senderName} đã thách đấu bạn một trận quyết chiến!`,
-      iconURL: senderAvatar,
-    })
+    .setColor(senderClass.color || getRpgColor("brand"))
+    .setTitle(formatRpgTitle("Lời thách đấu PvP", "⚔️"))
     .setDescription(
-      `\`${config.prefix}ab\` để chấp nhận trận đấu!\n` +
-      `\`${config.prefix}db\` để từ chối trận đấu!`
+      `<@${receiverId}>, **${senderName}** muốn giao đấu với bạn.\n` +
+      `Chọn bên dưới hoặc dùng \`${config.prefix}ab\` / \`${config.prefix}db\`.`
     )
     .addFields(
       {
-        name: `${senderName} | ${senderStreak} trận thắng`,
+        name: `${senderClassEmoji} ${senderName} • ${senderStreak} trận thắng`,
         value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name}${weapon1Emoji}\n⚔️ **${senderPwr.toLocaleString()}** Lực chiến`,
         inline: true,
       },
       {
-        name: `${targetName} | ${receiverStreak} trận thắng`,
+        name: `${receiverClassEmoji} ${targetName} • ${receiverStreak} trận thắng`,
         value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name}${weapon2Emoji}\n⚔️ **${receiverPwr.toLocaleString()}** Lực chiến`,
         inline: true,
       }
     )
-    .setFooter({ text: "Thách đấu này sẽ hết hạn trong 10 phút" })
+    .setFooter(formatRpgFooter("Lời thách đấu hết hạn sau 10 phút"))
     .setTimestamp();
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("pvp_accept")
-      .setLabel("Chấp Nhận")
+      .setLabel("Chấp nhận")
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId("pvp_decline")
-      .setLabel("Từ Chối")
+      .setLabel("Từ chối")
       .setStyle(ButtonStyle.Danger)
   );
 
@@ -159,7 +146,7 @@ const sendChallenge = async (
 
     if (interaction.customId === "pvp_accept") {
       if (clickerId !== receiverId) {
-        return interaction.reply({
+        return safeInteractionReply(interaction, {
           content: `❌ Chỉ <@${receiverId}> mới có thể chấp nhận lời khiêu chiến này!`,
           flags: 64,
         });
@@ -167,7 +154,7 @@ const sendChallenge = async (
       await confirmationManager.acceptRequest(clickerId, interaction);
     } else if (interaction.customId === "pvp_decline") {
       if (clickerId !== receiverId && clickerId !== senderId) {
-        return interaction.reply({
+        return safeInteractionReply(interaction, {
           content: `❌ Bạn không thể từ chối lời thách đấu của người khác!`,
           flags: 64,
         });

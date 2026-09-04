@@ -8,6 +8,7 @@ const {
 const config = require("../../../data/config");
 const { getUser } = require("../../../utils/userUtil");
 const { requireRpgCharacter } = require("../../../utils/rpgUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 class TradestoneCommand extends BaseCommand {
   constructor() {
     super({
@@ -104,8 +105,8 @@ class TradestoneCommand extends BaseCommand {
         .setStyle(ButtonStyle.Danger)
     );
     const embed = new EmbedBuilder()
-      .setColor("#FFA500")
-      .setTitle("💎 Xác Nhận Giao Dịch Đá Cường Hóa")
+      .setColor(getRpgColor("premium"))
+      .setTitle(formatRpgTitle("Xác nhận chuyển đá cường hóa", "💎"))
       .setDescription(
         `Bạn có chắc chắn muốn chuyển đá cường hóa sau cho <@${receiverId}> không?\n` +
           `**Chú ý:** Hành động này không thể hoàn tác.`
@@ -128,7 +129,8 @@ class TradestoneCommand extends BaseCommand {
             `Số lượng: **x${qty}**\n` +
             `Mã ID: \`${stoneId}\``,
         }
-      );
+      )
+      .setFooter(formatRpgFooter("Giao dịch không thể hoàn tác • phiên xác nhận 20 giây"));
     const prompt = await message.reply({
       embeds: [embed],
       components: [row],
@@ -142,14 +144,14 @@ class TradestoneCommand extends BaseCommand {
         const freshSender = await getUser(senderId);
         const freshReceiver = await getUser(receiverId);
         if (!freshSender || !freshSender.rpg || !freshSender.rpg.classKey) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: "❌ Giao dịch thất bại: Không tìm thấy nhân vật RPG của người gửi.",
             embeds: [],
             components: [],
           });
         }
         if (!freshReceiver || !freshReceiver.rpg || !freshReceiver.rpg.classKey) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: "❌ Giao dịch thất bại: Không tìm thấy nhân vật RPG của người nhận.",
             embeds: [],
             components: [],
@@ -160,7 +162,7 @@ class TradestoneCommand extends BaseCommand {
         }
         const freshSenderQty = freshSender.inventory.get(stoneId) || 0;
         if (freshSenderQty < qty) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Giao dịch thất bại: Người gửi không còn đủ **${qty} x ${stoneEmoji} ${stoneName}** (Hiện có: **${freshSenderQty}**).`,
             embeds: [],
             components: [],
@@ -182,17 +184,18 @@ class TradestoneCommand extends BaseCommand {
         await freshSender.save();
         await freshReceiver.save();
         const successEmbed = EmbedBuilder.from(embed)
-          .setColor("#57F287")
-          .setTitle("✅ Giao Dịch Đá Cường Hóa Thành Công")
+          .setColor(getRpgColor("success"))
+          .setTitle(formatRpgTitle("Chuyển đá thành công", "✅"))
           .setDescription(
             `Đá cường hóa **${stoneName}** (x${qty}) đã được chuyển thành công từ <@${senderId}> sang <@${receiverId}>!`
-          );
-        await interaction.update({
+          )
+          .setFooter(formatRpgFooter("Nguyên liệu đã được cập nhật cho cả hai người chơi"));
+        await safeInteractionUpdate(interaction, {
           embeds: [successEmbed],
           components: [],
         });
       } else {
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           content: "❌ Giao dịch đã bị hủy.",
           embeds: [],
           components: [],
@@ -207,4 +210,4 @@ class TradestoneCommand extends BaseCommand {
     }
   }
 }
-module.exports = new TradestoneCommand();
+module.exports = new TradestoneCommand();

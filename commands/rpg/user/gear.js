@@ -29,47 +29,34 @@ const {
   getDungeonWeaponKey,
   WEAPON_SETS,
 } = require("../../../utils/rpgUtil");
+const {
+  ui,
+  getRarityEmoji,
+  getRarityColor,
+  getSlotEmoji,
+  getStatLabel,
+  formatRpgFooter,
+  formatRpgTitle,
+  safeInteractionReply,
+  safeInteractionUpdate,
+} = require("../../../utils/rpgUi");
 const ITEMS_PER_PAGE = 10;
-const slotEmoji = {
-  weapon: "🗡️",
-  armor: "🛡️",
-  helmet: "🪖",
-  boots: "🥾",
-  ring: "💍",
-  necklace: "📿",
-};
-const rarityColor = {
-  Common: "#95A5A6",
-  Rare: "#3498DB",
-  Epic: "#9B59B6",
-  Legendary: "#F1C40F",
-  Mythic: "#E67E22",
-  Ancient: "#E74C3C",
-  Divine: "#FFFFFF",
-};
-const bracketEmoji = {
-  Common: "<:common:1530878565489311826>",
-  Rare: "<:rare:1530878574104547378>",
-  Epic: "<:epic:1530878567955566642>",
-  Legendary: "<:legendary:1530878570858287205>",
-  Mythic: "<a:mythic:1530878614843686912>",
-  Ancient: "<a:ancient:1530878606656540814>",
-  Divine: "<a:divine:1530878610515165365>",
-};
 const buildGearLine = (item, isEquipped = false) => {
   const idStr = String(item.id).padStart(3, "0");
   const displayName = getGearDisplayName(item);
   const quality = getItemQuality(item);
   const equippedIndicator = isEquipped ? " ✨" : "";
-  return `\`G${idStr}\` **${displayName}** ${quality}%${equippedIndicator}`;
+  const itemEmoji = item.emoji || getSlotEmoji(item.slot);
+  const rarityEmoji = getRarityEmoji(item.rarity);
+  return `${itemEmoji} ${rarityEmoji} \`G${idStr}\` **${displayName}** · ${quality}%${equippedIndicator}`;
 };
 const formatGearStats = (stats = {}) =>
   Object.entries(stats)
     .filter(([, value]) => value)
-    .map(([key, value]) => `**${key.toUpperCase()}:** **+${value}**`)
-    .join("   |   ");
+    .map(([key, value]) => `**${getStatLabel(key)}:** +${value}`)
+    .join(" • ");
 const filterLabels = {
-  none: "None",
+  none: "Không lọc",
   favorite: "Yêu thích (⭐)",
   slot_weapon: "Vũ khí",
   slot_armor: "Giáp ngực",
@@ -94,15 +81,17 @@ const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterT
     ? pageItems.map((item) => buildGearLine(item, equippedIds.has(item.id))).join("\n")
     : "*Chưa có trang bị nào khớp bộ lọc.*";
   const filterLabel = filterTypes.includes("none")
-    ? "None"
+    ? "Không lọc"
     : filterTypes.map((f) => filterLabels[f] || f).join(", ");
   return new EmbedBuilder()
     .setColor(getRpgClass(user.rpg.classKey)?.color || rpgClass.color)
-    .setTitle(`🗡️ @${memberName}'s Weapons`)
-    .setDescription(
-      `Weapon Filters: **${filterLabel}**\n\n` +
-        `${list}`
-    );
+    .setTitle(formatRpgTitle(`Kho trang bị • ${memberName}`, ui.icons?.gear))
+    .setDescription(list)
+    .addFields(
+      { name: "⚔️ Lực chiến", value: `**${Math.floor(calculateRpgPower(user)).toLocaleString()}**`, inline: true },
+      { name: "🔎 Bộ lọc", value: `**${filterLabel}**`, inline: true },
+    )
+    .setFooter(formatRpgFooter(`Trang ${page + 1}/${totalPages} • ✨ = đang trang bị`));
 };
 class GearCommand extends BaseCommand {
   constructor() {
@@ -133,13 +122,12 @@ class GearCommand extends BaseCommand {
       }
       const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` +${freshItem.upgradeLevel}` : "";
       const ownerName = freshOwner.rpg.name || freshOwner.userId;
-      const titleText = `${ownerName}'s ${freshItem.rarity} ${subTypeName}${upgradeStr}`;
-      let desc = `**Name:** ${subTypeName}\n` +
-                 `**Owner:** <@${freshOwner.userId}>\n` +
-                 `**ID:** \`${freshItem.id}\`\n` +
-                 `**Sell Value:** ${config.emoji.money || "💵"} ${freshItem.sellPrice.toLocaleString()} Coke\n` +
-                 `**Quality:** 📈 ${getItemQuality(freshItem)}%\n` +
-                 `**Wear:** \`${freshItem.rarity.toUpperCase()}\`\n\n`;
+      const titleText = `${getRarityEmoji(freshItem.rarity)} ${getSlotEmoji(freshItem.slot)} ${ownerName} • ${subTypeName}${upgradeStr}`;
+      let desc = `**Chủ sở hữu:** <@${freshOwner.userId}>\n` +
+                 `**Mã trang bị:** \`G${String(freshItem.id).padStart(3, "0")}\`\n` +
+                 `**Giá bán:** ${config.emoji.money || "💵"} ${freshItem.sellPrice.toLocaleString()} Coke\n` +
+                 `**Chất lượng:** 📈 ${getItemQuality(freshItem)}%\n` +
+                 `**Độ hiếm:** ${getRarityEmoji(freshItem.rarity)} **${freshItem.rarity}**\n\n`;
       if (freshItem.slot === "weapon") {
         const ownerStats = getEffectiveRpgStats(freshOwner);
         const finalPower = getWeaponPower(freshItem, ownerStats);
@@ -147,9 +135,9 @@ class GearCommand extends BaseCommand {
         const powerText = `**${finalPower.toLocaleString()}** (+${bonusPower.toLocaleString()})`;
         const scaling = getWeaponScaling(freshItem);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
-        desc += `**Lực chiến cơ bản:** ${freshItem.power.toLocaleString()}\n` +
-                `**Lực chiến thực tế:** ${powerText}\n` +
-                `**Scale:** \`${scalingText}\`\n\n`;
+         desc += `### ⚔️ Sức mạnh vũ khí\n` +
+                 `Cơ bản: **${freshItem.power.toLocaleString()}**  •  Thực tế: ${powerText}\n` +
+                 `Scale: \`${scalingText}\`\n\n`;
         const freshWeaponSubtype = freshItem.subType || freshItem.subtype;
         const freshWeaponKey = getDungeonWeaponKey(freshWeaponSubtype) || String(freshWeaponSubtype || "").toLowerCase().replace(/\s+/g, "");
         const setInfo = WEAPON_SETS[freshWeaponKey];
@@ -158,7 +146,7 @@ class GearCommand extends BaseCommand {
             if (typeof v === "number") return k === "dual" ? "" : `+${Math.round(v * 100)}% ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`;
             return "";
           }).filter(Boolean).join(", ");
-          desc += `✦ **Bộ Vũ Khí:** \`${setInfo.name}\` — ${bonusText}\n\n`;
+           desc += `✦ **Bộ vũ khí:** \`${setInfo.name}\` — ${bonusText}\n\n`;
         }
         desc += `__**Description**__\n`;
         const dungKey = freshWeaponKey;
@@ -194,28 +182,29 @@ class GearCommand extends BaseCommand {
           if (noPassiveWeapons.includes(dungKey)) {
             desc += `*${passiveDesc}*\n`;
           } else {
-            desc += `*Nội tại (45% kích hoạt): ${passiveDesc}*\n`;
+           desc += `*Nội tại (45% kích hoạt): ${passiveDesc}*\n`;
           }
         } else {
           desc += `*Vũ khí cơ bản, không có nội tại đặc biệt.*\n`;
         }
       } else {
         const statsText = formatStats(freshItem.stats) || "Không có";
-        desc += `__**Description**__\n` +
-                `**Lực chiến:** +${freshItem.power.toLocaleString()}\n` +
-                `**Chỉ số cộng thêm:** ${statsText}\n`;
+        desc += `### 📈 Chỉ số cộng thêm\n` +
+                `Lực chiến: **+${freshItem.power.toLocaleString()}**\n` +
+                `${statsText}`;
       }
       const embed = new EmbedBuilder()
-        .setColor(rarityColor[freshItem.rarity] || rpgClass.color)
+        .setColor(getRarityColor(freshItem.rarity, rpgClass.color))
         .setTitle(titleText)
-        .setDescription(desc);
+        .setDescription(desc)
+        .setFooter(formatRpgFooter("Chi tiết trang bị • phiên tương tác 5 phút"));
       const row = new ActionRowBuilder();
       if (equippedEntry) {
         row.addComponents(
           new ButtonBuilder()
             .setCustomId(`gear_uneq_${freshItem.id}`)
             .setLabel("Tháo")
-            .setEmoji("🛡️")
+            .setEmoji(getSlotEmoji(freshItem.slot))
             .setStyle(ButtonStyle.Secondary)
         );
       } else {
@@ -223,7 +212,7 @@ class GearCommand extends BaseCommand {
           new ButtonBuilder()
             .setCustomId(`gear_equip_${freshItem.id}`)
             .setLabel("Trang bị")
-            .setEmoji("🗡️")
+            .setEmoji(getSlotEmoji(freshItem.slot))
             .setStyle(ButtonStyle.Primary)
         );
       }
@@ -278,23 +267,23 @@ class GearCommand extends BaseCommand {
       });
       favCollector.on("collect", async (interaction) => {
         if (interaction.user.id !== owner.userId) {
-          return interaction.reply({ content: "❌ Chỉ chủ sở hữu trang bị mới có quyền thực hiện hành động này!", ephemeral: true });
+          return safeInteractionReply(interaction, { content: "❌ Chỉ chủ sở hữu trang bị mới có quyền thực hiện hành động này!", ephemeral: true });
         }
         if (interaction.customId.startsWith("gear_fav_")) {
           item.isFavorite = !item.isFavorite;
           owner.markModified("rpg");
           await owner.save();
           const updated = getDetailEmbedAndComponents(item, owner);
-          await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+          await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
         }
         else if (interaction.customId.startsWith("gear_equip_")) {
           const { equipRpgItem } = require("../../../utils/rpgUtil");
           try {
             const { user: updatedOwner } = await equipRpgItem(owner.userId, item.id);
             const updated = getDetailEmbedAndComponents(item, updatedOwner);
-            await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+            await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
           } catch (err) {
-            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
           }
         }
         else if (interaction.customId.startsWith("gear_uneq_")) {
@@ -302,9 +291,9 @@ class GearCommand extends BaseCommand {
           try {
             const { user: updatedOwner } = await unequipRpgSlot(owner.userId, item.slot);
             const updated = getDetailEmbedAndComponents(item, updatedOwner);
-            await interaction.update({ embeds: [updated.embed], components: [updated.row] });
+            await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
           } catch (err) {
-            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
           }
         }
         else if (interaction.customId.startsWith("gear_sell_")) {
@@ -312,13 +301,14 @@ class GearCommand extends BaseCommand {
           try {
             const { cokeGain } = await sellRpgItem(owner.userId, item.id);
             const soldEmbed = new EmbedBuilder()
-              .setColor("#95A5A6")
-              .setTitle("Trang bị đã được bán")
-              .setDescription(`Trang bị này đã được bán lấy **${cokeGain.toLocaleString()} Coke**.`);
-            await interaction.update({ embeds: [soldEmbed], components: [] });
+              .setColor(ui.colors?.neutral || "#747F8D")
+              .setTitle(formatRpgTitle("Đã bán trang bị", ui.icons?.success))
+              .setDescription(`Bạn nhận được ${config.emoji.money} **${cokeGain.toLocaleString()} Coke**.`)
+              .setFooter(formatRpgFooter("Giao dịch hoàn tất"));
+            await safeInteractionUpdate(interaction, { embeds: [soldEmbed], components: [] });
             favCollector.stop();
           } catch (err) {
-            await interaction.reply({ content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
           }
         }
       });
@@ -430,7 +420,7 @@ class GearCommand extends BaseCommand {
           .setMinValues(1)
           .setMaxValues(5)
           .addOptions(
-            { label: "Không lọc (None)", value: "none", default: filterTypes.includes("none") },
+             { label: "Không lọc", value: "none", default: filterTypes.includes("none") },
             { label: "Lọc: Yêu thích (⭐)", value: "favorite", default: filterTypes.includes("favorite") },
             { label: "Lọc: Vũ khí", value: "slot_weapon", default: filterTypes.includes("slot_weapon") },
             { label: "Lọc: Giáp ngực", value: "slot_armor", default: filterTypes.includes("slot_armor") },
@@ -440,12 +430,12 @@ class GearCommand extends BaseCommand {
             { label: "Lọc: Dây chuyền", value: "slot_necklace", default: filterTypes.includes("slot_necklace") },
             { label: "Lọc: Độ hiếm (Cao -> Thấp)", value: "rarity_all", default: filterTypes.includes("rarity_all") },
             { label: "Lọc chỉ số: Vigor", value: "stat_vigor", default: filterTypes.includes("stat_vigor") },
-            { label: "Lọc chỉ số: PR (Physical Resist)", value: "stat_pr", default: filterTypes.includes("stat_pr") },
-            { label: "Lọc chỉ số: MR (Magic Resist)", value: "stat_mr", default: filterTypes.includes("stat_mr") },
-            { label: "Lọc chỉ số: Strength", value: "stat_str", default: filterTypes.includes("stat_str") },
-            { label: "Lọc chỉ số: Dexterity", value: "stat_dex", default: filterTypes.includes("stat_dex") },
-            { label: "Lọc chỉ số: Intelligence", value: "stat_int", default: filterTypes.includes("stat_int") },
-            { label: "Lọc chỉ số: Arcane", value: "stat_arc", default: filterTypes.includes("stat_arc") }
+             { label: "Lọc chỉ số: PR", value: "stat_pr", default: filterTypes.includes("stat_pr") },
+             { label: "Lọc chỉ số: MR", value: "stat_mr", default: filterTypes.includes("stat_mr") },
+             { label: "Lọc chỉ số: STR", value: "stat_str", default: filterTypes.includes("stat_str") },
+             { label: "Lọc chỉ số: DEX", value: "stat_dex", default: filterTypes.includes("stat_dex") },
+             { label: "Lọc chỉ số: INT", value: "stat_int", default: filterTypes.includes("stat_int") },
+             { label: "Lọc chỉ số: ARC", value: "stat_arc", default: filterTypes.includes("stat_arc") }
           )
       );
       const buttonRow = new ActionRowBuilder().addComponents(
@@ -466,7 +456,7 @@ class GearCommand extends BaseCommand {
           .setDisabled(totalPages <= 1),
         new ButtonBuilder()
           .setCustomId("gear_help")
-          .setLabel("?")
+          .setLabel("Trợ giúp")
           .setStyle(ButtonStyle.Secondary)
       );
       return [sortRow, filterRow, buttonRow];
@@ -499,7 +489,7 @@ class GearCommand extends BaseCommand {
       if (interaction.customId === "gear_sort") {
         sortBy = interaction.values[0];
         page = 0;
-        await interaction.update(render());
+        await safeInteractionUpdate(interaction, render());
       } else if (interaction.customId === "gear_filter") {
         let selected = interaction.values;
         if (selected.includes("none")) {
@@ -516,17 +506,17 @@ class GearCommand extends BaseCommand {
         }
         filterTypes = selected;
         page = 0;
-        await interaction.update(render());
+        await safeInteractionUpdate(interaction, render());
       } else if (interaction.customId === "gear_prev") {
         const items = getFilteredAndSortedItems();
         const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
         page = page > 0 ? page - 1 : totalPages - 1;
-        await interaction.update(render());
+        await safeInteractionUpdate(interaction, render());
       } else if (interaction.customId === "gear_next") {
         const items = getFilteredAndSortedItems();
         const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
         page = page < totalPages - 1 ? page + 1 : 0;
-        await interaction.update(render());
+        await safeInteractionUpdate(interaction, render());
       } else if (interaction.customId === "gear_help") {
         const helpText = [
           "**Hướng dẫn rương đồ RPG:**",
@@ -536,7 +526,7 @@ class GearCommand extends BaseCommand {
           `• Bán hàng loạt theo cấp: \`${config.prefix}sellgear [Viết tắt]\` (Ví dụ: \`${config.prefix}sellgear c,r\`)`,
           `• Xem chi tiết trang bị: \`${config.prefix}gear [ID]\` (Ví dụ: \`${config.prefix}gear 5\`)`,
         ].join("\n");
-        await interaction.reply({ content: helpText, ephemeral: true });
+        await safeInteractionReply(interaction, { content: helpText, ephemeral: true });
       }
     });
     collector.on("end", async () => {

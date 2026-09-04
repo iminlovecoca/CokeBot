@@ -7,6 +7,7 @@ const {
   calculateRpgPower,
   isDungeonWeapon,
 } = require("../../../utils/rpgUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 class EnhanceCommand extends BaseCommand {
   constructor() {
     super({
@@ -102,8 +103,8 @@ class EnhanceCommand extends BaseCommand {
         .setStyle(ButtonStyle.Danger)
     );
     const confirmEmbed = new EmbedBuilder()
-      .setColor("#FFA500")
-      .setTitle("🛡️ Xác Nhận Cường Hóa Vũ Khí")
+      .setColor(getRpgColor("premium"))
+      .setTitle(formatRpgTitle("Xác nhận cường hóa vũ khí", "🔨"))
       .setDescription(
         `Bạn có chắc chắn muốn cường hóa vũ khí sau không?\n` +
           `🗡️ **Vũ khí**: ${getGearDisplayName(item)} (**+${currentLvl}** ➡️ **+${nextLvl}**)\n\n` +
@@ -111,6 +112,7 @@ class EnhanceCommand extends BaseCommand {
           `💎 Nguyên liệu tiêu hao: **${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
           `*Nhấp **Xác nhận** bên dưới để tiến hành cường hóa.*`
       )
+      .setFooter(formatRpgFooter("Kiểm tra chi phí trước khi xác nhận • hết hạn sau 20 giây"))
       .setTimestamp();
     const confirmMsg = await message.reply({
       embeds: [confirmEmbed],
@@ -125,7 +127,7 @@ class EnhanceCommand extends BaseCommand {
         const { getUser } = require("../../../utils/userUtil");
         const freshUser = await getUser(message.author.id);
         if (!freshUser || !freshUser.rpg || !freshUser.rpg.classKey) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: "❌ Không tìm thấy nhân vật RPG của bạn.",
             embeds: [],
             components: [],
@@ -134,7 +136,7 @@ class EnhanceCommand extends BaseCommand {
         const freshItems = freshUser.rpg.items || [];
         const freshItemIndex = freshItems.findIndex((it) => it.id === Number(itemId));
         if (freshItemIndex === -1) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: "❌ Không tìm thấy vũ khí này trong túi đồ của bạn nữa.",
             embeds: [],
             components: [],
@@ -143,14 +145,14 @@ class EnhanceCommand extends BaseCommand {
         const freshItem = freshItems[freshItemIndex];
         const freshCurrentLvl = freshItem.upgradeLevel || 0;
         if (freshCurrentLvl !== currentLvl) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Giao dịch thất bại: Cấp độ vũ khí hiện tại đã thay đổi hoặc đang được xử lý trong một phiên khác.`,
             embeds: [],
             components: [],
           });
         }
         if (freshUser.coke < cokeCost) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${freshUser.coke.toLocaleString()}** ${config.emoji.money}.`,
             embeds: [],
             components: [],
@@ -161,7 +163,7 @@ class EnhanceCommand extends BaseCommand {
         }
         const freshUserStoneQty = freshUser.inventory.get(stoneId) || 0;
         if (freshUserStoneQty < stoneQty) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Bạn không đủ nguyên liệu! Cần **${stoneQty} x ${stoneEmoji} ${stoneName}** nhưng hiện tại chỉ có **${freshUserStoneQty}** viên trong túi đồ.`,
             embeds: [],
             components: [],
@@ -181,8 +183,8 @@ class EnhanceCommand extends BaseCommand {
         freshUser.rpg.power = calculateRpgPower(freshUser);
         await freshUser.save();
         const successEmbed = new EmbedBuilder()
-          .setColor("#FFD700")
-          .setTitle("✨ CƯỜNG HÓA VŨ KHÍ THÀNH CÔNG! ✨")
+          .setColor(getRpgColor("reward"))
+          .setTitle(formatRpgTitle("Cường hóa thành công", "✨"))
           .setDescription(
             `Chúc mừng bạn đã nâng cấp thành công vũ khí của mình lên **+${nextLvl}**!\n\n` +
               `🗡️ **Vũ khí**: ${getGearDisplayName(freshItem)}\n` +
@@ -190,6 +192,7 @@ class EnhanceCommand extends BaseCommand {
               `💎 Nguyên liệu tiêu hao: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
               `💪 Lực chiến tổng hiện tại: **${freshUser.rpg.power.toLocaleString()}**`
           )
+          .setFooter(formatRpgFooter("Cấp cường hóa và lực chiến đã được lưu"))
           .setTimestamp();
         const path = require("path");
         const fs = require("fs");
@@ -207,9 +210,9 @@ class EnhanceCommand extends BaseCommand {
         if (itemAttachment) {
           payload.files = [itemAttachment];
         }
-        return interaction.update(payload);
+        return safeInteractionUpdate(interaction, payload);
       } else {
-        return interaction.update({
+        return safeInteractionUpdate(interaction, {
           content: "❌ Đã hủy yêu cầu cường hóa vũ khí.",
           embeds: [],
           components: [],
@@ -224,4 +227,4 @@ class EnhanceCommand extends BaseCommand {
     }
   }
 }
-module.exports = new EnhanceCommand();
+module.exports = new EnhanceCommand();

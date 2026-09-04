@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const { requireRpgCharacter, unequipRpgSlot } = require("../../../utils/rpgUtil");
+const { getSlotEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 module.exports = {
   name: "unequip",
   aliases: ["uneq"],
@@ -24,16 +25,17 @@ module.exports = {
       slot,
     );
     const embed = new EmbedBuilder()
-      .setColor("#FEE75C")
-      .setTitle("Đã tháo trang bị")
+      .setColor(getRpgColor("warning"))
+      .setTitle(formatRpgTitle("Đã tháo trang bị", getSlotEmoji(unequippedSlot)))
       .setDescription(
-        `Bạn đã tháo **${item?.name || config.rpg.gear_slot_names[unequippedSlot]}** khỏi slot **${config.rpg.gear_slot_names[unequippedSlot]}**.`,
+        `**${item?.name || getSlotLabel(unequippedSlot)}** đã được tháo khỏi ô **${getSlotLabel(unequippedSlot)}**.`,
       )
       .addFields({
-        name: "Lực chiến hiện tại",
+        name: "⚔️ Lực chiến hiện tại",
         value: `**${user.rpg.power.toLocaleString()}**`,
         inline: true,
-      });
+      })
+      .setFooter(formatRpgFooter("Trang bị vẫn còn trong kho đồ"));
     return message.reply({ embeds: [embed] });
   },
-};
+};

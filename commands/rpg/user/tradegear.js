@@ -14,32 +14,7 @@ const {
   getRpgClass,
   formatStats,
 } = require("../../../utils/rpgUtil");
-const slotEmoji = {
-  weapon: "🗡️",
-  armor: "🛡️",
-  helmet: "🪖",
-  boots: "🥾",
-  ring: "💍",
-  necklace: "📿",
-};
-const rarityEmoji = {
-  Common: "⚪",
-  Rare: "🔵",
-  Epic: "🟣",
-  Legendary: "🟡",
-  Mythic: "🔴",
-  Ancient: "🟤",
-  Divine: "💠",
-};
-const rarityColor = {
-  Common: "#95A5A6",
-  Rare: "#3498DB",
-  Epic: "#9B59B6",
-  Legendary: "#F1C40F",
-  Mythic: "#E67E22",
-  Ancient: "#E74C3C",
-  Divine: "#FFFFFF",
-};
+const { getRarityColor, getRarityEmoji, getSlotEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 class TradegearCommand extends BaseCommand {
   constructor() {
     super({
@@ -121,8 +96,8 @@ class TradegearCommand extends BaseCommand {
     );
     const receiverClass = getRpgClass(receiverUser.rpg.classKey);
     const embed = new EmbedBuilder()
-      .setColor(rarityColor[senderItem.rarity] || senderClass.color)
-      .setTitle("🛡️ Xác Nhận Giao Dịch Trang Bị RPG")
+      .setColor(getRarityColor(senderItem.rarity, senderClass.color || getRpgColor("brand")))
+      .setTitle(formatRpgTitle("Xác nhận chuyển trang bị", "🤝"))
       .setDescription(
         `Bạn có chắc chắn muốn chuyển trang bị sau cho <@${receiverId}> không?\n` +
           `**Chú ý:** Hành động này không thể hoàn tác.`,
@@ -141,14 +116,15 @@ class TradegearCommand extends BaseCommand {
         {
           name: "Trang bị giao dịch",
           value:
-            `Tên: **${rarityEmoji[senderItem.rarity] || "⚪"} ${senderItem.name}**\n` +
-            `Slot: **${slotEmoji[senderItem.slot] || "🎒"} ${config.rpg.gear_slot_names[senderItem.slot] || senderItem.slot}**\n` +
-            `Độ hiếm: **${senderItem.rarity}**\n` +
+            `Tên: **${getRarityEmoji(senderItem.rarity)} ${senderItem.name}**\n` +
+            `Ô: **${getSlotEmoji(senderItem.slot)} ${getSlotLabel(senderItem.slot)}**\n` +
+            `Độ hiếm: ${getRarityEmoji(senderItem.rarity)} **${senderItem.rarity}**\n` +
             `Lực chiến: **+${senderItem.power.toLocaleString()}**\n` +
             `Chỉ số: **${formatStats(senderItem.stats) || "Không có"}**\n` +
             `Mã UID: \`${senderItem.uid}\``,
         },
-      );
+      )
+      .setFooter(formatRpgFooter("Giao dịch không thể hoàn tác • phiên xác nhận 60 giây"));
     const prompt = await message.reply({
       embeds: [embed],
       components: [row],
@@ -164,7 +140,7 @@ class TradegearCommand extends BaseCommand {
         const freshReceiver = await getUser(receiverId);
         const freshItem = findRpgItem(freshSender, itemId);
         if (!freshItem) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: "❌ Giao dịch thất bại: Bạn không còn sở hữu trang bị này.",
             embeds: [],
             components: [],
@@ -172,7 +148,7 @@ class TradegearCommand extends BaseCommand {
         }
         const freshIsEquipped = Object.values(freshSender.rpg.equipped || {}).includes(freshItem.id);
         if (freshIsEquipped) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Giao dịch thất bại: Trang bị đã bị mặc lên người. Hãy tháo ra trước.`,
             embeds: [],
             components: [],
@@ -182,7 +158,7 @@ class TradegearCommand extends BaseCommand {
           (item) => item.uid && item.uid === freshItem.uid,
         );
         if (freshHasSameUid) {
-          return interaction.update({
+          return safeInteractionUpdate(interaction, {
             content: `❌ Giao dịch thất bại: Đối phương đã sở hữu vũ khí cùng mã UID này.`,
             embeds: [],
             components: [],
@@ -200,19 +176,20 @@ class TradegearCommand extends BaseCommand {
         await freshSender.save();
         await freshReceiver.save();
         const successEmbed = EmbedBuilder.from(embed)
-          .setColor("#57F287")
-          .setTitle("✅ Giao Dịch Thành Công")
+          .setColor(getRpgColor("success"))
+          .setTitle(formatRpgTitle("Chuyển trang bị thành công", "✅"))
           .setDescription(
             `Trang bị **${transferredItem.name}** đã được chuyển thành công từ <@${senderId}> sang <@${receiverId}>!\n` +
               `ID vật phẩm: \`#${transferredItem.id}\``,
-          );
-        await interaction.update({
+          )
+          .setFooter(formatRpgFooter("Trang bị đã được chuyển sang kho của người nhận"));
+        await safeInteractionUpdate(interaction, {
           embeds: [successEmbed],
           components: [],
         });
       } else if (interaction.customId === "trade_cancel") {
         collector.stop("cancelled");
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           content: "❌ Giao dịch đã bị hủy.",
           embeds: [],
           components: [],
@@ -229,4 +206,4 @@ class TradegearCommand extends BaseCommand {
     });
   }
 }
-module.exports = new TradegearCommand();
+module.exports = new TradegearCommand();

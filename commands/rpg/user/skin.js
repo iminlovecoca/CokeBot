@@ -6,6 +6,7 @@ const config = require("../../../data/config");
 const { getUser, isDev } = require("../../../utils/userUtil");
 const { getRpgClass, getCharacterAssetPath, requireRpgCharacter } = require("../../../utils/rpgUtil");
 const { getSkinPrice } = require("../../../data/rpg/skins");
+const { getClassEmoji, getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
 class SkinCommand extends BaseCommand {
   constructor() {
     super({
@@ -34,11 +35,11 @@ class SkinCommand extends BaseCommand {
     }
     const buildMainShop = (currentUser) => {
       const embed = new EmbedBuilder()
-        .setColor(rpgClass.color || "#FFD700")
-        .setTitle(`🛒 CỬA HÀNG SKIN - CLASS ${className.toUpperCase()} 🛒`)
+        .setColor(rpgClass.color || getRpgColor("reward"))
+        .setTitle(formatRpgTitle(`Cửa hàng skin • ${className}`, getClassEmoji(currentUser.rpg.classKey)))
         .setDescription(
-          `Chào mừng bạn đến với cửa hàng skin!\n` +
-          `Số Coke hiện tại: **${currentUser.coke.toLocaleString()} Coke**\n\n` +
+          `Chọn một skin bên dưới để xem preview và giá mở khóa.\n` +
+          `Số dư: **${currentUser.coke.toLocaleString()} Coke**\n\n` +
           `**Danh sách skin:**\n` +
           skinFiles.map(file => {
             const skinName = file.replace(/\.(png|gif)$/i, "");
@@ -59,7 +60,7 @@ class SkinCommand extends BaseCommand {
           }).join("\n") +
           `\n\n*Hãy chọn một skin dưới menu để xem preview và tiến hành mua.*`
         )
-        .setTimestamp();
+        .setFooter(formatRpgFooter("Skin hữu hạn chỉ nhận từ Gacha"));
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("skin_shop_select")
         .setPlaceholder("Chọn một skin để xem chi tiết...");
@@ -74,7 +75,7 @@ class SkinCommand extends BaseCommand {
         } else if (isUX) {
           desc = "Skin Hữu hạn - Chỉ có từ Gacha";
         } else if (typeof price === "object" && price !== null) {
-          desc = `Giá: ${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Souls`;
+          desc = `Giá: ${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Linh Hồn`;
         } else {
           desc = `Giá: ${price.toLocaleString()} Coke`;
         }
@@ -116,16 +117,16 @@ class SkinCommand extends BaseCommand {
           hasEnoughFunds = false;
         } else if (typeof price === "object" && price !== null) {
           priceText = `• Giá: **${price.coke.toLocaleString()} Coke** + **${price.souls} Linh Hồn** <:souls:1518749776538243082>\n`;
-          btnLabel = `Mua Skin (${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Souls)`;
+          btnLabel = `Mua skin (${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} LH)`;
           hasEnoughFunds = isAuthorDev || (u.coke >= price.coke && currentSouls >= price.souls);
         } else {
           priceText = `• Giá: **${price.toLocaleString()} Coke**\n`;
-          btnLabel = `Mua Skin (${price.toLocaleString()} Coke)`;
+          btnLabel = `Mua skin (${price.toLocaleString()} Coke)`;
           hasEnoughFunds = isAuthorDev || (u.coke >= price);
         }
         const embed = new EmbedBuilder()
-          .setColor(rpgClass.color || "#FFD700")
-          .setTitle(`✨ Chi Tiết Skin: ${skinName} ✨`)
+          .setColor(rpgClass.color || getRpgColor("reward"))
+          .setTitle(formatRpgTitle(`Chi tiết skin • ${skinName}`, "✨"))
           .setDescription(
             `• Class: **${className}**\n` +
             `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : (isUX ? "⭐ Hữu hạn" : "🛒 Đang bán")}\n` +
@@ -134,6 +135,7 @@ class SkinCommand extends BaseCommand {
             `• Số Linh Hồn bạn có: **${currentSouls}** <:souls:1518749776538243082>`
           )
           .setImage(`attachment://${selectedFile}`)
+          .setFooter(formatRpgFooter("Preview skin • kiểm tra giá trước khi mua"))
           .setTimestamp();
         const btnRow = new ActionRowBuilder();
         const buyBtn = new ButtonBuilder()
@@ -146,26 +148,26 @@ class SkinCommand extends BaseCommand {
           .setLabel("Quay lại")
           .setStyle(ButtonStyle.Secondary);
         btnRow.addComponents(buyBtn, backBtn);
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           embeds: [embed],
           components: [btnRow],
           files: [attachment]
         });
       } else if (interaction.customId === "skin_shop_back") {
         const payload = buildMainShop(u);
-        await interaction.update(payload);
+        await safeInteractionUpdate(interaction, payload);
       } else if (interaction.customId === "skin_shop_buy") {
         if (!selectedFile) {
-          return interaction.reply({ content: "❌ Không tìm thấy thông tin skin đã chọn!", flags: 64 });
+          return safeInteractionReply(interaction, { content: "❌ Không tìm thấy thông tin skin đã chọn!", flags: 64 });
         }
         const price = getSkinPrice(selectedFile);
         const isUX = selectedFile.toLowerCase().includes("ux");
         const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
         if (isOwned) {
-          return interaction.reply({ content: "❌ Bạn đã sở hữu skin này rồi!", flags: 64 });
+          return safeInteractionReply(interaction, { content: "❌ Bạn đã sở hữu skin này rồi!", flags: 64 });
         }
         if (isUX) {
-          return interaction.reply({ content: "❌ Skin này là skin Hữu hạn, chỉ có thể sở hữu từ Gacha!", flags: 64 });
+          return safeInteractionReply(interaction, { content: "❌ Skin này là skin Hữu hạn, chỉ có thể sở hữu từ Gacha!", flags: 64 });
         }
         const currentSouls = u.inventory.get("souls") || 0;
         const isAuthorDev = isDev(message.author.id);
@@ -179,10 +181,10 @@ class SkinCommand extends BaseCommand {
           }
         } else if (typeof price === "object" && price !== null) {
           if (u.coke < price.coke) {
-            return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price.coke - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
+            return safeInteractionReply(interaction, { content: `❌ Bạn không đủ Coke! Cần thêm **${(price.coke - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
           }
           if (currentSouls < price.souls) {
-            return interaction.reply({ content: `❌ Bạn không đủ Linh Hồn! Cần thêm **${price.souls - currentSouls} Linh Hồn** <:souls:1518749776538243082> để mua.`, flags: 64 });
+            return safeInteractionReply(interaction, { content: `❌ Bạn không đủ Linh Hồn! Cần thêm **${price.souls - currentSouls} Linh Hồn** <:souls:1518749776538243082> để mua.`, flags: 64 });
           }
           u.coke -= price.coke;
           u.inventory.set("souls", currentSouls - price.souls);
@@ -191,7 +193,7 @@ class SkinCommand extends BaseCommand {
                          `• Số Linh Hồn còn lại: **${(currentSouls - price.souls).toLocaleString()}** <:souls:1518749776538243082>\n`;
         } else {
           if (u.coke < price) {
-            return interaction.reply({ content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
+            return safeInteractionReply(interaction, { content: `❌ Bạn không đủ Coke! Cần thêm **${(price - u.coke).toLocaleString()} Coke** để mua.`, flags: 64 });
           }
           u.coke -= price;
           deductedText = `• Đã khấu trừ: **-${price.toLocaleString()} Coke**\n`;
@@ -204,14 +206,15 @@ class SkinCommand extends BaseCommand {
         await u.save();
         const skinName = selectedFile.replace(/\.(png|gif)$/i, "");
         const successEmbed = new EmbedBuilder()
-          .setColor("#57F287")
-          .setTitle("🎉 MUA SKIN THÀNH CÔNG! 🎉")
+          .setColor(getRpgColor("success"))
+          .setTitle(formatRpgTitle("Mua skin thành công", "🎉"))
           .setDescription(
             `Chúc mừng bạn đã mua thành công skin **${skinName}**!\n` +
             deductedText +
             `• Số Coke còn lại: **${u.coke.toLocaleString()} Coke**\n\n` +
-            `*Bạn có thể dùng lệnh \`class\` -> nhấn nút **Skins** để đổi sang skin mới.*`
+            `*Bạn có thể dùng lệnh \`class\` → nhấn nút **Skin** để đổi sang skin mới.*`
           )
+          .setFooter(formatRpgFooter("Dùng class → Skin để áp dụng skin mới"))
           .setTimestamp();
         const btnRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder()
@@ -224,7 +227,7 @@ class SkinCommand extends BaseCommand {
             .setLabel("Quay lại cửa hàng")
             .setStyle(ButtonStyle.Secondary)
         );
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           embeds: [successEmbed],
           components: [btnRow],
           files: []
@@ -243,4 +246,4 @@ class SkinCommand extends BaseCommand {
     });
   }
 }
-module.exports = new SkinCommand();
+module.exports = new SkinCommand();

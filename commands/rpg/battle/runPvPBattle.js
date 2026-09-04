@@ -1,6 +1,7 @@
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const User = require("../../../models/User");
 const { calculateRpgPower, getRpgClass, getEquippedItems, getEquippedPet } = require("../../../utils/rpgUtil");
+const { getClassEmoji, getRpgColor, getStatusEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 
 const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const getUserId = (val) => (typeof val === "object" && val !== null ? val.userId : val);
@@ -48,8 +49,6 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const battleLogs = user1.rpg?.settings?.battleLogs || "false";
   const showImage = !["text", "compact"].includes(battleDisplay);
 
-  const memberName = message.member?.displayName || message.author.displayName || message.author.username;
-  const authorAvatar = message.author.displayAvatarURL({ dynamic: true, extension: "png", size: 256 });
   const weapon1Emoji = equipped1.weapon?.emoji ? ` ${equipped1.weapon.emoji}` : "";
   const weapon2Emoji = equipped2.weapon?.emoji ? ` ${equipped2.weapon.emoji}` : "";
 
@@ -65,22 +64,20 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   }
 
   const finalEmbed = new EmbedBuilder()
-    .setColor(result.isDraw ? "#F1C40F" : isP1Winner ? "#2ECC71" : "#E74C3C")
-    .setAuthor({
-      name: `${memberName} Đang chiến đấu!`,
-      iconURL: authorAvatar,
-    })
+    .setColor(result.isDraw ? getRpgColor("warning") : isP1Winner ? getRpgColor("success") : getRpgColor("danger"))
+    .setTitle(formatRpgTitle("Kết quả PvP", "⚔️"))
+    .setDescription(`Trận đấu kết thúc sau **${result.turns} lượt**. ${result.isDraw ? "Hai bên giữ nguyên chuỗi thắng." : "Kết quả đã được ghi nhận vào mùa giải."}`);
     const class1Name = class1?.name || user1.rpg?.classKey || "Chiến binh";
     const class2Name = class2?.name || user2.rpg?.classKey || "Chiến binh";
 
     finalEmbed.addFields(
       {
-        name: `${p1Name}${weapon1Emoji} (${class1Name})`,
+        name: `${getClassEmoji(user1.rpg.classKey)} ${p1Name}${weapon1Emoji} • ${class1Name}`,
         value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
         inline: true,
       },
       {
-        name: `${p2Name}${weapon2Emoji} (${class2Name})`,
+        name: `${getClassEmoji(user2.rpg.classKey)} ${p2Name}${weapon2Emoji} • ${class2Name}`,
         value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
         inline: true,
       }
@@ -104,14 +101,14 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const getActiveStatusEmojis = (effects) => {
     if (!effects) return "";
     const list = [];
-    if (effects.poisonRounds > 0) list.push("<:poisonous:1522374367542247424>");
-    if (effects.bleedRounds > 0) list.push("<:bleed:1521938497642958889>");
-    if (effects.burnRounds > 0) list.push("<:burn:1521938494094835774>");
-    if (effects.freezeRounds > 0) list.push("<:freeze:1521938500478566639>");
-    if (effects.stunRounds > 0) list.push("<:stun:1521938490605178910>");
-    if (effects.healBanRounds > 0 || effects.healReduced) list.push("<:healreduction:1523340558855045190>");
-    if (effects.armorReduced > 0) list.push("<:break:1521938480337391736>");
-    if (effects.armorBoosted > 0) list.push("<:atkup:1521938477359300648>");
+    if (effects.poisonRounds > 0) list.push(getStatusEmoji("poisonous"));
+    if (effects.bleedRounds > 0) list.push(getStatusEmoji("bleed"));
+    if (effects.burnRounds > 0) list.push(getStatusEmoji("burn"));
+    if (effects.freezeRounds > 0) list.push(getStatusEmoji("freeze"));
+    if (effects.stunRounds > 0) list.push(getStatusEmoji("stun"));
+    if (effects.healBanRounds > 0 || effects.healReduced) list.push(getStatusEmoji("healreduction"));
+    if (effects.armorReduced > 0) list.push(getStatusEmoji("break"));
+    if (effects.armorBoosted > 0) list.push(getStatusEmoji("atkup"));
     return list.length > 0 ? " " + list.join(" ") : "";
   };
 
@@ -167,12 +164,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           .setImage(`attachment://${imgData.name}`)
           .setFields([
             {
-              name: `${p1Name}${weapon1Emoji} (${class1.name})${p1Status}`,
+              name: `${getClassEmoji(user1.rpg.classKey)} ${p1Name}${weapon1Emoji} • ${class1.name}${p1Status}`,
               value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
               inline: true,
             },
             {
-              name: `${p2Name}${weapon2Emoji} (${class2.name})${p2Status}`,
+              name: `${getClassEmoji(user2.rpg.classKey)} ${p2Name}${weapon2Emoji} • ${class2.name}${p2Status}`,
               value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
               inline: true,
             },
@@ -188,9 +185,9 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
         }
 
         if (isFinalFrame) {
-          currentEmbed.setFooter({ text: footerText });
+          currentEmbed.setFooter(formatRpgFooter(footerText));
         } else {
-          currentEmbed.setFooter({ text: `Đang chiến đấu... Lượt ${state.turn}/${result.turns}` });
+          currentEmbed.setFooter(formatRpgFooter(`Đang chiến đấu... lượt ${state.turn}/${result.turns}`));
         }
 
         const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
@@ -212,7 +209,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
       }
     }
   } else {
-    const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter({ text: footerText });
+    const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter(formatRpgFooter(footerText));
     if (promptMessage && promptMessage.editable) {
       const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch((err) => {
         console.error("[PVP_BATTLE] Error editing promptMessage:", err);

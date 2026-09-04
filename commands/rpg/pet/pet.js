@@ -11,6 +11,7 @@ const {
   findPetSpecies,
 } = require("../../../data/pets");
 const { getXpRequired } = require("../../../utils/petXpUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 
 class PetCommand extends BaseCommand {
   constructor() {
@@ -116,21 +117,20 @@ class PetCommand extends BaseCommand {
     const expStr = typeof neededExp === "number" && Number.isFinite(neededExp) ? `${currentExp}/${neededExp}` : "MAX";
 
     const embed = new EmbedBuilder()
-      .setColor(isEquipped ? 0x9b59b6 : 0x2b2d31)
-      .setDescription(
-        `# ${petData.emoji} ${petData.name} ${isEquipped ? "⭐" : ""}\n` +
-        `*${desc}*`
-      )
+      .setColor(isEquipped ? getRpgColor("accent") : getRpgColor("surface"))
+      .setTitle(formatRpgTitle(`${petData.name}${isEquipped ? " • đang trang bị" : ""}`, petData.emoji))
+      .setDescription(`*${desc}*`)
       .addFields(
-        { name: "Level", value: `\`${level}\` (${expStr} XP)`, inline: true },
-        { name: "Rank", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
-        { name: "Points", value: `⚡ +${powerPoints.toLocaleString()}`, inline: true },
+        { name: "📈 Cấp độ", value: `\`${level}\` • ${expStr} XP`, inline: true },
+        { name: "✦ Hạng", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
+        { name: "⚡ Điểm hỗ trợ", value: `+${powerPoints.toLocaleString()}`, inline: true },
         { name: "❤️ HP", value: `+${hpVal} (+${hpPct}%)`, inline: true },
         { name: "⚔️ ATK", value: `+${atkVal} (+${atkPct}%)`, inline: true },
         { name: "🛡️ DEF", value: `+${defVal} (+${defPct}%)`, inline: true },
-        { name: "Alias", value: `\`${aliasesStr}\``, inline: true },
-        { name: "Trạng thái", value: isOwned ? (isEquipped ? "✅ Trang bị" : "📦 Trong kho") : "❌ Chưa có", inline: true }
-      );
+        { name: "🔎 Tên gọi khác", value: `\`${aliasesStr}\``, inline: true },
+        { name: "Trạng thái", value: isOwned ? (isEquipped ? "✅ Đang trang bị" : "📦 Trong kho") : "❌ Chưa sở hữu", inline: true }
+      )
+      .setFooter(formatRpgFooter("Linh thú • dùng xpet <tên> để xem chi tiết"));
 
     // Resolve and attach pet image for display at bottom of embed
     let petImageAttachment = null;
@@ -184,7 +184,7 @@ class PetCommand extends BaseCommand {
     const pets = user.rpg.pets || [];
     const ownedKeys = new Set(pets.map((p) => p.key));
     const username = message.member?.displayName || message.author.displayName || message.author.username;
-    let text = `🌿🌱🌳 **${username}'s zoo!** 🌳🌱🌿\n`;
+    let text = "";
     const tierOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
 
     tierOrder.forEach((tierKey) => {
@@ -198,7 +198,12 @@ class PetCommand extends BaseCommand {
       }
     });
 
-    return message.channel.send(text);
+    const embed = new EmbedBuilder()
+      .setColor(getRpgColor("success"))
+      .setTitle(formatRpgTitle(`Bộ sưu tập linh thú • ${username}`, "🐾"))
+      .setDescription(text || "Chưa có linh thú nào trong dữ liệu.")
+      .setFooter(formatRpgFooter(`Đã sở hữu ${pets.length}/${PET_SPECIES.length} loài • ❓ = chưa sở hữu`));
+    return message.channel.send({ embeds: [embed] });
   }
 }
 

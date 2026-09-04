@@ -29,6 +29,7 @@ const {
   getStartingStats,
   getCharacterAssetPath,
 } = require("../../../utils/rpgUtil");
+const { getClassEmoji, getSlotLabel, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
 const statLabels = {
   vigor: "Vigor",
   pr: "PR",
@@ -86,16 +87,16 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
   }
   const assetName = customAvatar || rpgClass.asset;
   const equippedPet = userData ? getEquippedPet(userData) : null;
-  const headerPetEmoji = equippedPet?.emoji || "👤";
   const title = userData?.rpg?.name
-    ? `${headerPetEmoji} ${userData.rpg.name} (${rpgClass.name})`
-    : `${rpgClass.name} - ${rpgClass.title}`;
+    ? `${userData.rpg.name} • ${rpgClass.name}`
+    : `${rpgClass.name} • ${rpgClass.title}`;
   const embed = new EmbedBuilder()
     .setColor(rpgClass.color)
-    .setTitle(title)
+    .setTitle(formatRpgTitle(title, getClassEmoji(classKey)))
+    .setDescription(rpgClass.description)
     .setImage(`attachment://${assetName}`)
     .addFields({
-      name: "Chỉ số",
+      name: "📊 Chỉ số nền",
       value: statsValue,
     });
   const bonusesStr = Object.entries(rpgClass.bonuses || {})
@@ -123,7 +124,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       : `Linh thú: ❌ **Chưa trang bị**\n`;
     embed.addFields(
       {
-        name: "Nhân vật của bạn",
+        name: "🧙 Nhân vật của bạn",
         value:
           nameLine +
           `Level: **${userData.rpg.level}**\n` +
@@ -135,7 +136,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
         inline: true,
       },
       {
-        name: "Thiên hướng",
+        name: "✦ Thiên hướng",
         value: bonusesStr,
         inline: true,
       }
@@ -150,7 +151,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       necklace: "Necklace",
     });
     const equipLines = slots.map((slot) => {
-      const slotName = config.rpg.gear_slot_names[slot] || slot;
+      const slotName = getSlotLabel(slot);
       const item = equippedItems[slot];
       if (item) {
         const ownerStats = getEffectiveRpgStats(userData);
@@ -161,23 +162,23 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
       }
     }).join("\n");
     embed.addFields({
-      name: "Trang bị hiện tại",
+      name: "🛡️ Trang bị hiện tại",
       value: equipLines,
       inline: false,
     });
   } else {
     embed.addFields({
-      name: "Thiên hướng",
+      name: "✦ Thiên hướng",
       value: bonusesStr,
       inline: true,
     });
   }
-  return embed;
+  return embed.setFooter(formatRpgFooter(equippedPet ? `Linh thú: ${equippedPet.name}` : "Dùng pet để mở thêm chỉ số hỗ trợ"));
 };
 const buildClassSelectRow = (selectedClassKey, disabled = false) => {
   const menu = new StringSelectMenuBuilder()
     .setCustomId("rpg_class_select_menu")
-    .setPlaceholder("Chọn Class nhân vật")
+    .setPlaceholder("① Chọn class nhân vật")
     .setDisabled(disabled)
     .addOptions(
       classEntries().map(([key, rpgClass]) => ({
@@ -200,12 +201,12 @@ const buildAvatarSelectRow = (classKey, selectedAvatar, disabled = false) => {
   };
   const className = classNamesMap[classKey] || "Warrior";
   const options = [
-    { label: "Nam (Male)", value: `${className}_male.png` },
-    { label: "Nữ (Female)", value: `${className}_female.png` },
+    { label: "Nam", value: `${className}_male.png` },
+    { label: "Nữ", value: `${className}_female.png` },
   ];
   const menu = new StringSelectMenuBuilder()
     .setCustomId("rpg_avatar_select_menu")
-    .setPlaceholder("Chọn giới tính nhân vật")
+    .setPlaceholder("② Chọn avatar nhân vật")
     .setDisabled(disabled)
     .addOptions(
       options.map((opt) => ({
@@ -219,7 +220,7 @@ const buildAvatarSelectRow = (classKey, selectedAvatar, disabled = false) => {
 const buildConfirmationRow = (disabled = false) => {
   const acceptBtn = new ButtonBuilder()
     .setCustomId("rpg_class_accept")
-    .setLabel("Chốt (Accept)")
+    .setLabel("Chốt lựa chọn")
     .setStyle(ButtonStyle.Success)
     .setDisabled(disabled);
   const cancelBtn = new ButtonBuilder()
@@ -263,17 +264,17 @@ class ClassCommand extends BaseCommand {
       const actionRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("rpg_class_action_classes")
-          .setLabel("Classes")
+          .setLabel("Class")
           .setStyle(ButtonStyle.Primary)
-          .setEmoji("🛡️"),
+          .setEmoji("⚔️"),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_name")
-          .setLabel("Name")
+          .setLabel("Đổi tên")
           .setStyle(ButtonStyle.Primary)
           .setEmoji("📝"),
         new ButtonBuilder()
           .setCustomId("rpg_class_action_skins")
-          .setLabel("Skins")
+          .setLabel("Skin")
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(false)
       );
@@ -292,7 +293,7 @@ class ClassCommand extends BaseCommand {
           const classKey = user.rpg.classKey;
           const rpgClass = getRpgClass(classKey);
           if (!rpgClass) {
-            return interaction.reply({ content: "❌ Không tìm thấy thông tin class của bạn!", flags: 64 });
+            return safeInteractionReply(interaction, { content: "❌ Không tìm thấy thông tin class của bạn!", flags: 64 });
           }
           const skinsDir = path.join(__dirname, "../../../assets/skins", rpgClass.name);
           let skinFiles = [];
@@ -337,8 +338,8 @@ class ClassCommand extends BaseCommand {
               .setLabel("Quay lại")
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({
-            content: `✨ **Chọn Skin cho Class ${classKey.toUpperCase()}**`,
+          await safeInteractionUpdate(interaction, {
+            content: `✨ **Chọn skin cho ${getClassEmoji(classKey)} ${classKey.toUpperCase()}**`,
             embeds: [],
             files: [],
             components: [row, btnRow]
@@ -352,7 +353,7 @@ class ClassCommand extends BaseCommand {
             const isUX = selectedSkin.toLowerCase().includes("ux");
             const owned = user.rpg.ownedSkins && user.rpg.ownedSkins.includes(selectedSkin);
             if (!isUserAdmin && !owned) {
-              return interaction.reply({
+              return safeInteractionReply(interaction, {
                 content: isUX
                   ? `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Skin này là skin Hữu hạn chỉ có thể sở hữu từ Gacha.`
                   : `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Bạn cần mua skin này trong cửa hàng bằng lệnh \`skin\`.`,
@@ -365,7 +366,7 @@ class ClassCommand extends BaseCommand {
           await user.save();
           const assetPath = getCharacterAssetPath(selectedSkin);
           const attachment = new AttachmentBuilder(assetPath, { name: selectedSkin });
-          await interaction.update({
+          await safeInteractionUpdate(interaction, {
             content: `🎉 Đã áp dụng skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}** thành công!`,
             embeds: [buildClassEmbed(user.rpg.classKey, rpgClass, user, selectedSkin)],
             files: [attachment],
@@ -377,7 +378,7 @@ class ClassCommand extends BaseCommand {
           const currentAsset = user.rpg.characterAsset || rpgClass.asset;
           const assetPath = getCharacterAssetPath(currentAsset);
           const attachment = new AttachmentBuilder(assetPath, { name: currentAsset });
-          await interaction.update({
+          await safeInteractionUpdate(interaction, {
             content: null,
             embeds: [buildClassEmbed(user.rpg.classKey, rpgClass, user, currentAsset)],
             files: [attachment],
@@ -390,22 +391,22 @@ class ClassCommand extends BaseCommand {
           const confirmRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId("rpg_class_change_confirm")
-              .setLabel(isFree ? "Confirm (Miễn phí)" : "Confirm (100k Coke)")
+              .setLabel(isFree ? "Xác nhận • miễn phí" : "Xác nhận • 100k Coke")
               .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
               .setCustomId("rpg_class_change_cancel")
               .setLabel("Hủy")
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({
-            content: isFree
-              ? `⚠️ Bạn có muốn chọn lại Class nhân vật của mình không? (Lần đầu **Miễn phí**)\nCoke hiện tại của bạn: **${user.coke.toLocaleString()} Coke**`
-              : `⚠️ Bạn có muốn dùng **100,000 Coke** để chọn lại Class nhân vật của mình không?\nCoke hiện tại của bạn: **${user.coke.toLocaleString()} Coke**`,
+          await safeInteractionUpdate(interaction, {
+              content: isFree
+                ? `⚠️ **Đổi class • miễn phí**\nBạn có muốn chọn lại class nhân vật không?`
+                : `⚠️ **Đổi class • 100.000 Coke**\nSố dư hiện tại: **${user.coke.toLocaleString()} Coke**`,
             components: [confirmRow],
           });
         } else if (interaction.customId === "rpg_class_change_cancel") {
           const rpgClass = getRpgClass(userData.rpg.classKey);
-          await interaction.update({
+          await safeInteractionUpdate(interaction, {
             content: "Đã hủy yêu cầu đổi Class.",
             embeds: [buildClassEmbed(userData.rpg.classKey, rpgClass, userData, avatarFile)],
             components: [actionRow],
@@ -415,7 +416,7 @@ class ClassCommand extends BaseCommand {
           const isFree = !user.rpg.freeClassChangeUsed;
           const changeCost = isFree ? 0 : 100000;
           if (user.coke < changeCost) {
-            return interaction.reply({
+            return safeInteractionReply(interaction, {
               content: `❌ Bạn không đủ Coke để đổi class. (Yêu cầu: **${changeCost.toLocaleString()} Coke**, hiện có: **${user.coke.toLocaleString()} Coke**)`,
               flags: 64,
             });
@@ -433,8 +434,8 @@ class ClassCommand extends BaseCommand {
             });
             return {
               content: isFree
-                ? `⚔️ **Đổi Class (Miễn phí)**\nHãy chọn Class và Avatar mới của bạn. Bấm **Chốt (Accept)** để xác nhận!`
-                : `⚔️ **Đổi Class (Đã trừ 100k Coke)**\nHãy chọn Class và Avatar mới của bạn. Bấm **Chốt (Accept)** để xác nhận!`,
+                ? `⚔️ **Đổi class • miễn phí**\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`
+                : `⚔️ **Đổi class • đã trừ 100k Coke**\nChọn class và avatar mới, sau đó bấm **Chốt lựa chọn**.`,
               embeds: [embed],
               files: [attachment],
               components: [
@@ -443,20 +444,20 @@ class ClassCommand extends BaseCommand {
                 new ActionRowBuilder().addComponents(
                   new ButtonBuilder()
                     .setCustomId("rpg_class_change_accept")
-                    .setLabel("Chốt (Accept)")
+                    .setLabel("Chốt lựa chọn")
                     .setStyle(ButtonStyle.Success)
                     .setDisabled(disabled),
                   new ButtonBuilder()
                     .setCustomId("rpg_class_change_abort")
-                    .setLabel("Hủy và giữ Class cũ")
+                    .setLabel("Hủy, giữ class cũ")
                     .setStyle(ButtonStyle.Secondary)
                     .setDisabled(disabled)
                 ),
               ],
             };
           };
-          await interaction.deferUpdate().catch(() => {});
-          await interaction.editReply(renderChangePayload(false));
+          if (!(await safeDeferUpdate(interaction))) return;
+          await safeInteractionEditReply(interaction, renderChangePayload(false));
           collector.stop("sub-collector");
           const changeCollector = prompt.createMessageComponentCollector({
             filter: (i) => i.user.id === message.author.id,
@@ -471,10 +472,10 @@ class ClassCommand extends BaseCommand {
               } else if (i.customId === "rpg_avatar_select_menu") {
                 currentAvatar = i.values[0];
               }
-              await i.deferUpdate().catch(() => {});
-              await i.editReply(renderChangePayload(false));
+              if (!(await safeDeferUpdate(i))) return;
+              await safeInteractionEditReply(i, renderChangePayload(false));
             } else if (i.isButton()) {
-              await i.deferUpdate().catch(() => {});
+              if (!(await safeDeferUpdate(i))) return;
               if (i.customId === "rpg_class_change_accept") {
                 changeCollector.stop("accepted");
                 const updatedUser = await getUser(message.author.id);
@@ -486,7 +487,7 @@ class ClassCommand extends BaseCommand {
                 updatedUser.rpg.power = calculateRpgPower(updatedUser);
                 updatedUser.markModified("rpg");
                 await updatedUser.save();
-                await i.editReply({
+                await safeInteractionEditReply(i, {
                   content: `🎉 Đổi Class thành công! Bạn hiện là **${rpgClass.name}**.`,
                   components: [],
                   embeds: [buildClassEmbed(currentClassKey, rpgClass, updatedUser, currentAvatar)],
@@ -502,7 +503,7 @@ class ClassCommand extends BaseCommand {
                 const originalAttachment = new AttachmentBuilder(originalAssetPath, {
                   name: originalAvatar,
                 });
-                await i.editReply({
+                await safeInteractionEditReply(i, {
                   content: isFree
                     ? "Đã hủy đổi Class."
                     : "Đã hủy đổi Class. Bạn đã được hoàn lại 100k Coke.",
@@ -532,22 +533,22 @@ class ClassCommand extends BaseCommand {
           const confirmRenameRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId("rpg_name_change_confirm")
-              .setLabel(isFree ? "Confirm (Miễn phí)" : "Confirm (100k Coke)")
+              .setLabel(isFree ? "Xác nhận • miễn phí" : "Xác nhận • 100k Coke")
               .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
               .setCustomId("rpg_name_change_cancel")
               .setLabel("Hủy")
               .setStyle(ButtonStyle.Secondary)
           );
-          await interaction.update({
-            content: isFree
-              ? `📝 **Đổi tên nhân vật** (Lần đầu **Miễn phí**)\nBạn có muốn đổi tên nhân vật không?`
-              : `📝 **Đổi tên nhân vật** (Phí: **100,000 Coke**)\nCoke hiện tại của bạn: **${user.coke.toLocaleString()} Coke**\nBạn có muốn đổi tên nhân vật không?`,
+          await safeInteractionUpdate(interaction, {
+              content: isFree
+                ? `📝 **Đổi tên nhân vật**\nLần đầu miễn phí. Bạn có muốn tiếp tục không?`
+                : `📝 **Đổi tên nhân vật**\nPhí: **100.000 Coke** • Số dư: **${user.coke.toLocaleString()} Coke**`,
             components: [confirmRenameRow],
           });
         } else if (interaction.customId === "rpg_name_change_cancel") {
           const rpgClass = getRpgClass(userData.rpg.classKey);
-          await interaction.update({
+          await safeInteractionUpdate(interaction, {
             content: "Đã hủy yêu cầu đổi tên.",
             embeds: [buildClassEmbed(userData.rpg.classKey, rpgClass, userData, avatarFile)],
             components: [actionRow],
@@ -557,7 +558,7 @@ class ClassCommand extends BaseCommand {
           const isFree = !user.rpg.nameChanged;
           const renameCost = isFree ? 0 : 100000;
           if (user.coke < renameCost) {
-            return interaction.reply({
+            return safeInteractionReply(interaction, {
               content: `❌ Bạn không đủ Coke để đổi tên. (Yêu cầu: **${renameCost.toLocaleString()} Coke**, hiện có: **${user.coke.toLocaleString()} Coke**)`,
               flags: 64,
             });
@@ -575,7 +576,7 @@ class ClassCommand extends BaseCommand {
             .setRequired(true);
           const actionRowModal = new ActionRowBuilder().addComponents(nameInput);
           modal.addComponents(actionRowModal);
-          await interaction.showModal(modal);
+          if (!(await safeInteractionCall(interaction, "showModal", modal))) return;
           const modalSubmit = await interaction.awaitModalSubmit({
             filter: (i) => i.customId === "rpg_name_change_modal" && i.user.id === interaction.user.id,
             time: 60000,
@@ -583,19 +584,19 @@ class ClassCommand extends BaseCommand {
           if (!modalSubmit) return;
           const newName = modalSubmit.fields.getTextInputValue("rpg_char_name_input").trim();
           if (!newName) {
-            return modalSubmit.reply({
+            return safeInteractionReply(modalSubmit, {
               content: "❌ Tên nhân vật không được để trống.",
               flags: 64,
             });
           }
           const finalUser = await getUser(message.author.id);
           if (finalUser.coke < renameCost) {
-            return modalSubmit.reply({
+            return safeInteractionReply(modalSubmit, {
               content: `❌ Có lỗi xảy ra: Bạn không đủ Coke.`,
               flags: 64,
             });
           }
-          await modalSubmit.deferUpdate().catch(() => {});
+          if (!(await safeDeferUpdate(modalSubmit))) return;
           finalUser.coke -= renameCost;
           finalUser.rpg.name = newName;
           finalUser.rpg.nameChanged = true;
@@ -608,7 +609,7 @@ class ClassCommand extends BaseCommand {
           const attachment = new AttachmentBuilder(assetPath, {
             name: currentAvatar,
           });
-          await modalSubmit.editReply({
+          await safeInteractionEditReply(modalSubmit, {
             content: `🎉 Đã đổi tên nhân vật thành công! Tên mới: **${newName}** (Đã trừ ${renameCost.toLocaleString()} Coke).`,
             embeds: [buildClassEmbed(finalUser.rpg.classKey, rpgClass, finalUser, currentAvatar)],
             files: [attachment],
@@ -634,7 +635,7 @@ class ClassCommand extends BaseCommand {
       });
       const embed = buildClassEmbed(currentClassKey, rpgClass, null, currentAvatar);
       return {
-        content: "Hãy chọn class và avatar của bạn. Bấm **Chốt (Accept)** để bắt đầu cuộc hành trình!",
+        content: "Chọn class, avatar và đặt tên để bắt đầu hành trình RPG.",
         embeds: [embed],
         files: [attachment],
         components: [
@@ -661,7 +662,7 @@ class ClassCommand extends BaseCommand {
         } else if (interaction.customId === "rpg_avatar_select_menu") {
           currentAvatar = interaction.values[0];
         }
-        await interaction.update(renderMessagePayload(false));
+        await safeInteractionUpdate(interaction, renderMessagePayload(false));
       } else if (interaction.isButton()) {
         if (interaction.customId === "rpg_class_accept") {
           const modal = new ModalBuilder()
@@ -677,7 +678,7 @@ class ClassCommand extends BaseCommand {
             .setRequired(true);
           const actionRow = new ActionRowBuilder().addComponents(nameInput);
           modal.addComponents(actionRow);
-          await interaction.showModal(modal);
+          if (!(await safeInteractionCall(interaction, "showModal", modal))) return;
           const modalSubmit = await interaction.awaitModalSubmit({
             filter: (i) => i.customId === "rpg_class_create_modal" && i.user.id === interaction.user.id,
             time: 60000,
@@ -685,12 +686,12 @@ class ClassCommand extends BaseCommand {
           if (!modalSubmit) return;
           const characterName = modalSubmit.fields.getTextInputValue("rpg_char_name_input").trim();
           if (!characterName) {
-            return modalSubmit.reply({
+            return safeInteractionReply(modalSubmit, {
               content: "❌ Tên nhân vật không được để trống.",
               flags: 64,
             });
           }
-          await modalSubmit.deferUpdate().catch(() => {});
+          if (!(await safeDeferUpdate(modalSubmit))) return;
           collector.stop("accepted");
           const rpgClass = getRpgClass(currentClassKey);
           const user = await getUser(message.author.id);
@@ -714,13 +715,13 @@ class ClassCommand extends BaseCommand {
             createdAt: new Date(),
           });
           await user.save();
-          await modalSubmit.editReply({
+          await safeInteractionEditReply(modalSubmit, {
             content: `🎉 Đã khởi tạo nhân vật thành công! Bạn là **${rpgClass.name}** tên là **${characterName}**. Hãy gõ \`${config.prefix}hunt\` hoặc \`${config.prefix}h\` để bắt đầu chiến đấu!`,
             ...renderMessagePayload(true),
           });
         } else if (interaction.customId === "rpg_class_cancel") {
           collector.stop("cancelled");
-          await interaction.update({
+          await safeInteractionUpdate(interaction, {
             content: "Đã hủy phiên chọn nhân vật.",
             components: [],
             embeds: [],
@@ -742,4 +743,4 @@ class ClassCommand extends BaseCommand {
     });
   }
 }
-module.exports = new ClassCommand();
+module.exports = new ClassCommand();

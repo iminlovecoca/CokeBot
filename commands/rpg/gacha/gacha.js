@@ -12,6 +12,7 @@ const {
   getItemImageFile,
 } = require("../../../utils/rpgUtil");
 const { UserFriendlyError } = require("../../../utils/errors");
+const { getRpgColor, getRarityEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class GachaCommand extends BaseCommand {
   constructor() {
     super({
@@ -155,7 +156,7 @@ class GachaCommand extends BaseCommand {
             addRpgGearToUser(user, gear);
             user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
             itemsGained.push(gear);
-            rollsLog.push(`✨ **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[LIMITED]** 🎉`);
+            rollsLog.push(`✨ ${getRarityEmoji(gear.rarity)} **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **GIỚI HẠN**`);
           }
         } else {
           const standardWeapons = [
@@ -174,7 +175,7 @@ class GachaCommand extends BaseCommand {
             addRpgGearToUser(user, gear);
             user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
             itemsGained.push(gear);
-            rollsLog.push(`🌟 **${getGearDisplayName(gear)}** (ID: \`${gear.id}\`) **[SPOIL]**`);
+            rollsLog.push(`🌟 ${getRarityEmoji(gear.rarity)} **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **ĐỘT PHÁ**`);
           }
         }
       } else {
@@ -187,7 +188,7 @@ class GachaCommand extends BaseCommand {
           addRpgGearToUser(user, gear);
           user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
           itemsGained.push(gear);
-          rollsLog.push(`• ${getGearDisplayName(gear)} (ID: \`${gear.id}\`)`);
+          rollsLog.push(`• ${getRarityEmoji(gear.rarity)} ${getGearDisplayName(gear)} · \`G${String(gear.id).padStart(3, "0")}\``);
         }
       }
     }
@@ -207,12 +208,14 @@ class GachaCommand extends BaseCommand {
     const gifFileName = gotSuccess ? "Success.gif" : "Miss.gif";
     const gifPath = path.join(__dirname, "../../../assets/events", gifFileName);
     const displayName = message.member?.displayName || message.author.username;
-    const currencyName = usedCoke ? "coke" : "souls";
-    const textAbove = `**${displayName}** sử dụng ${currencyName} để thử vận may ! UwU`;
+    const currencyName = usedCoke ? `${config.emoji.money} Coke` : "<:souls:1518749776538243082> Linh Hồn";
+    const textAbove = `**${displayName}** đang mở ${pulls === 10 ? "10" : "1"} phong ấn vũ khí bằng ${currencyName}.`;
 
     const revealEmbed = new EmbedBuilder()
-      .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
-      .setDescription(textAbove);
+      .setColor(gotSuccess ? getRpgColor("reward") : getRpgColor("neutral"))
+      .setTitle(formatRpgTitle("Mở phong ấn vũ khí", "🎴"))
+      .setDescription(textAbove)
+      .setFooter(formatRpgFooter("Đang lật kết quả..."));
 
     const revealFiles = [];
 
@@ -235,13 +238,14 @@ class GachaCommand extends BaseCommand {
     setTimeout(async () => {
       await revealMsg.delete().catch(() => null);
       const resultEmbed = new EmbedBuilder()
-        .setColor(gotSuccess ? "#FFD700" : "#99AAB5")
-        .setTitle(gotSuccess ? "✨ KẾT QUẢ GACHA CỰC MAY MẮN! ✨" : " kết quả gacha vũ khí ")
+        .setColor(gotSuccess ? getRpgColor("reward") : getRpgColor("neutral"))
+        .setTitle(formatRpgTitle(gotSuccess ? "Kết quả cực may mắn" : "Kết quả gacha vũ khí", gotSuccess ? "✨" : "🎴"))
         .setDescription(
           `👤 Người chơi: **${displayName}**\n` +
-          `💰 Tiêu hao: **${pulls === 1 ? (usedCoke ? "100k" : "10 souls") : (usedCoke ? "1m coke" : "100 souls")}**\n\n` +
+          `💰 Tiêu hao: **${pulls === 1 ? (usedCoke ? "100.000 Coke" : "10 Linh Hồn") : (usedCoke ? "1.000.000 Coke" : "100 Linh Hồn")}**\n\n` +
           rollsLog.join("\n")
         )
+        .setFooter(formatRpgFooter(`Bảo hiểm hiện tại: ${pity}/90 • ${guaranteed ? "đang bảo đảm" : "chưa bảo đảm"}`))
         .setTimestamp();
 
       const files = [];
@@ -277,4 +281,4 @@ class GachaCommand extends BaseCommand {
     }, 5500);
   }
 }
-module.exports = new GachaCommand();
+module.exports = new GachaCommand();

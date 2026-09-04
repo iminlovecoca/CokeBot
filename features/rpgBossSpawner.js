@@ -16,11 +16,10 @@ const {
 } = require("discord.js");
 const { DateTime } = require("luxon");
 const config = require("../data/config");
+const { getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../utils/rpgUi");
 
 const healthBar = (hp, maxHp) => {
-  const ratio = Math.max(0, Math.min(1, hp / maxHp));
-  const filled = Math.ceil(ratio * 10);
-  return "▰".repeat(filled) + "▱".repeat(10 - filled);
+  return formatRpgBar(hp, maxHp, 10);
 };
 
 const pick = (items) => items[Math.floor(Math.random() * items.length)];
@@ -91,12 +90,12 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
   }
 
   const embed = new EmbedBuilder()
-    .setColor(defeated ? "#57F287" : (expired || transitioned) ? "#747F8D" : "#ED4245")
-    .setTitle(title)
+    .setColor(defeated ? getRpgColor("success") : (expired || transitioned) ? getRpgColor("neutral") : getRpgColor("danger"))
+    .setTitle(formatRpgTitle(title, boss.emoji || "👹"))
     .setDescription(description)
     .addFields(
       {
-        name: "HP",
+        name: "❤️ HP boss",
         value: (() => {
           let val = `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
                     `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`;
@@ -122,7 +121,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
 
   if (activeBoss.lastHitUserId && !expired) {
     embed.addFields({
-      name: "Last Hit",
+      name: "⚡ Đòn kết liễu",
       value: `<@${activeBoss.lastHitUserId}>`,
       inline: true,
     });
@@ -134,15 +133,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
     embed.setImage(`attachment://${boss.asset || "boss_01.webp"}`);
   }
 
-  if (activeBoss.lastHitUserId && !expired) {
-    embed.addFields({
-      name: "Last Hit",
-      value: `<@${activeBoss.lastHitUserId}>`,
-      inline: true,
-    });
-  }
-
-  return embed;
+  return embed.setFooter(formatRpgFooter("World Boss • dùng xboss để tham gia"));
 };
 
 const getAttachment = (boss) =>
@@ -158,7 +149,7 @@ const buildBossComponents = (activeBoss, status = "alive") => {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`rpg_boss_fight:${activeBoss.channelId}`)
-        .setLabel("Fight!")
+        .setLabel("Đánh boss")
         .setStyle(ButtonStyle.Success)
         .setEmoji("⚔️")
         .setDisabled(disabled),
@@ -231,10 +222,10 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
 
   let infoLine = "";
   if (activeBoss.lastHitUserId && !expired) {
-    infoLine = `Last Hit: <@${activeBoss.lastHitUserId}>`;
+      infoLine = `Đòn kết liễu: <@${activeBoss.lastHitUserId}>`;
   }
 
-  const accentColor = defeated ? 0x57F287 : (expired || transitioned) ? 0x747F8D : 0xED4245;
+  const accentColor = defeated ? getRpgColor("success") : (expired || transitioned) ? getRpgColor("neutral") : getRpgColor("danger");
 
   const container = new ContainerBuilder().setAccentColor(accentColor);
 
@@ -285,7 +276,7 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
   const buttonRow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`rpg_boss_fight:${activeBoss.channelId}`)
-      .setLabel("Fight!")
+      .setLabel("Đánh boss")
       .setStyle(ButtonStyle.Success)
       .setEmoji("⚔️")
       .setDisabled(disabled)

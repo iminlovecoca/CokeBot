@@ -15,6 +15,7 @@ const {
   getEffectiveRpgStats,
   getItemImageFile,
 } = require("../../../utils/rpgUtil");
+const { ui, getRarityEmoji, getSlotEmoji, getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class HuntCommand extends BaseCommand {
   constructor() {
     super({
@@ -70,9 +71,9 @@ class HuntCommand extends BaseCommand {
     }
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
     const blankEmo = config.emoji.blank || "";
-    let text = `:bow_and_arrow: **| ${characterName}** đã hoàn thành một chuyến đi săn!\n` +
+    let text = `${ui.icons?.hunt || "🏹"} **${characterName}** đã hoàn thành một chuyến đi săn!\n` +
       `${blankEmo} **|** ${huntGround.emoji} ${huntGround.name} đã bị dọn sạch\n` +
-      `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()}xp**, **${cokeGain.toLocaleString()} coke**`;
+      `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()} EXP**, **${cokeGain.toLocaleString()} Coke**`;
     const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../../data/pets");
     const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
     if (user.rpg.equippedPet) {
@@ -119,34 +120,10 @@ class HuntCommand extends BaseCommand {
       }
     }
     if (droppedItem) {
-      const bracketEmoji = {
-        Common: "<:common:1530878565489311826>",
-        Rare: "<:rare:1530878574104547378>",
-        Epic: "<:epic:1530878567955566642>",
-        Legendary: "<:legendary:1530878570858287205>",
-        Mythic: "<a:mythic:1530878614843686912>",
-        Ancient: "<a:ancient:1530878606656540814>",
-        Divine: "<a:divine:1530878610515165365>",
-      };
-      const slotEmoji = {
-        weapon: "🗡️",
-        armor: "🛡️",
-        helmet: "🪖",
-        boots: "🥾",
-        ring: "💍",
-        necklace: "📿",
-      };
-      const slotVi = {
-        weapon: "vũ khí",
-        armor: "giáp",
-        helmet: "mũ",
-        boots: "giày",
-        ring: "nhẫn",
-        necklace: "dây chuyền"
-      }[droppedItem.slot] || "trang bị";
-      const rank = bracketEmoji[droppedItem.rarity] || "";
-      const emoji = droppedItem.emoji || slotEmoji[droppedItem.slot] || "🛡️";
-      text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${emoji} **${droppedItem.subType}** (ID: \`${droppedItem.id}\`)`;
+      const slotVi = getSlotLabel(droppedItem.slot).toLowerCase();
+      const rank = getRarityEmoji(droppedItem.rarity);
+      const emoji = droppedItem.emoji || getSlotEmoji(droppedItem.slot);
+      text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${emoji} **${droppedItem.subType}** (\`G${String(droppedItem.id).padStart(3, "0")}\`)`;
     }
     if (petText) {
       text += petText;
@@ -155,7 +132,16 @@ class HuntCommand extends BaseCommand {
       text += `\n${blankEmo} **|** 🆙 **LÊN CẤP!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
     }
     await user.save();
-    return message.reply({ content: text });
+    const embed = new EmbedBuilder()
+      .setColor(rpgClass.color || getRpgColor("brand"))
+      .setTitle(formatRpgTitle("Kết quả chuyến săn", ui.icons?.hunt || "🏹"))
+      .setDescription(text)
+      .addFields(
+        { name: "⚔️ Lực chiến hiện tại", value: `**${user.rpg.power.toLocaleString()}**`, inline: true },
+        { name: "📈 Cấp độ", value: `**${user.rpg.level}**`, inline: true },
+      )
+      .setFooter(formatRpgFooter(`Cooldown ${cooldownSeconds}s • dùng ${config.prefix}gear để xem kho đồ`));
+    return message.reply({ embeds: [embed] });
   }
 }
-module.exports = new HuntCommand();
+module.exports = new HuntCommand();

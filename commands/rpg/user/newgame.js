@@ -11,6 +11,7 @@ const {
   calculateRpgPower,
   getRpgClass,
 } = require("../../../utils/rpgUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 class NewGameCommand extends BaseCommand {
   constructor() {
     super({
@@ -27,8 +28,8 @@ class NewGameCommand extends BaseCommand {
   async execute(message, args = []) {
     let { user } = await requireRpgCharacter(message.author.id);
     const embed = new EmbedBuilder()
-      .setColor("#E74C3C")
-      .setTitle("⚠️ Xác Nhận Chơi Lại (New Game)")
+      .setColor(getRpgColor("danger"))
+      .setTitle(formatRpgTitle("Xác nhận chơi lại", "⚠️"))
       .setDescription(
         `Bạn có chắc chắn muốn bắt đầu lại hành trình RPG không?\n\n` +
         `• Cấp độ của bạn sẽ bị reset về **Level 1**.\n` +
@@ -37,11 +38,11 @@ class NewGameCommand extends BaseCommand {
         `• **GIỮ NGUYÊN** toàn bộ trang bị trong rương đồ và trang bị đang mặc trên người.\n\n` +
         `*Hành động này không thể hoàn tác!*`
       )
-      .setFooter({ text: "Xác nhận trong vòng 30 giây." });
+      .setFooter(formatRpgFooter("Cẩn thận: thao tác này không thể hoàn tác • 30 giây"));
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("newgame_confirm")
-        .setLabel("Xác nhận Reset")
+        .setLabel("Xác nhận chơi lại")
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId("newgame_cancel")
@@ -70,13 +71,13 @@ class NewGameCommand extends BaseCommand {
         u.rpg.power = calculateRpgPower(u); 
         u.markModified("rpg");
         await u.save();
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           content: `🎉 Bạn đã reset nhân vật thành công! Cấp độ hiện tại: **Level 1**. Chúc bạn có một hành trình mới vui vẻ!`,
           embeds: [],
           components: []
         });
       } else {
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           content: `❌ Đã hủy yêu cầu reset nhân vật.`,
           embeds: [],
           components: []

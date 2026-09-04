@@ -8,6 +8,7 @@ const {
   getGearDisplayName,
   getWeaponPower
 } = require("../../../utils/rpgUtil");
+const { getSlotLabel, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 const getBaseStatsWithoutGear = (user) => {
   if (!user?.rpg?.classKey) return { vigor: 0, pr: 0, mr: 0, str: 0, dex: 0, int: 0, arc: 0 };
   const rpgClass = getRpgClass(user.rpg.classKey);
@@ -60,7 +61,7 @@ module.exports = {
   hidden: true,
   async execute(message, args = []) {
     const { isDev } = require("../../../utils/userUtil");
-    const isOwner = isDev(authorId);
+    const isOwner = isDev(message.author.id);
     if (!isOwner) return;
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
     const classKey = user.rpg.classKey;
@@ -97,12 +98,13 @@ module.exports = {
     }
     if (newlyEquipped.length === 0) {
       const embed = new EmbedBuilder()
-        .setColor("#5865F2")
-        .setTitle("🛡️ Tự Động Trang Bị")
+        .setColor(getRpgColor("brand"))
+        .setTitle(formatRpgTitle("Tự động trang bị", "🛡️"))
         .setDescription(
           `${config.emoji.yes || "✅"} Bạn đang mặc những trang bị tối ưu nhất hiện có cho class **${rpgClass.name}**!\n\n` +
           `Lực chiến hiện tại: **${oldPower.toLocaleString()}**`
-        );
+        )
+        .setFooter(formatRpgFooter("Không có thay đổi nào cần thực hiện"));
       return message.reply({ embeds: [embed] });
     }
     user.rpg.power = calculateRpgPower(user);
@@ -112,18 +114,19 @@ module.exports = {
     const powerDiff = newPower - oldPower;
     const powerDiffText = powerDiff >= 0 ? `+${powerDiff.toLocaleString()}` : `${powerDiff.toLocaleString()}`;
     const fields = newlyEquipped.map(({ slot, item }) => ({
-      name: `${config.rpg.gear_slot_names[slot]}`,
+      name: `${getSlotLabel(slot)}`,
       value: `${getGearDisplayName(item)}\n└ ID: \`${item.id}\` | Lực chiến: **+${item.power.toLocaleString()}**`,
       inline: false
     }));
     const embed = new EmbedBuilder()
-      .setColor("#57F287")
-      .setTitle("🛡️ Tự Động Trang Bị Thành Công")
+      .setColor(getRpgColor("success"))
+      .setTitle(formatRpgTitle("Tự động trang bị thành công", "🛡️"))
       .setDescription(
         `Đã tự động tối ưu hóa và mặc các trang bị phù hợp nhất cho class **${rpgClass.name}** của bạn!\n\n` +
         `⚔ Lực chiến: **${oldPower.toLocaleString()}** → **${newPower.toLocaleString()}** (**${powerDiffText}**)`
       )
-      .addFields(fields);
+      .addFields(fields)
+      .setFooter(formatRpgFooter("Đã ưu tiên trang bị phù hợp với class"));
     return message.reply({ embeds: [embed] });
   }
-};
+};

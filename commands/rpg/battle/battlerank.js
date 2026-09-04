@@ -3,6 +3,7 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const User = require("../../../models/User");
 const { getRankConfig } = require("../../../utils/rankFrameUtil");
+const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 
 class BattleRankCommand extends BaseCommand {
   constructor() {
@@ -75,10 +76,10 @@ class BattleRankCommand extends BaseCommand {
       });
 
       const embed = new EmbedBuilder()
-        .setColor("#FFD700")
-        .setTitle("🏆 BẢNG XẾP HẠNG BATTLE RANK MÙA GIẢI")
+        .setColor(getRpgColor("reward"))
+        .setTitle(formatRpgTitle("Bảng xếp hạng Battle • Mùa giải", "🏆"))
         .setDescription(desc || "Chưa có người chơi nào tham gia leo rank mùa này.")
-        .setFooter({ text: "Mùa giải reset mỗi 30 ngày | Hãy tham gia PvP Battle để leo rank!" });
+        .setFooter(formatRpgFooter("Top 10 • mùa giải reset mỗi 30 ngày"));
 
       return message.reply({ embeds: [embed] });
     }
@@ -106,16 +107,14 @@ class BattleRankCommand extends BaseCommand {
 
     const embed = new EmbedBuilder()
       .setColor(rConfig.borderColor1 && rConfig.borderColor1 !== "transparent" ? rConfig.borderColor1 : "#3498DB")
-      .setAuthor({
-        name: `Hồ sơ Leo Rank PvP — ${message.author.username}`,
-        iconURL: message.author.displayAvatarURL({ dynamic: true })
-      })
+      .setTitle(formatRpgTitle(`Hồ sơ leo rank PvP • ${message.author.username}`, "🏆"))
+      .setDescription(`Mục tiêu tiếp theo: ${isDivineRank ? "giữ vị trí Top 1 server" : "đạt 100 LP để thăng hạng"}.`)
       .addFields(
-        { name: "🛡️ Bậc Rank Hiện Tại", value: `${emojiStr}**${bRank}**`, inline: true },
-        { name: "📊 Điểm LP Mùa Giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
-        { name: "⚔️ Tỉ Lệ Thắng", value: `**${wins}** Thắng / **${losses}** Thua (**${winRate}%**)`, inline: false }
+        { name: "✦ Bậc rank hiện tại", value: `${emojiStr}**${bRank}**`, inline: true },
+        { name: "📊 LP mùa giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
+        { name: "⚔️ Thành tích", value: `**${wins}** thắng • **${losses}** thua\nTỉ lệ thắng: **${winRate}%**`, inline: false }
       )
-      .setFooter({ text: isDivineRank ? "Bậc Divine tích lũy LP không giới hạn để tranh Top 1 Server!" : "Thắng đối thủ cao bậc hơn nhận +3 đến +4 LP! Đủ 100 LP sẽ Thăng Hạng!" });
+      .setFooter(formatRpgFooter(isDivineRank ? "Divine tích lũy LP không giới hạn" : "Đủ 100 LP để thăng hạng"));
 
     return message.reply({ embeds: [embed] });
   }

@@ -17,6 +17,7 @@ const {
   getAvailablePoints,
   getAllocatedPoints,
 } = require("../../../utils/rpgUtil");
+const { formatRpgBar, formatRpgFooter, formatRpgTitle, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
 const statMap = {
   vigor: "vigor", vig: "vigor", health: "vigor", hp: "vigor",
   pr: "pr", def: "pr", armor: "pr",
@@ -30,7 +31,7 @@ const statLabels = {
   vigor: "Vigor",
   pr: "PR (Physical Resistance)",
   mr: "MR (Magical Resistance)",
-  str: "Strengh",
+  str: "STR",
   dex: "Dexterity",
   int: "Intelligence",
   arc: "Arcane (ARC)"
@@ -117,29 +118,27 @@ class StatCommand extends BaseCommand {
       const renderLine = (key) => {
         const base = Math.min(99, currentStats[key] || 0);
         const eff = effectiveStats[key] || base;
-        const barLen = Math.round((Math.min(99, eff) / 99) * 15);
-        const bar = "▰".repeat(barLen) + "▱".repeat(15 - barLen);
-        const selected = selectedStat === key ? "➡️ " : "";
-        return `${selected}**${statLabels[key]}**: \`${eff}/99\`\n\`${bar}\``;
+        const selected = selectedStat === key ? "▸ " : "";
+        return `${selected}**${statLabels[key]}** · \`${eff}/99\`\n\`${formatRpgBar(eff, 99, 12)}\``;
       };
       const fields = [
         { name: "Chỉ số hiện tại", value: ["vigor", "pr", "mr", "str", "dex", "int", "arc"].map(renderLine).join("\n\n") }
       ];
       return new EmbedBuilder()
         .setColor(rpgClass.color)
-        .setTitle(`📊 Cộng điểm chỉ số RPG - ${targetUser.rpg?.name || message.author.username}`)
+        .setTitle(formatRpgTitle(`Phân bổ chỉ số • ${targetUser.rpg?.name || message.author.username}`, "📊"))
         .setDescription(
-          `Cấp độ nhân vật: **Level ${level}**\n` +
-            `Điểm chỉ số chưa cộng: **${availablePoints}** điểm\n\n` +
-            `*Chọn một chỉ số từ menu bên dưới, sau đó click nút cộng điểm!*`
+          `Level **${level}**  •  Lực chiến **${Math.floor(calculateRpgPower(targetUser)).toLocaleString()}**\n` +
+            `Điểm chưa cộng: **${availablePoints}**\n\n` +
+            `Chọn một chỉ số, sau đó chọn nhanh số điểm muốn cộng.`
         )
         .addFields(fields)
-        .setFooter({ text: "Giới hạn 99 điểm/chỉ số." });
+        .setFooter(formatRpgFooter("Giới hạn 99 điểm mỗi chỉ số"));
     };
     const buildInteractiveComponents = (availablePoints, currentStats) => {
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("rpg_stat_select")
-        .setPlaceholder("Chọn chỉ số để cộng điểm")
+        .setPlaceholder("① Chọn chỉ số để cộng điểm")
         .addOptions(
           Object.keys(statLabels).map((key) => ({
             label: statLabels[key],
@@ -201,13 +200,13 @@ class StatCommand extends BaseCommand {
       let avail = getAvailablePoints(refreshedUser);
       if (interaction.isStringSelectMenu()) {
         selectedStat = interaction.values[0];
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           embeds: [buildEmbed(avail, currStats, refreshedUser)],
           components: buildInteractiveComponents(avail, currStats),
-        }).catch(() => {});
+        });
       } else if (interaction.isButton()) {
         if (interaction.customId === "rpg_stat_reset") {
-          return interaction.reply({
+          return safeInteractionReply(interaction, {
             content: `❌ Tính năng tẩy điểm tạm thời khóa để nâng cấp.`,
             flags: 64,
           });
@@ -229,7 +228,7 @@ class StatCommand extends BaseCommand {
         addAmt = Math.min(addAmt, maxPossible);
 
         if (addAmt <= 0) {
-          return interaction.reply({
+          return safeInteractionReply(interaction, {
             content: `❌ Chỉ số **${statLabels[selectedStat]}** đã đạt tối đa 99 điểm hoặc bạn không còn đủ điểm để cộng!`,
             flags: 64,
           });
@@ -244,10 +243,10 @@ class StatCommand extends BaseCommand {
         await refreshedUser.save();
         avail -= addAmt;
         currStats = refreshedUser.rpg.stats;
-        await interaction.update({
+        await safeInteractionUpdate(interaction, {
           embeds: [buildEmbed(avail, currStats, refreshedUser)],
           components: buildInteractiveComponents(avail, currStats),
-        }).catch(() => {});
+        });
       }
     });
     collector.on("end", async () => {
@@ -255,4 +254,4 @@ class StatCommand extends BaseCommand {
     });
   }
 }
-module.exports = new StatCommand();
+module.exports = new StatCommand();

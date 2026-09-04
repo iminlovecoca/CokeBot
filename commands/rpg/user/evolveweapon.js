@@ -12,6 +12,7 @@ const {
 const { getWeaponEvolution, getEvolutionBranch } = require("../../../data/rpg/weaponEvolutions");
 const { evolveRpgWeapon } = require("../../../utils/weaponEvolutionUtil");
 const BaseCommand = require("../../../core/BaseCommand");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 
 const getInventoryQuantity = (user, itemId) => {
   if (user.inventory?.get) return user.inventory.get(itemId) || 0;
@@ -97,8 +98,8 @@ class EvolveWeaponCommand extends BaseCommand {
         .setStyle(ButtonStyle.Danger)
     );
     const confirmEmbed = new EmbedBuilder()
-      .setColor("#8B5CF6")
-      .setTitle("🔨 Chọn Nhánh Tiến Hóa Búa Rèn")
+      .setColor(getRpgColor("premium"))
+      .setTitle(formatRpgTitle("Chọn nhánh tiến hóa Búa Rèn", "🔨"))
       .setDescription(
         `Vũ khí hiện tại: **${getGearDisplayName(item)}**\n\n` +
         `${branchLines}\n\n` +
@@ -106,6 +107,7 @@ class EvolveWeaponCommand extends BaseCommand {
         `💎 Nguyên liệu: **${recipe.stoneQuantity} x ${stoneEmoji} ${stoneName}**\n\n` +
         `Yêu cầu: Búa Rèn **+${recipe.requiredUpgradeLevel}**. Lựa chọn tiến hóa là **vĩnh viễn**.`
       )
+      .setFooter(formatRpgFooter("Lựa chọn là vĩnh viễn • phiên xác nhận 20 giây"))
       .setTimestamp();
     const payload = { embeds: [confirmEmbed], components: [row] };
     const attachment = getItemAttachment(item);
@@ -122,7 +124,7 @@ class EvolveWeaponCommand extends BaseCommand {
       });
       const [, selectedItemId, branchKey] = interaction.customId.split(":");
       if (branchKey === "cancel") {
-        return interaction.update({ content: "❌ Đã hủy tiến hóa vũ khí.", embeds: [], components: [] });
+        return safeInteractionUpdate(interaction, { content: "❌ Đã hủy tiến hóa vũ khí.", embeds: [], components: [] });
       }
 
       const freshUser = await getUser(message.author.id);
@@ -130,15 +132,15 @@ class EvolveWeaponCommand extends BaseCommand {
       const freshRecipe = getWeaponEvolution(freshItem?.subType || freshItem?.subtype);
       const branch = getEvolutionBranch(freshRecipe, branchKey);
       if (!freshItem || !freshRecipe || !branch) {
-        return interaction.update({ content: "❌ Vũ khí không còn hợp lệ để tiến hóa.", embeds: [], components: [] });
+        return safeInteractionUpdate(interaction, { content: "❌ Vũ khí không còn hợp lệ để tiến hóa.", embeds: [], components: [] });
       }
       if (Number(freshItem.upgradeLevel || 0) !== freshRecipe.requiredUpgradeLevel) {
-        return interaction.update({ content: `❌ Vũ khí phải ở đúng **+${freshRecipe.requiredUpgradeLevel}** trước khi tiến hóa.`, embeds: [], components: [] });
+        return safeInteractionUpdate(interaction, { content: `❌ Vũ khí phải ở đúng **+${freshRecipe.requiredUpgradeLevel}** trước khi tiến hóa.`, embeds: [], components: [] });
       }
 
       const freshStoneQuantity = getInventoryQuantity(freshUser, freshRecipe.stoneId);
       if ((freshUser.coke || 0) < freshRecipe.cokeCost || freshStoneQuantity < freshRecipe.stoneQuantity) {
-        return interaction.update({ content: "❌ Bạn không còn đủ Coke hoặc nguyên liệu để tiến hóa.", embeds: [], components: [] });
+        return safeInteractionUpdate(interaction, { content: "❌ Bạn không còn đủ Coke hoặc nguyên liệu để tiến hóa.", embeds: [], components: [] });
       }
 
       freshUser.coke -= freshRecipe.cokeCost;
@@ -156,8 +158,8 @@ class EvolveWeaponCommand extends BaseCommand {
       await freshUser.save();
 
       const successEmbed = new EmbedBuilder()
-        .setColor("#F59E0B")
-        .setTitle("✨ TIẾN HÓA VŨ KHÍ THÀNH CÔNG! ✨")
+        .setColor(getRpgColor("reward"))
+        .setTitle(formatRpgTitle("Tiến hóa vũ khí thành công", "✨"))
         .setDescription(
           `**${getGearDisplayName(freshItem)}** đã tiến hóa thành **${getGearDisplayName(evolved.item)}**!\n\n` +
           `${branch.emoji} **Nhánh:** ${branch.style}\n` +
@@ -165,6 +167,7 @@ class EvolveWeaponCommand extends BaseCommand {
           `🔨 Cấp cường hóa được giữ ở **+${evolved.item.upgradeLevel}**\n` +
           `${config.emoji.money} Đã tiêu hao: **${freshRecipe.cokeCost.toLocaleString()}**`
         )
+        .setFooter(formatRpgFooter("Nhánh tiến hóa đã được lưu vĩnh viễn"))
         .setTimestamp();
       const successPayload = { embeds: [successEmbed], components: [] };
       const evolvedAttachment = getItemAttachment(evolved.item);
@@ -172,7 +175,7 @@ class EvolveWeaponCommand extends BaseCommand {
         successEmbed.setThumbnail("attachment://weapon.png");
         successPayload.files = [evolvedAttachment];
       }
-      return interaction.update(successPayload);
+      return safeInteractionUpdate(interaction, successPayload);
     } catch (error) {
       console.error("[EVOLVE_WEAPON] Confirmation failed:", error);
       return confirmMsg.edit({

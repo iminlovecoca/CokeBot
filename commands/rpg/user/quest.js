@@ -5,6 +5,7 @@ const User = require("../../../models/User");
 const { checkAndResetDailyQuests, generateRandomQuest } = require("../../../utils/questUtil");
 const { requireRpgCharacter } = require("../../../utils/rpgUtil");
 const { DateTime } = require("luxon");
+const { getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class QuestCommand extends BaseCommand {
   constructor() {
     super({
@@ -76,18 +77,22 @@ class QuestCommand extends BaseCommand {
         description +=
           `**${index + 1}. ${quest.text}**\n` +
           `  ▫ \`Phần thưởng:\` ${rewardStr}\n` +
-          `  ▫ \`Tiến độ:\` \`[${quest.progress}/${quest.target}]\`\n\n`;
+          `  ▫ \`Tiến độ:\` \`${formatRpgBar(quest.progress, quest.target, 8)}\` **${quest.progress}/${quest.target}**\n\n`;
       });
     }
-    description += `📌 **Nhiệm vụ mới sau:** \`${countdownStr}\`\n`;
-    description += `🔁 *Lượt đổi nhiệm vụ hôm nay:* \`${user.rpg.quests.rerollsLeft || 0} lượt còn lại*`;
+    const rerollsLeft = user.rpg.quests.rerollsLeft || 0;
     const file = new AttachmentBuilder("./assets/rpgevent/quest.png");
     const embed = new EmbedBuilder()
-      .setColor("#5865F2")
-      .setTitle(`${memberName} - Nhật Ký Nhiệm Vụ`)
+      .setColor(getRpgColor("brand"))
+      .setTitle(formatRpgTitle(`Nhật ký nhiệm vụ • ${memberName}`, "📜"))
       .setThumbnail("attachment://quest.png")
-      .setDescription(description);
+      .setDescription(description)
+      .addFields(
+        { name: "📌 Làm mới", value: `Sau **${countdownStr}**`, inline: true },
+        { name: "🔁 Lượt đổi còn lại", value: `**${rerollsLeft}** lượt`, inline: true },
+      )
+      .setFooter(formatRpgFooter("Nhiệm vụ hàng ngày • dùng xquest rr <1|2|3> để đổi"));
     return message.reply({ embeds: [embed], files: [file], skipV2: true });
   }
 }
-module.exports = new QuestCommand();
+module.exports = new QuestCommand();

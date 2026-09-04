@@ -2,6 +2,7 @@ const BaseCommand = require("../../../core/BaseCommand");
 const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const { requireRpgCharacter } = require("../../../utils/rpgUtil");
+const { getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 const traits = {
   efficiency: { inc: 10, pow: 1.748, base: 25, upg: 1, max: 215, prefix: "/H" },
   duration: { inc: 10, pow: 1.7, base: 0.5, upg: 0.1, max: 235, prefix: "H" },
@@ -81,6 +82,14 @@ const traitMapping = {
   xp: "experience",
   radar: "radar",
   rad: "radar",
+};
+const traitLabels = {
+  efficiency: "Hiệu suất",
+  duration: "Thời lượng",
+  cost: "Chi phí",
+  gain: "Essence mỗi giờ",
+  experience: "EXP mỗi giờ",
+  radar: "Radar",
 };
 class UpgradeCommand extends BaseCommand {
   constructor() {
@@ -183,19 +192,30 @@ class UpgradeCommand extends BaseCommand {
     user.rpg.autohunt.levels[trait] = lvlAfter;
     user.markModified("rpg");
     await user.save();
+    const traitLabel = traitLabels[trait] || trait;
+    const progress = getLvl(nextXp, 0, trait);
+    const upgradeEmbed = new EmbedBuilder()
+      .setColor(getRpgColor("accent"))
+      .setTitle(formatRpgTitle("Nâng cấp HuntBot", "⚙️"))
+      .setDescription(`Chỉ số **${traitLabel}** đã được cập nhật.`)
+      .addFields(
+        { name: "📈 Cấp độ", value: `**${lvlBefore}** → **${lvlAfter}**`, inline: true },
+        { name: "✨ Essence đã dùng", value: `**${essenceToSpend.toLocaleString()}**`, inline: true },
+        { name: "💠 Essence còn lại", value: `**${user.rpg.autohunt.essence.toLocaleString()}**`, inline: true },
+      )
+      .setFooter(formatRpgFooter("HuntBot • nâng cấp bằng Essence"));
     if (lvlAfter > lvlBefore) {
-      return message.reply(
-        `⚙️ **Nâng Cấp HuntBot**\n` +
-          `Nâng cấp thành công chỉ số **${trait}** (Lên cấp **${lvlAfter}**).\n` +
-          `Tiêu hao: **${essenceToSpend.toLocaleString()} Essence** | Essence còn lại: **${user.rpg.autohunt.essence.toLocaleString()}**`
-      );
+      upgradeEmbed.setDescription(`🎉 Chỉ số **${traitLabel}** vừa đạt cấp **${lvlAfter}**.`);
+      return message.reply({ embeds: [upgradeEmbed] });
     } else {
-      return message.reply(
-        `⚙️ **Nạp Essence HuntBot**\n` +
-          `Nạp thành công **+${essenceToSpend.toLocaleString()} XP** vào chỉ số **${trait}** (Cấp ${lvlAfter} \`[${getLvl(nextXp, 0, trait).currentxp}/${getLvl(nextXp, 0, trait).maxxp}]\`).\n` +
-          `Tiêu hao: **${essenceToSpend.toLocaleString()} Essence** | Essence còn lại: **${user.rpg.autohunt.essence.toLocaleString()}**`
-      );
+      upgradeEmbed.setDescription(`Đã nạp **+${essenceToSpend.toLocaleString()} XP** vào chỉ số **${traitLabel}**.`);
+      upgradeEmbed.addFields({
+        name: "Tiến độ cấp hiện tại",
+        value: `\`${formatRpgBar(progress.currentxp, progress.maxxp, 12)}\` ${progress.currentxp}/${progress.maxxp}`,
+        inline: false,
+      });
+      return message.reply({ embeds: [upgradeEmbed] });
     }
   }
 }
-module.exports = new UpgradeCommand();
+module.exports = new UpgradeCommand();
