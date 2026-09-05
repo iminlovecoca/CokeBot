@@ -18,10 +18,15 @@ class PingCommand extends BaseCommand {
   }
 
   async execute(message) {
+    const commandStartedAt = process.hrtime.bigint();
     const sent = await message.channel.send('🏓 Đang đo ping...');
 
-    const latency = sent.createdTimestamp - message.createdTimestamp;
-    const apiLatency = Math.round(message.client.ws.ping);
+    const discordResponseLatency = Math.round(Number(process.hrtime.bigint() - commandStartedAt) / 1e6);
+    const totalMessageLatency = Math.max(0, sent.createdTimestamp - message.createdTimestamp);
+    const preprocessingLatency = message.__cokeBotReceivedAt
+      ? Math.max(0, Math.round(Number(commandStartedAt - message.__cokeBotReceivedAt) / 1e6))
+      : null;
+    const gatewayLatency = Math.round(message.client.ws.ping);
 
     const mongoStatus = mongoose.connection.readyState;
     const mongoStates = ['❌ Mất kết nối', '✅ Đã kết nối', '🟠 Đang kết nối', '🔄 Ngắt kết nối'];
@@ -45,10 +50,9 @@ class PingCommand extends BaseCommand {
       .setColor('Blue')
       .setTitle('📡 Tình trạng kết nối')
       .addFields(
-        { name: 'Discord API', value: `\`${apiLatency}ms\``, inline: true },
-        { name: 'Độ trễ của Bot', value: `\`${latency}ms\``, inline: true },
-        { name: 'MongoDB', value: `\`${mongoStateText}\``, inline: true },
-        { name: 'Độ trễ MongoDB', value: `\`${dbPing}\``, inline: true },
+        { name: 'Discord', value: `WebSocket: \`${gatewayLatency}ms\`\nPhản hồi: \`${discordResponseLatency}ms\``, inline: true },
+        { name: 'Bot', value: `Tiền xử lý: \`${preprocessingLatency === null ? 'Không đo được' : `${preprocessingLatency}ms`}\`\nTổng từ tin nhắn: \`${totalMessageLatency}ms\``, inline: true },
+        { name: 'MongoDB', value: `${mongoStateText}\nPing: \`${dbPing}\``, inline: true },
         { name: 'RAM', value: `\`${usedMem} / ${totalMem} MB\``, inline: true },
         { name: 'Thời gian chạy', value: `\`${uptime}\``, inline: true }
       )

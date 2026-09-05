@@ -32,6 +32,10 @@ module.exports = {
   async execute(message, client) {
     if (message.author.bot || mongoose.connection.readyState !== 1) return;
 
+    // Keep a monotonic timestamp so diagnostic commands can distinguish
+    // handler/DB queue time from the Discord request itself.
+    message.__cokeBotReceivedAt = process.hrtime.bigint();
+
     const userId = message.author.id;
     const normalizedPrefix = (config.prefix || "").toLowerCase();
     const contentLower = message.content.toLowerCase();
@@ -87,6 +91,41 @@ module.exports = {
     }
 
     try {
+      // xping is a read-only diagnostic command. Run it after the synchronous
+      // anti-cheat check but before the full user/DB load, so a slow Mongo
+      // lookup cannot add seconds to the connection report.
+      const rawCommandName = isCommand
+        ? contentLower
+            .slice(normalizedPrefix.length)
+            .trim()
+            .split(/\s+/)[0]
+        : "";
+      const fastPingCommand = rawCommandName
+        ? client.commands.get(rawCommandName) ||
+          client.commands.find((cmd) =>
+            cmd.aliases?.some((alias) => alias.toLowerCase() === rawCommandName),
+          )
+        : null;
+      const isDev = config.permissions?.dev_ids?.includes(userId) || userId === process.env.OWNER_ID;
+      const isPingLocked = !isDev && client.lockedFeatures?.some((feature) => {
+        const normalizedFeature = feature.toLowerCase();
+        return normalizedFeature === "ping" || normalizedFeature === "user";
+      });
+      const isBlockedByGlobalLock =
+        client.botLocked && !(client.allowedIds || config.permissions.dev_ids || []).includes(userId);
+
+      if (
+        fastPingCommand?.name?.toLowerCase() === "ping" &&
+        !fastPingCommand.cooldown &&
+        !cachedVerifying &&
+        anticheatCheck?.status !== "TRIGGER_VERIFICATION" &&
+        !isPingLocked &&
+        !isBlockedByGlobalLock
+      ) {
+        await fastPingCommand.execute(message, [], client, client.services);
+        return;
+      }
+
       const user = await getOrCreateUser(userId);
 
       
