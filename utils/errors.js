@@ -1,4 +1,5 @@
 const config = require('../data/config')
+const { getErrorCode, isTransientNetworkError } = require('./networkErrors')
 
 class UserFriendlyError extends Error {
     constructor(message) {
@@ -12,6 +13,8 @@ const handleCommandError = async (error, message) => {
         await message.reply(error.message).catch(async () => {
             await message.channel.send(`<@${message.author.id}>, ${error.message}`).catch(() => {});
         });
+    } else if (isTransientNetworkError(error)) {
+        console.warn(`[TRANSIENT_COMMAND_ERROR] User: ${message.author.username}, Command: "${message.content}", Code: ${getErrorCode(error)}`)
     } else {
         console.error(`[FATAL_COMMAND_ERROR] User: ${message.author.username}, Command: "${message.content}"`)
         console.error(error)

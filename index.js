@@ -41,8 +41,20 @@ const { initializeGodsetExpirations } = require("./features/godsetExpiryManager"
 const config = require("./data/config");
 const { syncTimeDrift } = require("./utils/timeSync");
 const { startNetworkMonitor } = require("./utils/networkMonitor");
+const {
+  getErrorCode,
+  isTransientNetworkError,
+  withDiscordRequestRetry,
+} = require("./utils/networkErrors");
 
 process.on("unhandledRejection", (error) => {
+  if (isTransientNetworkError(error)) {
+    console.warn(
+      `[TRANSIENT_NETWORK] Unhandled network error (${getErrorCode(error)}):`,
+      error?.message || error,
+    );
+    return;
+  }
   console.error("❌ Unhandled rejection:", error);
   // KHÔNG exit process vì lỗi mạng nhất thời (EAI_AGAIN/getaddrinfo/ENOTFOUND/ECONNRESET).
   // Discord.js tự reconnect + networkMonitor xử lý mất mạng kéo dài. Exit ngay ở đây
@@ -50,6 +62,13 @@ process.on("unhandledRejection", (error) => {
 });
 
 process.on("uncaughtException", (error) => {
+  if (isTransientNetworkError(error)) {
+    console.warn(
+      `[TRANSIENT_NETWORK] Uncaught network error (${getErrorCode(error)}):`,
+      error?.message || error,
+    );
+    return;
+  }
   console.error("❌ Uncaught exception:", error);
   // Giống unhandledRejection: không exit vì lỗi mạng nhất thời. Chỉ exit nếu
   // thực sự là lỗi không thể phục hồi (không phải lỗi mạng).
@@ -90,6 +109,11 @@ const client = new Client({
     }
   }
 });
+
+const discordMakeRequest = client.rest.options.makeRequest;
+client.rest.options.makeRequest = withDiscordRequestRetry((...args) =>
+  discordMakeRequest.apply(client.rest, args),
+);
 
 client.commands = new Collection();
 client.noituCommands = new Collection();

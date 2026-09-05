@@ -1,6 +1,7 @@
 const { Events } = require("discord.js");
 const { getOrCreateUser } = require("../utils/userUtil");
 const { formatDuration } = require("../utils/miscUtil");
+const { getErrorCode, isTransientNetworkError } = require("../utils/networkErrors");
 
 module.exports = {
   name: Events.InteractionCreate,
@@ -43,6 +44,13 @@ module.exports = {
         return;
       }
     } catch (error) {
+      if (isTransientNetworkError(error)) {
+        console.warn(
+          `[TRANSIENT_INTERACTION_ERROR] ${interaction.commandName || interaction.customId || "unknown"} (${getErrorCode(error)}):`,
+          error?.message || error,
+        );
+        return;
+      }
       console.error(
         `Interaction Error${interaction.commandName ? ` [/${interaction.commandName}]` : ""}:`,
         error,
