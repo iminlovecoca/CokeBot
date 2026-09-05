@@ -43,9 +43,10 @@ const ITEMS_PER_PAGE = 10;
 const buildGearLine = (item, isEquipped = false) => {
   const displayName = getGearDisplayName(item);
   const quality = getItemQuality(item);
-  const equippedIndicator = isEquipped ? " · đang mặc" : "";
+  const itemId = `G${String(item.id).padStart(3, "0")}`;
+  const equippedIndicator = isEquipped ? " · **đang mặc**" : "";
   // getGearDisplayName already contains the single rarity/item icon pair.
-  return `${displayName} · ${quality}%${equippedIndicator}`;
+  return `\`${itemId}\` ${displayName} · ${quality}%${equippedIndicator}`;
 };
 const formatGearStats = (stats = {}) =>
   Object.entries(stats)
