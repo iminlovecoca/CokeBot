@@ -258,7 +258,8 @@ const toSuperscript = (num, minDigits = 3) => {
   return str.split('').map(c => map[c] || c).join('');
 };
 const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
-  const ebotEmoji = botInfo.emoji || "";
+  const ebotEmoji = botInfo.emoji || "🤖";
+  const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
   const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
   const groupedByRarity = {};
   for (const r of rarityOrder) {
@@ -273,15 +274,15 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
     groupedByRarity[rarity][itemEmoji] = (groupedByRarity[rarity][itemEmoji] || 0) + 1;
   }
   const lines = [
-    `${ebotEmoji ? `${ebotEmoji} ` : ""}**HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
-    `• Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
+    `${ebotEmoji} **|** **HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
+    `${blankEmoji} **|** Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
   ];
   if (petsCaught.length > 0) {
     const petStr = petsCaught.map((p) => `${getRarityEmoji(p.tier)} ${p.emoji} **${p.name}**`).join(", ");
-    lines.push(`• **Linh thú mới:** ${petStr}`);
+    lines.push(`🔮 **|** 🎉 **Linh thú mới:** ${petStr}`);
   }
   if (totalDuplicatePetExp > 0) {
-    lines.push(`• Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** do trùng pet.`);
+    lines.push(`🐾 **|** Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** trùng pet!`);
   }
   for (const rarity of rarityOrder) {
     const itemsMap = groupedByRarity[rarity];
@@ -293,8 +294,8 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
       const chunkSize = 6;
       for (let i = 0; i < itemStrings.length; i += chunkSize) {
         const chunk = itemStrings.slice(i, i + chunkSize);
-        const prefix = i === 0 && rarityEmoji ? `${rarityEmoji} ` : "• ";
-        lines.push(`${prefix}${chunk.join("   ")}`);
+        const prefixEmoji = i === 0 ? rarityEmoji : blankEmoji;
+        lines.push(`${prefixEmoji} **|** ${chunk.join("   ")}`);
       }
     }
   }

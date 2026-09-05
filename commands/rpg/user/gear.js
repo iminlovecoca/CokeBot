@@ -439,8 +439,8 @@ class GearCommand extends BaseCommand {
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("gear_prev")
-          .setLabel("◀️")
-          .setStyle(ButtonStyle.Primary)
+          .setEmoji(config.emoji.back || "◀️")
+          .setStyle(ButtonStyle.Secondary)
           .setDisabled(totalPages <= 1),
         new ButtonBuilder()
           .setCustomId("gear_page_num")
@@ -449,8 +449,8 @@ class GearCommand extends BaseCommand {
           .setDisabled(true),
         new ButtonBuilder()
           .setCustomId("gear_next")
-          .setLabel("▶️")
-          .setStyle(ButtonStyle.Primary)
+          .setEmoji(config.emoji.arrow_right || "▶️")
+          .setStyle(ButtonStyle.Secondary)
           .setDisabled(totalPages <= 1),
         new ButtonBuilder()
           .setCustomId("gear_help")
