@@ -38,6 +38,17 @@ const CLASS_ATTACK_TYPES = {
   paladin: "physical",
   wretch: "physical",
 };
+const getDungeonPlayerBuff = () => {
+  const buff = config.dungeon?.player_buff || {};
+  const damageMultiplier = Number(buff.damage_multiplier);
+  const maxHpMultiplier = Number(buff.max_hp_multiplier);
+  const critRateBonus = Number(buff.crit_rate_bonus);
+  return {
+    damageMultiplier: Number.isFinite(damageMultiplier) && damageMultiplier > 0 ? damageMultiplier : 1,
+    maxHpMultiplier: Number.isFinite(maxHpMultiplier) && maxHpMultiplier > 0 ? maxHpMultiplier : 1,
+    critRateBonus: Number.isFinite(critRateBonus) ? Math.max(0, critRateBonus) : 0,
+  };
+};
 const getHealthBar = (hp, maxHp) => {
   return `❤️ **HP:** ${formatRpgBar(hp, maxHp, 10)} [${hp.toLocaleString()}/${maxHp.toLocaleString()}]`;
 };
@@ -314,6 +325,7 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
 const startDungeon = async ({ message, guild, chapter, blessing }) => {
   const client = message.client;
   const channel = message.channel;
+  const playerBuff = getDungeonPlayerBuff();
   if (client.rpgDungeons.has(channel.id)) {
     return channel.send("❌ Đang có một phó bản diễn ra tại kênh này.");
   }
@@ -342,6 +354,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
       if (setBonus?.bonus?.maxHp) {
         maxHp += Math.floor(maxHp * setBonus.bonus.maxHp);
       }
+      maxHp = Math.floor(maxHp * playerBuff.maxHpMultiplier);
       if (blessing === "active") {
         maxHp = Math.floor(maxHp * 1.1);
       }
@@ -1270,7 +1283,8 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const baseAttack = isMagical
     ? player.stats.int * 3.5 + player.stats.arc * 1.5
     : player.stats.str * 2.5 + player.stats.dex * 1.5;
-  let rawDamage = (baseAttack + player.power) * multiplier;
+  const playerBuff = getDungeonPlayerBuff();
+  let rawDamage = (baseAttack + player.power) * multiplier * playerBuff.damageMultiplier;
   if (activeDungeon.blessing === "active") {
     rawDamage *= 1.2;
   }
@@ -1288,7 +1302,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const setCritBonus = player.setBonus?.bonus?.critRate || 0;
   const critRate = Math.min(
     0.85,
-    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus + setCritBonus
+    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus + setCritBonus + playerBuff.critRateBonus
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + player.stats.dex * 0.002;

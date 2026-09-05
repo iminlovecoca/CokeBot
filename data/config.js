@@ -462,6 +462,11 @@ module.exports = {
     knowledge_base_version: "1.0.0",
   },
   dungeon: {
+    player_buff: {
+      damage_multiplier: 1.05,
+      max_hp_multiplier: 1.05,
+      crit_rate_bonus: 0.01,
+    },
     normal_monster: {
       base_hp: 9100,
       round_hp_mult: 0.1,
