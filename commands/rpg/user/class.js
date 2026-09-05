@@ -29,7 +29,7 @@ const {
   getStartingStats,
   getCharacterAssetPath,
 } = require("../../../utils/rpgUtil");
-const { getClassEmoji, getSlotLabel, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
+const { getSlotLabel, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
 const statLabels = {
   vigor: "Vigor",
   pr: "PR",
@@ -92,7 +92,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
     : `${rpgClass.name} • ${rpgClass.title}`;
   const embed = new EmbedBuilder()
     .setColor(rpgClass.color)
-    .setTitle(formatRpgTitle(title, getClassEmoji(classKey)))
+    .setTitle(title)
     .setDescription(rpgClass.description)
     .setImage(`attachment://${assetName}`)
     .addFields({
@@ -156,7 +156,7 @@ const buildClassEmbed = (classKey, rpgClass, userData = null, customAvatar = nul
         const finalPower = item.slot === "weapon" ? getWeaponPower(item, ownerStats) : item.power;
         return `• ${slotName}: \`G${item.id}\` **${getGearDisplayName(item)}** (+${finalPower.toLocaleString()} Lực chiến)`;
       } else {
-        return `• ${slotName}: ❎`;
+        return `• ${slotName}: —`;
       }
     }).join("\n");
     embed.addFields({

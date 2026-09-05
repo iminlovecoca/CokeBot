@@ -33,7 +33,6 @@ const {
   ui,
   getRarityEmoji,
   getRarityColor,
-  getSlotEmoji,
   getStatLabel,
   formatRpgFooter,
   formatRpgTitle,
@@ -42,13 +41,11 @@ const {
 } = require("../../../utils/rpgUi");
 const ITEMS_PER_PAGE = 10;
 const buildGearLine = (item, isEquipped = false) => {
-  const idStr = String(item.id).padStart(3, "0");
   const displayName = getGearDisplayName(item);
   const quality = getItemQuality(item);
-  const equippedIndicator = isEquipped ? " ✨" : "";
-  const itemEmoji = item.emoji || getSlotEmoji(item.slot);
-  const rarityEmoji = getRarityEmoji(item.rarity);
-  return `${itemEmoji} ${rarityEmoji} \`G${idStr}\` **${displayName}** · ${quality}%${equippedIndicator}`;
+  const equippedIndicator = isEquipped ? " · đang mặc" : "";
+  // getGearDisplayName already contains the single rarity/item icon pair.
+  return `${displayName} · ${quality}%${equippedIndicator}`;
 };
 const formatGearStats = (stats = {}) =>
   Object.entries(stats)
@@ -57,7 +54,7 @@ const formatGearStats = (stats = {}) =>
     .join(" • ");
 const filterLabels = {
   none: "Không lọc",
-  favorite: "Yêu thích (⭐)",
+  favorite: "Yêu thích",
   slot_weapon: "Vũ khí",
   slot_armor: "Giáp ngực",
   slot_helmet: "Mũ bảo vệ",
@@ -76,22 +73,24 @@ const filterLabels = {
 const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterTypes, sortBy, rpgClass }) => {
   const start = page * ITEMS_PER_PAGE;
   const pageItems = items.slice(start, start + ITEMS_PER_PAGE);
-  const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
+  const equippedIds = new Set(
+    Object.values(getEquippedItems(user)).map((item) => String(item.id)),
+  );
   const list = pageItems.length
-    ? pageItems.map((item) => buildGearLine(item, equippedIds.has(item.id))).join("\n")
+    ? pageItems.map((item) => buildGearLine(item, equippedIds.has(String(item.id)))).join("\n")
     : "*Chưa có trang bị nào khớp bộ lọc.*";
   const filterLabel = filterTypes.includes("none")
     ? "Không lọc"
     : filterTypes.map((f) => filterLabels[f] || f).join(", ");
   return new EmbedBuilder()
     .setColor(getRpgClass(user.rpg.classKey)?.color || rpgClass.color)
-    .setTitle(formatRpgTitle(`Kho trang bị • ${memberName}`, ui.icons?.gear))
+    .setTitle(`Kho trang bị • ${memberName}`)
     .setDescription(list)
     .addFields(
-      { name: "⚔️ Lực chiến", value: `**${Math.floor(calculateRpgPower(user)).toLocaleString()}**`, inline: true },
-      { name: "🔎 Bộ lọc", value: `**${filterLabel}**`, inline: true },
+      { name: "Lực chiến", value: `**${Math.floor(calculateRpgPower(user)).toLocaleString()}**`, inline: true },
+      { name: "Bộ lọc", value: `**${filterLabel}**`, inline: true },
     )
-    .setFooter(formatRpgFooter(`Trang ${page + 1}/${totalPages} • ✨ = đang trang bị`));
+    .setFooter(formatRpgFooter(`Trang ${page + 1}/${totalPages} • đang mặc`));
 };
 class GearCommand extends BaseCommand {
   constructor() {
@@ -110,8 +109,8 @@ class GearCommand extends BaseCommand {
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
     const getDetailEmbedAndComponents = (freshItem, freshOwner) => {
-      const equippedEntry = Object.entries(freshOwner.rpg.equipped || {}).find(
-        ([, equippedItemId]) => equippedItemId === freshItem.id,
+      const equippedEntry = Object.values(getEquippedItems(freshOwner)).find(
+        (equippedItem) => String(equippedItem.id) === String(freshItem.id),
       );
       const imageFile = getItemImageFile(freshItem);
       let subTypeName = freshItem.subType || freshItem.subtype;
@@ -122,11 +121,12 @@ class GearCommand extends BaseCommand {
       }
       const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` +${freshItem.upgradeLevel}` : "";
       const ownerName = freshOwner.rpg.name || freshOwner.userId;
-      const titleText = `${getRarityEmoji(freshItem.rarity)} ${getSlotEmoji(freshItem.slot)} ${ownerName} • ${subTypeName}${upgradeStr}`;
+      const titleIcon = freshItem.emoji || getRarityEmoji(freshItem.rarity);
+      const titleText = `${titleIcon ? `${titleIcon} ` : ""}${ownerName} • ${subTypeName}${upgradeStr}`;
       let desc = `**Chủ sở hữu:** <@${freshOwner.userId}>\n` +
                  `**Mã trang bị:** \`G${String(freshItem.id).padStart(3, "0")}\`\n` +
                  `**Giá bán:** ${config.emoji.money || "💵"} ${freshItem.sellPrice.toLocaleString()} Coke\n` +
-                 `**Chất lượng:** 📈 ${getItemQuality(freshItem)}%\n` +
+                 `**Chất lượng:** ${getItemQuality(freshItem)}%\n` +
                  `**Độ hiếm:** ${getRarityEmoji(freshItem.rarity)} **${freshItem.rarity}**\n\n`;
       if (freshItem.slot === "weapon") {
         const ownerStats = getEffectiveRpgStats(freshOwner);
@@ -135,7 +135,7 @@ class GearCommand extends BaseCommand {
         const powerText = `**${finalPower.toLocaleString()}** (+${bonusPower.toLocaleString()})`;
         const scaling = getWeaponScaling(freshItem);
         const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
-         desc += `### ⚔️ Sức mạnh vũ khí\n` +
+         desc += `### Sức mạnh vũ khí\n` +
                  `Cơ bản: **${freshItem.power.toLocaleString()}**  •  Thực tế: ${powerText}\n` +
                  `Scale: \`${scalingText}\`\n\n`;
         const freshWeaponSubtype = freshItem.subType || freshItem.subtype;
@@ -189,22 +189,20 @@ class GearCommand extends BaseCommand {
         }
       } else {
         const statsText = formatStats(freshItem.stats) || "Không có";
-        desc += `### 📈 Chỉ số cộng thêm\n` +
+        desc += `### Chỉ số cộng thêm\n` +
                 `Lực chiến: **+${freshItem.power.toLocaleString()}**\n` +
                 `${statsText}`;
       }
       const embed = new EmbedBuilder()
         .setColor(getRarityColor(freshItem.rarity, rpgClass.color))
         .setTitle(titleText)
-        .setDescription(desc)
-        .setFooter(formatRpgFooter("Chi tiết trang bị • phiên tương tác 5 phút"));
+        .setDescription(desc);
       const row = new ActionRowBuilder();
       if (equippedEntry) {
         row.addComponents(
           new ButtonBuilder()
             .setCustomId(`gear_uneq_${freshItem.id}`)
             .setLabel("Tháo")
-            .setEmoji(getSlotEmoji(freshItem.slot))
             .setStyle(ButtonStyle.Secondary)
         );
       } else {
@@ -212,7 +210,6 @@ class GearCommand extends BaseCommand {
           new ButtonBuilder()
             .setCustomId(`gear_equip_${freshItem.id}`)
             .setLabel("Trang bị")
-            .setEmoji(getSlotEmoji(freshItem.slot))
             .setStyle(ButtonStyle.Primary)
         );
       }
@@ -220,14 +217,14 @@ class GearCommand extends BaseCommand {
         new ButtonBuilder()
           .setCustomId(`gear_sell_${freshItem.id}`)
           .setLabel("Bán")
-          .setEmoji("💰")
+          .setEmoji(config.emoji.money)
           .setStyle(ButtonStyle.Danger)
           .setDisabled(!!freshItem.isFavorite || !!freshItem.isGodset)
       );
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`gear_fav_${freshItem.id}`)
-          .setEmoji("⭐")
+          .setLabel(freshItem.isFavorite ? "Bỏ yêu thích" : "Yêu thích")
           .setStyle(freshItem.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
       );
       return { embed, row };
@@ -315,23 +312,24 @@ class GearCommand extends BaseCommand {
       favCollector.on("end", async () => {
         const updated = getDetailEmbedAndComponents(item, owner);
         const disabledRow = new ActionRowBuilder();
-        const isUneq = Object.values(owner.rpg.equipped || {}).includes(item.id);
+        const isUneq = Object.values(getEquippedItems(owner)).some(
+          (equippedItem) => String(equippedItem.id) === String(item.id),
+        );
         disabledRow.addComponents(
           new ButtonBuilder()
             .setCustomId(`gear_btn_dis1_${item.id}`)
             .setLabel(isUneq ? "Tháo" : "Trang bị")
-            .setEmoji(isUneq ? "🛡️" : "🗡️")
             .setStyle(isUneq ? ButtonStyle.Secondary : ButtonStyle.Primary)
             .setDisabled(true),
           new ButtonBuilder()
             .setCustomId(`gear_btn_dis2_${item.id}`)
             .setLabel("Bán")
-            .setEmoji("💰")
+            .setEmoji(config.emoji.money)
             .setStyle(ButtonStyle.Danger)
             .setDisabled(true),
           new ButtonBuilder()
             .setCustomId(`gear_btn_dis3_${item.id}`)
-            .setEmoji("⭐")
+            .setLabel(item.isFavorite ? "Bỏ yêu thích" : "Yêu thích")
             .setStyle(item.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
             .setDisabled(true)
         );
@@ -421,7 +419,7 @@ class GearCommand extends BaseCommand {
           .setMaxValues(5)
           .addOptions(
              { label: "Không lọc", value: "none", default: filterTypes.includes("none") },
-            { label: "Lọc: Yêu thích (⭐)", value: "favorite", default: filterTypes.includes("favorite") },
+            { label: "Lọc: Yêu thích", value: "favorite", default: filterTypes.includes("favorite") },
             { label: "Lọc: Vũ khí", value: "slot_weapon", default: filterTypes.includes("slot_weapon") },
             { label: "Lọc: Giáp ngực", value: "slot_armor", default: filterTypes.includes("slot_armor") },
             { label: "Lọc: Mũ bảo vệ", value: "slot_helmet", default: filterTypes.includes("slot_helmet") },

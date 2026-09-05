@@ -44,8 +44,8 @@ class BattlesettingCommand extends BaseCommand {
         .setTitle(formatRpgTitle(`Cài đặt trận đấu • ${message.author.username}`, "⚙️"))
         .setDescription(`Dùng \`${config.prefix}bs display=...\`, \`${config.prefix}bs speed=...\` hoặc \`${config.prefix}bs logs=...\` để thay đổi.`)
         .addFields(
-          { name: "🖼️ Hiển thị", value: `Đang dùng: **${currentDisplay}**\nimage · text · compact`, inline: true },
-          { name: "⏱️ Tốc độ", value: `Đang dùng: **${currentSpeed}**\ninstant · short · lengthy`, inline: true },
+          { name: "Hiển thị", value: `Đang dùng: **${currentDisplay}**\nimage · text · compact`, inline: true },
+          { name: "Tốc độ", value: `Đang dùng: **${currentSpeed}**\ninstant · short · lengthy`, inline: true },
           { name: "📜 Nhật ký", value: `Đang dùng: **${currentLogs}**\ntrue · false · link`, inline: true },
         )
         .setFooter(formatRpgFooter("Cài đặt chỉ áp dụng cho trận PvP của bạn"));
@@ -101,8 +101,8 @@ class BattlesettingCommand extends BaseCommand {
       .setTitle(formatRpgTitle("Đã cập nhật cài đặt", "✅"))
       .setDescription(`Cấu hình mới của **${message.author.username}** đã được lưu.`)
       .addFields(
-        { name: "🖼️ Hiển thị", value: `**${finalDisplay}**`, inline: true },
-        { name: "⏱️ Tốc độ", value: `**${finalSpeed}**`, inline: true },
+        { name: "Hiển thị", value: `**${finalDisplay}**`, inline: true },
+        { name: "Tốc độ", value: `**${finalSpeed}**`, inline: true },
         { name: "📜 Nhật ký", value: `**${finalLogs}**`, inline: true },
       )
       .setFooter(formatRpgFooter("Cấu hình đã lưu"));

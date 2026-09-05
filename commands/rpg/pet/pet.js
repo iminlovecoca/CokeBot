@@ -121,14 +121,14 @@ class PetCommand extends BaseCommand {
       .setTitle(formatRpgTitle(`${petData.name}${isEquipped ? " • đang trang bị" : ""}`, petData.emoji))
       .setDescription(`*${desc}*`)
       .addFields(
-        { name: "📈 Cấp độ", value: `\`${level}\` • ${expStr} XP`, inline: true },
-        { name: "✦ Hạng", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
-        { name: "⚡ Điểm hỗ trợ", value: `+${powerPoints.toLocaleString()}`, inline: true },
-        { name: "❤️ HP", value: `+${hpVal} (+${hpPct}%)`, inline: true },
-        { name: "⚔️ ATK", value: `+${atkVal} (+${atkPct}%)`, inline: true },
-        { name: "🛡️ DEF", value: `+${defVal} (+${defPct}%)`, inline: true },
-        { name: "🔎 Tên gọi khác", value: `\`${aliasesStr}\``, inline: true },
-        { name: "Trạng thái", value: isOwned ? (isEquipped ? "✅ Đang trang bị" : "📦 Trong kho") : "❌ Chưa sở hữu", inline: true }
+        { name: "Cấp độ", value: `\`${level}\` • ${expStr} XP`, inline: true },
+        { name: "Hạng", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
+        { name: "Điểm hỗ trợ", value: `+${powerPoints.toLocaleString()}`, inline: true },
+        { name: "HP", value: `+${hpVal} (+${hpPct}%)`, inline: true },
+        { name: "ATK", value: `+${atkVal} (+${atkPct}%)`, inline: true },
+        { name: "DEF", value: `+${defVal} (+${defPct}%)`, inline: true },
+        { name: "Tên gọi khác", value: `\`${aliasesStr}\``, inline: true },
+        { name: "Trạng thái", value: isOwned ? (isEquipped ? `${config.emoji.yes} Đang trang bị` : "Trong kho") : `${config.emoji.no} Chưa sở hữu`, inline: true }
       )
       .setFooter(formatRpgFooter("Linh thú • dùng xpet <tên> để xem chi tiết"));
 

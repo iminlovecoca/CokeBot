@@ -144,14 +144,6 @@ const traitMapping = {
   radar: "radar",
   rad: "radar",
 };
-const traitDisplayNames = {
-  efficiency: "Hiệu suất",
-  duration: "Thời lượng",
-  cost: "Chi phí",
-  gain: "Essence nhận",
-  experience: "Kinh nghiệm",
-  radar: "Radar",
-};
 const formatDuration = (ms) => {
   const totalMin = Math.floor(ms / (60 * 1000));
   const hrs = Math.floor(totalMin / 60);
@@ -196,12 +188,12 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
     )
     .addFields(
       {
-        name: `⏱️ Hiệu suất • ${effInfo.stat}${effInfo.prefix}`,
+        name: `Hiệu suất • ${effInfo.stat}${effInfo.prefix}`,
         value: drawProgress(effInfo),
         inline: true,
       },
       {
-        name: `⏳ Thời lượng • ${durInfo.stat}${durInfo.prefix}`,
+        name: `Thời lượng • ${durInfo.stat}${durInfo.prefix}`,
         value: drawProgress(durInfo),
         inline: true,
       },
@@ -211,17 +203,17 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
         inline: true,
       },
       {
-        name: `🔧 Essence • ${gainInfo.stat}${gainInfo.prefix}`,
+        name: `Essence • ${gainInfo.stat}${gainInfo.prefix}`,
         value: drawProgress(gainInfo),
         inline: true,
       },
       {
-        name: `⚔️ Kinh nghiệm • ${expInfo.stat}${expInfo.prefix}`,
+        name: `Kinh nghiệm • ${expInfo.stat}${expInfo.prefix}`,
         value: drawProgress(expInfo),
         inline: true,
       },
       {
-        name: `📡 Radar • ${radInfo.stat.toFixed(5)}${radInfo.prefix}`,
+        name: `Radar • ${radInfo.stat.toFixed(5)}${radInfo.prefix}`,
         value: drawProgress(radInfo),
         inline: true,
       },
@@ -266,8 +258,7 @@ const toSuperscript = (num, minDigits = 3) => {
   return str.split('').map(c => map[c] || c).join('');
 };
 const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
-  const ebotEmoji = botInfo.emoji || "🤖";
-  const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
+  const ebotEmoji = botInfo.emoji || "";
   const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
   const groupedByRarity = {};
   for (const r of rarityOrder) {
@@ -282,15 +273,15 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
     groupedByRarity[rarity][itemEmoji] = (groupedByRarity[rarity][itemEmoji] || 0) + 1;
   }
   const lines = [
-    `${ebotEmoji} **|** **HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
-    `${blankEmoji} **|** Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
+    `${ebotEmoji ? `${ebotEmoji} ` : ""}**HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
+    `• Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
   ];
   if (petsCaught.length > 0) {
     const petStr = petsCaught.map((p) => `${getRarityEmoji(p.tier)} ${p.emoji} **${p.name}**`).join(", ");
-    lines.push(`🔮 **|** 🎉 **Linh thú mới:** ${petStr}`);
+    lines.push(`• **Linh thú mới:** ${petStr}`);
   }
   if (totalDuplicatePetExp > 0) {
-    lines.push(`🐾 **|** Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** trùng pet!`);
+    lines.push(`• Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** do trùng pet.`);
   }
   for (const rarity of rarityOrder) {
     const itemsMap = groupedByRarity[rarity];
@@ -302,8 +293,8 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
       const chunkSize = 6;
       for (let i = 0; i < itemStrings.length; i += chunkSize) {
         const chunk = itemStrings.slice(i, i + chunkSize);
-        const prefixEmoji = i === 0 ? rarityEmoji : blankEmoji;
-        lines.push(`${prefixEmoji} **|** ${chunk.join("   ")}`);
+        const prefix = i === 0 && rarityEmoji ? `${rarityEmoji} ` : "• ";
+        lines.push(`${prefix}${chunk.join("   ")}`);
       }
     }
   }
@@ -549,29 +540,10 @@ class XautohuntCommand extends BaseCommand {
       user.rpg.power = calculateRpgPower(user);
       user.markModified("rpg");
       await user.save();
-      const sacrificeEmbed = new EmbedBuilder()
-        .setColor(getRpgColor("success"))
-        .setTitle(formatRpgTitle("Hiến tế trang bị thành công", "🌌"))
-        .setDescription("Trang bị dư đã được chuyển hoá thành Essence để nâng cấp HuntBot.")
-        .addFields(
-          {
-            name: "🧰 Đã hiến tế",
-            value: `${getRarityEmoji(targetRarity)} **${itemsToSacrifice.length}** trang bị ${targetRarity}`,
-            inline: true,
-          },
-          {
-            name: "✨ Essence nhận được",
-            value: `**+${totalEssenceGain.toLocaleString()}**`,
-            inline: true,
-          },
-          {
-            name: "📦 Essence hiện có",
-            value: `**${user.rpg.autohunt.essence.toLocaleString()}**`,
-            inline: true,
-          },
-        )
-        .setFooter(formatRpgFooter("Trang bị đang mặc và Godset luôn được bảo vệ"));
-      return message.reply({ embeds: [sacrificeEmbed] });
+      return message.reply(
+        `🌌 **Tế Đàn Tinh Hoa RPG**\n` +
+          `Bạn đã hiến tế **${itemsToSacrifice.length}** trang bị ${getRarityEmoji(targetRarity)} **${targetRarity}** và nhận được **+${totalEssenceGain.toLocaleString()} Essence**!`,
+      );
     }
     if (subCommand === "upgrade" || subCommand === "up") {
       const inputTrait = args[1]?.toLowerCase();
@@ -597,7 +569,7 @@ class XautohuntCommand extends BaseCommand {
       const xpForMax = getXpForMax(trait);
       if (currentXp >= xpForMax) {
         return message.reply(
-          `${config.emoji.warning} Chỉ số **${traitDisplayNames[trait]}** đã đạt cấp độ tối đa.`,
+          `${config.emoji.warning} Chỉ số **${trait}** đã đạt cấp độ tối đa.`,
         );
       }
       const xpNeededForMax = xpForMax - currentXp;
@@ -613,28 +585,18 @@ class XautohuntCommand extends BaseCommand {
       user.markModified("rpg");
       await user.save();
       if (lvlAfter > lvlBefore) {
-        const upgradeEmbed = new EmbedBuilder()
-          .setColor(getRpgColor("success"))
-          .setTitle(formatRpgTitle("Nâng cấp HuntBot", "⚙️"))
-          .setDescription(`Chỉ số **${traitDisplayNames[trait]}** đã tăng lên **Cấp ${lvlAfter}**.`)
-          .addFields(
-            { name: "✨ Essence tiêu hao", value: `**${essenceToSpend.toLocaleString()}**`, inline: true },
-            { name: "📦 Essence còn lại", value: `**${user.rpg.autohunt.essence.toLocaleString()}**`, inline: true },
-          )
-          .setFooter(formatRpgFooter("Hiệu quả nâng cấp đã được áp dụng ngay"));
-        return message.reply({ embeds: [upgradeEmbed] });
+        return message.reply(
+          `⚙️ **Nâng Cấp HuntBot**\n` +
+            `Nâng cấp thành công chỉ số **${trait}** (Lên cấp **${lvlAfter}**).\n` +
+            `Tiêu hao: **${essenceToSpend.toLocaleString()} Essence** | Essence còn lại: **${user.rpg.autohunt.essence.toLocaleString()}**`,
+        );
       } else {
         const progressInfo = getLvl(nextXp, 0, trait);
-        const upgradeEmbed = new EmbedBuilder()
-          .setColor(getRpgColor("info"))
-          .setTitle(formatRpgTitle("Đã nạp Essence HuntBot", "⚙️"))
-          .setDescription(`Đã cộng **+${essenceToSpend.toLocaleString()} XP** vào chỉ số **${traitDisplayNames[trait]}**.`)
-          .addFields(
-            { name: "📈 Tiến trình", value: `Cấp **${lvlAfter}** • **${progressInfo.currentxp.toLocaleString()}/${progressInfo.maxxp.toLocaleString()} XP**`, inline: true },
-            { name: "📦 Essence còn lại", value: `**${user.rpg.autohunt.essence.toLocaleString()}**`, inline: true },
-          )
-          .setFooter(formatRpgFooter("Nâng cấp tiếp để mở rộng hiệu suất HuntBot"));
-        return message.reply({ embeds: [upgradeEmbed] });
+        return message.reply(
+          `⚙️ **Nạp Essence HuntBot**\n` +
+            `Nạp thành công **+${essenceToSpend.toLocaleString()} XP** vào chỉ số **${trait}** (Cấp ${lvlAfter} \`[${progressInfo.currentxp}/${progressInfo.maxxp}]\`).\n` +
+            `Tiêu hao: **${essenceToSpend.toLocaleString()} Essence** | Essence còn lại: **${user.rpg.autohunt.essence.toLocaleString()}**`,
+        );
       }
     }
     if (subCommand === "claim" || subCommand === "c") {
@@ -795,10 +757,9 @@ class XautohuntCommand extends BaseCommand {
           user.markModified("rpg");
           await user.save();
           const imageBuffer = generateCaptchaImage(newCode);
-          const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
           return message.reply({
             content: `🤖 **Xác thực HuntBot** • ${memberName}\n` +
-              `${blankEmoji} Nhập lệnh \`${config.prefix}autohunt ${args[0]} {mã}\` để tiếp tục.`,
+              `• Nhập lệnh \`${config.prefix}autohunt ${args[0]} {mã}\` để tiếp tục.`,
             files: [{ attachment: imageBuffer, name: "captcha.png" }],
             skipV2: true
           });
@@ -815,11 +776,10 @@ class XautohuntCommand extends BaseCommand {
         const hrs = Math.floor(actualDurationHours);
         const mins = Math.round((actualDurationHours - hrs) * 60);
         const timeStr = mins === 0 ? `${hrs} giờ` : `${hrs} giờ ${mins} phút`;
-        const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
         const startMsg = [
           `🤖 **HuntBot đã bắt đầu** • ${memberName}`,
-          `${blankEmoji} Thời lượng: **${timeStr}** • Chi phí: **${totalCost.toLocaleString()} Coke**`,
-          `${blankEmoji} Dự kiến: **${huntsCount.toLocaleString()} lượt săn** • **${expectedEssence.toLocaleString()} Essence** • **${expectedXp.toLocaleString()} EXP**`,
+          `• Thời lượng: **${timeStr}** • Chi phí: **${totalCost.toLocaleString()} Coke**`,
+          `• Dự kiến: **${huntsCount.toLocaleString()} lượt săn** • **${expectedEssence.toLocaleString()} Essence** • **${expectedXp.toLocaleString()} EXP**`,
         ].join("\n");
 
         const sentMsg = await message.reply({ content: startMsg, skipV2: true });

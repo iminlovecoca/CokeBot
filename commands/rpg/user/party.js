@@ -88,7 +88,7 @@ class PartyCommand extends BaseCommand {
         .setDescription(`<@${targetId}>, bạn được <@${userId}> mời tham gia tổ đội Dungeon.`)
         .addFields(
           { name: "👑 Trưởng nhóm", value: `<@${userId}>`, inline: true },
-          { name: "👥 Quy mô", value: `${guild.members.length}/3 thành viên`, inline: true },
+          { name: "Quy mô", value: `${guild.members.length}/3 thành viên`, inline: true },
         )
         .setFooter(formatRpgFooter("Lời mời có hiệu lực trong 60 giây"));
       const inviteMsg = await message.reply({
@@ -151,8 +151,8 @@ class PartyCommand extends BaseCommand {
       .setTitle(formatRpgTitle("Thông tin tổ đội RPG", "👥"))
       .setDescription("Tổ đội phối hợp để vượt qua Dungeon và mở khóa chương tiếp theo.")
       .addFields(
-        { name: `👥 Thành viên • ${guild.members.length}/3`, value: memberLines },
-        { name: "🗺️ Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/14** chương` }
+        { name: `Thành viên • ${guild.members.length}/3`, value: memberLines },
+        { name: "Tiến trình Dungeon", value: `Đã hoàn thành **${guild.chapterProgress}/14** chương` }
       )
       .setFooter(formatRpgFooter(`Trưởng nhóm: <@${guild.leaderId}>`));
     return message.reply({ embeds: [embed] });

@@ -48,9 +48,9 @@ class BannerCommand extends BaseCommand {
          .setTitle(formatRpgTitle(banner.bannerName, "🎴"))
          .setDescription("Banner giới hạn • Tỉ lệ và bảo hiểm áp dụng theo mùa hiện tại.")
          .addFields(
-           { name: "⚔️ Vũ khí nổi bật", value: `${banner.weaponEmoji} **${banner.weaponName}**`, inline: true },
-           { name: "✦ Độ hiếm", value: `${getRarityEmoji(banner.rarity)} **${banner.rarity}**`, inline: true },
-           { name: "⌛ Kết thúc", value: `**${timeStr}**\nCòn khoảng **${remaining}**`, inline: false },
+           { name: "Vũ khí nổi bật", value: `${banner.weaponEmoji} **${banner.weaponName}**`, inline: true },
+           { name: "Độ hiếm", value: `${getRarityEmoji(banner.rarity)} **${banner.rarity}**`, inline: true },
+           { name: "Kết thúc", value: `**${timeStr}**\nCòn khoảng **${remaining}**`, inline: false },
          )
          .setFooter(formatRpgFooter("Gacha vũ khí • dùng xgacha 1/10 hoặc xgacha banner"))
          .setTimestamp();

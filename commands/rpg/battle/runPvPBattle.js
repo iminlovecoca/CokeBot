@@ -1,7 +1,7 @@
 const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const User = require("../../../models/User");
 const { calculateRpgPower, getRpgClass, getEquippedItems, getEquippedPet } = require("../../../utils/rpgUtil");
-const { getClassEmoji, getRpgColor, getStatusEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const { getRpgColor, getStatusEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 
 const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   const getUserId = (val) => (typeof val === "object" && val !== null ? val.userId : val);
@@ -72,13 +72,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
 
     finalEmbed.addFields(
       {
-        name: `${getClassEmoji(user1.rpg.classKey)} ${p1Name}${weapon1Emoji} • ${class1Name}`,
-        value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
+        name: `${p1Name}${weapon1Emoji} • ${class1Name}`,
+        value: `LV. **${user1.rpg.level}**\nLực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
         inline: true,
       },
       {
-        name: `${getClassEmoji(user2.rpg.classKey)} ${p2Name}${weapon2Emoji} • ${class2Name}`,
-        value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
+        name: `${p2Name}${weapon2Emoji} • ${class2Name}`,
+        value: `LV. **${user2.rpg.level}**\nLực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
         inline: true,
       }
     );
@@ -86,7 +86,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   if (battleLogs === "true" && result.logs && result.logs.length > 0) {
     const logSnippet = result.logs.slice(-8).join("\n");
     finalEmbed.addFields({
-      name: "📜 Nhật ký trận đấu",
+      name: "Nhật ký trận đấu",
       value: logSnippet.length > 1024 ? logSnippet.substring(0, 1021) + "..." : logSnippet,
       inline: false,
     });
@@ -164,13 +164,13 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           .setImage(`attachment://${imgData.name}`)
           .setFields([
             {
-              name: `${getClassEmoji(user1.rpg.classKey)} ${p1Name}${weapon1Emoji} • ${class1.name}${p1Status}`,
-              value: `LV. **${user1.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
+              name: `${p1Name}${weapon1Emoji} • ${class1.name}${p1Status}`,
+              value: `LV. **${user1.rpg.level}**\nLực chiến: **${Math.floor(calculateRpgPower(user1)).toLocaleString()}**`,
               inline: true,
             },
             {
-              name: `${getClassEmoji(user2.rpg.classKey)} ${p2Name}${weapon2Emoji} • ${class2.name}${p2Status}`,
-              value: `LV. **${user2.rpg.level}**\n⚔ Lực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
+              name: `${p2Name}${weapon2Emoji} • ${class2.name}${p2Status}`,
+              value: `LV. **${user2.rpg.level}**\nLực chiến: **${Math.floor(calculateRpgPower(user2)).toLocaleString()}**`,
               inline: true,
             },
           ]);
@@ -178,7 +178,7 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
         if (battleLogs === "true" && result.logs && result.logs.length > 0) {
           const logSnippet = result.logs.slice(-8).join("\n");
           currentEmbed.addFields({
-            name: "📜 Nhật ký trận đấu",
+            name: "Nhật ký trận đấu",
             value: logSnippet.length > 1024 ? logSnippet.substring(0, 1021) + "..." : logSnippet,
             inline: false,
           });

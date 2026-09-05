@@ -38,7 +38,7 @@ class SellgearCommand extends BaseCommand {
         )
         .addFields(
           {
-            name: "📦 Trang bị",
+            name: "Trang bị",
             value:
               `Mã: \`G${String(item.id).padStart(3, "0")}\`\n` +
               `Ô: **${getSlotLabel(item.slot)}**\n` +

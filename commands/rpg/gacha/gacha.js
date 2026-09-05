@@ -12,7 +12,7 @@ const {
   getItemImageFile,
 } = require("../../../utils/rpgUtil");
 const { UserFriendlyError } = require("../../../utils/errors");
-const { getRpgColor, getRarityEmoji, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 class GachaCommand extends BaseCommand {
   constructor() {
     super({
@@ -156,7 +156,7 @@ class GachaCommand extends BaseCommand {
             addRpgGearToUser(user, gear);
             user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
             itemsGained.push(gear);
-            rollsLog.push(`✨ ${getRarityEmoji(gear.rarity)} **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **GIỚI HẠN**`);
+            rollsLog.push(`✨ **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **GIỚI HẠN**`);
           }
         } else {
           const standardWeapons = [
@@ -175,7 +175,7 @@ class GachaCommand extends BaseCommand {
             addRpgGearToUser(user, gear);
             user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
             itemsGained.push(gear);
-            rollsLog.push(`🌟 ${getRarityEmoji(gear.rarity)} **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **ĐỘT PHÁ**`);
+            rollsLog.push(`🌟 **${getGearDisplayName(gear)}** · \`G${String(gear.id).padStart(3, "0")}\` · **ĐỘT PHÁ**`);
           }
         }
       } else {
@@ -188,7 +188,7 @@ class GachaCommand extends BaseCommand {
           addRpgGearToUser(user, gear);
           user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
           itemsGained.push(gear);
-          rollsLog.push(`• ${getRarityEmoji(gear.rarity)} ${getGearDisplayName(gear)} · \`G${String(gear.id).padStart(3, "0")}\``);
+          rollsLog.push(`• ${getGearDisplayName(gear)} · \`G${String(gear.id).padStart(3, "0")}\``);
         }
       }
     }

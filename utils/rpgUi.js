@@ -70,10 +70,20 @@ const formatRpgBar = (value, max = 100, length = 10) => {
   return `${"▰".repeat(filled)}${"▱".repeat(length - filled)}`;
 };
 
-const formatRpgTitle = (title, icon = ui.icons?.rpg || "⚔️") => `${icon} ${title}`;
+const DEFAULT_UI_ICONS = new Set([
+  "⚔️", "🛡️", "🗡️", "🏹", "🎴", "⚙️", "🏆", "👥", "🐾", "📊", "📈", "📦",
+  "🔎", "🧙", "✨", "🌌", "🔨", "💎", "✅", "❌", "⚠️", "❤️", "💠", "🧰",
+  "🔮", "🪵", "🗺️", "🪙", "⏱️", "⏳", "🔧", "📡", "💀", "🥀", "🎉", "💰", "🤝",
+  "🔒", "👤", "🚫",
+]);
+const formatRpgTitle = (title, icon = "") => {
+  const iconText = String(icon || "").trim();
+  if (!iconText || DEFAULT_UI_ICONS.has(iconText)) return title;
+  return `${iconText} ${title}`;
+};
 
 const formatRpgFooter = (text) => ({
-  text: text ? `⚔️ RPG • ${text}` : "⚔️ CokeBot RPG",
+  text: text || "CokeBot RPG",
 });
 
 const formatRpgStatLine = (stat, value, suffix = "") =>

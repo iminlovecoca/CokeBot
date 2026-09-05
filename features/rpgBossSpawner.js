@@ -95,7 +95,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
     .setDescription(description)
     .addFields(
       {
-        name: "❤️ HP boss",
+        name: "HP boss",
         value: (() => {
           let val = `${healthBar(activeBoss.hp, activeBoss.maxHp)}\n` +
                     `**${Math.max(0, activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()}**`;
@@ -106,14 +106,14 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
             val += `\n<:healreduction:1523340558855045190> **Giảm 30% Hồi máu**`;
           }
           if (effects.armorReduced && effects.armorReduced > 0) {
-            val += `\n🛡️ **Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
+            val += `\n**Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
           }
           return val;
         })(),
         inline: false,
       },
       {
-        name: "🏆 Top 10 Sát Thương",
+        name: "Top 10 sát thương",
         value: topDamageField,
         inline: false,
       }
@@ -121,7 +121,7 @@ const buildBossEmbed = (activeBoss, status = "alive") => {
 
   if (activeBoss.lastHitUserId && !expired) {
     embed.addFields({
-      name: "⚡ Đòn kết liễu",
+      name: "Đòn kết liễu",
       value: `<@${activeBoss.lastHitUserId}>`,
       inline: true,
     });

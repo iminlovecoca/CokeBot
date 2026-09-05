@@ -110,9 +110,9 @@ class BattleRankCommand extends BaseCommand {
       .setTitle(formatRpgTitle(`Hồ sơ leo rank PvP • ${message.author.username}`, "🏆"))
       .setDescription(`Mục tiêu tiếp theo: ${isDivineRank ? "giữ vị trí Top 1 server" : "đạt 100 LP để thăng hạng"}.`)
       .addFields(
-        { name: "✦ Bậc rank hiện tại", value: `${emojiStr}**${bRank}**`, inline: true },
-        { name: "📊 LP mùa giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
-        { name: "⚔️ Thành tích", value: `**${wins}** thắng • **${losses}** thua\nTỉ lệ thắng: **${winRate}%**`, inline: false }
+        { name: "Bậc rank hiện tại", value: `${emojiStr}**${bRank}**`, inline: true },
+        { name: "LP mùa giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
+        { name: "Thành tích", value: `**${wins}** thắng • **${losses}** thua\nTỉ lệ thắng: **${winRate}%**`, inline: false }
       )
       .setFooter(formatRpgFooter(isDivineRank ? "Divine tích lũy LP không giới hạn" : "Đủ 100 LP để thăng hạng"));
 

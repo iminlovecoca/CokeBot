@@ -29,7 +29,7 @@ const {
 const { incBalance } = require("../../../utils/userUtil");
 const { addPetXp } = require("../../../utils/petXpUtil");
 const config = require("../../../data/config");
-const { ui, getClassEmoji, getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
+const { ui, getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
   archer: "physical",
@@ -231,7 +231,7 @@ class DungeonCommand extends BaseCommand {
         "Chọn chương để bắt đầu khiêu chiến cùng tổ đội. Đi lần lượt từ Chương 1 đến Chương 14."
       )
       .addFields({
-        name: "📍 Tiến trình",
+        name: "Tiến trình",
         value: `Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** / **14**`,
         inline: false,
       })
@@ -263,11 +263,11 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId("rpg_blessing_active")
-      .setLabel("✨ Phước Lành (+10% HP, +20% ATK)")
+      .setLabel("Phước Lành (+10% HP, +20% ATK)")
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId("rpg_blessing_none")
-      .setLabel("⚔️ Thử Thách (+20% EXP & Coke)")
+      .setLabel("Thử Thách (+20% EXP & Coke)")
       .setStyle(ButtonStyle.Secondary)
   );
   const blessingEmbed = new EmbedBuilder()
@@ -276,11 +276,11 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
     .setDescription(`Trước khi bước vào Dungeon **Chương ${chapter}**, Trưởng nhóm hãy chọn chế độ hỗ trợ cho cả tổ đội.`)
     .addFields(
       {
-        name: "✨ Phước Lành Dungeon",
+        name: "Phước Lành Dungeon",
         value: "Tăng **+10% HP tối đa** và **+20% sát thương cơ bản** cho toàn bộ thành viên. Tối đa 3 bình máu.",
       },
       {
-        name: "⚔️ Thử thách",
+        name: "Thử thách",
         value: "Giữ nguyên chỉ số, nhận thêm **+20% Coke & EXP** khi chiến thắng.",
       }
     )
@@ -628,7 +628,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
         if (isAnyPlayerHealBanned) {
           enemyInfo += `\n💀 **Suy Yếu:** Boss đang bị giảm phòng ngự do dính Lời Nguyền Xương (Nhận x2 sát thương)!`;
         } else {
-          enemyInfo += `\n💀 **Lời Nguyền Xương:** Khi có thành viên bị cấm hồi máu, Boss sẽ nhận x2 sát thương!`;
+          enemyInfo += `\n**Lời Nguyền Xương:** Khi có thành viên bị cấm hồi máu, Boss sẽ nhận x2 sát thương!`;
         }
       }
     }
@@ -641,20 +641,19 @@ const renderGameScreen = async (channel, activeDungeon) => {
     .setTimestamp()
     .setFooter(formatRpgFooter(`${blessingName} • thao tác của người đang tới lượt`));
   embed.addFields({
-    name: `👹 Kẻ địch: ${enemy.name}${enemyStatus ? ` ${enemyStatus}` : ""}`,
+    name: `Kẻ địch: ${enemy.name}${enemyStatus ? ` ${enemyStatus}` : ""}`,
     value: enemyInfo.trim(),
     inline: false,
   });
   players.forEach((p) => {
-    const classIcon = getClassEmoji(p.classKey);
     const className = p.rpgClass?.name || p.classKey.toUpperCase();
-    const statusText = p.hp <= 0 ? "💀 Tử nạn" : "Đang chiến đấu";
-    const healBanText = (p.hp > 0 && p.healBanRounds && p.healBanRounds > 0) ? ` (🚫 Cấm ${p.healBanRounds} lượt)` : "";
+    const statusText = p.hp <= 0 ? "Tử nạn" : "Đang chiến đấu";
+    const healBanText = (p.hp > 0 && p.healBanRounds && p.healBanRounds > 0) ? ` (Cấm ${p.healBanRounds} lượt)` : "";
     let resourceText = "";
     if (p.classKey === "mage") {
-      resourceText = `🔮 MP **${p.mana ?? 100}/100**`;
+      resourceText = `MP **${p.mana ?? 100}/100**`;
     } else {
-      resourceText = `⚡ Nộ **${p.rage ?? 0}%**`;
+      resourceText = `Nộ **${p.rage ?? 0}%**`;
     }
     const weaponText = p.weapon
       ? getGearDisplayName(p.weapon) || p.weapon.name || "Vũ khí"
@@ -667,22 +666,22 @@ const renderGameScreen = async (channel, activeDungeon) => {
     const turnIndicator = isCurrent ? " 👉" : "";
     const playerValue = [
       `**${statusText}**${turnIndicator}`,
-      `❤️ HP **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**`,
+      `HP **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**`,
       resourceText,
       `<:healthpotion:1523351206066655333> Bình **${p.potions}/3**${healBanText}`,
-      `🧬 Lv.${p.level} • ${className}`,
-      `🗡️ ${weaponText}${weaponPassiveEmoji ? ` ${weaponPassiveEmoji}` : ""}`,
+      `Lv.${p.level} • ${className}`,
+      `Vũ khí: ${weaponText}${weaponPassiveEmoji ? ` ${weaponPassiveEmoji}` : ""}`,
       pStatus ? `Trạng thái: ${pStatus}` : "",
     ].filter(Boolean).join("\n");
     embed.addFields({
-      name: `${classIcon} ${p.name}${pStatus ? ` ${pStatus}` : ""}`,
+      name: `${p.name}${pStatus ? ` ${pStatus}` : ""}`,
       value: playerValue,
       inline: true,
     });
   });
   const recentLogs = (((logs || []).slice(-5).join("\n")) || "*Trận đấu đang diễn ra...*").slice(-1000);
   embed.addFields({
-    name: "📝 Nhật ký chiến trường",
+    name: "Nhật ký chiến trường",
     value: recentLogs,
     inline: false,
   });
@@ -744,7 +743,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       row.addComponents(
         new ButtonBuilder()
           .setCustomId("rpg_dungeon_action_crimson")
-          .setLabel("Huyết Sát 🩸")
+          .setLabel("Huyết Sát")
           .setStyle(ButtonStyle.Danger)
           .setDisabled(disableControls)
       );

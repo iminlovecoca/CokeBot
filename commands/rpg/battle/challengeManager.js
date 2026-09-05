@@ -4,7 +4,7 @@ const User = require("../../../models/User");
 const { calculateRpgPower, getEquippedItems } = require("../../../utils/rpgUtil");
 const runPvPBattle = require("./runPvPBattle");
 const confirmationManager = require("../../../utils/confirmationManager");
-const { getClassEmoji, getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionReply } = require("../../../utils/rpgUi");
+const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionReply } = require("../../../utils/rpgUi");
 
 const pendingChallenges = confirmationManager.pendingRequests;
 
@@ -28,9 +28,6 @@ const sendChallenge = async (
   const targetMember = message.guild?.members.cache.get(receiverId);
   const targetName = targetMember?.displayName || targetMention.displayName || targetMention.username;
 
-  const senderClassEmoji = getClassEmoji(senderUser.rpg.classKey);
-  const receiverClassEmoji = getClassEmoji(receiverUser.rpg.classKey);
-
   const senderPwr = Math.floor(calculateRpgPower(senderUser));
   const receiverPwr = Math.floor(calculateRpgPower(receiverUser));
 
@@ -51,13 +48,13 @@ const sendChallenge = async (
     )
     .addFields(
       {
-        name: `${senderClassEmoji} ${senderName} • ${senderStreak} trận thắng`,
-        value: `L.${senderUser.rpg.level} ${senderClassEmoji} ${senderClass.name}${weapon1Emoji}\n⚔️ **${senderPwr.toLocaleString()}** Lực chiến`,
+        name: `${senderName} • ${senderStreak} trận thắng`,
+        value: `L.${senderUser.rpg.level} ${senderClass.name}${weapon1Emoji}\n**${senderPwr.toLocaleString()}** Lực chiến`,
         inline: true,
       },
       {
-        name: `${receiverClassEmoji} ${targetName} • ${receiverStreak} trận thắng`,
-        value: `L.${receiverUser.rpg.level} ${receiverClassEmoji} ${receiverClass.name}${weapon2Emoji}\n⚔️ **${receiverPwr.toLocaleString()}** Lực chiến`,
+        name: `${targetName} • ${receiverStreak} trận thắng`,
+        value: `L.${receiverUser.rpg.level} ${receiverClass.name}${weapon2Emoji}\n**${receiverPwr.toLocaleString()}** Lực chiến`,
         inline: true,
       }
     )

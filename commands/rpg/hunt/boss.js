@@ -133,7 +133,7 @@ const sendRewardDm = async ({
     let bonusValue = `+${topBonus.cokeBonus.toLocaleString()} <:cokecy:1509951335016173662>\n+${topBonus.expBonus.toLocaleString()} EXP`;
     if (topBonus.wcBonus > 0) bonusValue += `\n<:crate:1512793698025603282> Lootbox x${topBonus.wcBonus}`;
     embed.addFields({
-      name: `${topBonus.label} 🏆`,
+      name: topBonus.label,
       value: bonusValue,
       inline: true,
     });
@@ -654,7 +654,7 @@ const buildAttackResultEmbed = ({
   return embed
     .addFields(
       {
-        name: "🧙 Nhân vật",
+        name: "Nhân vật",
         value:
           `Lớp nhân vật: **${rpgClass.name}**\n` +
           `HP của bạn: **${Math.max(0, participant.hp).toLocaleString()} / ${maxHp.toLocaleString()}**\n` +
@@ -662,7 +662,7 @@ const buildAttackResultEmbed = ({
         inline: true,
       },
       {
-        name: "⚔️ Lượt đánh boss",
+        name: "Lượt đánh boss",
         value:
           `Tổng lượt: **${participant.attacks}**\n` +
           `Phí lượt này: **${isPaidAttack ? `${paidAttackCost.toLocaleString()} <:cokecy:1509951335016173662>` : "Miễn phí"}**\n` +

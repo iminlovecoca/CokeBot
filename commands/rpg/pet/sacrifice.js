@@ -1,5 +1,4 @@
 const BaseCommand = require("../../../core/BaseCommand");
-const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const User = require("../../../models/User");
 const {
@@ -7,7 +6,7 @@ const {
   calculateRpgPower,
 } = require("../../../utils/rpgUtil");
 const { checkAndSetCooldown, notifyCooldown } = require("../../../utils/cooldown");
-const { getRarityEmoji, getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const { getRarityEmoji } = require("../../../utils/rpgUi");
 const rarityMapping = {
   c: "Common",
   r: "Rare",
@@ -127,29 +126,10 @@ class SacrificeCommand extends BaseCommand {
     user.rpg.power = calculateRpgPower(user);
     user.markModified("rpg");
     await user.save();
-    const embed = new EmbedBuilder()
-      .setColor(getRpgColor("success"))
-      .setTitle(formatRpgTitle("Hiến tế trang bị thành công", "🌌"))
-      .setDescription("Trang bị dư đã được chuyển hoá thành Essence để nâng cấp HuntBot.")
-      .addFields(
-        {
-          name: "🧰 Đã hiến tế",
-          value: `${getRarityEmoji(targetRarity)} **${itemsToSacrifice.length}** trang bị ${targetRarity}`,
-          inline: true,
-        },
-        {
-          name: "✨ Essence nhận được",
-          value: `**+${totalEssenceGain.toLocaleString()}**`,
-          inline: true,
-        },
-        {
-          name: "📦 Essence hiện có",
-          value: `**${user.rpg.autohunt.essence.toLocaleString()}**`,
-          inline: true,
-        },
-      )
-      .setFooter(formatRpgFooter("Trang bị đang mặc và Godset luôn được bảo vệ"));
-    return message.reply({ embeds: [embed] });
+    return message.reply(
+      `🌌 **Tế Đàn Tinh Hoa RPG**\n` +
+        `Bạn đã hiến tế **${itemsToSacrifice.length}** trang bị ${getRarityEmoji(targetRarity)} **${targetRarity}** và nhận được **+${totalEssenceGain.toLocaleString()} Essence**!`,
+    );
   }
 }
 module.exports = new SacrificeCommand();

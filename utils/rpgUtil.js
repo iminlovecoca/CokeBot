@@ -111,7 +111,7 @@ const getEquippedItems = (user) => {
   const res = {};
   const findById = (value) => {
     const itemId = normalizeRpgItemId(value);
-    return itemId === null ? null : items.find((item) => normalizeRpgItemId(item.id) === itemId);
+    return itemId === null ? null : items.find((item) => normalizeRpgItemId(item) === itemId);
   };
   const assign = (slot, value) => {
     const normalizedSlot = normalizeRpgSlot(slot);
@@ -127,6 +127,13 @@ const getEquippedItems = (user) => {
   const equippedEntries = equipped instanceof Map
     ? [...equipped.entries()]
     : Object.entries(equipped);
+  // Prefer the canonical lowercase slot when legacy data contains both
+  // aliases (for example `Ring` and `ring`) for the same equipment slot.
+  equippedEntries.sort(([leftSlot], [rightSlot]) => {
+    const leftCanonical = normalizeRpgSlot(leftSlot) === String(leftSlot).trim();
+    const rightCanonical = normalizeRpgSlot(rightSlot) === String(rightSlot).trim();
+    return Number(rightCanonical) - Number(leftCanonical);
+  });
   for (const [slot, item] of equippedEntries) assign(slot, item);
 
   const legacyFields = {
@@ -1428,8 +1435,11 @@ const addRpgGearToUser = (user, item) => {
   user.markModified("rpg");
 };
 
-const findRpgItem = (user, itemId) =>
-  getRpgItems(user).find((item) => Number(item.id) === Number(itemId));
+const findRpgItem = (user, itemId) => {
+  const normalizedId = normalizeRpgItemId(itemId);
+  if (normalizedId === null) return null;
+  return getRpgItems(user).find((item) => normalizeRpgItemId(item) === normalizedId);
+};
 
 const equipRpgItem = async (userId, itemId) => {
   const user = await getUser(userId);
@@ -1438,10 +1448,22 @@ const equipRpgItem = async (userId, itemId) => {
     throw new UserFriendlyError(`${config.emoji.no} Không tìm thấy trang bị RPG ID \`${itemId}\`.`);
   }
 
-  user.rpg.equipped = {
-    ...(user.rpg.equipped || {}),
-    [item.slot]: item.id,
-  };
+  const normalizedSlot = normalizeRpgSlot(item.slot);
+  if (!normalizedSlot) {
+    throw new UserFriendlyError(`${config.emoji.no} Trang bị này có slot không hợp lệ.`);
+  }
+  const existingEquipped = user.rpg.equipped || {};
+  const existingEntries = existingEquipped instanceof Map
+    ? [...existingEquipped.entries()]
+    : Object.entries(existingEquipped);
+  const nextEquipped = {};
+  for (const [slot, equippedId] of existingEntries) {
+    if (normalizeRpgSlot(slot) !== normalizedSlot) {
+      nextEquipped[slot] = equippedId;
+    }
+  }
+  nextEquipped[normalizedSlot] = normalizeRpgItemId(item.id) ?? item.id;
+  user.rpg.equipped = nextEquipped;
   user.rpg.power = calculateRpgPower(user);
   user.markModified("rpg");
   await user.save();
@@ -1449,7 +1471,7 @@ const equipRpgItem = async (userId, itemId) => {
 };
 
 const unequipRpgSlot = async (userId, slot) => {
-  const normalizedSlot = String(slot || "").toLowerCase();
+  const normalizedSlot = normalizeRpgSlot(slot);
   if (!config.rpg.gear_slot_names[normalizedSlot]) {
     throw new UserFriendlyError(
       `${config.emoji.no} Slot không hợp lệ. Các slot: ${Object.keys(config.rpg.gear_slot_names).join(", ")}.`,
@@ -1457,16 +1479,40 @@ const unequipRpgSlot = async (userId, slot) => {
   }
 
   const user = await getUser(userId);
-  const itemId = user.rpg.equipped?.[normalizedSlot];
+  const equipped = user.rpg.equipped || {};
+  const equippedEntries = equipped instanceof Map
+    ? [...equipped.entries()]
+    : Object.entries(equipped);
+  const matchedEntry = equippedEntries.find(
+    ([slot]) => normalizeRpgSlot(slot) === normalizedSlot,
+  );
+  const resolvedEquipped = getEquippedItems(user)[normalizedSlot];
+  const itemId = matchedEntry?.[1] ?? resolvedEquipped?.id;
   if (!itemId) {
     throw new UserFriendlyError(
       `${config.emoji.no} Bạn chưa mặc trang bị ở slot **${config.rpg.gear_slot_names[normalizedSlot]}**.`,
     );
   }
 
-  const item = findRpgItem(user, itemId);
-  user.rpg.equipped = { ...(user.rpg.equipped || {}) };
-  delete user.rpg.equipped[normalizedSlot];
+  const item = findRpgItem(user, itemId) || resolvedEquipped;
+  const nextEquipped = {};
+  for (const [slot, equippedId] of equippedEntries) {
+    if (normalizeRpgSlot(slot) !== normalizedSlot) {
+      nextEquipped[slot] = equippedId;
+    }
+  }
+  user.rpg.equipped = nextEquipped;
+  const legacyFields = {
+    weapon: ["equippedWeapon", "equipped_weapon"],
+    armor: ["equippedArmor", "equipped_armor"],
+    helmet: ["equippedHelmet", "equipped_helmet"],
+    boots: ["equippedBoots", "equipped_boots"],
+    ring: ["equippedRing", "equipped_ring"],
+    necklace: ["equippedNecklace", "equipped_necklace"],
+  };
+  for (const field of legacyFields[normalizedSlot] || []) {
+    if (user.rpg[field] !== undefined) delete user.rpg[field];
+  }
   user.rpg.power = calculateRpgPower(user);
   user.markModified("rpg");
   await user.save();
