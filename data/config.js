@@ -462,11 +462,18 @@ module.exports = {
     knowledge_base_version: "1.0.0",
   },
   dungeon: {
+    time_limits_ms: {
+      normal: 5 * 60 * 1000,
+      bossPhase1: 10 * 60 * 1000,
+      bossPhase2: 7 * 60 * 1000,
+    },
     player_buff: {
       damage_multiplier: 1.05,
       max_hp_multiplier: 1.05,
       crit_rate_bonus: 0.01,
+      normal_weapon_damage_multiplier: 1.20,
     },
+    potion_heal_pct: 0.35,
     normal_monster: {
       base_hp: 9100,
       round_hp_mult: 0.1,
@@ -478,6 +485,9 @@ module.exports = {
       classes: ["archer", "mage"],
       multiplier: 0.75,
     },
+    boss_phase2_aoe_damage_multiplier: 0.55,
+    boss_phase2_aoe_interval: 2,
+    boss_phase2_single_target_damage_multiplier: 0.55,
     rewards: {
       base_coke: 80000,
       base_exp: 24000,
@@ -516,12 +526,12 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 264000,
+              base_hp: 215000,
               base_atk: 300,
               base_defense: 190,
             },
             phase2: {
-              base_hp: 143000,
+              base_hp: 118000,
               base_atk_mult: 1.6,
               base_defense: 180,
             },
@@ -536,6 +546,7 @@ module.exports = {
             dice_roll: false,
             coin_flip: false,
             vulnerable_on_heal_ban: true,
+            aoe_damage_multiplier: 0.70,
           },
           first_clear_reward: {
             claim_key: "firesword",
@@ -569,6 +580,7 @@ module.exports = {
             dice_roll: false,
             coin_flip: false,
             vulnerable_on_heal_ban: false,
+            aoe_damage_multiplier: 0.65,
           },
           first_clear_reward: {
             claim_key: "greenstaff",
@@ -588,9 +600,9 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 400000,
-              base_atk: 350,
-              base_defense: 220,
+              base_hp: 550000,
+              base_atk: 430,
+              base_defense: 260,
             },
             phase2: {
               base_hp: 215000,
@@ -635,6 +647,7 @@ module.exports = {
             dice_roll: false,
             coin_flip: false,
             vulnerable_on_heal_ban: false,
+            aoe_damage_multiplier: 0.65,
           },
           first_clear_reward: {
             claim_key: "gravitybow",
@@ -654,12 +667,12 @@ module.exports = {
           image_phase2: "TF-2.png",
           stats: {
             phase1: {
-              base_hp: 480000,
-              base_atk: 440,
+              base_hp: 340000,
+              base_atk: 420,
               base_defense: 260,
             },
             phase2: {
-              base_hp: 265000,
+              base_hp: 185000,
               base_atk_mult: 1.60,
               base_defense: 230,
             },
@@ -668,6 +681,7 @@ module.exports = {
             dice_roll: true,
             coin_flip: true,
             vulnerable_on_heal_ban: false,
+            aoe_damage_multiplier: 0.34,
           },
           first_clear_reward: {
             claim_key: "crimsondagger",
@@ -687,20 +701,21 @@ module.exports = {
           image_phase2: "Veilreaper.png",
           stats: {
             phase1: {
-              base_hp: 570000,
-              base_atk: 440,
-              base_defense: 290,
+              base_hp: 355000,
+              base_atk: 400,
+              base_defense: 275,
             },
             phase2: {
-              base_hp: 310000,
-              base_atk_mult: 1.50,
-              base_defense: 270,
+              base_hp: 195000,
+              base_atk_mult: 1.35,
+              base_defense: 250,
             },
           },
           mechanics: {
             dice_roll: false,
             coin_flip: false,
             vulnerable_on_heal_ban: false,
+            aoe_damage_multiplier: 0.18,
           },
           first_clear_reward: {
             claim_key: "shadowdagger",
@@ -718,9 +733,9 @@ module.exports = {
           image_phase1: "Chapter2/lucifer.png",
           stats: {
             phase1: {
-              base_hp: 360000,
-              base_atk: 90,
-              base_defense: 120,
+              base_hp: 650000,
+              base_atk: 180,
+              base_defense: 180,
             }
           },
           passive: {
@@ -750,9 +765,9 @@ module.exports = {
           image_phase1: "Chapter2/mammon.png",
           stats: {
             phase1: {
-              base_hp: 390000,
-              base_atk: 100,
-              base_defense: 130,
+              base_hp: 700000,
+              base_atk: 210,
+              base_defense: 190,
             }
           },
           passive: {
@@ -782,9 +797,9 @@ module.exports = {
           image_phase1: "Chapter2/asmodeus.png",
           stats: {
             phase1: {
-              base_hp: 420000,
-              base_atk: 110,
-              base_defense: 140,
+              base_hp: 950000,
+              base_atk: 275,
+              base_defense: 235,
             }
           },
           passive: {
@@ -814,9 +829,9 @@ module.exports = {
           image_phase1: "Chapter2/leviathan.png",
           stats: {
             phase1: {
-              base_hp: 450000,
-              base_atk: 120,
-              base_defense: 150,
+              base_hp: 700000,
+              base_atk: 195,
+              base_defense: 205,
             }
           },
           passive: {
@@ -846,9 +861,9 @@ module.exports = {
           image_phase1: "Chapter2/beelzebub.png",
           stats: {
             phase1: {
-              base_hp: 490000,
-              base_atk: 130,
-              base_defense: 160,
+              base_hp: 500000,
+              base_atk: 135,
+              base_defense: 170,
             }
           },
           passive: {
@@ -878,9 +893,9 @@ module.exports = {
           image_phase1: "Chapter2/satan.png",
           stats: {
             phase1: {
-              base_hp: 530000,
-              base_atk: 145,
-              base_defense: 170,
+              base_hp: 800000,
+              base_atk: 220,
+              base_defense: 225,
             }
           },
           passive: {
@@ -910,9 +925,9 @@ module.exports = {
           image_phase1: "Chapter2/belphegor.png",
           stats: {
             phase1: {
-              base_hp: 580000,
-              base_atk: 160,
-              base_defense: 185,
+              base_hp: 850000,
+              base_atk: 235,
+              base_defense: 240,
             }
           },
           passive: {
@@ -942,9 +957,9 @@ module.exports = {
           image_phase1: "Chapter2/Pandemonium/Base.png",
           stats: {
             phase1: {
-              base_hp: 650000,
-              base_atk: 180,
-              base_defense: 200,
+              base_hp: 850000,
+              base_atk: 220,
+              base_defense: 235,
             }
           },
           passive: {
@@ -956,7 +971,7 @@ module.exports = {
           mechanics: {
             dice_roll: true,
             coin_flip: true,
-            wipe_countdown: 5,
+            wipe_countdown: 6,
           },
           forms: [
             { threshold: 0.875, image: "Chapter2/Pandemonium/Base.png", name: "Đế Vương Địa Ngục" },

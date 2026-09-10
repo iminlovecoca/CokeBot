@@ -8,11 +8,14 @@ const {
   TextDisplayBuilder,
   SeparatorBuilder,
   SeparatorSpacingSize,
-  MessageFlags
+  MessageFlags,
 } = require("discord.js");
 const config = require("../../data/config");
 const { checkAndSetCooldown } = require("../../utils/cooldown");
-const { getBetAmount, checkAndClearExpiredGame } = require("../../utils/gameUtil");
+const {
+  getBetAmount,
+  checkAndClearExpiredGame,
+} = require("../../utils/gameUtil");
 const { runTransactionWithRetry } = require("../../utils/miscUtil");
 const User = require("../../models/User");
 const MinesGame = require("../../models/MinesGame");
@@ -22,8 +25,8 @@ const CONFIG = {
   MAX_BET: config.gamble_settings.max_bet || 250000,
   COOLDOWN_SECONDS: 15,
   EMOJIS: {
-    money: config.emoji.money || "<:cokecy:1509951335016173662>"
-  }
+    money: config.emoji.money || "<:cokecy:1509951335016173662>",
+  },
 };
 
 function choose(n, r) {
@@ -31,7 +34,7 @@ function choose(n, r) {
   if (r === 0 || r === n) return 1;
   let res = 1;
   for (let i = 1; i <= r; i++) {
-    res = res * (n - i + 1) / i;
+    res = (res * (n - i + 1)) / i;
   }
   return res;
 }
@@ -43,7 +46,7 @@ function getMinesMultiplier(minesCount, revealedCount) {
   if (revealedCount > diamondsCount) return 0.0;
 
   if (minesCount === 3) {
-    const lut = [0.0, 1.41, 2.22, 3.93, 7.82, 19.55, 78.22];
+    const lut = [0.0, 1.41, 2.22, 3.93, 7.82, 19.74, 78.96];
     return lut[revealedCount] || 0.0;
   }
 
@@ -63,13 +66,13 @@ function formatNumber(num) {
 function generateGrid(minesCount) {
   const grid = [];
   for (let i = 0; i < minesCount; i++) {
-    grid.push('mine');
+    grid.push("mine");
   }
   const diamondsCount = 9 - minesCount;
   for (let i = 0; i < diamondsCount; i++) {
-    grid.push('diamond');
+    grid.push("diamond");
   }
-  
+
   for (let i = grid.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [grid[i], grid[j]] = [grid[j], grid[i]];
@@ -79,36 +82,36 @@ function generateGrid(minesCount) {
 
 function buildButtons(grid, revealed, isFinished, activeGame = null) {
   const rows = [];
-  
+
   for (let r = 0; r < 3; r++) {
     const row = new ActionRowBuilder();
     for (let c = 0; c < 3; c++) {
       const idx = r * 3 + c;
       const btn = new ButtonBuilder().setCustomId(`mines_cell_${idx}`);
-      
+
       const isCellRevealed = revealed[idx];
-      const isCellMine = grid[idx] === 'mine';
-      
+      const isCellMine = grid[idx] === "mine";
+
       if (isFinished) {
         btn.setDisabled(true);
         if (isCellMine) {
           if (activeGame && activeGame.explodedCellIndex === idx) {
-            btn.setStyle(ButtonStyle.Danger).setEmoji('💥');
+            btn.setStyle(ButtonStyle.Danger).setEmoji("💥");
           } else {
-            btn.setStyle(ButtonStyle.Secondary).setEmoji('💣');
+            btn.setStyle(ButtonStyle.Secondary).setEmoji("💣");
           }
         } else {
           if (isCellRevealed) {
-            btn.setStyle(ButtonStyle.Success).setEmoji('💎');
+            btn.setStyle(ButtonStyle.Success).setEmoji("💎");
           } else {
-            btn.setStyle(ButtonStyle.Secondary).setEmoji('💎');
+            btn.setStyle(ButtonStyle.Secondary).setEmoji("💎");
           }
         }
       } else {
         if (isCellRevealed) {
-          btn.setStyle(ButtonStyle.Success).setEmoji('💎').setDisabled(true);
+          btn.setStyle(ButtonStyle.Success).setEmoji("💎").setDisabled(true);
         } else {
-          btn.setStyle(ButtonStyle.Secondary).setLabel('?').setDisabled(false);
+          btn.setStyle(ButtonStyle.Secondary).setLabel("?").setDisabled(false);
         }
       }
       row.addComponents(btn);
@@ -117,8 +120,8 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
   }
 
   const btnCashOut = new ButtonBuilder()
-    .setCustomId('mines_cashout')
-    .setLabel('Rút tiền')
+    .setCustomId("mines_cashout")
+    .setLabel("Rút tiền")
     .setStyle(ButtonStyle.Success)
     .setEmoji(CONFIG.EMOJIS.money);
 
@@ -133,22 +136,22 @@ function buildButtons(grid, revealed, isFinished, activeGame = null) {
 
   const row4 = new ActionRowBuilder().addComponents(btnCashOut);
   rows.push(row4);
-  
+
   return rows;
 }
 
 function buildComponentsV2(game, state) {
   const userId = game.userId;
   let headerText = "";
-  if (state === 'start') {
+  if (state === "start") {
     headerText = `### 💣 <@${userId}> đã bắt đầu trò chơi Dò Mìn.`;
-  } else if (state === 'play') {
+  } else if (state === "play") {
     headerText = `### 💣 <@${userId}> đang chơi trò chơi Dò Mìn.`;
-  } else if (state === 'cashout') {
+  } else if (state === "cashout") {
     headerText = `### 💎 <@${userId}> đã rút tiền thưởng!`;
-  } else if (state === 'lost') {
+  } else if (state === "lost") {
     headerText = `### 💥 <@${userId}> đã giẫm phải mìn!`;
-  } else if (state === 'resume') {
+  } else if (state === "resume") {
     headerText = `### 💣 <@${userId}> đã khôi phục trò chơi Dò Mìn.`;
   }
 
@@ -158,7 +161,7 @@ function buildComponentsV2(game, state) {
   const nextMultiplier = getMinesMultiplier(minesCount, revealedCount + 1);
   const nextPayout = bet * nextMultiplier;
 
-  const isFinished = state === 'cashout' || state === 'lost';
+  const isFinished = state === "cashout" || state === "lost";
 
   const textLines = [
     headerText,
@@ -166,26 +169,40 @@ function buildComponentsV2(game, state) {
   ];
 
   if (isFinished) {
-    if (state === 'cashout') {
-      textLines.push(`-# **Tiền thắng:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
+    if (state === "cashout") {
+      textLines.push(
+        `-# **Tiền thắng:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``,
+      );
     } else {
-      textLines.push(`-# ~~**Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`);
+      textLines.push(
+        `-# ~~**Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\`~~`,
+      );
     }
-    textLines.push(`-# ~~**Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`);
+    textLines.push(
+      `-# ~~**Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\`~~`,
+    );
   } else {
-    textLines.push(`-# **Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``);
-    textLines.push(`-# **Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``);
+    textLines.push(
+      `-# **Nhận:** \`${formatNumber(cashOut)}\` \`(${currentMultiplier.toFixed(2)}x)\``,
+    );
+    textLines.push(
+      `-# **Tiếp theo:** \`${formatNumber(nextPayout)}\` \`(${nextMultiplier.toFixed(2)}x)\``,
+    );
   }
 
-  const textDisplay = new TextDisplayBuilder().setContent(textLines.join('\n'));
-  const separator1 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
-  const separator2 = new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
+  const textDisplay = new TextDisplayBuilder().setContent(textLines.join("\n"));
+  const separator1 = new SeparatorBuilder()
+    .setDivider(true)
+    .setSpacing(SeparatorSpacingSize.Small);
+  const separator2 = new SeparatorBuilder()
+    .setDivider(true)
+    .setSpacing(SeparatorSpacingSize.Small);
 
-  let accentColor = 0x5865F2; // Default blue (blurple)
-  if (state === 'cashout') {
-    accentColor = 0x57F287; // Green
-  } else if (state === 'lost') {
-    accentColor = 0xED4245; // Red
+  let accentColor = 0x5865f2; // Default blue (blurple)
+  if (state === "cashout") {
+    accentColor = 0x57f287; // Green
+  } else if (state === "lost") {
+    accentColor = 0xed4245; // Red
   }
 
   const container = new ContainerBuilder()
@@ -201,28 +218,35 @@ function buildComponentsV2(game, state) {
   return container;
 }
 
-function setupCollector(collector, replyMsg, gameData, userId, isSlash, context) {
-  collector.on('collect', async (i) => {
+function setupCollector(
+  collector,
+  replyMsg,
+  gameData,
+  userId,
+  isSlash,
+  context,
+) {
+  collector.on("collect", async (i) => {
     await i.deferUpdate().catch(() => {});
 
     const game = await MinesGame.findOneAndUpdate(
-      { userId, status: 'active' },
-      { $set: { status: 'processing' } },
-      { new: true }
+      { userId, status: "active" },
+      { $set: { status: "processing" } },
+      { new: true },
     );
 
     if (!game) return;
 
     const customId = i.customId;
 
-    if (customId === 'mines_cashout') {
-      collector.stop('cashout');
+    if (customId === "mines_cashout") {
+      collector.stop("cashout");
 
       try {
         const cashOutTxn = async (session) => {
           await User.updateOne(
             { userId },
-            { $inc: { coke: Math.round(game.cashOut) } }
+            { $inc: { coke: Math.round(game.cashOut) } },
           ).session(session);
 
           await MinesGame.deleteOne({ userId }).session(session);
@@ -230,71 +254,77 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         await runTransactionWithRetry(cashOutTxn);
 
-        const finishedContainer = buildComponentsV2(game, 'cashout');
-        await i.editReply({
-          embeds: [],
-          content: "",
-          components: [finishedContainer],
-          flags: MessageFlags.IsComponentsV2
-        }).catch(() => {});
+        const finishedContainer = buildComponentsV2(game, "cashout");
+        await i
+          .editReply({
+            embeds: [],
+            content: "",
+            components: [finishedContainer],
+            flags: MessageFlags.IsComponentsV2,
+          })
+          .catch(() => {});
       } catch (err) {
         console.error("Lỗi khi xử lý rút tiền game Mines:", err);
-        await MinesGame.updateOne(
-          { userId },
-          { $set: { status: 'active' } }
-        );
-        await i.followUp({
-          content: "❌ Rút tiền thất bại. Hãy bấm Cash Out lại!",
-          ephemeral: true
-        }).catch(() => {});
+        await MinesGame.updateOne({ userId }, { $set: { status: "active" } });
+        await i
+          .followUp({
+            content: "❌ Rút tiền thất bại. Hãy bấm Cash Out lại!",
+            ephemeral: true,
+          })
+          .catch(() => {});
       }
       return;
     }
 
-    const cellIdx = parseInt(customId.split('_')[2]);
+    const cellIdx = parseInt(customId.split("_")[2]);
     if (game.revealed[cellIdx]) {
-      await MinesGame.updateOne({ userId }, { $set: { status: 'active' } });
+      await MinesGame.updateOne({ userId }, { $set: { status: "active" } });
       return;
     }
 
     const nextRevealed = [...game.revealed];
     nextRevealed[cellIdx] = true;
 
-    const isMine = game.grid[cellIdx] === 'mine';
+    const isMine = game.grid[cellIdx] === "mine";
 
     if (isMine) {
-      collector.stop('lost');
+      collector.stop("lost");
 
       await MinesGame.deleteOne({ userId });
 
       const updatedData = {
         ...game.toObject(),
         revealed: nextRevealed,
-        explodedCellIndex: cellIdx
+        explodedCellIndex: cellIdx,
       };
 
-      const lostContainer = buildComponentsV2(updatedData, 'lost');
-      await i.editReply({
-        embeds: [],
-        content: "",
-        components: [lostContainer],
-        flags: MessageFlags.IsComponentsV2
-      }).catch(() => {});
+      const lostContainer = buildComponentsV2(updatedData, "lost");
+      await i
+        .editReply({
+          embeds: [],
+          content: "",
+          components: [lostContainer],
+          flags: MessageFlags.IsComponentsV2,
+        })
+        .catch(() => {});
     } else {
       const newRevealedCount = nextRevealed.filter(Boolean).length;
-      const newMultiplier = getMinesMultiplier(game.minesCount, newRevealedCount);
+      const newMultiplier = getMinesMultiplier(
+        game.minesCount,
+        newRevealedCount,
+      );
       const newCashOut = game.bet * newMultiplier;
 
       const totalDiamonds = 9 - game.minesCount;
 
       if (newRevealedCount === totalDiamonds) {
-        collector.stop('win');
+        collector.stop("win");
 
         try {
           const autoWinTxn = async (session) => {
             await User.updateOne(
               { userId },
-              { $inc: { coke: Math.round(newCashOut) } }
+              { $inc: { coke: Math.round(newCashOut) } },
             ).session(session);
 
             await MinesGame.deleteOne({ userId }).session(session);
@@ -306,22 +336,21 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
             ...game.toObject(),
             revealed: nextRevealed,
             cashOut: newCashOut,
-            isWon: true
+            isWon: true,
           };
 
-          const finishedContainer = buildComponentsV2(wonData, 'cashout');
-          await i.editReply({
-            embeds: [],
-            content: "",
-            components: [finishedContainer],
-            flags: MessageFlags.IsComponentsV2
-          }).catch(() => {});
+          const finishedContainer = buildComponentsV2(wonData, "cashout");
+          await i
+            .editReply({
+              embeds: [],
+              content: "",
+              components: [finishedContainer],
+              flags: MessageFlags.IsComponentsV2,
+            })
+            .catch(() => {});
         } catch (err) {
           console.error("Lỗi khi tự động thắng game Mines:", err);
-          await MinesGame.updateOne(
-            { userId },
-            { $set: { status: 'active' } }
-          );
+          await MinesGame.updateOne({ userId }, { $set: { status: "active" } });
         }
       } else {
         const updatedGame = await MinesGame.findOneAndUpdate(
@@ -330,20 +359,22 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
             $set: {
               revealed: nextRevealed,
               cashOut: newCashOut,
-              status: 'active',
-              date: new Date()
-            }
+              status: "active",
+              date: new Date(),
+            },
           },
-          { new: true }
+          { new: true },
         );
 
-        const playContainer = buildComponentsV2(updatedGame, 'play');
-        await i.editReply({
-          embeds: [],
-          content: "",
-          components: [playContainer],
-          flags: MessageFlags.IsComponentsV2
-        }).catch(() => {});
+        const playContainer = buildComponentsV2(updatedGame, "play");
+        await i
+          .editReply({
+            embeds: [],
+            content: "",
+            components: [playContainer],
+            flags: MessageFlags.IsComponentsV2,
+          })
+          .catch(() => {});
       }
     }
   });
@@ -360,19 +391,19 @@ module.exports = {
       option
         .setName("bet")
         .setDescription("Số coke muốn cược (ví dụ: 10000, all, min)")
-        .setRequired(false)
+        .setRequired(false),
     )
     .addIntegerOption((option) =>
       option
         .setName("mines")
         .setDescription("Số lượng mìn trong lưới (1 đến 8, mặc định: 3)")
-        .setRequired(false)
+        .setRequired(false),
     ),
 
   async execute(context, arg2, arg3, arg4) {
     const isSlash = !context.author;
     const userId = isSlash ? context.user.id : context.author.id;
-    
+
     let betInput = null;
     let minesInput = 3;
 
@@ -390,14 +421,14 @@ module.exports = {
     if (minesInput < 1 || minesInput > 8) {
       return context.reply({
         content: "❌ Số lượng mìn chỉ được phép từ 1 đến 8 mìn!",
-        ephemeral: true
+        ephemeral: true,
       });
     }
 
     let activeGame = await checkAndClearExpiredGame(userId, MinesGame);
 
     if (activeGame) {
-      const container = buildComponentsV2(activeGame, 'resume');
+      const container = buildComponentsV2(activeGame, "resume");
       let replyMsg;
       if (isSlash) {
         replyMsg = await context.reply({
@@ -405,21 +436,24 @@ module.exports = {
           content: "",
           components: [container],
           flags: MessageFlags.IsComponentsV2,
-          fetchReply: true
+          fetchReply: true,
         });
       } else {
         replyMsg = await context.reply({
           embeds: [],
           content: "",
           components: [container],
-          flags: MessageFlags.IsComponentsV2
+          flags: MessageFlags.IsComponentsV2,
         });
       }
 
-      const filter = (i) => i.user.id === userId && (i.customId.startsWith('mines_cell_') || i.customId === 'mines_cashout');
+      const filter = (i) =>
+        i.user.id === userId &&
+        (i.customId.startsWith("mines_cell_") ||
+          i.customId === "mines_cashout");
       const collector = replyMsg.createMessageComponentCollector({
         filter,
-        componentType: ComponentType.Button
+        componentType: ComponentType.Button,
       });
 
       setupCollector(collector, replyMsg, activeGame, userId, isSlash, context);
@@ -428,21 +462,30 @@ module.exports = {
 
     const finalBetInput = betInput || "10";
 
-    const remainingCooldown = checkAndSetCooldown(userId, "mines", CONFIG.COOLDOWN_SECONDS);
+    const remainingCooldown = checkAndSetCooldown(
+      userId,
+      "mines",
+      CONFIG.COOLDOWN_SECONDS,
+    );
     if (remainingCooldown > 0) {
       return context.reply({
         content: `⏱ | Vui lòng chờ **${remainingCooldown}s** để chơi tiếp Mines.`,
-        ephemeral: true
+        ephemeral: true,
       });
     }
 
     let betAmount;
     try {
-      betAmount = await getBetAmount(finalBetInput, userId, CONFIG.MAX_BET, CONFIG.MIN_BET);
+      betAmount = await getBetAmount(
+        finalBetInput,
+        userId,
+        CONFIG.MAX_BET,
+        CONFIG.MIN_BET,
+      );
     } catch (err) {
       return context.reply({
         content: err.message || "❌ Có lỗi xảy ra khi xác nhận tiền cược.",
-        ephemeral: true
+        ephemeral: true,
       });
     }
 
@@ -454,14 +497,14 @@ module.exports = {
       grid: grid,
       revealed: [false, false, false, false, false, false, false, false, false],
       cashOut: 0,
-      status: 'active'
+      status: "active",
     };
 
     try {
       const startMinesTxn = async (session) => {
         await User.updateOne(
           { userId },
-          { $inc: { coke: -betAmount } }
+          { $inc: { coke: -betAmount } },
         ).session(session);
 
         await MinesGame.create([gameData], { session });
@@ -471,12 +514,13 @@ module.exports = {
     } catch (err) {
       console.error("Lỗi khi bắt đầu game Mines:", err);
       return context.reply({
-        content: "❌ Không thể bắt đầu trò chơi dò mìn do lỗi giao dịch dữ liệu. Hãy thử lại!",
-        ephemeral: true
+        content:
+          "❌ Không thể bắt đầu trò chơi dò mìn do lỗi giao dịch dữ liệu. Hãy thử lại!",
+        ephemeral: true,
       });
     }
 
-    const container = buildComponentsV2(gameData, 'start');
+    const container = buildComponentsV2(gameData, "start");
     let replyMsg;
     if (isSlash) {
       replyMsg = await context.reply({
@@ -484,23 +528,25 @@ module.exports = {
         content: "",
         components: [container],
         flags: MessageFlags.IsComponentsV2,
-        fetchReply: true
+        fetchReply: true,
       });
     } else {
       replyMsg = await context.reply({
         embeds: [],
         content: "",
         components: [container],
-        flags: MessageFlags.IsComponentsV2
+        flags: MessageFlags.IsComponentsV2,
       });
     }
 
-    const filter = (i) => i.user.id === userId && (i.customId.startsWith('mines_cell_') || i.customId === 'mines_cashout');
+    const filter = (i) =>
+      i.user.id === userId &&
+      (i.customId.startsWith("mines_cell_") || i.customId === "mines_cashout");
     const collector = replyMsg.createMessageComponentCollector({
       filter,
-      componentType: ComponentType.Button
+      componentType: ComponentType.Button,
     });
 
     setupCollector(collector, replyMsg, gameData, userId, isSlash, context);
-  }
+  },
 };

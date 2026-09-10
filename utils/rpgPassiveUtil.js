@@ -447,9 +447,14 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
         }
         case PASSIVE_TYPES.ARMOR_SHRED: {
           const amount = chosen.amount || 0.15;
-          enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - amount)));
+          const cap = chosen.cap || 0.40;
+          const currentReduced = enemy._armorReduced || 0;
+          const applied = Math.min(amount, Math.max(0, cap - currentReduced));
+          if (applied <= 0) break;
+          enemy._armorReduced = currentReduced + applied;
+          enemy.armor = Math.max(0, Math.floor(enemy.armor * (1 - applied)));
           if (!isMagical) {
-            result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - amount)));
+            result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
           }
           addPassiveLog(`⚔️ **[${passiveDef.name}]** Lời nguyền phá giáp!`, chosen.type);
           break;

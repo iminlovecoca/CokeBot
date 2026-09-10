@@ -3,6 +3,7 @@ const { getEffectiveRpgStats, calculateRpgPower, getEquippedItems } = require(".
 const { isDev } = require("../../../utils/userUtil");
 const { UserFriendlyError } = require("../../../utils/errors");
 const config = require("../../../data/config");
+const { buildSimulatedDungeonPlayer, getDungeonTimeLimitMs } = require("../../../utils/dungeonBalanceUtil");
 const {
   EmbedBuilder,
   ActionRowBuilder,
@@ -447,7 +448,7 @@ class SimCommand extends BaseCommand {
           .setRequired(true);
         const enhanceInput = new TextInputBuilder()
           .setCustomId("sim_enhance")
-          .setLabel("Cường hóa (+0 đến +20)")
+          .setLabel("Cường hóa (+0 đến +10)")
           .setStyle(TextInputStyle.Short)
           .setValue(String(player.enhance))
           .setMaxLength(2)
@@ -504,8 +505,8 @@ class SimCommand extends BaseCommand {
         if (!validRanks.includes(weaponRankRaw.toLowerCase())) {
           return modalSubmit.followUp({ content: `❌ Bậc vũ khí \`${weaponRankRaw}\` không hợp lệ. Chấp nhận: Common, Rare, Epic, Legendary, Mythic, Ancient, Divine.`, ephemeral: true });
         }
-        if (isNaN(enhance) || enhance < 0 || enhance > 20) {
-          return modalSubmit.followUp({ content: "❌ Cấp độ cường hóa phải là số từ 0 đến 20.", ephemeral: true });
+        if (isNaN(enhance) || enhance < 0 || enhance > 10) {
+          return modalSubmit.followUp({ content: "❌ Cấp độ cường hóa phải là số từ 0 đến 10.", ephemeral: true });
         }
         const weaponRank = weaponRankRaw.charAt(0).toUpperCase() + weaponRankRaw.slice(1).toLowerCase();
         simPlayers[idx] = {
@@ -537,65 +538,14 @@ class SimCommand extends BaseCommand {
       }
       await panelMsg.delete().catch(() => null);
       channel.send(`⚙️ Bắt đầu khởi tạo phó bản giả lập **Chương ${chapter}** với tốc độ **${speed}x**...`);
-      const { getRpgClass } = require("../../../utils/rpgUtil");
-      const getClassBaseStats = (classKey) => {
-        const bases = {
-          warrior: { vigor: 25, str: 20, dex: 12, int: 8, arc: 8, pr: 15, mr: 8 },
-          assassin: { vigor: 15, str: 18, dex: 25, int: 8, arc: 12, pr: 8, mr: 8 },
-          mage: { vigor: 12, str: 8, dex: 10, int: 25, arc: 15, pr: 8, mr: 18 },
-          archer: { vigor: 18, str: 12, dex: 22, int: 8, arc: 15, pr: 10, mr: 8 },
-          paladin: { vigor: 28, str: 15, dex: 10, int: 10, arc: 8, pr: 20, mr: 12 },
-          wretch: { vigor: 10, str: 10, dex: 10, int: 10, arc: 10, pr: 10, mr: 10 },
-        };
-        return bases[classKey] || bases.wretch;
-      };
-      const getWeaponBasePowerByRank = (rank) => {
-        const powers = {
-          common: 100,
-          rare: 300,
-          epic: 800,
-          legendary: 1800,
-          mythic: 3500,
-          ancient: 6000,
-          divine: 10000,
-        };
-        return powers[String(rank).toLowerCase()] || powers.epic;
-      };
-      const getEnhanceMult = (enhanceLevel) => {
-        return 1 + (enhanceLevel || 0) * 0.10;
-      };
-      const mockPlayers = simPlayers.map((p, idx) => {
-        const base = getClassBaseStats(p.classKey);
-        const statsScale = 1.0 + (p.level - 1) * 0.08;
-        const stats = {};
-        for (const [k, v] of Object.entries(base)) {
-          stats[k] = Math.floor(v * statsScale);
-        }
-        const baseWpPower = getWeaponBasePowerByRank(p.weaponRank);
-        const weaponPower = Math.floor(baseWpPower * getEnhanceMult(p.enhance));
-        const gearPower = Math.floor(weaponPower * 2.5 + p.level * 50);
-        const maxHp = 150 + stats.vigor * 20 + p.level * 20;
-        const rpgClass = getRpgClass(p.classKey) || { name: p.classKey, emoji: "👤" };
-        return {
-          id: `sim_${p.classKey}_${idx}`,
-          name: `Sim ${rpgClass.name} ${idx + 1}`,
-          level: p.level,
-          classKey: p.classKey,
-          maxHp: maxHp,
-          hp: maxHp,
-          potions: 3,
-          stats: stats,
-          power: gearPower,
-          weapon: {
-            name: p.weaponName,
-            subType: p.weaponName.toLowerCase().replace(/\s+/g, ""),
-            power: weaponPower,
-          },
-          rpgClass: rpgClass,
-          rage: 0,
-          mana: (p.classKey === "mage") ? 100 : 0,
-        };
-      });
+      const mockPlayers = simPlayers.map((player, index) => buildSimulatedDungeonPlayer({
+        classKey: player.classKey,
+        level: player.level,
+        weaponName: player.weaponName,
+        weaponRank: player.weaponRank,
+        enhance: player.enhance,
+        index,
+      }));
       const activeDungeon = {
         guildId: "simulation_guild",
         chapter: chapter,
@@ -612,7 +562,8 @@ class SimCommand extends BaseCommand {
         logs: ["🏁 Bắt đầu chế độ MÔ PHỎNG DUNGEON! Toàn bộ lượt đi phe ta sẽ được Bot tự động điều phối."],
         actionInProgress: false,
         gameMessage: null,
-        roundEndTime: Date.now() + 5 * 60 * 1000,
+        roundTimeLimitMs: getDungeonTimeLimitMs("normal"),
+        roundEndTime: Date.now() + getDungeonTimeLimitMs("normal"),
         timeoutTimer: null,
         totalDamageTaken: 0,
         archerDoubleDmgNext: false,

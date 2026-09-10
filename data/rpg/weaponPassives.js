@@ -42,6 +42,7 @@ const WEAPON_PASSIVES = {
       dungeon: {
         type: PASSIVE_TYPES.ARMOR_SHRED,
         amount: 0.25,
+        cap: 0.40,
         log: (name) => `⚔️ **[Shadow Dagger]** Phá hủy 25% giáp vật lý của **${name}**!`,
       },
       pvp: {
@@ -330,6 +331,7 @@ const WEAPON_PASSIVES = {
       dungeon: {
         type: PASSIVE_TYPES.ARMOR_SHRED,
         amount: 0.10,
+        cap: 0.40,
         alsoShredMR: true,
         log: (name, data) => `🐍 **[Axesnake]** Phá hủy 10% giáp! PR: ${data.armor.toLocaleString()} / MR: ${data.mr.toLocaleString()}.`,
       },
@@ -636,7 +638,7 @@ const WEAPON_PASSIVES = {
         type: PASSIVE_TYPES.RANDOM_EFFECT,
         effects: [
           { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
-          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15 },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15, cap: 0.40 },
           { type: PASSIVE_TYPES.STUN, rounds: 1 },
         ],
         log: () => `💀 **[Beelzebub]** Đàn ruồi hoại tử tấn công boss!`,
@@ -710,7 +712,7 @@ const WEAPON_PASSIVES = {
       dungeon: {
         type: PASSIVE_TYPES.FREEZE,
         rounds: 1,
-        chance: 0.30,
+        chance: 0.33,
         log: (name) => `❄️ **[Găng Tay Băng Giá]** Hàn khí đóng băng **${name}** trong 1 lượt!`,
       },
       pvp: {
@@ -736,7 +738,7 @@ const WEAPON_PASSIVES = {
         type: PASSIVE_TYPES.RANDOM_EFFECT,
         effects: [
           { type: PASSIVE_TYPES.BURN, rounds: 2, scaling: PASSIVE_SCALING.INT_ARC },
-          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15 },
+          { type: PASSIVE_TYPES.ARMOR_SHRED, amount: 0.15, cap: 0.40 },
           { type: PASSIVE_TYPES.STUN, rounds: 1 },
         ],
         log: () => `📖 **[Quỷ Thư]** Một lời nguyền ngẫu nhiên được giải phóng!`,
