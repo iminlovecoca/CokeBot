@@ -15,14 +15,14 @@ const RANK_ORDER = [
 const PROMOTION_LP_NEED = 100; // 100 LP per tier for promotion
 
 const SEASON_REWARDS = {
-  Unranked: { coke: 0, wc: 0, skin: false },
-  Common: { coke: 100000, wc: 0, skin: false },
-  Rare: { coke: 300000, wc: 1, skin: false },
-  Epic: { coke: 700000, wc: 2, skin: false },
-  Legendary: { coke: 1000000, wc: 3, skin: true },
-  Mythic: { coke: 2500000, wc: 5, skin: true },
-  Ancient: { coke: 3500000, wc: 8, skin: true },
-  Divine: { coke: 4500000, wc: 12, skin: true }
+  Unranked: { coke: 0, wc: 0, honorSkin: false },
+  Common: { coke: 100000, wc: 0, honorSkin: false },
+  Rare: { coke: 300000, wc: 1, honorSkin: false },
+  Epic: { coke: 700000, wc: 2, honorSkin: false },
+  Legendary: { coke: 1000000, wc: 3, honorSkin: true },
+  Mythic: { coke: 2500000, wc: 5, honorSkin: true },
+  Ancient: { coke: 3500000, wc: 8, honorSkin: true },
+  Divine: { coke: 4500000, wc: 12, honorSkin: true }
 };
 
 class BattleRankService extends BaseService {
@@ -55,16 +55,11 @@ class BattleRankService extends BaseService {
   }
 
   calculateLpLoss(loserRank, winnerRank, loseStreak = 0) {
-    if (loseStreak >= 3) {
-      return 6; // Losing streak >= 3 deducts 6 LP
-    }
-    const loserIdx = this.getRankTierIndex(loserRank);
-    const winnerIdx = this.getRankTierIndex(winnerRank);
-
-    if (loserIdx > winnerIdx) {
-      return 4; // Losing to lower rank opponent deducts 4 LP
-    }
-    return 2; // Normal loss vs same or higher rank deducts 2 LP
+    // Ranked PvP is a closed LP transfer: the loser always loses exactly
+    // what the winner gains for this match. Keep loseStreak in the signature
+    // for callers from older builds, but it must not create asymmetric LP.
+    void loseStreak;
+    return this.calculateLpGain(winnerRank, loserRank);
   }
 
   async processBattleLp(winnerUser, loserUser, options = {}) {

@@ -30,6 +30,17 @@ const {
   getCharacterAssetPath,
 } = require("../../../utils/rpgUtil");
 const { getSlotLabel, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
+const {
+  getHonorSkinInfo,
+  getGenderFromCharacterAsset,
+  isSkinForGender,
+  getHonorSkinOwnershipKeys,
+} = require("../../../data/rpg/skins");
+
+const isSkinOwned = (user, skinFile) => {
+  const ownedSkins = Array.isArray(user?.rpg?.ownedSkins) ? user.rpg.ownedSkins : [];
+  return getHonorSkinOwnershipKeys(skinFile).some((key) => ownedSkins.includes(key));
+};
 const statLabels = {
   vigor: "Vigor",
   pr: "PR",
@@ -292,10 +303,11 @@ class ClassCommand extends BaseCommand {
             return safeInteractionReply(interaction, { content: "❌ Không tìm thấy thông tin class của bạn!", flags: 64 });
           }
           const skinsDir = path.join(__dirname, "../../../assets/skins", rpgClass.name);
+          const currentGender = getGenderFromCharacterAsset(user.rpg.characterAsset || rpgClass.asset);
           let skinFiles = [];
           if (fs.existsSync(skinsDir)) {
             skinFiles = fs.readdirSync(skinsDir)
-              .filter(file => file.endsWith(".png") || file.endsWith(".gif"));
+              .filter(file => (file.endsWith(".png") || file.endsWith(".gif")) && isSkinForGender(file, currentGender));
           }
           const selectMenu = new StringSelectMenuBuilder()
             .setCustomId("rpg_class_select_skin")
@@ -313,17 +325,20 @@ class ClassCommand extends BaseCommand {
             let isLocked = false;
             let suffix = "";
             const isUX = file.toLowerCase().includes("ux");
+            const honorInfo = getHonorSkinInfo(file);
             if (!isUserAdmin) {
-              const owned = user.rpg.ownedSkins && user.rpg.ownedSkins.includes(file);
+              const owned = isSkinOwned(user, file);
               if (!owned) {
                 isLocked = true;
-                suffix = isUX ? " (🔒 Hữu hạn)" : " (🔒 Chưa mua)";
+                suffix = honorInfo ? " (🔒 Mùa giải)" : (isUX ? " (🔒 Hữu hạn)" : " (🔒 Chưa mua)");
               }
             }
             options.push({
               label: label + suffix,
               value: file,
-              description: isLocked ? (isUX ? "Chỉ sở hữu qua Gacha (Hữu hạn)" : "Mua tại cửa hàng skin (skin)") : "Sẵn sàng sử dụng",
+              description: isLocked
+                ? (honorInfo ? `Nhận khi chốt mùa ở rank ${honorInfo.rank}` : (isUX ? "Chỉ sở hữu qua Gacha (Hữu hạn)" : "Mua tại cửa hàng skin (skin)"))
+                : "Sẵn sàng sử dụng",
             });
           }
           selectMenu.addOptions(options);
@@ -347,10 +362,13 @@ class ClassCommand extends BaseCommand {
           const isUserAdmin = isDev(message.author.id) || isAdmin(message.author.id);
           if (selectedSkin !== rpgClass.asset) {
             const isUX = selectedSkin.toLowerCase().includes("ux");
-            const owned = user.rpg.ownedSkins && user.rpg.ownedSkins.includes(selectedSkin);
+            const honorInfo = getHonorSkinInfo(selectedSkin);
+            const owned = isSkinOwned(user, selectedSkin);
             if (!isUserAdmin && !owned) {
               return safeInteractionReply(interaction, {
-                content: isUX
+                content: honorInfo
+                  ? `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Skin này chỉ được trao khi chốt mùa ở rank ${honorInfo.rank}.`
+                  : isUX
                   ? `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Skin này là skin Hữu hạn chỉ có thể sở hữu từ Gacha.`
                   : `❌ Bạn chưa sở hữu skin **${selectedSkin.replace(/\.(png|gif)$/i, "")}**! Bạn cần mua skin này trong cửa hàng bằng lệnh \`skin\`.`,
                 flags: 64

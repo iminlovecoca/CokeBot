@@ -5,8 +5,19 @@ const path = require("path");
 const config = require("../../../data/config");
 const { getUser, isDev } = require("../../../utils/userUtil");
 const { getRpgClass, getCharacterAssetPath, requireRpgCharacter } = require("../../../utils/rpgUtil");
-const { getSkinPrice } = require("../../../data/rpg/skins");
+const {
+  getSkinPrice,
+  getHonorSkinInfo,
+  getGenderFromCharacterAsset,
+  isSkinForGender,
+  getHonorSkinOwnershipKeys,
+} = require("../../../data/rpg/skins");
 const { getClassEmoji, getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionReply, safeInteractionUpdate } = require("../../../utils/rpgUi");
+
+const isSkinOwned = (user, skinFile) => {
+  const ownedSkins = Array.isArray(user?.rpg?.ownedSkins) ? user.rpg.ownedSkins : [];
+  return getHonorSkinOwnershipKeys(skinFile).some((key) => ownedSkins.includes(key));
+};
 class SkinCommand extends BaseCommand {
   constructor() {
     super({
@@ -26,9 +37,11 @@ class SkinCommand extends BaseCommand {
     }
     const className = rpgClass.name;
     const skinsDir = path.join(__dirname, "../../../assets/skins", className);
+    const currentGender = getGenderFromCharacterAsset(user.rpg.characterAsset || rpgClass.asset);
     let skinFiles = [];
     if (fs.existsSync(skinsDir)) {
-      skinFiles = fs.readdirSync(skinsDir).filter(file => file.endsWith(".png") || file.endsWith(".gif"));
+      skinFiles = fs.readdirSync(skinsDir)
+        .filter(file => (file.endsWith(".png") || file.endsWith(".gif")) && isSkinForGender(file, currentGender));
     }
     if (skinFiles.length === 0) {
       return message.reply(`❌ Hiện tại class **${className}** chưa có skin nào trong cửa hàng!`);
@@ -44,11 +57,14 @@ class SkinCommand extends BaseCommand {
           skinFiles.map(file => {
             const skinName = file.replace(/\.(png|gif)$/i, "");
             const isUX = file.toLowerCase().includes("ux");
+            const honorInfo = getHonorSkinInfo(file);
             const price = getSkinPrice(file);
-            const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
+            const isOwned = isSkinOwned(currentUser, file);
             let statusStr = "";
             if (isOwned) {
               statusStr = "✅ *Đã sở hữu*";
+            } else if (honorInfo) {
+              statusStr = `🏆 *Phần thưởng cuối mùa • ${honorInfo.rank}*`;
             } else if (isUX) {
               statusStr = "⭐ *Hữu hạn*";
             } else if (typeof price === "object" && price !== null) {
@@ -58,7 +74,7 @@ class SkinCommand extends BaseCommand {
             }
             return `• **${skinName}**: ${statusStr}`;
           }).join("\n") +
-          `\n\n*Hãy chọn một skin dưới menu để xem preview và tiến hành mua.*`
+          `\n\n*Skin vinh danh Legendary+ chỉ được trao khi chốt mùa.*`
         )
         .setFooter(formatRpgFooter("Skin hữu hạn chỉ nhận từ Gacha"));
       const selectMenu = new StringSelectMenuBuilder()
@@ -67,11 +83,14 @@ class SkinCommand extends BaseCommand {
       const options = skinFiles.map(file => {
         const skinName = file.replace(/\.(png|gif)$/i, "");
         const isUX = file.toLowerCase().includes("ux");
+        const honorInfo = getHonorSkinInfo(file);
         const price = getSkinPrice(file);
-        const isOwned = currentUser.rpg.ownedSkins && currentUser.rpg.ownedSkins.includes(file);
+        const isOwned = isSkinOwned(currentUser, file);
         let desc = "";
         if (isOwned) {
           desc = "Đã sở hữu skin này";
+        } else if (honorInfo) {
+          desc = `Phần thưởng cuối mùa ở rank ${honorInfo.rank}`;
         } else if (isUX) {
           desc = "Skin Hữu hạn - Chỉ có từ Gacha";
         } else if (typeof price === "object" && price !== null) {
@@ -102,8 +121,9 @@ class SkinCommand extends BaseCommand {
         selectedFile = interaction.values[0];
         const skinName = selectedFile.replace(/\.(png|gif)$/i, "");
         const isUX = selectedFile.toLowerCase().includes("ux");
+        const honorInfo = getHonorSkinInfo(selectedFile);
         const price = getSkinPrice(selectedFile);
-        const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
+        const isOwned = isSkinOwned(u, selectedFile);
         const assetPath = getCharacterAssetPath(selectedFile);
         const attachment = new AttachmentBuilder(assetPath, { name: selectedFile });
         const currentSouls = u.inventory.get("souls") || 0;
@@ -111,7 +131,11 @@ class SkinCommand extends BaseCommand {
         let priceText = "";
         let hasEnoughFunds = false;
         let btnLabel = "";
-        if (isUX) {
+        if (honorInfo) {
+          priceText = `• 🏆 Phần thưởng cuối mùa ở rank **${honorInfo.rank}** (không bán)\n`;
+          btnLabel = "Phần thưởng mùa";
+          hasEnoughFunds = false;
+        } else if (isUX) {
           priceText = `• **Chỉ có thể sở hữu từ Gacha (Hữu hạn)**\n`;
           btnLabel = "Hữu hạn (Gacha)";
           hasEnoughFunds = false;
@@ -129,7 +153,7 @@ class SkinCommand extends BaseCommand {
           .setTitle(formatRpgTitle(`Chi tiết skin • ${skinName}`, "✨"))
           .setDescription(
             `• Class: **${className}**\n` +
-            `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : (isUX ? "⭐ Hữu hạn" : "🛒 Đang bán")}\n` +
+            `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : (honorInfo ? "🏆 Vinh danh" : (isUX ? "⭐ Hữu hạn" : "🛒 Đang bán"))}\n` +
             priceText +
             `• Số Coke bạn có: **${u.coke.toLocaleString()} Coke**\n` +
             `• Số Linh Hồn bạn có: **${currentSouls}** <:souls:1518749776538243082>`
@@ -142,7 +166,7 @@ class SkinCommand extends BaseCommand {
           .setCustomId("skin_shop_buy")
           .setLabel(isOwned ? "Đã sở hữu" : btnLabel)
           .setStyle(ButtonStyle.Success)
-          .setDisabled(isOwned || isUX || !hasEnoughFunds);
+          .setDisabled(isOwned || isUX || Boolean(honorInfo) || !hasEnoughFunds);
         const backBtn = new ButtonBuilder()
           .setCustomId("skin_shop_back")
           .setLabel("Quay lại")
@@ -162,9 +186,13 @@ class SkinCommand extends BaseCommand {
         }
         const price = getSkinPrice(selectedFile);
         const isUX = selectedFile.toLowerCase().includes("ux");
-        const isOwned = u.rpg.ownedSkins && u.rpg.ownedSkins.includes(selectedFile);
+        const honorInfo = getHonorSkinInfo(selectedFile);
+        const isOwned = isSkinOwned(u, selectedFile);
         if (isOwned) {
           return safeInteractionReply(interaction, { content: "❌ Bạn đã sở hữu skin này rồi!", flags: 64 });
+        }
+        if (honorInfo) {
+          return safeInteractionReply(interaction, { content: `❌ Skin ${honorInfo.rank} là phần thưởng vinh danh cuối mùa, không thể mua.`, flags: 64 });
         }
         if (isUX) {
           return safeInteractionReply(interaction, { content: "❌ Skin này là skin Hữu hạn, chỉ có thể sở hữu từ Gacha!", flags: 64 });

@@ -23,6 +23,14 @@ class BattleRankCommand extends BaseCommand {
   async execute(message, args, client, locator) {
     const sub = (args[0] || "").toLowerCase();
 
+    // A rank command is also a safe catch-up point when midnight was missed
+    // during a restart or short outage. The service still owns the Mongo lock
+    // and remains idempotent across scheduler workers.
+    const seasonService = locator?.get("battleSeasonService");
+    await seasonService?.resetIfDue(new Date()).catch((error) => {
+      console.error("[BATTLE_SEASON] On-demand catch-up failed:", error);
+    });
+
     if (sub === "top" || sub === "lb") {
       const rankIndexMap = {
         divine: 7,
@@ -105,6 +113,21 @@ class BattleRankCommand extends BaseCommand {
     const empty = 10 - filled;
     const lpBar = "▰".repeat(filled) + "▱".repeat(empty);
 
+    const previousRank = userData.rpg?.lastBattleSeasonRank;
+    const previousReward = userData.rpg?.lastBattleSeasonReward;
+    const previousHonorSkins = Array.isArray(previousReward?.honorSkins)
+      ? previousReward.honorSkins
+      : (previousReward?.honorSkin ? [previousReward.honorSkin] : []);
+    const previousSeasonField = previousRank
+      ? {
+          name: "Mùa giải trước",
+          value: `${previousRank}${previousHonorSkins.length ? ` • 🏆 ${previousHonorSkins.join(", ")}` : ""}\n` +
+            `Thưởng: **${(previousReward?.coke || 0).toLocaleString()} Coke**` +
+            (previousReward?.wc ? ` • **${previousReward.wc} Hộp Vũ Khí**` : ""),
+          inline: false,
+        }
+      : null;
+
     const embed = new EmbedBuilder()
       .setColor(rConfig.borderColor1 && rConfig.borderColor1 !== "transparent" ? rConfig.borderColor1 : "#3498DB")
       .setTitle(formatRpgTitle(`Hồ sơ leo rank PvP • ${message.author.username}`, "🏆"))
@@ -112,7 +135,8 @@ class BattleRankCommand extends BaseCommand {
       .addFields(
         { name: "Bậc rank hiện tại", value: `${emojiStr}**${bRank}**`, inline: true },
         { name: "LP mùa giải", value: `${lpDisplay}\n\`${lpBar}\``, inline: true },
-        { name: "Thành tích", value: `**${wins}** thắng • **${losses}** thua\nTỉ lệ thắng: **${winRate}%**`, inline: false }
+        { name: "Thành tích", value: `**${wins}** thắng • **${losses}** thua\nTỉ lệ thắng: **${winRate}%**`, inline: false },
+        ...(previousSeasonField ? [previousSeasonField] : []),
       )
       .setFooter(formatRpgFooter(isDivineRank ? "Divine tích lũy LP không giới hạn" : "Đủ 100 LP để thăng hạng"));
 

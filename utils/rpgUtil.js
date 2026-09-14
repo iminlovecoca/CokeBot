@@ -3,6 +3,7 @@ const fs = require("fs");
 const config = require("../data/config");
 const { UserFriendlyError } = require("./errors");
 const { getUser } = require("./userUtil");
+const { getHonorSkinInfo, getHonorSkinFile } = require("../data/rpg/skins");
 
 const _assetPathCache = new Map();
 
@@ -275,6 +276,22 @@ const getCharacterAssetPath = (avatarFileOrUser) => {
             assetPath = checkPath;
             break;
           }
+        }
+      }
+    }
+
+    // Old seasons stored a single non-gendered honor filename. Keep those
+    // records renderable after the gendered male/female assets are introduced.
+    const honorInfo = getHonorSkinInfo(avatarFile);
+    if (!fs.existsSync(assetPath) && honorInfo?.gender === null) {
+      const fallbackFile = getHonorSkinFile(honorInfo.className, honorInfo.rank, "male");
+      for (const subdir of fs.existsSync(skinsDir) ? fs.readdirSync(skinsDir) : []) {
+        const fullSubdir = path.join(skinsDir, subdir);
+        if (!fs.statSync(fullSubdir).isDirectory()) continue;
+        const fallbackPath = path.join(fullSubdir, fallbackFile);
+        if (fs.existsSync(fallbackPath)) {
+          assetPath = fallbackPath;
+          break;
         }
       }
     }

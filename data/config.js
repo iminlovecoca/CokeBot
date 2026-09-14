@@ -996,5 +996,13 @@ module.exports = {
     },
   },
 
+  battle_rank: {
+    season_duration_days: 30,
+    reset_timezone: "Asia/Ho_Chi_Minh",
+    // First deployment boundary requested for the current season. Future
+    // seasons are persisted in BattleSeason; override with env when needed.
+    first_reset_at: process.env.BATTLE_RANK_FIRST_RESET_AT || "2026-09-15T00:00:00+07:00",
+  },
+
 };
 

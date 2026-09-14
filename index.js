@@ -141,6 +141,7 @@ const RpgService = require("./services/RpgService");
 const MathService = require("./services/MathService");
 const TaixiuService = require("./services/TaixiuService");
 const BattleRankService = require("./services/battleRankService");
+const BattleSeasonService = require("./services/battleSeasonService");
 
 const locator = new ServiceLocator();
 locator.register("gameRepository", new GameRepository());
@@ -151,6 +152,7 @@ locator.register("rpgService", new RpgService(locator));
 locator.register("mathService", new MathService(locator));
 locator.register("taixiuService", new TaixiuService(locator));
 locator.register("battleRankService", new BattleRankService(locator));
+locator.register("battleSeasonService", new BattleSeasonService(locator));
 client.services = locator;
 
 const loadFiles = (dir, callback) => {
@@ -384,6 +386,10 @@ client.once(Events.ClientReady, async () => {
     
     await initializeAutohuntReminders(client);
     await initializeGodsetExpirations(client);
+
+    await client.services.get("battleSeasonService").initialize().catch((error) => {
+      console.error("❌ Battle season initialization error:", error);
+    });
 
 
     await performStartupCleanup(client);

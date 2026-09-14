@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "seed": "node seeders/run_all_seeds.js",
-    "seed:ai": "node seeders/knowledge.js"
+    "seed:ai": "node seeders/knowledge.js",
+    "import:honor-skins": "node scripts/importHonorSkins.js"
   },
   "keywords": [],
   "author": "",

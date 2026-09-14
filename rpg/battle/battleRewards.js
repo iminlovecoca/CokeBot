@@ -50,7 +50,8 @@ class BattleRewards {
       petFooterInfo += ` | Linh thú: +${petXp1} Pet XP (Lvl.${user1.rpg.equippedPet.level})`;
     }
 
-    // 4. Calculate Battle Rank LP (Only applies to active initiator user1 in random PvP)
+    // 4. Calculate Battle Rank LP. Random ranked PvP updates both documents:
+    // the opponent loses the same LP amount the winner gains.
     let lpSummaryInfo = "";
     if (!isTargeted && !isDraw && battleResult.winner) {
       const BattleRankService = require("../../services/battleRankService");
@@ -58,21 +59,18 @@ class BattleRewards {
       const winnerUser = isP1Winner ? user1 : user2;
       const loserUser = isP1Winner ? user2 : user1;
 
-      const lpResult = await rankService.processBattleLp(winnerUser, loserUser, {
-        updateOnlyInitiator: true,
-        initiatorId: user1.userId
-      });
+      const lpResult = await rankService.processBattleLp(winnerUser, loserUser);
 
       if (isP1Winner) {
         const lpMaxText = lpResult.isDivine ? `${lpResult.newLp} LP` : `${lpResult.newLp}/100 LP`;
-        lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpMaxText})`;
+        lpSummaryInfo = ` | +${lpResult.lpGain} LP (${lpMaxText}) | Đối thủ -${lpResult.lpLoss} LP`;
         if (lpResult.promoted) {
           lpSummaryInfo += ` 🏆 THĂNG HẠNG: ${lpResult.newRank}!`;
         }
       } else {
         const loserIsDivine = (user1.rpg?.battleRank || '').toLowerCase() === 'divine';
         const loserLpText = loserIsDivine ? `${lpResult.loserLp} LP` : `${lpResult.loserLp}/100 LP`;
-        lpSummaryInfo = ` | -${lpResult.lpLoss} LP (${loserLpText})`;
+        lpSummaryInfo = ` | -${lpResult.lpLoss} LP (${loserLpText}) | Đối thủ +${lpResult.lpGain} LP`;
         if (lpResult.demoted) {
           lpSummaryInfo += ` 🔻 GIÁNG HẠNG: ${lpResult.loserRank}!`;
         } else if (lpResult.loseStreak >= 3) {
