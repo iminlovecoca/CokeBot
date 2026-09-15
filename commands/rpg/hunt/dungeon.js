@@ -882,7 +882,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
 
     // 2. If direct edit failed, resend message
     if (!editSuccess) {
-      await activeDungeon.gameMessage.delete().catch(() => null);
+      if (activeDungeon.gameMessage) await activeDungeon.gameMessage.delete().catch(() => null);
       const fallbackPayload = { ...payload };
       if (filePath && imgFileName) {
         fallbackPayload.files = [new AttachmentBuilder(filePath, { name: imgFileName })];
