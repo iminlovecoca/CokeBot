@@ -202,7 +202,10 @@ const getWeaponCategory = (subType) => {
   const found = dungeonWeapons.find(dw => 
     dw.key === clean || dw.name.toLowerCase().replace(/\s+/g, "") === clean
   );
-  if (found) return "dungeon";
+  if (found) {
+    if (EVENT_WEAPONS.includes(found.key)) return "event";
+    return "dungeon";
+  }
   return null;
 };
 
