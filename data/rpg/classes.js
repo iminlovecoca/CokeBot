@@ -51,6 +51,6 @@ module.exports = {
     color: "#95A5A6",
     description: "Khởi đầu khiêm tốn, chỉ số cân bằng, tiềm năng phát triển đa dạng.",
     stats: { vigor: 11, pr: 11, mr: 11, str: 11, dex: 11, int: 11, arc: 11 },
-    bonuses: { expGain: 0.05, dropRate: 0.05 },
+    bonuses: { expGain: 0.05, dropRate: 0.05, critRate: 0.08, bossDamage: 0.06 },
   },
 };

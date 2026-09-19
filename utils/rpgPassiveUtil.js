@@ -498,7 +498,7 @@ const resolveShieldhexDefense = (target, damage, activeDungeon) => {
   if (!playerSubType.includes("shieldhex")) return { damage, absorbed: 0, shouldReflect: false };
 
   if (!target.effects) target.effects = {};
-  const absorbPct = 0.20;
+  const absorbPct = Number(config.rpg?.balance?.pvp?.shieldhex_absorb_pct) || 0.15;
   const absorbed = Math.floor(damage * absorbPct);
   const reducedDamage = damage - absorbed;
 

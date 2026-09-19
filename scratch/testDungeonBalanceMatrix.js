@@ -2,14 +2,18 @@ const assert = require("assert");
 const config = require("../data/config");
 const classes = require("../data/rpg/classes");
 const { WEAPON_PASSIVES } = require("../data/rpg/weaponPassives");
-const { resolveWeaponPassive, tickStatusEffects } = require("../utils/rpgPassiveUtil");
-const { dungeonWeapons } = require("../utils/rpgUtil");
+const { resolveWeaponPassive, resolveShieldhexDefense, tickStatusEffects } = require("../utils/rpgPassiveUtil");
+const { dungeonWeapons, getWeaponPower, getWeaponScaling, petAttackDamage } = require("../utils/rpgUtil");
 const gachaBanner = require("../data/gachaBanner");
 const {
   RARITIES,
   buildSimulatedDungeonPlayer,
   getAssassinSkillBleedDamage,
+  getDungeonBossDamage,
   getDungeonBossScalers,
+  getDungeonDateKey,
+  getDungeonRewardAmounts,
+  getDungeonRewardFatigue,
   getDungeonTimeLimitMs,
   getSlothShieldBreakProgress,
 } = require("../utils/dungeonBalanceUtil");
@@ -177,6 +181,7 @@ const attack = (player, boss, state, multiplier = 1, isSkill = false) => {
   if (boss.poiseBroken) damage *= 2;
   if (state.chapter === 1 && state.team.some((member) => member.hp > 0 && member.healBanRounds > 0)) damage *= 2;
   if (state.diceMultiplier) damage = Math.floor(damage * state.diceMultiplier);
+  damage = getDungeonBossDamage(damage, boss.maxHp, isSkill);
   const frozenPlayer = state.team.find((member) => member.hp > 0 && member.goldStatueFreeze > 0);
   if (frozenPlayer) {
     frozenPlayer.goldStatueHits = (frozenPlayer.goldStatueHits || 0) + 1;
@@ -219,9 +224,10 @@ const attack = (player, boss, state, multiplier = 1, isSkill = false) => {
     state.swallowedPlayerId = null;
   }
   if (!boss.poiseBroken) {
-    let poiseDamage = Math.max(6, Math.floor(damage * 0.00032));
+    const poiseDamageCap = Number(config.dungeon?.combat_balance?.poise_damage_cap) || 24;
+    let poiseDamage = Math.min(poiseDamageCap, Math.max(6, Math.floor(damage * 0.00032)));
     if ((activeSin === "lucifer" || activeSin === "pride") && !isSkill) poiseDamage = Math.max(12, poiseDamage);
-    if (player.classKey === "warrior" && isSkill) poiseDamage = Math.max(12, Math.floor(poiseDamage * 1.5));
+    if (player.classKey === "warrior" && isSkill) poiseDamage = Math.min(poiseDamageCap, Math.max(12, Math.floor(poiseDamage * 1.5)));
     boss.poise = Math.max(0, boss.poise - poiseDamage);
     if (boss.poise === 0) boss.poiseBroken = true;
   }
@@ -245,7 +251,11 @@ const playerTurn = (player, boss, team, state, tactical) => {
   const alive = team.filter((member) => member.hp > 0);
   const averageHp = alive.reduce((sum, member) => sum + member.hp / member.maxHp, 0) / alive.length;
   if (player.classKey === "paladin" && player.rage >= 50 && !player.skillBanRounds && (!tactical || averageHp < 0.82)) {
-    alive.forEach((member) => { member.hp = Math.min(member.maxHp, member.hp + Math.floor(member.maxHp * 0.25)); });
+    const healPct = Number(config.rpg?.balance?.dungeon?.paladin_team_heal_pct) || 0.20;
+    const paladinCount = team.filter((member) => member.classKey === "paladin").length;
+    const duplicateHealMultiplier = Number(config.rpg?.balance?.dungeon?.paladin_duplicate_heal_multiplier) || 0.75;
+    const effectiveHealPct = healPct * Math.pow(duplicateHealMultiplier, Math.max(0, paladinCount - 1));
+    alive.forEach((member) => { member.hp = Math.min(member.maxHp, member.hp + Math.floor(member.maxHp * effectiveHealPct)); });
     player.rage = Math.max(0, player.rage - 50) + 10;
     return;
   }
@@ -537,11 +547,46 @@ const runCoverageChecks = () => {
     }
   }
   assert.strictEqual(getDungeonTimeLimitMs("bossPhase2"), 7 * 60 * 1000);
+  assert.strictEqual(config.dungeon.player_buff.damage_multiplier, 1.05, "Dungeon giữ buff nhẹ +5% sát thương");
+  assert.strictEqual(config.dungeon.player_buff.max_hp_multiplier, 1.05, "Dungeon giữ buff nhẹ +5% HP");
+  assert.strictEqual(config.dungeon.player_buff.crit_rate_bonus, 0.01, "Dungeon giữ buff nhẹ +1 điểm phần trăm chí mạng");
+  assert(getDungeonBossScalers(120, 150000).durability > getDungeonBossScalers(120, 100000).durability, "Lực chiến vượt chuẩn phải chịu áp lực độ bền boss tăng thêm");
+  assert.strictEqual(config.rpg.balance.dungeon.paladin_duplicate_heal_multiplier, 0.75, "Hồi máu Paladin phải giảm dần khi trùng class");
+  assert.strictEqual(getDungeonBossDamage(1000000, 1000000, false), 120000, "Đòn thường không được vượt 12% HP boss");
+  assert.strictEqual(getDungeonBossDamage(1000000, 1000000, true), 200000, "Kỹ năng không được vượt 20% HP boss");
+  assert.strictEqual(getDungeonBossDamage(20000, 1000000, false), 20000, "Đòn dưới soft cap phải giữ nguyên");
+  assert.deepStrictEqual(getDungeonRewardFatigue(0), { multiplier: 1, stoneDropRate: 1, tier: "full" });
+  assert.strictEqual(getDungeonRewardFatigue(3).multiplier, 0.5);
+  assert.strictEqual(getDungeonRewardFatigue(6).multiplier, 0.2);
+  assert.strictEqual(getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 0, isChallenge: true }).coke, 315000);
+  assert.strictEqual(getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 3, isChallenge: true }).coke, 157500);
+  assert.strictEqual(getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 6, isChallenge: true }).coke, 63000);
+  assert.strictEqual(getDungeonDateKey(new Date("2026-09-18T17:30:00.000Z")), "2026-09-19");
   assert.strictEqual(config.dungeon.chapters[14].boss.mechanics.wipe_countdown, 6);
   assert.strictEqual(getSlothShieldBreakProgress({ classKey: "warrior", isSkill: true }), 3);
   assert.strictEqual(getSlothShieldBreakProgress({ classKey: "mage", weaponSubType: "thorshammer", isSkill: true }), 3);
   assert.strictEqual(getSlothShieldBreakProgress({ classKey: "mage", isSkill: true, bossIsBurning: true }), 2);
   assert.strictEqual(getSlothShieldBreakProgress({ classKey: "archer", isSkill: false }), 1);
+  // Guardrail: the S-E grade system remains unchanged while balance knobs
+  // only affect growth, passives, and pet contribution.
+  assert.deepStrictEqual(
+    getWeaponScaling({ slot: "weapon", subType: "longsword", rarity: "Divine", power: 100 }),
+    { str: "S", dex: "S", int: "-", arc: "-" },
+  );
+  assert.strictEqual(
+    getWeaponPower({ slot: "weapon", subType: "firesword", rarity: "Ancient", power: 100, upgradeLevel: 10 }, {}),
+    650,
+    "Special weapon +10 uses the new growth curve without changing Scale grades",
+  );
+  assert.strictEqual(
+    getWeaponPower({ slot: "weapon", subType: "longsword", rarity: "Divine", power: 100, upgradeLevel: 10 }, {}),
+    200,
+  );
+  assert.strictEqual(petAttackDamage({ tier: "Divine", level: 100, stats: { baseAtk: 100 } }, "dungeon"), 4050);
+  assert.strictEqual(resolveShieldhexDefense({ weapon: { subType: "shieldhex" }, effects: {} }, 1000).damage, 850);
+  assert.strictEqual(WEAPON_PASSIVES.darksword.mode.dungeon.type, "damage_mult");
+  assert.strictEqual(WEAPON_PASSIVES.darksword.mode.dungeon.mult, 1.20);
+  assert.strictEqual(WEAPON_PASSIVES.holysword.mode.dungeon.mult, 1.65);
   let configuredBosses = 0;
   for (let chapter = 1; chapter <= 14; chapter += 1) {
     const boss = config.dungeon.chapters[chapter]?.boss;
@@ -682,6 +727,13 @@ console.log(JSON.stringify({
     naive: average(compositionRows, (row) => row.naive.winRate),
     tactical: average(compositionRows, (row) => row.tactical.winRate),
     tacticalGain: average(compositionRows, (row) => row.tactical.winRate - row.naive.winRate),
+  },
+  economy: {
+    chapter14RepeatChallenge: {
+      clears1To3: getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 0, isChallenge: true }).coke,
+      clears4To6: getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 3, isChallenge: true }).coke,
+      clears7Plus: getDungeonRewardAmounts({ chapter: 14, hasClearedBefore: true, isDailyFirstClear: true, dailyClearCount: 6, isChallenge: true }).coke,
+    },
   },
   chapters,
   classes: classSummary,

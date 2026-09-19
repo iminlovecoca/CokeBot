@@ -29,7 +29,16 @@ const {
 const { incBalance } = require("../../../utils/userUtil");
 const { addPetXp } = require("../../../utils/petXpUtil");
 const config = require("../../../data/config");
-const { formatTimeLimit, getAssassinSkillBleedDamage, getDungeonBossScalers, getDungeonTimeLimitMs, getSlothShieldBreakProgress } = require("../../../utils/dungeonBalanceUtil");
+const {
+  formatTimeLimit,
+  getAssassinSkillBleedDamage,
+  getDungeonBossDamage,
+  getDungeonBossScalers,
+  getDungeonDateKey,
+  getDungeonRewardAmounts,
+  getDungeonTimeLimitMs,
+  getSlothShieldBreakProgress,
+} = require("../../../utils/dungeonBalanceUtil");
 const { ui, getRpgColor, formatRpgBar, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
@@ -117,7 +126,7 @@ class DungeonCommand extends BaseCommand {
       aliases: ["pb", "phoban"],
       description: "Khiêu chiến Dungeon tổ đội (yêu cầu team 3 người cùng Party)",
       usage: `${config.prefix}dungeon`,
-      cooldown: 0
+      cooldown: 15
     });
   }
   async execute(message, args) {
@@ -1195,7 +1204,11 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
     activeDungeon.logs.push(`🔮 **${player.name}** tập hợp ma lực giải phóng pháp thuật **[Siêu Năng]** dội xuống **${enemy.name}**!`);
     await executePlayerAttack(channel, activeDungeon, player, 3.0, true);
   } else if (player.classKey === "paladin") {
-    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục 25% lượng máu tối đa cho toàn đội!`);
+    const paladinHealPct = Number(config.rpg?.balance?.dungeon?.paladin_team_heal_pct) || 0.22;
+    const paladinCount = activeDungeon.players.filter((member) => member.classKey === "paladin").length;
+    const duplicateHealMultiplier = Number(config.rpg?.balance?.dungeon?.paladin_duplicate_heal_multiplier) || 0.75;
+    const effectivePaladinHealPct = paladinHealPct * Math.pow(duplicateHealMultiplier, Math.max(0, paladinCount - 1));
+    activeDungeon.logs.push(`🛡️ **${player.name}** niệm chú kỹ năng **[Thiên Mệnh]**, lập tức giải trừ toàn bộ hiệu ứng bất lợi và hồi phục ${Math.round(effectivePaladinHealPct * 100)}% lượng máu tối đa cho toàn đội!`);
     activeDungeon.players.forEach((p) => {
       if (p.hp > 0) {
         const clearedDebuffs = [];
@@ -1214,7 +1227,7 @@ const executePlayerSkill = async (channel, activeDungeon, player) => {
         if (clearedDebuffs.length > 0) {
           activeDungeon.logs.push(`<:dispe:1521938483730710578> **${p.name}** được Paladin thanh tẩy hiệu ứng: **${clearedDebuffs.join(", ")}**.`);
         }
-        const healAmount = Math.floor(p.maxHp * 0.25);
+        const healAmount = Math.floor(p.maxHp * effectivePaladinHealPct);
         const oldHp = p.hp;
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
         const actualHealed = p.hp - oldHp;
@@ -1343,8 +1356,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   if (player.userRef?.rpg?.isGodMode) {
     damage = enemy.hp;
   }
-  if (enemy.isBoss && player.setBonus?.bonus?.bossDamage && !enemy.isElite) {
-    damage = Math.floor(damage * (1 + player.setBonus.bonus.bossDamage));
+  if (enemy.isBoss && !enemy.isElite) {
+    const classBossDamage = Number(player.rpgClass?.bonuses?.bossDamage) || 0;
+    const setBossDamage = Number(player.setBonus?.bonus?.bossDamage) || 0;
+    damage = Math.floor(damage * (1 + classBossDamage + setBossDamage));
   }
   if (enemy.isBoss) {
     const bossCfg = getBossConfig(activeDungeon.chapter);
@@ -1425,6 +1440,9 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     if (enemy.poiseBroken) {
       damage = Math.floor(damage * 2.0);
     }
+    damage = getDungeonBossDamage(damage, enemy.maxHp, isSkill, {
+      ignoreLimit: Boolean(player.userRef?.rpg?.isGodMode),
+    });
   }
   enemy.hp = Math.max(0, enemy.hp - damage);
   const critText = isCrit ? "💥 **Chí mạng!** " : "";
@@ -1439,11 +1457,12 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     }
   }
   if (enemy.isBoss && !enemy.poiseBroken) {
-    let poiseDmg = Math.max(6, Math.floor(damage * 0.00032));
+    const poiseDamageCap = Number(config.dungeon?.combat_balance?.poise_damage_cap) || 24;
+    let poiseDmg = Math.min(poiseDamageCap, Math.max(6, Math.floor(damage * 0.00032)));
     const pridePhase = enemy.key === "lucifer" || (enemy.key === "pandemonium" && enemy.hp / enemy.maxHp > 0.85);
     if (pridePhase && !isSkill) poiseDmg = Math.max(12, poiseDmg);
     if (player.classKey === "warrior" && isSkill) {
-      poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
+      poiseDmg = Math.min(poiseDamageCap, Math.max(12, Math.floor(poiseDmg * 1.5)));
       activeDungeon.logs.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Boss!`);
     }
     enemy.poise = Math.max(0, enemy.poise - poiseDmg);
@@ -1511,7 +1530,8 @@ const nextTurn = async (channel, activeDungeon) => {
     }
     const playerSubType = nextPlayer.weapon?.subType ? nextPlayer.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
     if (playerSubType.includes("shieldhex") && nextPlayer.shieldhexRounds >= 3) {
-      const reflectDmg = Math.floor((nextPlayer.shieldhexAbsorbed || 0) * 0.90);
+      const reflectPct = Number(config.rpg?.balance?.dungeon?.shieldhex_reflect_pct) || 0.75;
+      const reflectDmg = Math.floor((nextPlayer.shieldhexAbsorbed || 0) * reflectPct);
       const enemy = activeDungeon.enemy;
       enemy.hp = Math.max(0, enemy.hp - reflectDmg);
       activeDungeon.logs.push(`🛡️ **[Shieldhex]** Giải phóng năng lượng tích tụ phản hồi lại **${reflectDmg.toLocaleString()}** sát thương lên **${enemy.name}**!`);
@@ -1659,8 +1679,10 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       }
       const playerSubType = p.weapon?.subType ? p.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
       if (playerSubType.includes("shieldhex")) {
-        damage = Math.floor(damage * 0.80);
-        p.shieldhexAbsorbed = (p.shieldhexAbsorbed || 0) + damage;
+        const absorbPct = Number(config.rpg?.balance?.dungeon?.shieldhex_absorb_pct) || 0.15;
+        const absorbed = Math.floor(damage * absorbPct);
+        damage -= absorbed;
+        p.shieldhexAbsorbed = (p.shieldhexAbsorbed || 0) + absorbed;
         p.shieldhexRounds = (p.shieldhexRounds || 0) + 1;
       }
       const actualDmg = Math.min(p.hp, damage);
@@ -1824,8 +1846,10 @@ const runEnemyTurn = async (channel, activeDungeon) => {
       }
       const targetSubType = target.weapon?.subType ? target.weapon.subType.toLowerCase().replace(/\s+/g, "") : "";
       if (targetSubType.includes("shieldhex")) {
-        damage = Math.floor(damage * 0.80);
-        target.shieldhexAbsorbed = (target.shieldhexAbsorbed || 0) + damage;
+        const absorbPct = Number(config.rpg?.balance?.dungeon?.shieldhex_absorb_pct) || 0.15;
+        const absorbed = Math.floor(damage * absorbPct);
+        damage -= absorbed;
+        target.shieldhexAbsorbed = (target.shieldhexAbsorbed || 0) + absorbed;
         target.shieldhexRounds = (target.shieldhexRounds || 0) + 1;
       }
       if (enemy.key === "draugor" && Math.random() < 0.35) {
@@ -1968,21 +1992,11 @@ const handleVictory = async (channel, activeDungeon) => {
     return;
   }
   const guild = await RpgGuild.findById(activeDungeon.guildId);
-  let isFirstClearOfChapter = false;
   if (guild) {
-    if (guild.chapterProgress < activeDungeon.chapter) {
-      isFirstClearOfChapter = true;
-    }
     guild.chapterProgress = Math.max(guild.chapterProgress, activeDungeon.chapter);
     await guild.save();
   }
-  const dCfg = config.dungeon || {};
-  const rewCfg = dCfg.rewards || { base_coke: 30000, base_exp: 1500 };
   const isChallenge = activeDungeon.blessing === "none";
-  const mult = isChallenge ? 1.2 : 1.0;
-  const eliteBonus = 1 + 0.5 * (activeDungeon.elitesKilled || 0);
-  const cokeReward = Math.floor(rewCfg.base_coke * activeDungeon.chapter * mult * eliteBonus);
-  const expReward = Math.floor(rewCfg.base_exp * activeDungeon.chapter * mult * eliteBonus);
   const rewardLines = await Promise.all(
     activeDungeon.players.map(async (p) => {
     const freshUser = await User.findById(p.userRef._id);
@@ -1991,38 +2005,41 @@ const handleVictory = async (channel, activeDungeon) => {
       freshUser.rpg.clearedDungeons = [];
     }
     const hasClearedBefore = freshUser.rpg.clearedDungeons.includes(activeDungeon.chapter);
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const todayKey = getDungeonDateKey();
     if (!freshUser.rpg.dailyClears) freshUser.rpg.dailyClears = {};
+    if (!freshUser.rpg.dungeonRewardDaily || freshUser.rpg.dungeonRewardDaily.date !== todayKey) {
+      freshUser.rpg.dungeonRewardDaily = { date: todayKey, count: 0 };
+      freshUser.rpg.dailyClears = {};
+    }
+    const dailyClearCount = freshUser.rpg.dungeonRewardDaily.count;
+    freshUser.rpg.dungeonRewardDaily.count += 1;
     const dailyKey = `${activeDungeon.chapter}_${todayKey}`;
     const isDailyFirstClear = !freshUser.rpg.dailyClears[dailyKey];
     if (isDailyFirstClear) {
       freshUser.rpg.dailyClears[dailyKey] = true;
     }
-    let userCokeReward = cokeReward;
-    let userExpReward = expReward;
-    if (hasClearedBefore) {
-      userCokeReward = Math.floor(cokeReward / 3);
-      userExpReward = Math.floor(expReward / 3);
-    } else {
+    if (!hasClearedBefore) {
       freshUser.rpg.clearedDungeons.push(activeDungeon.chapter);
       freshUser.markModified("rpg");
     }
-    if (isDailyFirstClear) {
-      userCokeReward = Math.floor(userCokeReward * 1.5);
-      userExpReward = Math.floor(userExpReward * 1.5);
-    }
-    if (!freshUser.rpg.winStreak) freshUser.rpg.winStreak = 0;
-    freshUser.rpg.winStreak += 1;
-    const streak = freshUser.rpg.winStreak;
-    const streakMult = Math.min(1.5, 1 + (streak - 1) * 0.05);
-    userCokeReward = Math.floor(userCokeReward * streakMult);
-    userExpReward = Math.floor(userExpReward * streakMult);
-    let challengeBonusText = "";
-    if (activeDungeon.blessing === "none") {
-      userCokeReward = Math.floor(userCokeReward * 1.2);
-      userExpReward = Math.floor(userExpReward * 1.2);
-      challengeBonusText = ` | 🏆 **Thử thách** x1.2`;
-    }
+    const rewardAmounts = getDungeonRewardAmounts({
+      chapter: activeDungeon.chapter,
+      hasClearedBefore,
+      isDailyFirstClear,
+      dailyClearCount,
+      isChallenge,
+      elitesKilled: activeDungeon.elitesKilled || 0,
+    });
+    const userCokeReward = rewardAmounts.coke;
+    const userExpReward = rewardAmounts.exp;
+    const challengeMultiplier = rewardAmounts.challengeMultiplier;
+    const rewardFatigue = rewardAmounts.fatigue;
+    const challengeBonusText = isChallenge ? ` | 🏆 **Thử thách** x${challengeMultiplier.toFixed(1)}` : "";
+    const fatigueText = rewardFatigue.tier === "full"
+      ? ""
+      : rewardFatigue.tier === "reduced"
+        ? " | ⚖️ **Thưởng ngày** x0.5"
+        : " | 💤 **Cạn thưởng ngày** x0.2";
     await incBalance(freshUser.userId, userCokeReward);
     addRpgExp(freshUser.rpg, userExpReward);
     freshUser.markModified("rpg");
@@ -2033,7 +2050,7 @@ const handleVictory = async (channel, activeDungeon) => {
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
-      forceDrop: true,
+      forceDrop: !hasClearedBefore,
     });
     let specialGear = null;
     const claimedWeapons = freshUser.rpg.claimedBossWeapons || [];
@@ -2062,9 +2079,12 @@ const handleVictory = async (channel, activeDungeon) => {
     if (!freshUser.inventory) {
       freshUser.inventory = new Map();
     }
-    const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
-    freshUser.inventory.set(cristalStoneId, currentQty + 1);
-    const gotSoul = Math.random() < 0.30;
+    const gotStone = Math.random() < rewardFatigue.stoneDropRate;
+    if (gotStone) {
+      const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
+      freshUser.inventory.set(cristalStoneId, currentQty + 1);
+    }
+    const gotSoul = Math.random() < 0.30 * rewardFatigue.multiplier;
     let soulText = "*Không nhận được* <:souls:1518749776538243082>";
     if (gotSoul) {
       const currentSouls = freshUser.inventory.get("souls") || 0;
@@ -2082,19 +2102,20 @@ const handleVictory = async (channel, activeDungeon) => {
       await updateQuestProgress(freshUser, "pet_level", freshUser.rpg.equippedPet.level, channel);
     }
     const stoneItem = channel.client.allItems?.find(i => i.item_id === cristalStoneId) || { name: `Cristal Smithing Stone [${activeDungeon.chapter}]`, emoji: "💎" };
+    const stoneText = gotStone ? `${stoneItem.emoji} **${stoneItem.name}** (x1)` : "*Không rơi*";
     const gearText = gear 
       ? `**${gear.rarity} ${gear.subType}** (Lực chiến +${gear.power})`
       : "Không nhận được";
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${userCokeReward.toLocaleString()}** <:cokecy:1509951335016173662>` +
       `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
-      `${isDailyFirstClear ? " *(Lần đầu trong ngày: x1.5)*" : ""}` +
-      `${streak > 1 ? ` *(Chuỗi x${streakMult.toFixed(1)})*` : ""}${challengeBonusText}\n` +
+      `${isDailyFirstClear ? " *(Lần đầu chương trong ngày: x1.25)*" : ""}` +
+      `${challengeBonusText}${fatigueText}\n` +
       `  • nhận **+${userExpReward.toLocaleString()} EXP RPG**` +
       `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
-      `${isDailyFirstClear ? " *(Lần đầu trong ngày: x1.5)*" : ""}${challengeBonusText}\n` +
+      `${isDailyFirstClear ? " *(Lần đầu chương trong ngày: x1.25)*" : ""}${challengeBonusText}${fatigueText}\n` +
       `  • Linh Hồn: ${soulText}\n` +
-      `  • nhận Đá nâng cấp: ${stoneItem.emoji} **${stoneItem.name}** (x1)\n` +
+      `  • Đá nâng cấp: ${stoneText}\n` +
       `  • nhận Trang bị: ${gearText}`;
     if (specialGear && bossReward) {
       rewardLine += `\n  • 🏆 **PHẦN THƯỞNG LẦN ĐẦU TIÊU DIỆT**: Nhận vũ khí độc quyền ${bossReward.emoji} **${specialGear.subType}** (${specialGear.rarity})!`;
@@ -2204,9 +2225,11 @@ const runSimulatedTurn = async (channel, activeDungeon, player) => {
   }
   const needHeal = player.hp < player.maxHp * 0.4 && player.potions > 0 && !(player.healBanRounds && player.healBanRounds > 0);
   if (needHeal) {
-    player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.3));
+    const potionHealPct = Number(config.dungeon?.potion_heal_pct) || 0.35;
+    const healAmount = Math.floor(player.maxHp * potionHealPct);
+    player.hp = Math.min(player.maxHp, player.hp + healAmount);
     player.potions -= 1;
-    activeDungeon.logs.push(`<:healthpotion:1523351206066655333> [Sim] **${player.name}** đã uống bình máu hồi phục **${Math.floor(player.maxHp * 0.3).toLocaleString()}** HP.`);
+    activeDungeon.logs.push(`<:healthpotion:1523351206066655333> [Sim] **${player.name}** đã uống bình máu hồi phục **${healAmount.toLocaleString()}** HP.`);
     player.hasActedThisRound = true;
     activeDungeon.actionInProgress = false;
     await nextTurn(channel, activeDungeon);

@@ -1,5 +1,59 @@
 module.exports = {
   starting_level: 1,
+  // Balance knobs intentionally kept separate from weapon Scale S-E.
+  // These values tune upgrade growth, pets, and mode passives without
+  // changing the scaling grades or their multipliers in rpgUtil.js.
+  balance: {
+    normal_weapon_upgrade_scale: 0.10,
+    special_weapon_upgrade_scale: 0.55,
+    river_of_blood_power_multiplier: 1.05,
+    pet_power_contribution: 0.80,
+    pet_tier_attack_multiplier: {
+      Common: 1.05,
+      Rare: 1.55,
+      Epic: 2.40,
+      Legendary: 3.80,
+      Mythic: 5.80,
+      Ancient: 8.80,
+      Divine: 13.50,
+    },
+    dungeon: {
+      paladin_team_heal_pct: 0.20,
+      paladin_duplicate_heal_multiplier: 0.75,
+      shieldhex_absorb_pct: 0.15,
+      shieldhex_reflect_pct: 0.75,
+    },
+    // World Boss uses a separate durability guardrail so high-end builds
+    // remain rewarding without allowing a single action to erase the boss.
+    world_boss: {
+      combat_profile_version: 2,
+      damage_soft_cap_pct: 0.025,
+      damage_hard_cap_pct: 0.045,
+      action_hard_cap_pct: 0.055,
+      overflow_efficiency: 0.12,
+      hp_multiplier_by_rank: {
+        than: 1.75,
+        rong: 1.85,
+        thuongnhan: 2.00,
+      },
+      attack_multiplier_by_rank: {
+        than: 1.60,
+        rong: 1.60,
+        thuongnhan: 1.50,
+      },
+      defense_multiplier: 1.30,
+      event_hp_multiplier: 1.50,
+      event_attack_multiplier: 1.35,
+      event_defense_multiplier: 1.15,
+      min_attack_power_by_rank: {
+        than: 350,
+        rong: 1200,
+        thuongnhan: 2500,
+      },
+      shieldhex_absorb_pct: 0.15,
+      shieldhex_reflect_pct: 0.75,
+    },
+  },
   ui: {
     colors: {
       brand: "#5865F2",

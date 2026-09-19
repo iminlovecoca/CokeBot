@@ -41,6 +41,11 @@ const {
 } = require("../../../utils/rpgUtil");
 const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
 const { addPetXp, getBossXp } = require("../../../utils/petXpUtil");
+const {
+  applyWorldBossDamageLimit,
+  getWorldBossCombatProfile,
+  getWorldBossShieldhexConfig,
+} = require("../../../utils/worldBossBalanceUtil");
 const { getRpgColor, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
   warrior: "physical",
@@ -952,7 +957,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       passiveTriggers.push(`⚔️ **[Spearhex]** Đòn đánh xuyên qua phòng ngự, bỏ qua 10% giáp vật lý của boss.`);
     } else if (cleanSubType === "shieldhex") {
       shieldhexTriggered = true;
-      passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ và phản lại 90% sát thương từ đòn đánh của boss.`);
+      const { absorbPct, reflectPct } = getWorldBossShieldhexConfig();
+      passiveTriggers.push(`⚔️ **[Shieldhex]** Khiên Hex sẵn sàng hấp thụ ${(absorbPct * 100).toFixed(0)}% và phản lại ${(reflectPct * 100).toFixed(0)}% sát thương từ đòn đánh của boss.`);
     } else {
       const res = triggerWorldBossPassive(cleanSubType, {
         ...participant,
@@ -1051,8 +1057,15 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   if (user.rpg?.isGodMode) {
     damage = activeBoss.hp;
   }
+  const worldBossMaxHp = activeBoss.maxHp || activeBoss.boss.hp || activeBoss.hp;
+  const directDamageResult = applyWorldBossDamageLimit(
+    damage,
+    worldBossMaxHp,
+    { ignoreLimit: !!user.rpg?.isGodMode },
+  );
+  const directDamage = directDamageResult.appliedDamage;
   if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
-    let poiseDmg = Math.max(6, Math.floor(damage * 0.00032));
+    let poiseDmg = Math.max(6, Math.floor(directDamage * 0.00032));
     if (cleanSubType === "greatsword") {
       poiseDmg = Math.max(12, Math.floor(poiseDmg * 1.5));
       passiveTriggers.push(`⚔️ **[Trọng Kiếm]** Đòn đánh nặng phá hủy thêm **${poiseDmg}** Poise của Plaxidusax!`);
@@ -1068,7 +1081,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   if ((hasTriggered && cleanSubType === "greenstaff") || riverofbloodTriggered) {
     let baseHeal = 0;
     if (riverofbloodTriggered) {
-      baseHeal = Math.max(1, Math.floor(damage * 0.02));
+      baseHeal = Math.max(1, Math.floor(directDamage * 0.02));
     } else {
       baseHeal = Math.floor((maxHp - participant.hp) * 0.10);
     }
@@ -1083,7 +1096,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   let bossDamage = 0;
   let bossMissed = false;
   let bossHealedAmount = 0;
-  if (activeBoss.hp - damage > 0) {
+  let shieldhexReflectDamage = 0;
+  if (activeBoss.hp - directDamage > 0) {
     if (bossControlTriggered) {
       bossMissed = true;
       passiveTriggers.push(`⏳ **${activeBoss.boss.name}** bị gián đoạn, bỏ qua đòn phản công kế tiếp.`);
@@ -1114,13 +1128,14 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         delete participant.bossDamageReduced;
       }
       if (shieldhexTriggered) {
-        bossDamage = Math.floor(bossDamage * 0.80);
+        const { absorbPct } = getWorldBossShieldhexConfig();
+        bossDamage = Math.floor(bossDamage * (1 - absorbPct));
       }
       participant.hp = Math.max(0, participant.hp - bossDamage);
       if (shieldhexTriggered && bossDamage > 0) {
-        const shieldhexReflect = Math.floor(bossDamage * 0.90);
-        activeBoss.hp = Math.max(0, activeBoss.hp - shieldhexReflect);
-        passiveTriggers.push(`🛡️ **[Shieldhex]** Phản lại **${shieldhexReflect.toLocaleString()}** sát thương (90% sát thương nhận vào) về phía Boss.`);
+        const { reflectPct } = getWorldBossShieldhexConfig();
+        shieldhexReflectDamage = Math.floor(bossDamage * reflectPct);
+        passiveTriggers.push(`🛡️ **[Shieldhex]** Phản lại **${shieldhexReflectDamage.toLocaleString()}** sát thương (${(reflectPct * 100).toFixed(0)}% sát thương nhận vào) về phía Boss.`);
       }
       if (participant.hp <= 0) {
         participant.koUntil = now + 30 * 1000;
@@ -1142,17 +1157,32 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       }
     }
   }
-  participant.damage += damage;
+  const remainingActionCap = Math.max(
+    0,
+    directDamageResult.actionHardCap - directDamage,
+  );
+  const cappedShieldhexReflect = Math.min(shieldhexReflectDamage, remainingActionCap);
+  const equippedPetBoss = getEquippedPet(user);
+  const petCanAttack = activeBoss.hp - directDamage - cappedShieldhexReflect > 0;
+  const petRawDamage = equippedPetBoss && petCanAttack && directDamageResult.actionHardCap > directDamage + cappedShieldhexReflect
+    ? petAttackDamage(equippedPetBoss, "boss")
+    : 0;
+  const petDamage = Math.min(
+    petRawDamage,
+    Math.max(0, remainingActionCap - cappedShieldhexReflect),
+  );
+  const appliedWorldBossDamage = directDamage + cappedShieldhexReflect + petDamage;
+  const wasWorldBossDamageCapped = directDamageResult.wasCapped ||
+    cappedShieldhexReflect < shieldhexReflectDamage ||
+    petDamage < petRawDamage;
+  if (wasWorldBossDamageCapped) {
+    passiveTriggers.push(`🛡️ **[World Boss]** Sát thương lượt này được giới hạn còn **${appliedWorldBossDamage.toLocaleString()}** để boss không bị hạ bởi một người trong một lượt.`);
+  }
+  participant.damage += appliedWorldBossDamage;
   participant.attacks += 1;
   participant.lastAttackAt = now;
   activeBoss.participants.set(userId, participant);
-  activeBoss.hp = Math.max(0, activeBoss.hp - damage);
-  const equippedPetBoss = getEquippedPet(user);
-  if (equippedPetBoss && activeBoss.hp > 0) {
-    const petDmg = petAttackDamage(equippedPetBoss, "boss");
-    activeBoss.hp = Math.max(0, activeBoss.hp - petDmg);
-    participant.damage += petDmg;
-  }
+  activeBoss.hp = Math.max(0, activeBoss.hp - appliedWorldBossDamage);
   activeBoss.participants.set(userId, participant);
   activeBoss.lastHitUserId = userId;
   let killedPhase1 = false;
@@ -1160,9 +1190,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     if (activeBoss.boss.key === "erdtree-avatar" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "boss_012");
       if (bossConfig) {
-        activeBoss.boss = bossConfig;
-        activeBoss.maxHp = bossConfig.hp;
-        activeBoss.hp = bossConfig.hp;
+        activeBoss.boss = getWorldBossCombatProfile(bossConfig);
+        activeBoss.maxHp = activeBoss.boss.hp;
+        activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
         killedPhase1 = true;
@@ -1172,9 +1202,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     } else if (activeBoss.boss.key === "boss_XII" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "boss_XIIa");
       if (bossConfig) {
-        activeBoss.boss = bossConfig;
-        activeBoss.maxHp = bossConfig.hp;
-        activeBoss.hp = bossConfig.hp;
+        activeBoss.boss = getWorldBossCombatProfile(bossConfig);
+        activeBoss.maxHp = activeBoss.boss.hp;
+        activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
         killedPhase1 = true;
@@ -1184,9 +1214,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     } else if (activeBoss.boss.key === "godzila" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "godzila_p2");
       if (bossConfig) {
-        activeBoss.boss = bossConfig;
-        activeBoss.maxHp = bossConfig.hp;
-        activeBoss.hp = bossConfig.hp;
+        activeBoss.boss = getWorldBossCombatProfile(bossConfig);
+        activeBoss.maxHp = activeBoss.boss.hp;
+        activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
         killedPhase1 = true;
@@ -1196,9 +1226,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     } else if (activeBoss.boss.key === "diablo" && activeBoss.phase !== 2) {
       const bossConfig = config.rpg.boss.tiers.find((t) => t.key === "diablo_p2");
       if (bossConfig) {
-        activeBoss.boss = bossConfig;
-        activeBoss.maxHp = bossConfig.hp;
-        activeBoss.hp = bossConfig.hp;
+        activeBoss.boss = getWorldBossCombatProfile(bossConfig);
+        activeBoss.maxHp = activeBoss.boss.hp;
+        activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
         killedPhase1 = true;
@@ -1238,7 +1268,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     }
   })();
   await Promise.all([
-    updateQuestProgress(user, "boss_damage", damage, channel),
+    updateQuestProgress(user, "boss_damage", appliedWorldBossDamage, channel),
     updateBossMessage(channel, activeBoss, false, interaction),
     bossPersistTask,
   ]);
@@ -1247,7 +1277,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     (await client.users.fetch(userId).catch(() => null));
   const embed = buildAttackResultEmbed({
     activeBoss,
-    damage,
+    damage: appliedWorldBossDamage,
     isCrit,
     bossDamage,
     bossMissed,

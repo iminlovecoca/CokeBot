@@ -125,10 +125,84 @@ const getDungeonBossScalers = (averageLevel, averagePower) => {
   const safeLevel = Math.max(1, Number(averageLevel) || 1);
   const safePower = Math.max(0, Number(averagePower) || 0);
   const powerRoot = Math.sqrt(safePower);
+  const pressureStart = Number(config.dungeon?.combat_balance?.overpower_pressure_start) || 24000;
+  const pressureRoot = Math.sqrt(Math.max(0, safePower - pressureStart));
+  const pressureDurability = Number(config.dungeon?.combat_balance?.overpower_durability_per_sqrt_power) || 0.002;
+  const pressureOffense = Number(config.dungeon?.combat_balance?.overpower_offense_per_sqrt_power) || 0.00075;
   return {
-    durability: 1 + safeLevel * 0.006 + powerRoot * 0.003,
-    offense: 1 + safeLevel * 0.004 + powerRoot * 0.0015,
+    durability: 1 + safeLevel * 0.006 + powerRoot * 0.003 + pressureRoot * pressureDurability,
+    offense: 1 + safeLevel * 0.004 + powerRoot * 0.0015 + pressureRoot * pressureOffense,
   };
+};
+
+const getDungeonBossDamage = (damage, bossMaxHp, isSkill = false, options = {}) => {
+  const safeDamage = Math.max(0, Math.floor(Number(damage) || 0));
+  const safeMaxHp = Math.max(1, Math.floor(Number(bossMaxHp) || 1));
+  if (options.ignoreLimit) return safeDamage;
+  const capConfig = config.dungeon?.combat_balance?.boss_damage_soft_cap || {};
+  const softPct = Number(isSkill ? capConfig.skill_pct : capConfig.basic_pct) || (isSkill ? 0.10 : 0.06);
+  const hardPct = Number(isSkill ? capConfig.skill_hard_cap_pct : capConfig.basic_hard_cap_pct) || (isSkill ? 0.20 : 0.12);
+  const overflowEfficiency = Math.max(0, Math.min(1, Number(capConfig.overflow_efficiency) || 0.22));
+  const softCap = Math.max(1, Math.floor(safeMaxHp * softPct));
+  const hardCap = Math.max(softCap, Math.floor(safeMaxHp * hardPct));
+  if (safeDamage <= softCap) return safeDamage;
+  return Math.min(hardCap, Math.floor(softCap + (safeDamage - softCap) * overflowEfficiency));
+};
+
+const getDungeonRewardFatigue = (dailyClearCount = 0) => {
+  const rewards = config.dungeon?.rewards || {};
+  const count = Math.max(0, Math.floor(Number(dailyClearCount) || 0));
+  const fullLimit = Math.max(0, Math.floor(Number(rewards.full_reward_clears_per_day) || 3));
+  const reducedLimit = Math.max(fullLimit, Math.floor(Number(rewards.reduced_reward_clears_per_day) || 6));
+  if (count < fullLimit) return { multiplier: 1, stoneDropRate: 1, tier: "full" };
+  if (count < reducedLimit) {
+    return {
+      multiplier: Number(rewards.reduced_reward_multiplier) || 0.5,
+      stoneDropRate: Number(rewards.reduced_stone_drop_rate) || 0.35,
+      tier: "reduced",
+    };
+  }
+  return {
+    multiplier: Number(rewards.exhausted_reward_multiplier) || 0.2,
+    stoneDropRate: Number(rewards.exhausted_stone_drop_rate) || 0.1,
+    tier: "exhausted",
+  };
+};
+
+const getDungeonRewardAmounts = ({
+  chapter = 1,
+  hasClearedBefore = false,
+  isDailyFirstClear = false,
+  dailyClearCount = 0,
+  isChallenge = false,
+  elitesKilled = 0,
+} = {}) => {
+  const rewards = config.dungeon?.rewards || {};
+  const safeChapter = Math.max(1, Math.floor(Number(chapter) || 1));
+  const challengeMultiplier = isChallenge ? (Number(rewards.challenge_multiplier) || 1.2) : 1;
+  const eliteMultiplier = 1 + 0.25 * Math.min(3, Math.max(0, Math.floor(Number(elitesKilled) || 0)));
+  const repeatMultiplier = hasClearedBefore ? (Number(rewards.repeat_clear_multiplier) || 0.25) : 1;
+  const dailyMultiplier = isDailyFirstClear ? (Number(rewards.daily_first_clear_multiplier) || 1.25) : 1;
+  const fatigue = getDungeonRewardFatigue(dailyClearCount);
+  const totalMultiplier = challengeMultiplier * eliteMultiplier * repeatMultiplier * dailyMultiplier * fatigue.multiplier;
+  return {
+    coke: Math.floor((Number(rewards.base_coke) || 60000) * safeChapter * totalMultiplier),
+    exp: Math.floor((Number(rewards.base_exp) || 18000) * safeChapter * totalMultiplier),
+    challengeMultiplier,
+    eliteMultiplier,
+    fatigue,
+  };
+};
+
+const getDungeonDateKey = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 };
 
 const getSlothShieldBreakProgress = ({ classKey, weaponSubType, isSkill, bossIsBurning }) => {
@@ -145,7 +219,11 @@ module.exports = {
   buildSimulatedDungeonPlayer,
   formatTimeLimit,
   getAssassinSkillBleedDamage,
+  getDungeonBossDamage,
   getDungeonBossScalers,
+  getDungeonDateKey,
+  getDungeonRewardAmounts,
+  getDungeonRewardFatigue,
   getDungeonTimeLimitMs,
   getSlothShieldBreakProgress,
 };

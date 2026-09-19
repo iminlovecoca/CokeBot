@@ -639,12 +639,19 @@ const getWeaponPower = (item, effectiveStats) => {
   
   const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
   const isDungeon = isDungeonWeapon(item);
-  const upgradeScale = isDungeon ? 0.60 : 0.10;
+  const balance = config.rpg?.balance || {};
+  const configuredUpgradeScale = isDungeon
+    ? Number(balance.special_weapon_upgrade_scale)
+    : Number(balance.normal_weapon_upgrade_scale);
+  const upgradeScale = Number.isFinite(configuredUpgradeScale)
+    ? Math.max(0, configuredUpgradeScale)
+    : (isDungeon ? 0.40 : 0.10);
   const upgradedBase = base * (1 + (item.upgradeLevel || 0) * upgradeScale);
   let finalPower = Math.floor(upgradedBase * (1 + bonusPercent));
   const subTypeClean = String(item.subType || "").toLowerCase().replace(/\s+/g, "");
   if (subTypeClean.includes("river")) {
-    finalPower = Math.floor(finalPower * 1.10);
+    const riverMultiplier = Number(balance.river_of_blood_power_multiplier);
+    finalPower = Math.floor(finalPower * (Number.isFinite(riverMultiplier) ? riverMultiplier : 1.05));
   }
   return finalPower;
 };
@@ -673,11 +680,11 @@ const getMagicalMitigation = (mr, level = 1) => {
 const WEAPON_SETS = {
   shadowdagger: { name: "Bóng Đêm", color: "#6b6b6b", bonus: { critRate: 0.03, evasion: 0.06 } },
   poisondagger: { name: "Chất Độc", color: "#3fae53", bonus: { critRate: 0.03, poison: 0.15 } },
-  firesword: { name: "Hỏa Ngục", color: "#d14b2b", bonus: { bossDamage: 0.05, burn: 0.15 } },
+  firesword: { name: "Hỏa Ngục", color: "#d14b2b", bonus: { bossDamage: 0.04, burn: 0.15 } },
   greenstaff: { name: "Sinh Khí", color: "#2fbf6f", bonus: { healBonus: 0.15, maxHp: 0.05 } },
   bluestaff: { name: "Băng Giá", color: "#3b82f6", bonus: { mrPierce: 0.10, freezeChance: 0.05 } },
   crimsondagger: { name: "Khát Máu", color: "#b91c1c", bonus: { critRate: 0.05, lifesteal: 0.03 } },
-  holysword: { name: "Thánh Quang", color: "#e3b341", bonus: { bossDamage: 0.08, healBonus: 0.10 } },
+  holysword: { name: "Thánh Quang", color: "#e3b341", bonus: { bossDamage: 0.06, healBonus: 0.10 } },
   darksword: { name: "Bóng Tối", color: "#374151", bonus: { pvpDamage: 0.05, critRate: 0.03 } },
   darkstaff: { name: "Hư Vô", color: "#4c1d95", bonus: { pvpDamage: 0.05, mrPierce: 0.10 } },
   gravitybow: { name: "Hấp Dẫn", color: "#7c3aed", bonus: { doubleHit: 0.05, critRate: 0.02 } },
@@ -689,15 +696,15 @@ const WEAPON_SETS = {
   spearhex: { name: "Quỷ Thương", color: "#0f766e", bonus: { pierceAll: 0.05, pvpDamage: 0.03 } },
   shieldhex: { name: "Quỷ Khiên", color: "#64748b", bonus: { maxHp: 0.08, reflection: 0.10 } },
   lunashard: { name: "Mảnh Trăng", color: "#93c5fd", bonus: { doubleHit: 0.06, critRate: 0.02 } },
-  eclipsesoul: { name: "Linh Hồn", color: "#8b5cf6", bonus: { mrPierce: 0.15, bossDamage: 0.04 } },
+  eclipsesoul: { name: "Linh Hồn", color: "#8b5cf6", bonus: { mrPierce: 0.15, bossDamage: 0.03 } },
   fallenangel: { name: "Sa Ngã", color: "#c0a050", bonus: { reflection: 0.15, critRate: 0.03 } },
   greeddagger: { name: "Tham Lam", color: "#22c55e", bonus: { lifesteal: 0.06, critRate: 0.03 } },
   asmodeus: { name: "Dục Vọng", color: "#e11d48", bonus: { critRate: 0.05, pvpDamage: 0.04 } },
-  soulreaper: { name: "Lưỡi Hái", color: "#581c87", bonus: { bossDamage: 0.06, mrPierce: 0.08 } },
+  soulreaper: { name: "Lưỡi Hái", color: "#581c87", bonus: { bossDamage: 0.05, mrPierce: 0.08 } },
   beelzebub: { name: "Phàm Ăn", color: "#65a30d", bonus: { maxHp: 0.06, healBonus: 0.10 } },
-  satan: { name: "Hỏa Ngục", color: "#dc2626", bonus: { bossDamage: 0.08, pvpDamage: 0.06 } },
-  bladesorrow: { name: "Bi Thương", color: "#a855f7", bonus: { critRate: 0.04, bossDamage: 0.05 } },
-  frostgauntlet: { name: "Băng Quyền", color: "#22d3ee", bonus: { critRate: 0.03, bossDamage: 0.04 } },
+  satan: { name: "Hỏa Ngục", color: "#dc2626", bonus: { bossDamage: 0.06, pvpDamage: 0.06 } },
+  bladesorrow: { name: "Bi Thương", color: "#a855f7", bonus: { critRate: 0.04, bossDamage: 0.04 } },
+  frostgauntlet: { name: "Băng Quyền", color: "#22d3ee", bonus: { critRate: 0.03, bossDamage: 0.03 } },
 };
 
 const getWeaponSetBonus = (user) => {
@@ -888,7 +895,7 @@ const addPetExp = (user, amount) => {
 };
 
 // --- Pet combat (pet tham chiến: gây sát thương độc lập theo level + tier) ---
-const PET_TIER_ATK_MULT = {
+const DEFAULT_PET_TIER_ATK_MULT = {
   Common: 1.0,
   Rare: 1.6,
   Epic: 2.5,
@@ -920,10 +927,14 @@ const getPetCombatStats = (pet) => {
 const petAttackDamage = (pet, mode = "dungeon") => {
   const cs = getPetCombatStats(pet);
   if (!cs) return 0;
-  const atkMult = PET_TIER_ATK_MULT[cs.tier] || PET_TIER_ATK_MULT.Common;
+  const configuredPetMultipliers = config.rpg?.balance?.pet_tier_attack_multiplier || {};
+  const atkMult = Number(configuredPetMultipliers[cs.tier]);
+  const safeAtkMult = Number.isFinite(atkMult)
+    ? Math.max(0, atkMult)
+    : (DEFAULT_PET_TIER_ATK_MULT[cs.tier] || DEFAULT_PET_TIER_ATK_MULT.Common);
   const modeScale = PET_MODE_SCALE[mode] ?? 1.0;
   // (baseAtk + level*2) * tierMult * modeScale
-  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2) * atkMult * modeScale));
+  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2) * safeAtkMult * modeScale));
 };
 
 const getPetAttackLog = (pet, mode = "dungeon", damage) => {
@@ -990,7 +1001,16 @@ const calculateRpgPower = (user) => {
   if (equippedPet) {
     const tierMulti = { Common: 100, Rare: 250, Epic: 500, Legendary: 1000, Mythic: 2000, Ancient: 3500, Divine: 5000 };
     const petB = getEquippedPetBonuses(user);
-    petPower = (tierMulti[equippedPet.tier] || 100) + petB.baseHp * 2 + petB.baseAtk * 5 + petB.baseDef * 4 + (equippedPet.level || 1) * 35;
+    const rawPetPower = (tierMulti[equippedPet.tier] || 100)
+      + petB.baseHp * 2
+      + petB.baseAtk * 5
+      + petB.baseDef * 4
+      + (equippedPet.level || 1) * 35;
+    const configuredPetContribution = Number(config.rpg?.balance?.pet_power_contribution);
+    const petContribution = Number.isFinite(configuredPetContribution)
+      ? Math.max(0, configuredPetContribution)
+      : 0.80;
+    petPower = Math.floor(rawPetPower * petContribution);
   }
 
   return gearPower + petPower;

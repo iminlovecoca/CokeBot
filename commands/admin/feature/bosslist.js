@@ -2,6 +2,7 @@ const { UserFriendlyError } = require("../../../utils/errors");
 const { isDev, isAdmin } = require("../../../utils/userUtil");
 const config = require("../../../data/config");
 const { EmbedBuilder } = require("discord.js");
+const { getWorldBossCombatProfile } = require("../../../utils/worldBossBalanceUtil");
 const BaseCommand = require("../../../core/BaseCommand");
 class BosslistCommand extends BaseCommand {
   constructor() {
@@ -23,7 +24,8 @@ class BosslistCommand extends BaseCommand {
     if (!bossTiers.length) {
       return message.reply("Không tìm thấy cấu hình boss nào trong file config.");
     }
-    const listLines = bossTiers.map((boss) => {
+    const listLines = bossTiers.map((baseBoss) => {
+      const boss = getWorldBossCombatProfile(baseBoss);
       const bossRank = config.rpg.boss?.bossRankRewards?.[boss.rank]?.label || "Thường";
       return `• **${boss.name}**\n  - Key: \`${boss.key}\`\n  - Rank: **${bossRank}**\n  - HP: **${boss.hp.toLocaleString()}** | Lực chiến gợi ý: **${boss.recommended_power.toLocaleString()}**`;
     });

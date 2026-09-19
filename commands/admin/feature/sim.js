@@ -5,6 +5,11 @@ const { UserFriendlyError } = require("../../../utils/errors");
 const config = require("../../../data/config");
 const { buildSimulatedDungeonPlayer, getDungeonTimeLimitMs } = require("../../../utils/dungeonBalanceUtil");
 const {
+  applyWorldBossDamageLimit,
+  getWorldBossCombatProfile,
+  getWorldBossShieldhexConfig,
+} = require("../../../utils/worldBossBalanceUtil");
+const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -16,6 +21,14 @@ const {
 } = require('discord.js');
 const dungeonCmd = require("../../rpg/hunt/dungeon");
 const BaseCommand = require("../../../core/BaseCommand");
+const CLASS_ATTACK_TYPES = {
+  warrior: "physical",
+  archer: "physical",
+  mage: "magical",
+  assassin: "physical",
+  paladin: "physical",
+  wretch: "physical",
+};
 class SimCommand extends BaseCommand {
   constructor() {
     super({
@@ -45,13 +58,14 @@ class SimCommand extends BaseCommand {
         );
       }
       const bossTiers = config.rpg.boss?.tiers || [];
-      const boss = bossTiers.find(t => t.key.toLowerCase() === bossKey.toLowerCase());
-      if (!boss) {
+      const baseBoss = bossTiers.find(t => t.key.toLowerCase() === bossKey.toLowerCase());
+      if (!baseBoss) {
         const availableKeys = bossTiers.map(t => `\`${t.key}\``).join(", ");
         throw new UserFriendlyError(
           `${config.emoji.no} Boss \`${bossKey}\` không tồn tại! Các boss khả dụng: ${availableKeys}`
         );
       }
+      const boss = getWorldBossCombatProfile(baseBoss);
       const realUsers = await User.find({ "rpg.level": { $gte: 1 } }).limit(playerCount).lean();
       const classes = ["warrior", "assassin", "mage", "archer", "paladin"];
       const mockPlayers = [];
@@ -219,7 +233,9 @@ class SimCommand extends BaseCommand {
             mrOrArmor *= 0.90;
           }
           const mitigation = mrOrArmor / (mrOrArmor + 1000);
-          let damage = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+          const rawDamageAfterMitigation = Math.max(10, Math.floor(rawDamage * (1 - mitigation)));
+          const damageResult = applyWorldBossDamageLimit(rawDamageAfterMitigation, bossMaxHp);
+          const damage = damageResult.appliedDamage;
           bossHp = Math.max(0, bossHp - damage);
           p.damageDealt += damage;
           if (subType === "riverofblood" && hasWeaponTriggered) {
@@ -235,10 +251,14 @@ class SimCommand extends BaseCommand {
           const playerMitigation = (playerRes * 12.0 + p.power * 0.10) / (playerRes * 12.0 + p.power * 0.10 + 1000);
           let counterDmg = Math.max(10, Math.floor(bossDmg * (1 - playerMitigation)));
           if (subType.includes("shieldhex")) {
-            counterDmg = Math.floor(counterDmg * 0.80);
+            const { absorbPct, reflectPct } = getWorldBossShieldhexConfig();
+            counterDmg = Math.floor(counterDmg * (1 - absorbPct));
             p.shieldhexAbsorbed = (p.shieldhexAbsorbed || 0) + counterDmg;
             p.shieldhexRounds = (p.shieldhexRounds || 0) + 1;
-            const reflectDmg = Math.floor(counterDmg * 0.90);
+            const reflectDmg = Math.min(
+              Math.floor(counterDmg * reflectPct),
+              Math.max(0, damageResult.actionHardCap - damage),
+            );
             bossHp = Math.max(0, bossHp - reflectDmg);
             p.damageDealt += reflectDmg;
             p.shieldhexAbsorbed = 0;

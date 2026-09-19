@@ -471,7 +471,25 @@ module.exports = {
       damage_multiplier: 1.05,
       max_hp_multiplier: 1.05,
       crit_rate_bonus: 0.01,
-      normal_weapon_damage_multiplier: 1.20,
+      normal_weapon_damage_multiplier: 1.10,
+    },
+    combat_balance: {
+      // Boss damage is compressed above these percentages so upgraded weapons
+      // remain valuable without allowing a single stacked hit to skip mechanics.
+      boss_damage_soft_cap: {
+        basic_pct: 0.060,
+        skill_pct: 0.100,
+        overflow_efficiency: 0.22,
+        basic_hard_cap_pct: 0.120,
+        skill_hard_cap_pct: 0.200,
+      },
+      poise_damage_cap: 24,
+      // Only the over-geared band receives this extra pressure. On-curve
+      // teams keep the light player buff, while bug-inflated power cannot
+      // outgrow boss durability indefinitely.
+      overpower_pressure_start: 100000,
+      overpower_durability_per_sqrt_power: 0.002,
+      overpower_offense_per_sqrt_power: 0.00075,
     },
     potion_heal_pct: 0.35,
     normal_monster: {
@@ -489,8 +507,17 @@ module.exports = {
     boss_phase2_aoe_interval: 2,
     boss_phase2_single_target_damage_multiplier: 0.55,
     rewards: {
-      base_coke: 80000,
-      base_exp: 24000,
+      base_coke: 60000,
+      base_exp: 18000,
+      repeat_clear_multiplier: 0.25,
+      daily_first_clear_multiplier: 1.25,
+      challenge_multiplier: 1.20,
+      full_reward_clears_per_day: 3,
+      reduced_reward_clears_per_day: 6,
+      reduced_reward_multiplier: 0.50,
+      exhausted_reward_multiplier: 0.20,
+      reduced_stone_drop_rate: 0.35,
+      exhausted_stone_drop_rate: 0.10,
     },
     default_boss: {
       key: "tf",

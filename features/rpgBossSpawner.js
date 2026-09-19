@@ -17,6 +17,10 @@ const {
 const { DateTime } = require("luxon");
 const config = require("../data/config");
 const { getRpgColor, getRpgColorNumber, formatRpgBar, formatRpgFooter, formatRpgTitle } = require("../utils/rpgUi");
+const {
+  getWorldBossBalanceVersion,
+  getWorldBossCombatProfile,
+} = require("../utils/worldBossBalanceUtil");
 
 const healthBar = (hp, maxHp) => {
   return formatRpgBar(hp, maxHp, 10);
@@ -457,6 +461,8 @@ const spawnRandomBoss = async (client, options = {}) => {
           : pick(bossTiers.filter((t) => t.key !== "boss_012" && t.key !== "boss_XIIa" && !t.key.endsWith("_p2") && t.key !== "hexia" && t.key !== "godhexa"));
     }
 
+    boss = getWorldBossCombatProfile(boss);
+
     
     let triggerEventBoss = null;
     if (boss.key !== "hexia" && boss.key !== "godhexa") {
@@ -635,13 +641,23 @@ const initialize = async (client) => {
     console.log(`[RPG_BOSS] Reloading ${activeDbBosses.length} active bosses from DB...`);
     for (const dbBoss of activeDbBosses) {
       if (dbBoss.expiresAt > Date.now()) {
+        const currentBalanceVersion = getWorldBossBalanceVersion();
+        const needsRebalance = dbBoss.boss?.worldBossBalanceVersion !== currentBalanceVersion;
+        const storedBoss = needsRebalance
+          ? getWorldBossCombatProfile(
+            bossTiers.find((tier) => tier.key === dbBoss.boss?.key) || dbBoss.boss,
+          )
+          : dbBoss.boss;
+        const storedMaxHp = Number(dbBoss.maxHp) || Number(dbBoss.boss?.hp) || 1;
+        const storedHp = Math.max(0, Number(dbBoss.hp) || 0);
+        const rebalanceRatio = Math.max(0, Math.min(1, storedHp / storedMaxHp));
         const activeBoss = {
           dbId: dbBoss._id,
           id: dbBoss.bossId,
           channelId: dbBoss.channelId,
-          boss: dbBoss.boss,
-          hp: dbBoss.hp,
-          maxHp: dbBoss.maxHp,
+          boss: storedBoss,
+          hp: needsRebalance ? Math.floor(storedBoss.hp * rebalanceRatio) : dbBoss.hp,
+          maxHp: needsRebalance ? storedBoss.hp : dbBoss.maxHp,
           participants: new Map(Object.entries(dbBoss.participants || {})),
           lastHitUserId: dbBoss.lastHitUserId,
           defeated: dbBoss.defeated,

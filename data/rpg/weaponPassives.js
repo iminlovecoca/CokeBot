@@ -37,13 +37,13 @@ const WEAPON_PASSIVES = {
   shadowdagger: {
     name: "Ảnh Hồn Đoản Đao",
     type: PASSIVE_TYPES.NONE,
-    description: "Phá giáp 25% vĩnh viễn lên mục tiêu bị tấn công.",
+    description: "Dungeon phá 22% giáp mỗi lần kích hoạt (tối đa 40%); PvP 25%; World Boss 30%.",
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.ARMOR_SHRED,
-        amount: 0.25,
+        amount: 0.22,
         cap: 0.40,
-        log: (name) => `⚔️ **[Shadow Dagger]** Phá hủy 25% giáp vật lý của **${name}**!`,
+        log: (name) => `⚔️ **[Shadow Dagger]** Phá hủy 22% giáp vật lý của **${name}**!`,
       },
       pvp: {
         type: PASSIVE_TYPES.ARMOR_SHRED,
@@ -160,18 +160,18 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.ARMOR_PIERCE,
-        amount: 0.50,
-        log: () => `🩸 **[Crimson Dagger]** Xuyên 50% phòng ngự vật lý!`,
+        amount: 0.40,
+        log: () => `🩸 **[Crimson Dagger]** Xuyên 40% phòng ngự vật lý!`,
       },
       pvp: {
         type: PASSIVE_TYPES.ARMOR_PIERCE,
-        amount: 0.50,
-        log: () => `🩸 **[Crimson Dagger]** Xuyên 50% phòng ngự vật lý!`,
+        amount: 0.45,
+        log: () => `🩸 **[Crimson Dagger]** Xuyên 45% phòng ngự vật lý!`,
       },
       boss: {
         type: PASSIVE_TYPES.ARMOR_PIERCE,
-        amount: 0.50,
-        log: () => `⚔️ **[Crimson Dagger]** Đòn đánh xuyên 50% phòng ngự vật lý của boss.`,
+        amount: 0.45,
+        log: () => `⚔️ **[Crimson Dagger]** Đòn đánh xuyên 45% phòng ngự vật lý của boss.`,
       },
     },
   },
@@ -204,21 +204,21 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.8,
+        mult: 1.65,
         hitCount: 3,
-        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`,
+        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây 1.65x sát thương.`,
       },
       pvp: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.8,
+        mult: 1.65,
         hitCount: 3,
-        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`,
+        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây 1.65x sát thương.`,
       },
       boss: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 2.0,
+        mult: 1.80,
         hitCount: 3,
-        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây gấp đôi sát thương.`,
+        log: () => `⚔️ **[Holy Sword]** Đòn đánh thứ 3 được ban phước! Gây 1.80x sát thương.`,
       },
     },
   },
@@ -228,12 +228,16 @@ const WEAPON_PASSIVES = {
     type: PASSIVE_TYPES.NONE,
     mode: {
       dungeon: {
-        type: PASSIVE_TYPES.NONE,
-        log: () => `⚔️ **[Dark Sword]** Vũ khí chưa mở khóa nội tại trong phó bản.`,
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.20,
+        hitCount: 4,
+        log: () => `🌑 **[Dark Sword]** Bóng tối tích tụ! Đòn đánh thứ 4 gây 1.20x sát thương.`,
       },
       pvp: {
-        type: PASSIVE_TYPES.NONE,
-        log: () => `⚔️ **[Dark Sword]** Vũ khí chưa mở khóa nội tại trong PvP.`,
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        mult: 1.20,
+        hitCount: 4,
+        log: () => `🌑 **[Dark Sword]** Bóng tối tích tụ! Đòn đánh thứ 4 gây 1.20x sát thương.`,
       },
       boss: {
         type: PASSIVE_TYPES.NONE,
@@ -283,17 +287,17 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.DOUBLE_HIT,
-        chance: 0.30,
+        chance: 0.28,
         log: () => `🌅 **[Dusk and Dawn]** Sức mạnh bình minh và hoàng hôn cộng hưởng! Đòn tấn công liên kích!`,
       },
       pvp: {
         type: PASSIVE_TYPES.DOUBLE_HIT,
-        chance: 0.30,
+        chance: 0.28,
         log: () => `🌅 **[Dusk and Dawn]** Liên kích!`,
       },
       boss: {
         type: PASSIVE_TYPES.DOUBLE_HIT,
-        chance: 0.30,
+        chance: 0.28,
         log: () => `🌅 **[Dusk and Dawn]** Liên kích!`,
       },
     },
@@ -431,24 +435,24 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.REFLECT,
-        absorbPct: 0.20,
-        reflectPct: 0.90,
+        absorbPct: 0.15,
+        reflectPct: 0.75,
         threshold: 3,
-        log: () => `🛡️ **[Shieldhex]** Hấp thụ 20% sát thương!`,
+        log: () => `🛡️ **[Shieldhex]** Hấp thụ 15% sát thương!`,
       },
       pvp: {
         type: PASSIVE_TYPES.REFLECT,
-        absorbPct: 0.20,
+        absorbPct: 0.15,
         reflectPct: 0.75,
         threshold: 3,
-        log: () => `🛡️ **[Shieldhex]** Hấp thụ 20% sát thương!`,
+        log: () => `🛡️ **[Shieldhex]** Hấp thụ 15% sát thương!`,
       },
       boss: {
         type: PASSIVE_TYPES.REFLECT,
-        absorbPct: 0.20,
-        reflectPct: 0.90,
+        absorbPct: 0.15,
+        reflectPct: 0.75,
         threshold: 3,
-        log: () => `⚔️ **[Shieldhex]** Khiên Hex hấp thụ 20% sát thương.`,
+        log: () => `⚔️ **[Shieldhex]** Khiên Hex hấp thụ 15% sát thương.`,
       },
     },
   },
@@ -571,21 +575,21 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.6,
+        mult: 1.50,
         hitCount: 3,
-        log: (name) => `👁️ **[Asmodeus]** Con mắt dục vọng lóe sáng! Đòn thứ 3 gây **${(1.6 * 100).toFixed(0)}%** sát thương.`,
+        log: () => `👁️ **[Asmodeus]** Con mắt dục vọng lóe sáng! Đòn thứ 3 gây 1.50x sát thương.`,
       },
       pvp: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.6,
+        mult: 1.50,
         hitCount: 3,
-        log: (name) => `👁️ **[Asmodeus]** Đòn thứ 3 sát thương tăng **${(1.6 * 100).toFixed(0)}%**!`,
+        log: () => `👁️ **[Asmodeus]** Đòn thứ 3 gây 1.50x sát thương.`,
       },
       boss: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.8,
+        mult: 1.70,
         hitCount: 3,
-        log: () => `👁️ **[Asmodeus]** Đòn thứ 3 gây gấp đôi sát thương lên boss!`,
+        log: () => `👁️ **[Asmodeus]** Đòn thứ 3 gây 1.70x sát thương lên boss.`,
       },
     },
   },
@@ -792,21 +796,21 @@ const WEAPON_PASSIVES = {
     mode: {
       dungeon: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.70,
+        mult: 1.60,
         hitCount: 3,
-        log: () => `🦉 **[Búa Toàn Tri Odin]** Runes tiên tri mở lối! Đòn đánh thứ 3 gây 1.7x sát thương.`,
+        log: () => `🦉 **[Búa Toàn Tri Odin]** Runes tiên tri mở lối! Đòn đánh thứ 3 gây 1.60x sát thương.`,
       },
       pvp: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.60,
+        mult: 1.55,
         hitCount: 3,
         log: () => `🦉 **[Búa Toàn Tri Odin]** Đòn đánh thứ 3 xuyên qua điểm yếu đã được tiên tri!`,
       },
       boss: {
         type: PASSIVE_TYPES.DAMAGE_MULT,
-        mult: 1.80,
+        mult: 1.70,
         hitCount: 3,
-        log: () => `🦉 **[Búa Toàn Tri Odin]** Odin đã nhìn thấy điểm yếu! Đòn thứ 3 gây 1.8x sát thương lên boss.`,
+        log: () => `🦉 **[Búa Toàn Tri Odin]** Odin đã nhìn thấy điểm yếu! Đòn thứ 3 gây 1.70x sát thương lên boss.`,
       },
     },
   },
