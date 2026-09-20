@@ -6,7 +6,9 @@ const {
   getWeaponSetBonus,
   petAttackDamage,
   getPetAttackLog,
+  calculateRpgPower,
 } = require("../../utils/rpgUtil");
+const config = require("../../data/config");
 const {
   resolveWeaponPassive,
   resolveShieldhexDefense,
@@ -159,6 +161,62 @@ class BattleEngine {
 
     const logs = [];
     const history = [];
+
+    // Bot PvP catch-up: battle bots scale toward the challenger's power so
+    // endgame players always meet a worthy opponent. Snapshot-only — the
+    // database document is never modified here.
+    const isBotUser = (user) => Boolean(user?.isBattleBot || user?.userId?.startsWith?.("bot_pvp_"));
+    const applyBotCatchup = (botC, playerC, botUser, playerUser) => {
+      const cfg = config.rpg?.balance?.pvp_bot_catchup || {};
+      if (cfg.enabled === false) return;
+      let botPower = 0;
+      let playerPower = 0;
+      try {
+        botPower = Math.max(0, Math.floor(Number(calculateRpgPower(botUser)) || 0));
+        playerPower = Math.max(0, Math.floor(Number(calculateRpgPower(playerUser)) || 0));
+      } catch {
+        return;
+      }
+      if (playerPower <= 0 || botPower >= playerPower) return;
+      const ratioMin = Number(cfg.target_ratio_min) || 0.90;
+      const ratioMax = Math.max(ratioMin, Number(cfg.target_ratio_max) || 1.05);
+      const maxCatchup = Math.max(1, Number(cfg.max_catchup) || 3.0);
+      const target = playerPower * (ratioMin + Math.random() * (ratioMax - ratioMin));
+      const factor = Math.min(maxCatchup, Math.max(1, target / Math.max(1, botPower)));
+      if (factor <= 1) return;
+      const scaledStats = {};
+      for (const [key, value] of Object.entries(botC.effectiveStats || {})) {
+        scaledStats[key] = typeof value === "number"
+          ? Math.min(999, Math.max(1, Math.floor(value * factor)))
+          : value;
+      }
+      botC.effectiveStats = scaledStats;
+      botC.gearPower = Math.floor((botC.gearPower || 0) * factor);
+      botC.defensePower = Math.floor((botC.defensePower || 0) * factor);
+      const BOT_CATCHUP_HP_MULT = {
+        paladin: 1.45, warrior: 1.20, archer: 1.00,
+        assassin: 0.95, mage: 0.90, wretch: 1.05,
+      };
+      const classHpMult = BOT_CATCHUP_HP_MULT[botC.classKey] || 1.0;
+      const baseHp = 1200
+        + (scaledStats.vigor || 10) * 45
+        + (botC.level || 1) * 35
+        + (botC.defensePower || 0) * 2;
+      let maxHp = Math.floor(baseHp * classHpMult);
+      if (botC.setBonus?.bonus?.maxHp) {
+        maxHp += Math.floor(baseHp * botC.setBonus.bonus.maxHp);
+      }
+      if (botC.pet) {
+        maxHp += Math.floor(baseHp * ((botC.pet.level || 1) * 0.005));
+      }
+      botC.maxHp = Math.floor(maxHp);
+      botC.hp = Math.floor(maxHp);
+      logs.push(`🤖 **${botC.name}** cảm nhận sức mạnh của **${playerC.name}** và bộc phát toàn lực! (x${factor.toFixed(2)})`);
+    };
+    const p1IsBot = isBotUser(user1);
+    const p2IsBot = isBotUser(user2);
+    if (p1IsBot && !p2IsBot) applyBotCatchup(p1, p2, user1, user2);
+    else if (p2IsBot && !p1IsBot) applyBotCatchup(p2, p1, user2, user1);
 
     const snapshotEffects = (combatant) => {
       const effects = { ...combatant.effects };

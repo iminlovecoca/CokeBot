@@ -902,7 +902,17 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const isEventBoss = activeBoss.boss.key === "hexia" || activeBoss.boss.key === "godhexa";
   const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
   const hasGodset = !!user.rpg?.godsetBackup;
-  const paidAttackCost = hasGodset ? 0 : (isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000));
+  const basePaidAttackCost = isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000);
+  // Giá lượt mua tăng dần theo số lượt đã mua để một người không thể solo
+  // boss bằng ví dày — càng đánh nhiều, mỗi lượt tiếp theo càng đắt.
+  const paidAttackGrowth = Math.max(
+    1,
+    Number(config.rpg?.balance?.world_boss?.paid_attack_cost_growth) || 1.35,
+  );
+  const paidAttacksUsed = Math.max(0, participant.attacks - freeAttacks);
+  const paidAttackCost = hasGodset
+    ? 0
+    : Math.floor(basePaidAttackCost * Math.pow(paidAttackGrowth, paidAttacksUsed));
   const isPaidAttack = participant.attacks >= freeAttacks && !hasGodset;
   if (isPaidAttack && user.coke < paidAttackCost) {
     return {

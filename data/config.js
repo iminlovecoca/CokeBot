@@ -488,8 +488,8 @@ module.exports = {
       // teams keep the light player buff, while bug-inflated power cannot
       // outgrow boss durability indefinitely.
       overpower_pressure_start: 100000,
-      overpower_durability_per_sqrt_power: 0.002,
-      overpower_offense_per_sqrt_power: 0.00075,
+      overpower_durability_per_sqrt_power: 0.0028,
+      overpower_offense_per_sqrt_power: 0.001,
     },
     potion_heal_pct: 0.35,
     normal_monster: {
@@ -760,9 +760,9 @@ module.exports = {
           image_phase1: "Chapter2/lucifer.png",
           stats: {
             phase1: {
-              base_hp: 650000,
-              base_atk: 180,
-              base_defense: 180,
+              base_hp: 975000,
+              base_atk: 235,
+              base_defense: 225,
             }
           },
           passive: {
@@ -778,7 +778,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "fallenangel",
-            emoji: "👼",
+            emoji: "<:Fallenangel:1523380721098559630>",
             name: "Thiên Sứ Sa Ngã",
             rarity: "Ancient",
             image_path: "Weapon/fallenangel.png",
@@ -792,9 +792,9 @@ module.exports = {
           image_phase1: "Chapter2/mammon.png",
           stats: {
             phase1: {
-              base_hp: 700000,
-              base_atk: 210,
-              base_defense: 190,
+              base_hp: 1050000,
+              base_atk: 275,
+              base_defense: 240,
             }
           },
           passive: {
@@ -810,7 +810,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "greeddagger",
-            emoji: "🔱",
+            emoji: "<:Greeddagger:1523380718510543150>",
             name: "Đoản Đao Tham Lam",
             rarity: "Ancient",
             image_path: "Weapon/greeddagger.png",
@@ -824,9 +824,9 @@ module.exports = {
           image_phase1: "Chapter2/asmodeus.png",
           stats: {
             phase1: {
-              base_hp: 950000,
-              base_atk: 275,
-              base_defense: 235,
+              base_hp: 1425000,
+              base_atk: 360,
+              base_defense: 295,
             }
           },
           passive: {
@@ -842,7 +842,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "asmodeus",
-            emoji: "👁️",
+            emoji: "<:Asmodeus:1523380716027645962>",
             name: "Trường Kiếm Dục Vọng",
             rarity: "Ancient",
             image_path: "Weapon/asmodeus.png",
@@ -856,9 +856,9 @@ module.exports = {
           image_phase1: "Chapter2/leviathan.png",
           stats: {
             phase1: {
-              base_hp: 700000,
-              base_atk: 195,
-              base_defense: 205,
+              base_hp: 1050000,
+              base_atk: 255,
+              base_defense: 255,
             }
           },
           passive: {
@@ -874,7 +874,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "soulreaper",
-            emoji: "⛓️",
+            emoji: "<:Soulreaper:1523374310608207882>",
             name: "Lưỡi Hái Linh Hồn",
             rarity: "Ancient",
             image_path: "Weapon/Soulreaper.png",
@@ -888,9 +888,9 @@ module.exports = {
           image_phase1: "Chapter2/beelzebub.png",
           stats: {
             phase1: {
-              base_hp: 500000,
-              base_atk: 135,
-              base_defense: 170,
+              base_hp: 750000,
+              base_atk: 175,
+              base_defense: 215,
             }
           },
           passive: {
@@ -906,7 +906,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "beelzebub",
-            emoji: "💀",
+            emoji: "<:Beelzebub:1523380713032913006>",
             name: "Xúc Tu Ruồi Hoại Tử",
             rarity: "Ancient",
             image_path: "Weapon/beelzebub.png",
@@ -920,9 +920,9 @@ module.exports = {
           image_phase1: "Chapter2/satan.png",
           stats: {
             phase1: {
-              base_hp: 800000,
-              base_atk: 220,
-              base_defense: 225,
+              base_hp: 1200000,
+              base_atk: 285,
+              base_defense: 280,
             }
           },
           passive: {
@@ -938,7 +938,7 @@ module.exports = {
           },
           first_clear_reward: {
             claim_key: "satan",
-            emoji: "⚔️",
+            emoji: "<:Satan:1523380709476274176>",
             name: "Ma Kiếm Hỏa Ngục",
             rarity: "Ancient",
             image_path: "Weapon/satan.png",
@@ -952,9 +952,9 @@ module.exports = {
           image_phase1: "Chapter2/belphegor.png",
           stats: {
             phase1: {
-              base_hp: 850000,
-              base_atk: 235,
-              base_defense: 240,
+              base_hp: 1275000,
+              base_atk: 305,
+              base_defense: 300,
             }
           },
           passive: {
@@ -984,9 +984,9 @@ module.exports = {
           image_phase1: "Chapter2/Pandemonium/Base.png",
           stats: {
             phase1: {
-              base_hp: 850000,
-              base_atk: 220,
-              base_defense: 235,
+              base_hp: 1300000,
+              base_atk: 290,
+              base_defense: 295,
             }
           },
           passive: {

@@ -176,12 +176,12 @@ const dungeonWeapons = [
   { name: "Shieldhex", key: "shieldhex", emoji: "<:Shieldhex:1518746348973850818>" },
   { name: "Lunashard", key: "lunashard", emoji: "<:Lunashard:1523374307986772088>" },
   { name: "Eclipsesoul", key: "eclipsesoul", emoji: "<:Eclipsesoul:1523374305256280065>" },
-  { name: "Fallenangel", key: "fallenangel", emoji: "👼" },
-  { name: "Greeddagger", key: "greeddagger", emoji: "🔱" },
-  { name: "Asmodeus", key: "asmodeus", emoji: "👁️" },
-  { name: "Soulreaper", key: "soulreaper", emoji: "⛓️" },
-  { name: "Beelzebub", key: "beelzebub", emoji: "💀" },
-  { name: "Satan", key: "satan", emoji: "⚔️" },
+  { name: "Fallenangel", key: "fallenangel", emoji: "<:Fallenangel:1523380721098559630>" },
+  { name: "Greeddagger", key: "greeddagger", emoji: "<:Greeddagger:1523380718510543150>" },
+  { name: "Asmodeus", key: "asmodeus", emoji: "<:Asmodeus:1523380716027645962>" },
+  { name: "Soulreaper", key: "soulreaper", emoji: "<:Soulreaper:1523374310608207882>" },
+  { name: "Beelzebub", key: "beelzebub", emoji: "<:Beelzebub:1523380713032913006>" },
+  { name: "Satan", key: "satan", emoji: "<:Satan:1523380709476274176>" },
   { name: "Bladesorrow", key: "bladesorrow", emoji: "<:Bladesorrow:1523374302685298848>" },
   { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
   { name: "Quỷ Thư", key: "demonbook", emoji: "📖" },
@@ -192,6 +192,22 @@ const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
 const NORMAL_WEAPONS = ["longsword", "dagger", "staff", "warhammer"];
 const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet", "demonbook", "thorshammer", "odinhammer"];
+
+// Vũ khí top-tier (boss chương cuối + event/dungeon mạnh): tăng trưởng theo
+// cấp cường hóa thấp hơn vũ khí đặc biệt thường để giữ cân bằng endgame.
+const TOP_TIER_WEAPONS = [
+  "fallenangel", "greeddagger", "asmodeus", "soulreaper", "beelzebub", "satan",
+  "holysword", "darksword", "darkstaff",
+  "duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex",
+  "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet",
+  "demonbook", "thorshammer", "odinhammer",
+];
+
+const isTopTierWeapon = (subType) => {
+  if (!subType) return false;
+  const clean = String(subType).toLowerCase().replace(/\s+/g, "");
+  return TOP_TIER_WEAPONS.includes(clean);
+};
 
 const getWeaponCategory = (subType) => {
   if (!subType) return null;
@@ -640,15 +656,23 @@ const getWeaponPower = (item, effectiveStats) => {
   const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
   const isDungeon = isDungeonWeapon(item);
   const balance = config.rpg?.balance || {};
-  const configuredUpgradeScale = isDungeon
-    ? Number(balance.special_weapon_upgrade_scale)
-    : Number(balance.normal_weapon_upgrade_scale);
+  const subTypeClean = String(item.subType || item.subtype || "").toLowerCase().replace(/\s+/g, "");
+  let configuredUpgradeScale;
+  if (!isDungeon) {
+    configuredUpgradeScale = Number(balance.normal_weapon_upgrade_scale);
+  } else if (isTopTierWeapon(subTypeClean)) {
+    configuredUpgradeScale = Number(balance.top_weapon_upgrade_scale);
+    if (!Number.isFinite(configuredUpgradeScale)) {
+      configuredUpgradeScale = Number(balance.special_weapon_upgrade_scale);
+    }
+  } else {
+    configuredUpgradeScale = Number(balance.special_weapon_upgrade_scale);
+  }
   const upgradeScale = Number.isFinite(configuredUpgradeScale)
     ? Math.max(0, configuredUpgradeScale)
     : (isDungeon ? 0.40 : 0.10);
   const upgradedBase = base * (1 + (item.upgradeLevel || 0) * upgradeScale);
   let finalPower = Math.floor(upgradedBase * (1 + bonusPercent));
-  const subTypeClean = String(item.subType || "").toLowerCase().replace(/\s+/g, "");
   if (subTypeClean.includes("river")) {
     const riverMultiplier = Number(balance.river_of_blood_power_multiplier);
     finalPower = Math.floor(finalPower * (Number.isFinite(riverMultiplier) ? riverMultiplier : 1.05));
@@ -1766,6 +1790,7 @@ module.exports = {
   seedUpgradeStones,
   isDungeonWeapon,
   isDungeonWeaponHelper,
+  isTopTierWeapon,
   getDungeonWeaponKey,
   getCharacterAssetPath,
   subTypes,

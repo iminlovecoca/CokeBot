@@ -5,7 +5,10 @@ module.exports = {
   // changing the scaling grades or their multipliers in rpgUtil.js.
   balance: {
     normal_weapon_upgrade_scale: 0.10,
-    special_weapon_upgrade_scale: 0.55,
+    special_weapon_upgrade_scale: 0.45,
+    // Vũ khí top-tier (boss chương cuối + event mạnh): tăng trưởng theo
+    // cấp cường hóa thấp hơn để không vượt quá xa vũ khí thường.
+    top_weapon_upgrade_scale: 0.35,
     river_of_blood_power_multiplier: 1.05,
     pet_power_contribution: 0.80,
     pet_tier_attack_multiplier: {
@@ -25,33 +28,45 @@ module.exports = {
     },
     // World Boss uses a separate durability guardrail so high-end builds
     // remain rewarding without allowing a single action to erase the boss.
+    // Lượt mua bằng Coke vẫn giữ nguyên, nhưng giá tăng dần theo số lượt
+    // đã mua để một người không thể solo boss bằng ví dày.
     world_boss: {
-      combat_profile_version: 2,
-      damage_soft_cap_pct: 0.025,
-      damage_hard_cap_pct: 0.045,
-      action_hard_cap_pct: 0.055,
-      overflow_efficiency: 0.12,
+      combat_profile_version: 3,
+      damage_soft_cap_pct: 0.018,
+      damage_hard_cap_pct: 0.032,
+      action_hard_cap_pct: 0.040,
+      overflow_efficiency: 0.10,
+      paid_attack_cost_growth: 1.35,
       hp_multiplier_by_rank: {
-        than: 1.75,
-        rong: 1.85,
-        thuongnhan: 2.00,
+        than: 2.60,
+        rong: 2.80,
+        thuongnhan: 3.20,
       },
       attack_multiplier_by_rank: {
-        than: 1.60,
-        rong: 1.60,
-        thuongnhan: 1.50,
+        than: 1.90,
+        rong: 1.90,
+        thuongnhan: 1.80,
       },
-      defense_multiplier: 1.30,
-      event_hp_multiplier: 1.50,
-      event_attack_multiplier: 1.35,
-      event_defense_multiplier: 1.15,
+      defense_multiplier: 1.45,
+      event_hp_multiplier: 2.00,
+      event_attack_multiplier: 1.50,
+      event_defense_multiplier: 1.25,
       min_attack_power_by_rank: {
-        than: 350,
-        rong: 1200,
-        thuongnhan: 2500,
+        than: 600,
+        rong: 1800,
+        thuongnhan: 3500,
       },
       shieldhex_absorb_pct: 0.15,
       shieldhex_reflect_pct: 0.75,
+    },
+    // Bot PvP tự scale theo sức mạnh người thách đấu (chỉ trong trận, không
+    // lưu DB). Bot đuổi theo target_ratio lực chiến của người chơi, tối đa
+    // gấp max_catchup lần chỉ số gốc của bot.
+    pvp_bot_catchup: {
+      enabled: true,
+      target_ratio_min: 0.90,
+      target_ratio_max: 1.05,
+      max_catchup: 3.0,
     },
   },
   ui: {
