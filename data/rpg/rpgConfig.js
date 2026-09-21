@@ -28,33 +28,34 @@ module.exports = {
     },
     // World Boss uses a separate durability guardrail so high-end builds
     // remain rewarding without allowing a single action to erase the boss.
-    // Lượt mua bằng Coke vẫn giữ nguyên, nhưng giá tăng dần theo số lượt
-    // đã mua để một người không thể solo boss bằng ví dày.
+    // Lượt mua bằng Coke cố định 5.500 Coke mỗi lượt.
+    // Chi phí hồi sinh: 10.000 Coke cho 2 lượt đầu, các lượt sau tăng x2 mỗi lần.
     world_boss: {
-      combat_profile_version: 3,
-      damage_soft_cap_pct: 0.018,
-      damage_hard_cap_pct: 0.032,
-      action_hard_cap_pct: 0.040,
-      overflow_efficiency: 0.10,
-      paid_attack_cost_growth: 1.35,
+      combat_profile_version: 4,
+      damage_soft_cap_pct: 0.024,
+      damage_hard_cap_pct: 0.042,
+      action_hard_cap_pct: 0.050,
+      overflow_efficiency: 0.15,
+      paid_attack_cost: 5500,
+      paid_attack_cost_growth: 1.0,
       hp_multiplier_by_rank: {
-        than: 2.60,
-        rong: 2.80,
-        thuongnhan: 3.20,
+        than: 1.80,
+        rong: 2.00,
+        thuongnhan: 2.30,
       },
       attack_multiplier_by_rank: {
-        than: 1.90,
-        rong: 1.90,
-        thuongnhan: 1.80,
+        than: 1.65,
+        rong: 1.70,
+        thuongnhan: 1.65,
       },
-      defense_multiplier: 1.45,
-      event_hp_multiplier: 2.00,
-      event_attack_multiplier: 1.50,
-      event_defense_multiplier: 1.25,
+      defense_multiplier: 1.25,
+      event_hp_multiplier: 1.60,
+      event_attack_multiplier: 1.35,
+      event_defense_multiplier: 1.15,
       min_attack_power_by_rank: {
-        than: 600,
-        rong: 1800,
-        thuongnhan: 3500,
+        than: 400,
+        rong: 1300,
+        thuongnhan: 2600,
       },
       shieldhex_absorb_pct: 0.15,
       shieldhex_reflect_pct: 0.75,

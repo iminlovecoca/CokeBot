@@ -8,6 +8,8 @@ const {
   applyWorldBossDamageLimit,
   getWorldBossCombatProfile,
   getWorldBossShieldhexConfig,
+  getWorldBossReviveCost,
+  getWorldBossPaidAttackCost,
 } = require("../../../utils/worldBossBalanceUtil");
 const {
   EmbedBuilder,
@@ -172,12 +174,14 @@ class SimCommand extends BaseCommand {
             }
             const hasGodset = p.isMock ? false : !!p.godset;
             const canReviveFree = hasGodset;
-            const reviveCost = canReviveFree ? 0 : 1000;
+            const revivesUsed = p.revives || 0;
+            const reviveCost = getWorldBossReviveCost(revivesUsed, hasGodset);
             if (canReviveFree) {
               p.hp = p.maxHp;
             } else if (p.coke >= reviveCost) {
               p.hp = p.maxHp;
               p.coke -= reviveCost;
+              p.revives = revivesUsed + 1;
               totalCokeSpent += reviveCost;
             } else {
               p.hp = p.maxHp;
@@ -189,7 +193,7 @@ class SimCommand extends BaseCommand {
           const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
           const hasGodset = p.isMock ? false : !!p.godset;
           const hasFreeAttack = p.attacks < freeAttacks || hasGodset;
-          const paidAttackCost = hasGodset ? 0 : (isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000));
+          const paidAttackCost = getWorldBossPaidAttackCost(hasGodset);
           if (!hasFreeAttack) {
             p.coke -= paidAttackCost;
             totalCokeSpent += paidAttackCost;

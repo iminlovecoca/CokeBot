@@ -93,10 +93,25 @@ const getWorldBossShieldhexConfig = () => {
   };
 };
 
+const getWorldBossReviveCost = (revivesUsed = 0, hasGodset = false) => {
+  if (hasGodset) return 0;
+  const count = Math.max(0, Number(revivesUsed) || 0);
+  if (count < 2) return 10000;
+  return 10000 * Math.pow(2, count - 1);
+};
+
+const getWorldBossPaidAttackCost = (hasGodset = false) => {
+  if (hasGodset) return 0;
+  const balance = getWorldBossBalance();
+  return Number(balance.paid_attack_cost) || Number(config.rpg?.boss?.paid_attack_cost) || 5500;
+};
+
 module.exports = {
   getWorldBossCombatProfile,
   getWorldBossBalanceVersion,
   getWorldBossDamageCaps,
   applyWorldBossDamageLimit,
   getWorldBossShieldhexConfig,
+  getWorldBossReviveCost,
+  getWorldBossPaidAttackCost,
 };

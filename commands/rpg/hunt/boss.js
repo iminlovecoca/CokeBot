@@ -45,6 +45,8 @@ const {
   applyWorldBossDamageLimit,
   getWorldBossCombatProfile,
   getWorldBossShieldhexConfig,
+  getWorldBossReviveCost,
+  getWorldBossPaidAttackCost,
 } = require("../../../utils/worldBossBalanceUtil");
 const { getRpgColor, formatRpgFooter, formatRpgTitle, safeDeferUpdate, safeInteractionCall, safeInteractionEditReply, safeInteractionFollowUp, safeInteractionReply } = require("../../../utils/rpgUi");
 const CLASS_ATTACK_TYPES = {
@@ -639,7 +641,11 @@ const buildAttackResultEmbed = ({
       battleLog += `💥 Boss phản công gây **${bossDamage}** sát thương lên bạn!\n`;
     }
     if (participant.hp <= 0) {
-      const reviveText = user.rpg?.godsetBackup ? "miễn phí" : "bằng 1,000 <:cokecy:1509951335016173662>";
+      const revivesUsed = participant.revives || 0;
+      const reviveCost = getWorldBossReviveCost(revivesUsed, user.rpg?.godsetBackup);
+      const reviveText = user.rpg?.godsetBackup
+        ? "miễn phí"
+        : `bằng ${reviveCost.toLocaleString()} <:cokecy:1509951335016173662> (Lần ${revivesUsed + 1})`;
       battleLog += `🥀 **HẠ GỤC!** Bạn đã bị boss đánh gục! Cần 30s hồi sức hoặc hồi sinh ngay ${reviveText}.`;
       if (bossHealed && bossHealed > 0) {
         battleLog += `\n🚨 **[HỒI PHỤC]** Boss hấp thụ sinh mệnh của bạn và hồi phục **${bossHealed.toLocaleString()}** HP (20% lượng HP đã mất)!`;
@@ -885,15 +891,17 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       participant.hp = maxHp;
     } else {
       const remainingSeconds = Math.ceil((participant.koUntil - now) / 1000);
+      const revivesUsed = participant.revives || 0;
+      const reviveCost = getWorldBossReviveCost(revivesUsed, user.rpg?.godsetBackup);
       const reviveRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId(`rpg_boss_revive:${channel.id}`)
-          .setLabel("Hồi sinh ngay (1,000 Coke)")
+          .setLabel(`Hồi sinh ngay (${user.rpg?.godsetBackup ? "Miễn phí" : `${reviveCost.toLocaleString()} Coke`})`)
           .setStyle(ButtonStyle.Success),
       );
       return {
         ok: false,
-        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức ${user.rpg?.godsetBackup ? "**miễn phí**" : "bằng **1,000** <:cokecy:1509951335016173662>"}.`,
+        content: `❌ Bạn đã bị hạ gục! Cần chờ thêm **${remainingSeconds}s** để hồi sức hoặc hồi sinh ngay lập tức ${user.rpg?.godsetBackup ? "**miễn phí**" : `bằng **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>`} (Lượt hồi sinh thứ ${revivesUsed + 1}).`,
         components: [reviveRow],
         ephemeral: true,
       };
@@ -902,17 +910,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const isEventBoss = activeBoss.boss.key === "hexia" || activeBoss.boss.key === "godhexa";
   const freeAttacks = isEventBoss ? 3 : (config.rpg.boss?.free_attacks_per_user ?? 3);
   const hasGodset = !!user.rpg?.godsetBackup;
-  const basePaidAttackCost = isEventBoss ? 3600 : (config.rpg.boss?.paid_attack_cost ?? 10000);
-  // Giá lượt mua tăng dần theo số lượt đã mua để một người không thể solo
-  // boss bằng ví dày — càng đánh nhiều, mỗi lượt tiếp theo càng đắt.
-  const paidAttackGrowth = Math.max(
-    1,
-    Number(config.rpg?.balance?.world_boss?.paid_attack_cost_growth) || 1.35,
-  );
-  const paidAttacksUsed = Math.max(0, participant.attacks - freeAttacks);
-  const paidAttackCost = hasGodset
-    ? 0
-    : Math.floor(basePaidAttackCost * Math.pow(paidAttackGrowth, paidAttacksUsed));
+  // Chi phí cố định 5.500 Coke cho mỗi lượt đánh tốn phí
+  const basePaidAttackCost = getWorldBossPaidAttackCost(hasGodset);
+  const paidAttackCost = hasGodset ? 0 : basePaidAttackCost;
   const isPaidAttack = participant.attacks >= freeAttacks && !hasGodset;
   if (isPaidAttack && user.coke < paidAttackCost) {
     return {
@@ -1417,13 +1417,15 @@ const handleReviveInteraction = async (interaction) => {
       });
     }
   }
-  const reviveCost = user.rpg?.godsetBackup ? 0 : 1000;
+  const revivesUsed = participant.revives || 0;
+  const reviveCost = getWorldBossReviveCost(revivesUsed, user.rpg?.godsetBackup);
   if (user.coke < reviveCost) {
     return safeInteractionEditReply(interaction, {
       content: `❌ Bạn không có đủ Coke để hồi sinh! (Yêu cầu: **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>, bạn có: **${user.coke.toLocaleString()}** <:cokecy:1509951335016173662>)`,
     });
   }
   user.coke -= reviveCost;
+  participant.revives = revivesUsed + 1;
   const effectiveStats = getEffectiveRpgStats(user);
   const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
   participant.hp = maxHp;
@@ -1444,8 +1446,9 @@ const handleReviveInteraction = async (interaction) => {
     console.error("[RPG_BOSS] Failed to update boss revive status in DB:", err);
   }
   await user.save();
+  const nextReviveCost = getWorldBossReviveCost(participant.revives, user.rpg?.godsetBackup);
   return safeInteractionEditReply(interaction, {
-    content: `✅ Bạn đã hồi sinh thành công bằng **1,000** <:cokecy:1509951335016173662>! HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Đánh boss** để tiếp tục tấn công boss.`,
+    content: `✅ Bạn đã hồi sinh thành công ${reviveCost > 0 ? `bằng **${reviveCost.toLocaleString()}** <:cokecy:1509951335016173662>` : "**miễn phí**"}! (Lần ${participant.revives}${nextReviveCost > 0 ? `, lượt tiếp theo: **${nextReviveCost.toLocaleString()}** Coke` : ""}). HP hiện tại: **${maxHp.toLocaleString()}**. Hãy click lại nút **Đánh boss** để tiếp tục tấn công boss.`,
   });
 };
 const fs = require("fs");
