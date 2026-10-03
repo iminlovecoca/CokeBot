@@ -187,11 +187,12 @@ const dungeonWeapons = [
   { name: "Quỷ Thư", key: "demonbook", emoji: "📖" },
   { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: "🔨" },
   { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: "🦉" },
+  { name: "Darkhold", key: "darkhold", emoji: "<:darkhold:1544258394695934002>" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
 
 const NORMAL_WEAPONS = ["longsword", "dagger", "staff", "warhammer"];
-const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet", "demonbook", "thorshammer", "odinhammer"];
+const EVENT_WEAPONS = ["duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex", "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet", "demonbook", "thorshammer", "odinhammer", "darkhold", "soulreaper"];
 
 // Vũ khí top-tier (boss chương cuối + event/dungeon mạnh): tăng trưởng theo
 // cấp cường hóa thấp hơn vũ khí đặc biệt thường để giữ cân bằng endgame.
@@ -200,7 +201,7 @@ const TOP_TIER_WEAPONS = [
   "holysword", "darksword", "darkstaff",
   "duskanddawn", "riverofblood", "axesnake", "sunbow", "clawhex", "spearhex",
   "shieldhex", "lunashard", "eclipsesoul", "bladesorrow", "frostgauntlet",
-  "demonbook", "thorshammer", "odinhammer",
+  "demonbook", "thorshammer", "odinhammer", "darkhold",
 ];
 
 const isTopTierWeapon = (subType) => {
@@ -583,13 +584,19 @@ const getWeaponScaling = (item) => {
     return { str: "-", dex: "B", int: "S", arc: "A" };
   }
   if (weaponKey.includes("demonbook")) {
-    return { str: "-", dex: "B", int: "S", arc: "A" };
+    return { str: "-", dex: "-", int: "S", arc: "A" };
   }
   if (weaponKey.includes("thorshammer")) {
-    return { str: "S", dex: "B", int: "-", arc: "A" };
+    return { str: "S", dex: "-", int: "-", arc: "A" };
   }
   if (weaponKey.includes("odinhammer")) {
-    return { str: "B", dex: "-", int: "S", arc: "A" };
+    return { str: "-", dex: "-", int: "S", arc: "A" };
+  }
+  if (weaponKey.includes("darkhold")) {
+    return { str: "-", dex: "B", int: "S", arc: "B" };
+  }
+  if (weaponKey.includes("soulreaper")) {
+    return { str: "C", dex: "S", int: "-", arc: "S" };
   }
   
   const { prim, sec } = getWeaponScalingStats(subType);
@@ -724,11 +731,12 @@ const WEAPON_SETS = {
   fallenangel: { name: "Sa Ngã", color: "#c0a050", bonus: { reflection: 0.15, critRate: 0.03 } },
   greeddagger: { name: "Tham Lam", color: "#22c55e", bonus: { lifesteal: 0.06, critRate: 0.03 } },
   asmodeus: { name: "Dục Vọng", color: "#e11d48", bonus: { critRate: 0.05, pvpDamage: 0.04 } },
-  soulreaper: { name: "Lưỡi Hái", color: "#581c87", bonus: { bossDamage: 0.05, mrPierce: 0.08 } },
+  soulreaper: { name: "Thu Hồn", color: "#581c87", bonus: { critRate: 0.05, lifesteal: 0.04 } },
   beelzebub: { name: "Phàm Ăn", color: "#65a30d", bonus: { maxHp: 0.06, healBonus: 0.10 } },
   satan: { name: "Hỏa Ngục", color: "#dc2626", bonus: { bossDamage: 0.06, pvpDamage: 0.06 } },
   bladesorrow: { name: "Bi Thương", color: "#a855f7", bonus: { critRate: 0.04, bossDamage: 0.04 } },
   frostgauntlet: { name: "Băng Quyền", color: "#22d3ee", bonus: { critRate: 0.03, bossDamage: 0.03 } },
+  darkhold: { name: "Hắc Thư", color: "#312e81", bonus: { mrPierce: 0.12, bossDamage: 0.05 } },
 };
 
 const getWeaponSetBonus = (user) => {
@@ -1413,11 +1421,15 @@ const generateRpgGearDrop = async (user, options = {}) => {
     } else if (subName.includes("frostgauntlet")) {
       scaling = { str: "-", dex: "B", int: "S", arc: "A" };
     } else if (subName.includes("demonbook")) {
-      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
     } else if (subName.includes("thorshammer")) {
-      scaling = { str: "S", dex: "B", int: "-", arc: "A" };
+      scaling = { str: "S", dex: "-", int: "-", arc: "A" };
     } else if (subName.includes("odinhammer")) {
-      scaling = { str: "B", dex: "-", int: "S", arc: "A" };
+      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
+    } else if (subName.includes("darkhold")) {
+      scaling = { str: "-", dex: "B", int: "S", arc: "B" };
+    } else if (subName.includes("soulreaper")) {
+      scaling = { str: "C", dex: "S", int: "-", arc: "S" };
     } else {
       scaling = { str: "-", dex: "-", int: "-", arc: "-" };
       const { prim, sec } = getWeaponScalingStats(subName);

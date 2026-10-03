@@ -20,13 +20,13 @@ class WeaponlistCommand extends BaseCommand {
     const getDungeonWeaponLine = (dw) => {
       let desc = "";
       if (dw.key === "shadowdagger") desc = "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)";
-      else if (dw.key === "poisondagger") desc = "Tăng 50% sát thương cho đòn tiếp theo";
+      else if (dw.key === "poisondagger") desc = "Tiêm kịch độc ăn mòn: gây độc 3 lượt và giảm 15% phòng ngự đối thủ";
       else if (dw.key === "firesword") desc = "Giảm 30% hồi máu của boss/đối thủ trong 2 lượt (30 giây đối với World Boss)";
       else if (dw.key === "greenstaff") desc = "Hồi 10% HP đã mất khi dùng kỹ năng (PvP/World Boss: 45% hồi 10% HP đã mất khi chém thường)";
       else if (dw.key === "bluestaff") desc = "Đòn đánh xuyên 25% kháng phép";
       else if (dw.key === "crimsondagger") desc = "Đòn đánh xuyên 50% giáp vật lý";
       else if (dw.key === "holysword") desc = "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương";
-      else if (dw.key === "darksword") desc = "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó";
+      else if (dw.key === "darksword") desc = "Hắc khí gây thêm 15% sát thương bóng tối và làm suy yếu mục tiêu (giảm 20% sát thương gây ra trong 2 lượt)";
       else if (dw.key === "darkstaff") desc = "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce";
       else if (dw.key === "gravitybow") desc = "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (B) | INT (A) (Không có nội tại kích hoạt)";
       else if (dw.key === "axesnake") desc = "Phá 10% giáp vật lý của đối thủ mỗi khi tấn công hoặc dùng kỹ năng (Cộng dồn)";
@@ -40,9 +40,16 @@ class WeaponlistCommand extends BaseCommand {
       else if (dw.key === "eclipsesoul") desc = "Thiêu đốt làm giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép | Scale: INT (S) | ARC (A) | DEX (B)";
       else if (dw.key === "bladesorrow") desc = "Đòn đánh gây chảy máu 3 lượt và giảm 15% giáp mỗi lần kích hoạt (tối đa 30%) | Scale: STR (S) | DEX (A) | ARC (B)";
       else if (dw.key === "frostgauntlet") desc = "Khi nội tại kích hoạt, 30% cơ hội đóng băng đối thủ trong 1 lượt | Scale: INT (S) | ARC (A) | DEX (B)";
-      else if (dw.key === "demonbook") desc = "Giải phóng ngẫu nhiên thiêu đốt, phá giáp hoặc choáng | Scale: INT (S) | ARC (A) | DEX (B)";
-      else if (dw.key === "thorshammer") desc = "Sấm sét có 45% cơ hội làm choáng đối thủ trong 1 lượt | Scale: STR (S) | ARC (A) | DEX (B)";
-      else if (dw.key === "odinhammer") desc = "Đòn đánh thứ 3 được tiên tri, gây 1.7x sát thương | Scale: INT (S) | ARC (A) | STR (B)";
+      else if (dw.key === "demonbook") desc = "Giải phóng ngẫu nhiên Thiêu Đốt, Hủ Bại hoặc Choáng | Scale: INT (S) | ARC (A)";
+      else if (dw.key === "thorshammer") desc = "Thiên lôi giáng thế: làm Choáng 1 lượt và tăng 35% sát thương lôi điện | Scale: STR (S) | ARC (A)";
+      else if (dw.key === "odinhammer") desc = "Cổ ngữ khải huyền: đòn đánh thứ 3 gây 1.75x sát thương và xuyên 50% kháng phép | Scale: INT (S) | ARC (A)";
+      else if (dw.key === "asmodeus") desc = "Cuồng vọng bùng nổ: tăng 30% sát thương và phá 15% giáp mục tiêu trong 2 lượt";
+      else if (dw.key === "satan") desc = "Hỏa ngục tận thế: thiêu đốt mục tiêu 3 lượt (theo STR), cấm hồi máu 2 lượt và tăng 10% sát thương";
+      else if (dw.key === "greeddagger") desc = "Hút máu 8% sát thương gây ra; gây thêm 25% sát thương chí mạng khi mục tiêu dưới 50% HP";
+      else if (dw.key === "beelzebub") desc = "Đàn ruồi hoại tử: ăn mòn 20% giáp & 20% kháng phép mục tiêu trong 2 lượt và hồi 5% HP tối đa";
+      else if (dw.key === "fallenangel") desc = "Cố định giảm 12% sát thương nhận vào; khi tấn công tăng 20% sát thương và hồi phục 6% máu đã mất";
+      else if (dw.key === "soulreaper") desc = "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)";
+      else if (dw.key === "darkhold") desc = "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)";
       return `• **${dw.name}** (Mã: \`${dw.key}\`) ${dw.emoji}\n  *Nội tại: ${desc}*`;
     };
     const dungeonWeaponsPart1 = dungeonWeapons.slice(0, 6).map(getDungeonWeaponLine).join("\n");

@@ -154,13 +154,13 @@ class GearCommand extends BaseCommand {
         if (dungKey) {
           const passives = {
             shadowdagger: "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)",
-            poisondagger: "Tăng 50% sát thương cho đòn tiếp theo",
+            poisondagger: "Tiêm kịch độc ăn mòn: gây độc 3 lượt và giảm 15% phòng ngự đối thủ",
             firesword: "Giảm 30% hồi máu của boss/đối thủ trong 2 lượt (30 giây đối với World Boss)",
             greenstaff: "Hồi 10% HP đã mất khi dùng kỹ năng (PvP/World Boss: 45% hồi 10% HP đã mất khi chém thường)",
             bluestaff: "Đòn đánh xuyên 25% kháng phép",
             crimsondagger: "Đòn đánh xuyên 50% giáp vật lý",
             holysword: "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương",
-            darksword: "Giảm 30% sát thương gây ra của boss/đối thủ lượt đó",
+            darksword: "Hắc khí gây thêm 15% sát thương bóng tối và làm suy yếu mục tiêu (giảm 20% sát thương gây ra trong 2 lượt)",
             darkstaff: "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce",
             gravitybow: "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (B) | INT (A) (Không có nội tại kích hoạt)",
             duskanddawn: "Tấn công thường chém vật lý/phép xen kẽ, 30% cơ hội tấn công thêm 1 lần trong lượt",
@@ -174,9 +174,16 @@ class GearCommand extends BaseCommand {
             eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép",
             bladesorrow: "Gây chảy máu trong 3 lượt và giảm 15% giáp mỗi lần kích hoạt (tối đa 30% trong Dungeon)",
             frostgauntlet: "30% cơ hội đóng băng đối thủ trong 1 lượt; Scale INT (S) / ARC (A) / DEX (B)",
-            demonbook: "Giải phóng ngẫu nhiên Thiêu Đốt, Phá Giáp hoặc Choáng",
-            thorshammer: "Sấm sét có 45% cơ hội làm Choáng đối thủ trong 1 lượt; Scale STR (S) / ARC (A) / DEX (B)",
-            odinhammer: "Đòn đánh thứ 3 được tiên tri, gây 1.7x sát thương; Scale INT (S) / ARC (A) / STR (B)",
+            demonbook: "Giải phóng ngẫu nhiên Thiêu Đốt (cấm hồi máu), Hủ Bại (phá 30% song phòng) hoặc Choáng | Scale: INT (S) | ARC (A)",
+            thorshammer: "Thiên lôi giáng thế: làm Choáng 1 lượt và tăng 35% sát thương lôi điện | Scale: STR (S) | ARC (A)",
+            odinhammer: "Cổ ngữ khải huyền: đòn đánh thứ 3 gây 1.75x sát thương và xuyên 50% kháng phép | Scale: INT (S) | ARC (A)",
+            asmodeus: "Cuồng vọng bùng nổ: tăng 30% sát thương và phá 15% giáp mục tiêu trong 2 lượt",
+            satan: "Hỏa ngục tận thế: thiêu đốt mục tiêu 3 lượt (theo STR), cấm hồi máu 2 lượt và tăng 10% sát thương",
+            greeddagger: "Hút máu 8% sát thương gây ra; gây thêm 25% sát thương chí mạng khi mục tiêu dưới 50% HP",
+            beelzebub: "Đàn ruồi hoại tử: ăn mòn 20% giáp & 20% kháng phép mục tiêu trong 2 lượt và hồi 5% HP tối đa",
+            fallenangel: "Cố định giảm 12% sát thương nhận vào; khi tấn công tăng 20% sát thương và hồi phục 6% máu đã mất",
+            soulreaper: "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)",
+            darkhold: "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)",
           };
           const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];

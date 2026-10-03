@@ -26,6 +26,7 @@ const EMOJIS = {
 };
 
 const PASSIVE_EMOJIS = {
+  [PASSIVE_TYPES.POISON]: EMOJIS.poisonous,
   [PASSIVE_TYPES.BLEED]: EMOJIS.bleed,
   [PASSIVE_TYPES.BURN]: EMOJIS.burn,
   [PASSIVE_TYPES.FREEZE]: EMOJIS.freeze,
@@ -238,6 +239,30 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
   };
 
   switch (passive.type) {
+    case PASSIVE_TYPES.POISON: {
+      if (!hasTriggered) break;
+      const poisonDmg = calcScaling(passive.scaling);
+      applyStatusEffect(enemy, "poison", passive.rounds, { damage: poisonDmg });
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
+      for (const extraEffect of passive.extraEffects || []) {
+        if (extraEffect.type !== PASSIVE_TYPES.ARMOR_SHRED) continue;
+        const amount = extraEffect.amount || 0.10;
+        const cap = extraEffect.cap || 0.40;
+        const currentReduced = enemy._armorReduced || 0;
+        const applied = Math.min(amount, Math.max(0, cap - currentReduced));
+        if (applied <= 0) continue;
+        enemy._armorReduced = currentReduced + applied;
+        enemy.armor = Math.max(0, Math.floor((enemy.armor || 0) * (1 - applied)));
+        if (!isMagical) {
+          result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
+        }
+        if (extraEffect.alsoShredMR) {
+          enemy.magicResist = Math.max(0, Math.floor((enemy.magicResist || 0) * (1 - applied)));
+        }
+      }
+      break;
+    }
+
     case PASSIVE_TYPES.BLEED: {
       if (!hasTriggered) break;
       const bleedDmg = calcScaling(passive.scaling);
@@ -274,6 +299,9 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (!hasTriggered) break;
       const burnDmg = calcScaling(passive.scaling);
       applyStatusEffect(enemy, "burn", passive.rounds, { damage: burnDmg });
+      if (passive.damageMult) {
+        result.damage = Math.floor(result.damage * passive.damageMult);
+      }
       if (passive.alsoApplies) {
         if (passive.alsoApplies.type === PASSIVE_TYPES.HEAL_BAN) {
           applyStatusEffect(enemy, "heal_ban", passive.alsoApplies.rounds);
@@ -295,6 +323,9 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
 
     case PASSIVE_TYPES.STUN: {
       if (!hasTriggered) break;
+      if (passive.damageMult) {
+        result.damage = Math.floor(result.damage * passive.damageMult);
+      }
       if ((enemy.ccImmunityRounds || 0) <= 0) {
         applyStatusEffect(enemy, "stun", passive.rounds);
         addPassiveLog(passive.log ? passive.log(enemy.name) : "");
@@ -305,12 +336,24 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     case PASSIVE_TYPES.HEAL_BAN: {
       if (!hasTriggered) break;
       applyStatusEffect(enemy, "heal_ban", passive.rounds);
+      if (passive.executeThreshold && enemy.maxHp && (enemy.hp / enemy.maxHp) <= passive.executeThreshold) {
+        result.damage = Math.floor(result.damage * (1 + (passive.executeBonus || 0.40)));
+      }
+      if (passive.lifestealPct) {
+        result.healAmount = Math.max(1, Math.floor(result.damage * passive.lifestealPct));
+      }
       addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
     case PASSIVE_TYPES.LIFESTEAL: {
       if (!hasTriggered) break;
+      if (passive.executeThreshold && enemy.maxHp && (enemy.hp / enemy.maxHp) <= passive.executeThreshold) {
+        result.damage = Math.floor(result.damage * (1 + (passive.executeBonus || 0.25)));
+      }
+      if (passive.damageMult) {
+        result.damage = Math.floor(result.damage * passive.damageMult);
+      }
       let healBase = 0;
       if (passive.healType === "damage") {
         healBase = Math.max(1, Math.floor(result.damage * passive.pct));
@@ -329,6 +372,9 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
       if (player[hitCounterKey] >= (passive.hitCount || 3)) {
         player[hitCounterKey] = 0;
         result.damage = Math.floor(result.damage * passive.mult);
+        if (passive.mrPierce) {
+          result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - passive.mrPierce)));
+        }
         addPassiveLog(passive.log ? passive.log() : "");
       }
       break;
@@ -384,11 +430,35 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
           result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
         }
       }
+      if (passive.damageMult) {
+        result.damage = Math.floor(result.damage * passive.damageMult);
+      }
+      if (passive.healPctMaxHp) {
+        result.healAmount = Math.max(1, Math.floor((player.maxHp || 100) * passive.healPctMaxHp));
+      }
       addPassiveLog(passive.log ? passive.log(enemy.name, {
         armor: enemy.armor,
         mr: enemy.magicResist || 0,
         totalReduced: enemy._armorReduced || amount,
       }) : "");
+      break;
+    }
+
+    case PASSIVE_TYPES.MR_SHRED: {
+      if (!hasTriggered) break;
+      const amount = passive.amount || 0.25;
+      let applied = amount;
+      if (passive.cap) {
+        const currentReduced = enemy._mrReduced || 0;
+        applied = Math.min(amount, Math.max(0, passive.cap - currentReduced));
+        enemy._mrReduced = currentReduced + applied;
+      }
+      if (applied <= 0) break;
+      enemy.magicResist = Math.max(0, Math.floor((enemy.magicResist || 0) * (1 - applied)));
+      if (isMagical) {
+        result.mrOrArmor = Math.max(0, Math.floor(result.mrOrArmor * (1 - applied)));
+      }
+      addPassiveLog(passive.log ? passive.log(enemy.name) : "");
       break;
     }
 
@@ -480,6 +550,16 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     }
 
     case PASSIVE_TYPES.NONE:
+      if (hasTriggered) {
+        if (passive.damageMult) {
+          result.damage = Math.floor(result.damage * passive.damageMult);
+        }
+        if (passive.targetAtkDown) {
+          applyStatusEffect(enemy, "atkdown", 2);
+        }
+        addPassiveLog(passive.log ? passive.log(enemy.name) : "");
+      }
+      break;
     default:
       break;
   }
