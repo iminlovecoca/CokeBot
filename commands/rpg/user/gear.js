@@ -141,7 +141,7 @@ class GearCommand extends BaseCommand {
                  `Scale: \`${scalingText}\`\n\n`;
         const freshWeaponSubtype = freshItem.subType || freshItem.subtype;
         const freshWeaponKey = getDungeonWeaponKey(freshWeaponSubtype) || String(freshWeaponSubtype || "").toLowerCase().replace(/\s+/g, "");
-        const setInfo = WEAPON_SETS[freshWeaponKey];
+        const setInfo = WEAPON_SETS[freshWeaponKey] || WEAPON_SETS[getDungeonWeaponKey(freshWeaponSubtype)];
         if (setInfo) {
           const bonusText = Object.entries(setInfo.bonus).map(([k, v]) => {
             if (typeof v === "number") return k === "dual" ? "" : `+${Math.round(v * 100)}% ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`;
@@ -184,8 +184,12 @@ class GearCommand extends BaseCommand {
             fallenangel: "Cố định giảm 12% sát thương nhận vào; khi tấn công tăng 20% sát thương và hồi phục 6% máu đã mất",
             soulreaper: "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)",
             darkhold: "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)",
+            bithuathacamdarkhold: "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)",
+            luoihailinhhonsoulreaper: "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)",
           };
-          const passiveDesc = passives[dungKey] || "Chưa cập nhật nội tại";
+          const { getWeaponPassive } = require("../../../data/rpg/weaponPassives");
+          const passiveDef = getWeaponPassive(dungKey) || getWeaponPassive(freshWeaponSubtype);
+          const passiveDesc = passives[dungKey] || passives[getDungeonWeaponKey(freshWeaponSubtype)] || (passiveDef?.description ? `${passiveDef.description} | Scale: ${scalingText}` : null) || "Chưa cập nhật nội tại";
           const noPassiveWeapons = ["gravitybow", "duskanddawn"];
           if (noPassiveWeapons.includes(dungKey)) {
             desc += `*${passiveDesc}*\n`;

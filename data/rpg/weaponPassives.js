@@ -911,7 +911,16 @@ const PASSIVE_KEY_BY_NAME = Object.fromEntries(
 
 const normalizePassiveKey = (subType) => {
   const clean = String(subType || "").toLowerCase().replace(/\s+/g, "");
-  return WEAPON_PASSIVES[clean] ? clean : (PASSIVE_KEY_BY_NAME[clean] || clean);
+  if (WEAPON_PASSIVES[clean]) return clean;
+  if (PASSIVE_KEY_BY_NAME[clean]) return PASSIVE_KEY_BY_NAME[clean];
+  if (clean.includes("darkhold") || clean.includes("bithuathacam")) return "darkhold";
+  if (clean.includes("soulreaper") || clean.includes("luoihailinhhon")) return "soulreaper";
+  if (clean.includes("frostgauntlet") || clean.includes("gangtaybanggia")) return "frostgauntlet";
+  if (clean.includes("bladesorrow") || clean.includes("bithuong")) return "bladesorrow";
+  for (const [nameKey, wpKey] of Object.entries(PASSIVE_KEY_BY_NAME)) {
+    if (clean.includes(nameKey) || clean.includes(wpKey)) return wpKey;
+  }
+  return clean;
 };
 
 const getWeaponPassive = (subType) => {

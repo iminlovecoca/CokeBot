@@ -153,6 +153,7 @@ class GachaCommand extends BaseCommand {
             fromEvent: true,
           });
           if (gear) {
+            gear.imageKey = chosenBanner.imageKey;
             addRpgGearToUser(user, gear);
             user.rpg.lastItemId = Math.max(user.rpg.lastItemId || 0, gear.id);
             itemsGained.push(gear);

@@ -230,27 +230,61 @@ const getDungeonWeaponKey = (subType) => {
   if (!subType) return null;
   const subNameClean = String(subType).toLowerCase().replace(/\s+/g, "");
   
-  
   const found = dungeonWeapons.find(dw => 
     dw.key === subNameClean || dw.name.toLowerCase().replace(/\s+/g, "") === subNameClean
   );
   if (found) return found.key;
 
-  
+  // Specific alias mappings for compound / event / gacha / Vietnamese names
+  if (subNameClean.includes("darkhold") || subNameClean.includes("bithuathacam")) return "darkhold";
+  if (subNameClean.includes("soulreaper") || subNameClean.includes("luoihailinhhon")) return "soulreaper";
+  if (subNameClean.includes("frostgauntlet") || subNameClean.includes("gangtaybanggia")) return "frostgauntlet";
+  if (subNameClean.includes("bladesorrow") || subNameClean.includes("bithuong")) return "bladesorrow";
+  if (subNameClean.includes("duskanddawn") || subNameClean.includes("songcuc")) return "duskanddawn";
+  if (subNameClean.includes("riverofblood") || subNameClean.includes("huyethai")) return "riverofblood";
+  if (subNameClean.includes("gravitybow") || subNameClean.includes("trongluc")) return "gravitybow";
+  if (subNameClean.includes("thorshammer") || subNameClean.includes("bualoithan")) return "thorshammer";
+  if (subNameClean.includes("odinhammer") || subNameClean.includes("buatoantri")) return "odinhammer";
+  if (subNameClean.includes("demonbook") || subNameClean.includes("quythu")) return "demonbook";
+  if (subNameClean.includes("fallenangel") || subNameClean.includes("sanga")) return "fallenangel";
+  if (subNameClean.includes("greeddagger") || subNameClean.includes("thamlam")) return "greeddagger";
+  if (subNameClean.includes("asmodeus") || subNameClean.includes("ducvong")) return "asmodeus";
+  if (subNameClean.includes("beelzebub") || subNameClean.includes("hoaitu")) return "beelzebub";
+  if (subNameClean.includes("satan") || subNameClean.includes("hoanguc")) return "satan";
+  if (subNameClean.includes("holysword") || subNameClean.includes("thanhkiem")) return "holysword";
+  if (subNameClean.includes("darksword") || subNameClean.includes("hackiem")) return "darksword";
+  if (subNameClean.includes("darkstaff") || subNameClean.includes("hactruong")) return "darkstaff";
+  if (subNameClean.includes("bluestaff") || subNameClean.includes("lamtinh")) return "bluestaff";
+  if (subNameClean.includes("greenstaff") || subNameClean.includes("mocdiep")) return "greenstaff";
+  if (subNameClean.includes("crimsondagger") || subNameClean.includes("huyetnguyet")) return "crimsondagger";
+  if (subNameClean.includes("shadowdagger") || subNameClean.includes("anhhon")) return "shadowdagger";
+  if (subNameClean.includes("poisondagger") || subNameClean.includes("thuocdoc")) return "poisondagger";
+  if (subNameClean.includes("firesword") || subNameClean.includes("hoalong")) return "firesword";
+  if (subNameClean.includes("axesnake") || subNameClean.includes("mangxa")) return "axesnake";
+  if (subNameClean.includes("sunbow") || subNameClean.includes("thaiduong")) return "sunbow";
+  if (subNameClean.includes("clawhex") || subNameClean.includes("quytrao")) return "clawhex";
+  if (subNameClean.includes("spearhex") || subNameClean.includes("quythuong")) return "spearhex";
+  if (subNameClean.includes("shieldhex") || subNameClean.includes("quykhien")) return "shieldhex";
+  if (subNameClean.includes("lunashard") || subNameClean.includes("manhtrang")) return "lunashard";
+  if (subNameClean.includes("eclipsesoul") || subNameClean.includes("nhatthuc")) return "eclipsesoul";
+
+  for (const dw of dungeonWeapons) {
+    if (subNameClean.includes(dw.key)) return dw.key;
+  }
+
   const dCfg = config.dungeon || {};
   if (dCfg.default_boss?.first_clear_reward?.name) {
     const defaultName = dCfg.default_boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
-    if (subNameClean === defaultName) {
+    if (subNameClean === defaultName || subNameClean.includes(defaultName)) {
       return dCfg.default_boss.first_clear_reward.claim_key;
     }
   }
-  
   
   if (dCfg.chapters) {
     for (const ch of Object.values(dCfg.chapters)) {
       if (ch.boss?.first_clear_reward?.name) {
         const chName = ch.boss.first_clear_reward.name.toLowerCase().replace(/\s+/g, "");
-        if (subNameClean === chName) {
+        if (subNameClean === chName || subNameClean.includes(chName)) {
           return ch.boss.first_clear_reward.claim_key;
         }
       }
@@ -391,6 +425,12 @@ const findImageInDir = (subDir, subType, name, extraCandidate = null) => {
   const candidates = [];
   if (subType) {
     candidates.push(removeVietnameseTones(subType).toLowerCase().replace(/\s+/g, ""));
+    const words = String(subType).split(/\s+/);
+    for (const w of words) {
+      if (w.length >= 4) {
+        candidates.push(w.toLowerCase());
+      }
+    }
   }
   if (name) {
     const clean = getCleanName(name);
@@ -416,6 +456,7 @@ const findImageInDir = (subDir, subType, name, extraCandidate = null) => {
 };
 
 const getItemImageFile = (item) => {
+  if (!item) return null;
   const slot = String(item.slot || "").toLowerCase();
   let subType = String(item.subType || item.subtype || "").trim();
   if (!subType || subType.toLowerCase() === "undefined") {
@@ -431,8 +472,20 @@ const getItemImageFile = (item) => {
       if (dungKey === "gravitybow") {
         return "Weapon/GravityBow.png";
       }
+      const weaponDir = path.join(__dirname, "../assets/items/Weapon");
+      if (fs.existsSync(weaponDir)) {
+        const files = readCachedDir(weaponDir);
+        const fileMatch = files.find(f => f.toLowerCase() === `${dungKey}.png` || f.toLowerCase() === `${dungKey}`);
+        if (fileMatch) return `Weapon/${fileMatch}`;
+      }
       return `Weapon/${dungKey}.png`;
     }
+
+    if (item.imageKey && !item.imageKey.includes("longsword")) {
+      const directPath = path.join(__dirname, "../assets/items", item.imageKey);
+      if (fs.existsSync(directPath)) return item.imageKey;
+    }
+
     const lowerSub = subType.toLowerCase();
     if (lowerSub.includes("staff")) {
       return "Weapon/staff.png";
@@ -737,6 +790,8 @@ const WEAPON_SETS = {
   bladesorrow: { name: "Bi Thương", color: "#a855f7", bonus: { critRate: 0.04, bossDamage: 0.04 } },
   frostgauntlet: { name: "Băng Quyền", color: "#22d3ee", bonus: { critRate: 0.03, bossDamage: 0.03 } },
   darkhold: { name: "Hắc Thư", color: "#312e81", bonus: { mrPierce: 0.12, bossDamage: 0.05 } },
+  bithuathacamdarkhold: { name: "Hắc Thư", color: "#312e81", bonus: { mrPierce: 0.12, bossDamage: 0.05 } },
+  luoihailinhhonsoulreaper: { name: "Thu Hồn", color: "#581c87", bonus: { critRate: 0.05, lifesteal: 0.04 } },
 };
 
 const getWeaponSetBonus = (user) => {
