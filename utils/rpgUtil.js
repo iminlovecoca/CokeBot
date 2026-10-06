@@ -792,6 +792,9 @@ const WEAPON_SETS = {
   darkhold: { name: "Hắc Thư", color: "#312e81", bonus: { mrPierce: 0.12, bossDamage: 0.05 } },
   bithuathacamdarkhold: { name: "Hắc Thư", color: "#312e81", bonus: { mrPierce: 0.12, bossDamage: 0.05 } },
   luoihailinhhonsoulreaper: { name: "Thu Hồn", color: "#581c87", bonus: { critRate: 0.05, lifesteal: 0.04 } },
+  thorshammer: { name: "Lôi Thần", color: "#eab308", bonus: { critRate: 0.04, bossDamage: 0.04 } },
+  odinhammer: { name: "Toàn Tri", color: "#38bdf8", bonus: { mrPierce: 0.10, critRate: 0.03 } },
+  demonbook: { name: "Quỷ Chú", color: "#7c2d12", bonus: { mrPierce: 0.08, bossDamage: 0.04 } },
 };
 
 const getWeaponSetBonus = (user) => {
