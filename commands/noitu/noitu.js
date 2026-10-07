@@ -128,12 +128,12 @@ function makeNoituHelpEmbed() {
       },
       {
         name: "Ai có thể dùng lệnh start",
-        value: "Người dùng có quyền **MANAGE_GUILD** trong kênh nối từ",
+        value: "Chỉ Admin máy chủ trong kênh nối từ",
         inline: true,
       },
       {
         name: "Ai có thể dùng lệnh stop",
-        value: "Người dùng có quyền **MANAGE_CHANNELS** trong kênh nối từ",
+        value: "Chỉ Admin máy chủ trong kênh nối từ",
         inline: true,
       },
       {
@@ -503,10 +503,10 @@ module.exports = {
         ),
     )
     .addSubcommand((sub) =>
-      sub.setName("start").setDescription("Bắt đầu ván nối từ"),
+      sub.setName("start").setDescription("Bắt đầu ván nối từ (Chỉ Admin)"),
     )
     .addSubcommand((sub) =>
-      sub.setName("stop").setDescription("Làm mới ván nối từ hiện tại"),
+      sub.setName("stop").setDescription("Làm mới ván nối từ hiện tại (Chỉ Admin)"),
     )
     .addSubcommand((sub) =>
       sub.setName("stats").setDescription("Xem thống kê của BOT"),
@@ -570,11 +570,14 @@ module.exports = {
     }
 
     if (subcommand === "set-channel") {
-      if (
-        !interaction.member.permissions.has(
+      const isServerAdmin =
+        interaction.member?.permissions?.has(
+          PermissionsBitField.Flags.Administrator,
+        ) ||
+        interaction.member?.permissions?.has(
           PermissionsBitField.Flags.ManageGuild,
-        )
-      ) {
+        );
+      if (!isServerAdmin) {
         return interaction.reply({
           content: "Bạn cần có quyền Admin để thực hiện thao tác này!",
           ephemeral: true,
@@ -614,13 +617,16 @@ module.exports = {
     }
 
     if (subcommand === "start") {
-      if (
-        !interaction.member.permissions.has(
+      const isServerAdmin =
+        interaction.member?.permissions?.has(
+          PermissionsBitField.Flags.Administrator,
+        ) ||
+        interaction.member?.permissions?.has(
           PermissionsBitField.Flags.ManageGuild,
-        )
-      ) {
+        );
+      if (!isServerAdmin) {
         return interaction.reply({
-          content: "Bạn cần quyền Admin để bắt đầu ván nối từ.",
+          content: "Chỉ Admin máy chủ mới có thể bắt đầu ván nối từ.",
           ephemeral: true,
         });
       }
@@ -670,9 +676,8 @@ module.exports = {
           );
           return;
         }
-        const waitSec = Math.ceil((3 * 60 * 1000 - idleMs) / 1000);
         return interaction.reply({
-          content: `Trò chơi đang chạy với từ: **${currentGame.currentWord}**.\nNếu ván bị kẹt hoặc đơ, bạn có thể dùng lại lệnh này để làm mới sau 3 phút kể từ lượt gần nhất (còn **${waitSec}s**).`,
+          content: `Trò chơi đang chạy với từ: **${currentGame.currentWord}**.\nNếu muốn dừng hoặc làm mới ván ngay, Admin hãy dùng lệnh \`/noitu stop\`.`,
           ephemeral: true,
         });
       }
@@ -687,16 +692,16 @@ module.exports = {
     }
 
     if (subcommand === "stop") {
-      const currentGame = getGameState(client, interaction.guild.id);
-      const isIdle = currentGame?.running && (Date.now() - (currentGame.lastUpdatedAt || 0) > 3 * 60 * 1000);
-      if (
-        !isIdle &&
-        !interaction.member.permissions.has(
-          PermissionsBitField.Flags.ManageChannels,
-        )
-      ) {
+      const isServerAdmin =
+        interaction.member?.permissions?.has(
+          PermissionsBitField.Flags.Administrator,
+        ) ||
+        interaction.member?.permissions?.has(
+          PermissionsBitField.Flags.ManageGuild,
+        );
+      if (!isServerAdmin) {
         return interaction.reply({
-          content: "Bạn cần quyền Quản lý kênh để dừng ván đang chơi. (Nếu ván bị đơ/không ai chơi quá 3 phút, bất kỳ ai cũng có thể làm mới).",
+          content: "Chỉ Admin máy chủ mới có thể dừng hoặc làm mới ván nối từ.",
           ephemeral: true,
         });
       }
@@ -710,17 +715,18 @@ module.exports = {
           ephemeral: true,
         });
       }
+      const currentGame = getGameState(client, interaction.guild.id);
       if (!currentGame?.running) {
         return interaction.reply({
-          content: "Ván chơi chưa bắt đầu. Hãy dùng start trước.",
+          content: "Hiện tại không có ván nối từ nào đang diễn ra. Hãy dùng `/noitu start` trước.",
           ephemeral: true,
         });
       }
       await stopNoituGame(client, interaction.guild.id);
       addRoundPlayedCount();
       await interaction.reply({
-        content: "Ván mới đã bắt đầu.",
-        ephemeral: true,
+        content: "🔄 Admin đã làm mới ván chơi nối từ!",
+        ephemeral: false,
       });
       await startNoituGame(
         client,
