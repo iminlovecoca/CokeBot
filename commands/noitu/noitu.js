@@ -653,8 +653,26 @@ module.exports = {
       }
       const currentGame = getGameState(client, interaction.guild.id);
       if (currentGame?.running) {
+        const idleMs = Date.now() - (currentGame.lastUpdatedAt || 0);
+        // If inactive for > 3 minutes, allow restarting immediately to unstick frozen games
+        if (idleMs > 3 * 60 * 1000) {
+          await stopNoituGame(client, interaction.guild.id);
+          addRoundPlayedCount();
+          await interaction.reply({
+            content: `🔄 Ván chơi trước đã bị treo hoặc không hoạt động hơn 3 phút. Đang làm mới và bắt đầu ván mới...`,
+            ephemeral: false,
+          });
+          await startNoituGame(
+            client,
+            interaction.guild.id,
+            interaction.channel,
+            interaction.user.id,
+          );
+          return;
+        }
+        const waitSec = Math.ceil((3 * 60 * 1000 - idleMs) / 1000);
         return interaction.reply({
-          content: "Trò chơi đang chạy rồi. Dùng stop để làm mới ván hiện tại.",
+          content: `Trò chơi đang chạy với từ: **${currentGame.currentWord}**.\nNếu ván bị kẹt hoặc đơ, bạn có thể dùng lại lệnh này để làm mới sau 3 phút kể từ lượt gần nhất (còn **${waitSec}s**).`,
           ephemeral: true,
         });
       }
@@ -669,13 +687,16 @@ module.exports = {
     }
 
     if (subcommand === "stop") {
+      const currentGame = getGameState(client, interaction.guild.id);
+      const isIdle = currentGame?.running && (Date.now() - (currentGame.lastUpdatedAt || 0) > 3 * 60 * 1000);
       if (
+        !isIdle &&
         !interaction.member.permissions.has(
           PermissionsBitField.Flags.ManageChannels,
         )
       ) {
         return interaction.reply({
-          content: "Bạn không có quyền dùng lệnh này.",
+          content: "Bạn cần quyền Quản lý kênh để dừng ván đang chơi. (Nếu ván bị đơ/không ai chơi quá 3 phút, bất kỳ ai cũng có thể làm mới).",
           ephemeral: true,
         });
       }
@@ -689,7 +710,6 @@ module.exports = {
           ephemeral: true,
         });
       }
-      const currentGame = getGameState(client, interaction.guild.id);
       if (!currentGame?.running) {
         return interaction.reply({
           content: "Ván chơi chưa bắt đầu. Hãy dùng start trước.",

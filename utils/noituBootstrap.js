@@ -34,6 +34,7 @@ function ensureFile(filePath, defaultContent = "") {
 
 function normalizeWord(word) {
   return String(word || "")
+    .normalize("NFC")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");

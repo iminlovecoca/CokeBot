@@ -84,9 +84,12 @@ module.exports = {
       anticheatCheck?.status === "TRIGGER_VERIFICATION";
 
     if (!shouldLoadUser) {
-      
-      const handledNoituGame = await handleNoituMessage(message, client);
-      if (handledNoituGame) return;
+      try {
+        const handledNoituGame = await handleNoituMessage(message, client);
+        if (handledNoituGame) return;
+      } catch (err) {
+        console.error("[Noitu] Error in handleNoituMessage (fast path):", err);
+      }
       return;
     }
 
@@ -314,8 +317,12 @@ module.exports = {
 
       // For non-command messages: noitu game handling still blocks as before.
       if (!isCommand) {
-        const handledNoituGame = await handleNoituMessage(message, client);
-        if (handledNoituGame) return;
+        try {
+          const handledNoituGame = await handleNoituMessage(message, client);
+          if (handledNoituGame) return;
+        } catch (err) {
+          console.error("[Noitu] Error in handleNoituMessage (full path):", err);
+        }
       }
 
       // Dispatch the command FIRST so its response is not delayed by the

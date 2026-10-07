@@ -25,83 +25,78 @@ if (!fs.existsSync(roundPlayedPath)) {
   fs.writeFileSync(roundPlayedPath, "0");
 }
 
-let wordBankCache = [];
-let wordBankSourceMtime = 0;
-
-function readWordBankSource() {
-  if (fs.existsSync(officialWordsPath)) {
-    return {
-      path: officialWordsPath,
-      mtime: fs.statSync(officialWordsPath).mtimeMs,
-      words: fs
-        .readFileSync(officialWordsPath, "utf8")
-        .split(/\r?\n/)
-        .map(normalizeWord)
-        .filter((word) => word.split(/\s+/).length === 2),
-    };
-  }
-
-  return {
-    path: gwDataPath,
-    mtime: fs.existsSync(gwDataPath) ? fs.statSync(gwDataPath).mtimeMs : 0,
-    words: fs.existsSync(gwDataPath)
-      ? JSON.parse(fs.readFileSync(gwDataPath, "utf8"))
-          .map(normalizeWord)
-          .filter((word) => word.split(/\s+/).length === 2)
-      : [],
-  };
-}
-
-function getWordBank() {
-  const source = readWordBankSource();
-  if (source.mtime !== wordBankSourceMtime) {
-    wordBankCache = source.words;
-    wordBankSourceMtime = source.mtime;
-  }
-  return wordBankCache;
-}
-
-let reportWords = fs
-  .readFileSync(reportWordsPath, "utf8")
-  .split(/\r?\n/)
-  .map(normalizeWord)
-  .filter(Boolean);
-
 function readIntegerFile(filePath) {
-  return parseInt(fs.readFileSync(filePath, "utf8"), 10) || 0;
+  try {
+    return parseInt(fs.readFileSync(filePath, "utf8"), 10) || 0;
+  } catch {
+    return 0;
+  }
 }
 
-function writeIntegerFile(filePath, value) {
-  fs.writeFileSync(filePath, String(value));
+// In-memory counters with non-blocking debounced disk persistence
+let queryCount = readIntegerFile(queryPath);
+let wordPlayedCount = readIntegerFile(wordPlayedPath);
+let roundPlayedCount = readIntegerFile(roundPlayedPath);
+
+let querySaveTimer = null;
+function addQuery(count = 1) {
+  queryCount += count;
+  if (!querySaveTimer) {
+    querySaveTimer = setTimeout(() => {
+      querySaveTimer = null;
+      fs.writeFile(queryPath, String(queryCount), () => {});
+    }, 2000);
+  }
+}
+
+let wordSaveTimer = null;
+function addWordPlayedCount() {
+  wordPlayedCount += 1;
+  if (!wordSaveTimer) {
+    wordSaveTimer = setTimeout(() => {
+      wordSaveTimer = null;
+      fs.writeFile(wordPlayedPath, String(wordPlayedCount), () => {});
+    }, 2000);
+  }
+}
+
+let roundSaveTimer = null;
+function addRoundPlayedCount() {
+  roundPlayedCount += 1;
+  if (!roundSaveTimer) {
+    roundSaveTimer = setTimeout(() => {
+      roundSaveTimer = null;
+      fs.writeFile(roundPlayedPath, String(roundPlayedCount), () => {});
+    }, 2000);
+  }
 }
 
 function getQuery() {
-  return readIntegerFile(queryPath);
-}
-
-function addQuery(query = 1) {
-  writeIntegerFile(queryPath, getQuery() + query);
+  return queryCount;
 }
 
 function getWordPlayedCount() {
-  return readIntegerFile(wordPlayedPath);
-}
-
-function addWordPlayedCount() {
-  writeIntegerFile(wordPlayedPath, getWordPlayedCount() + 1);
+  return wordPlayedCount;
 }
 
 function getRoundPlayedCount() {
-  return readIntegerFile(roundPlayedPath);
+  return roundPlayedCount;
 }
 
-function addRoundPlayedCount() {
-  writeIntegerFile(roundPlayedPath, getRoundPlayedCount() + 1);
-}
-
+// Robust Vietnamese word normalizer
+// Normalizes Unicode to NFC (resolves iOS/macOS NFD mismatch)
+// Strips zero-width chars, markdown, emojis, and leading/trailing punctuation
 function normalizeWord(text) {
-  return String(text || "")
+  if (!text) return "";
+  return String(text)
+    .normalize("NFC")
+    .replace(/<a?:[a-zA-Z0-9_]+:[0-9]+>/g, "")
+    .replace(/[\u200B-\u200D\uFEFF\u00A0\u00AD]/g, "")
+    .replace(/[*_~`]/g, "")
+    .replace(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu, "")
     .toLowerCase()
+    .trim()
+    .replace(/^[\.,!?;:'"“”(){\}\[\]\-\\\/]+|[\.,!?;:'"“”(){\}\[\]\-\\\/]+$/g, "")
     .trim()
     .replace(/\s+/g, " ");
 }
@@ -116,58 +111,135 @@ function getFirstToken(word) {
   return parts[0] || "";
 }
 
-function hasContinuation(word, usedWords = []) {
-  const lastToken = getLastToken(word);
-  if (!lastToken) return false;
+// High-performance word bank caches:
+// - wordBankCache: Array for full compatibility
+// - wordSetCache: Set for O(1) existence checks
+// - firstTokenMapCache: Map<firstToken, string[]> for O(1) continuation lookups
+let wordBankCache = [];
+let wordSetCache = new Set();
+let firstTokenMapCache = new Map();
+let wordBankSourceMtime = 0;
 
-  const wordBank = getWordBank();
-  const usedSet = new Set(usedWords.map(normalizeWord));
-  return wordBank.some((candidate) => {
-    const normalized = normalizeWord(candidate);
-    return (
-      normalized !== normalizeWord(word) &&
-      !usedSet.has(normalized) &&
-      getFirstToken(normalized) === lastToken
-    );
-  });
+function buildWordBankIndices(words) {
+  wordBankCache = words;
+  wordSetCache = new Set(words);
+  firstTokenMapCache = new Map();
+
+  for (const w of words) {
+    const first = getFirstToken(w);
+    if (!first) continue;
+    let list = firstTokenMapCache.get(first);
+    if (!list) {
+      list = [];
+      firstTokenMapCache.set(first, list);
+    }
+    list.push(w);
+  }
 }
 
+function readWordBankSource() {
+  if (fs.existsSync(officialWordsPath)) {
+    try {
+      const stat = fs.statSync(officialWordsPath);
+      const words = fs
+        .readFileSync(officialWordsPath, "utf8")
+        .split(/\r?\n/)
+        .map(normalizeWord)
+        .filter((word) => word.split(/\s+/).length === 2);
+      return {
+        path: officialWordsPath,
+        mtime: stat.mtimeMs,
+        words,
+      };
+    } catch (err) {
+      console.error("[Noitu] Error reading official words:", err);
+    }
+  }
+
+  if (fs.existsSync(gwDataPath)) {
+    try {
+      const stat = fs.statSync(gwDataPath);
+      const words = JSON.parse(fs.readFileSync(gwDataPath, "utf8"))
+        .map(normalizeWord)
+        .filter((word) => word.split(/\s+/).length === 2);
+      return {
+        path: gwDataPath,
+        mtime: stat.mtimeMs,
+        words,
+      };
+    } catch (err) {
+      console.error("[Noitu] Error reading gwdata:", err);
+    }
+  }
+
+  return {
+    path: null,
+    mtime: 0,
+    words: [],
+  };
+}
+
+function getWordBank() {
+  const source = readWordBankSource();
+  if (source.mtime !== wordBankSourceMtime || wordBankCache.length === 0) {
+    buildWordBankIndices(source.words);
+    wordBankSourceMtime = source.mtime;
+  }
+  return wordBankCache;
+}
+
+// Ensure initial word bank index is loaded on start
+getWordBank();
+
+let reportWords = [];
+try {
+  if (fs.existsSync(reportWordsPath)) {
+    reportWords = fs
+      .readFileSync(reportWordsPath, "utf8")
+      .split(/\r?\n/)
+      .map(normalizeWord)
+      .filter(Boolean);
+  }
+} catch {
+  reportWords = [];
+}
+
+// O(1) continuation check using token map
+function hasContinuation(word, usedWords = []) {
+  const normalizedWord = normalizeWord(word);
+  const lastToken = getLastToken(normalizedWord);
+  if (!lastToken) return false;
+
+  getWordBank(); // ensure indices loaded
+  const candidates = firstTokenMapCache.get(lastToken);
+  if (!candidates || candidates.length === 0) return false;
+
+  const usedSet = new Set(usedWords.map(normalizeWord));
+  return candidates.some((candidate) => candidate !== normalizedWord && !usedSet.has(candidate));
+}
+
+// O(1) fast random word picker with continuation guarantee
 function getRandomWord(usedWords = []) {
-  const wordBank = getWordBank();
+  getWordBank();
+  if (wordBankCache.length === 0) return null;
+
   const usedSet = new Set(usedWords.map(normalizeWord));
 
-  const firstTokenMap = new Map();
-  for (const word of wordBank) {
-    const normalized = normalizeWord(word);
-    if (!usedSet.has(normalized)) {
-      const first = getFirstToken(normalized);
-      if (!firstTokenMap.has(first)) {
-        firstTokenMap.set(first, []);
-      }
-      firstTokenMap.get(first).push(normalized);
+  for (let i = 0; i < 100; i++) {
+    const candidate = wordBankCache[Math.floor(Math.random() * wordBankCache.length)];
+    if (!usedSet.has(candidate) && hasContinuation(candidate, usedWords)) {
+      return candidate;
     }
   }
 
-  const candidates = [];
-  for (const word of wordBank) {
-    const normalized = normalizeWord(word);
-    if (!usedSet.has(normalized)) {
-      const last = getLastToken(normalized);
-      const matches = firstTokenMap.get(last);
-      if (matches) {
-        const hasValidContinuation = matches.some((candidate) => candidate !== normalized);
-        if (hasValidContinuation) {
-          candidates.push(normalized);
-        }
-      }
+  // Fallback to any unused candidate
+  for (const candidate of wordBankCache) {
+    if (!usedSet.has(candidate)) {
+      return candidate;
     }
   }
 
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  return wordBankCache[0] || null;
 }
 
 function getNoituStatsSnapshot(user, guildId) {
@@ -183,37 +255,42 @@ function getNoituStatsSnapshot(user, guildId) {
 }
 
 async function upsertNoituStats(userId, guildId, patch = {}) {
-  const setPayload = {};
-  const incPayload = {};
+  try {
+    const setPayload = {};
+    const incPayload = {};
 
-  for (const [key, value] of Object.entries(patch)) {
-    if (typeof value === "number") {
-      incPayload[`noituStats.${guildId}.${key}`] = value;
-    } else {
-      setPayload[`noituStats.${guildId}.${key}`] = value;
+    for (const [key, value] of Object.entries(patch)) {
+      if (typeof value === "number") {
+        incPayload[`noituStats.${guildId}.${key}`] = value;
+      } else {
+        setPayload[`noituStats.${guildId}.${key}`] = value;
+      }
     }
+
+    setPayload[`noituStats.${guildId}.lastPlayedAt`] = new Date();
+
+    await User.updateOne(
+      { userId },
+      {
+        ...(Object.keys(setPayload).length ? { $set: setPayload } : {}),
+        ...(Object.keys(incPayload).length ? { $inc: incPayload } : {}),
+      },
+      { upsert: true },
+    );
+  } catch (err) {
+    console.error(`[Noitu] Failed to upsert stats for user ${userId}:`, err?.message);
   }
-
-  setPayload[`noituStats.${guildId}.lastPlayedAt`] = new Date();
-
-  await User.updateOne(
-    { userId },
-    {
-      ...(Object.keys(setPayload).length ? { $set: setPayload } : {}),
-      ...(Object.keys(incPayload).length ? { $inc: incPayload } : {}),
-    },
-    { upsert: true },
-  );
 }
 
+// Fast O(1) dictionary and continuation checks
 function isValidNextWord(currentWord, nextWord, usedWords = []) {
-  const wordBank = getWordBank();
+  getWordBank();
   const normalizedNext = normalizeWord(nextWord);
   if (!normalizedNext || normalizedNext.split(/\s+/).length !== 2) {
     return false;
   }
 
-  if (!wordBank.includes(normalizedNext)) {
+  if (!wordSetCache.has(normalizedNext)) {
     return false;
   }
 
@@ -229,19 +306,33 @@ function isValidNextWord(currentWord, nextWord, usedWords = []) {
   return getFirstToken(normalizedNext) === getLastToken(currentWord);
 }
 
+// Guild configs cache with TTL to avoid permanent null locks
 const guildConfigsCache = new Map();
+const GUILD_CONFIG_TTL = 60 * 1000;
 
 async function getGuildConfig(guildId) {
-  if (guildConfigsCache.has(guildId)) {
-    return guildConfigsCache.get(guildId);
+  if (!guildId) return null;
+  const cached = guildConfigsCache.get(guildId);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    return cached.config;
   }
-  const config = await NoituGuild.findOne({ guildId }).lean();
-  guildConfigsCache.set(guildId, config);
-  return config;
+  try {
+    const config = await NoituGuild.findOne({ guildId }).lean();
+    guildConfigsCache.set(guildId, {
+      config,
+      expiresAt: now + (config ? GUILD_CONFIG_TTL : 5000), // if null, only cache 5s for auto-recovery
+    });
+    return config;
+  } catch (err) {
+    console.error(`[Noitu] Failed to fetch guild config for ${guildId}:`, err?.message);
+    return cached?.config || null;
+  }
 }
 
 function checkWordIfInDictionary(word) {
-  return getWordBank().includes(normalizeWord(word));
+  getWordBank();
+  return wordSetCache.has(normalizeWord(word));
 }
 
 function checkWordIfInReportDictionary(word) {
@@ -255,11 +346,16 @@ function addWordToDictionary(word) {
   }
 
   const nextBank = [...getWordBank(), normalized];
-  fs.writeFileSync(officialWordsPath, nextBank.join("\n"));
-  fs.writeFileSync(gwDataPath, JSON.stringify(nextBank, null, 2));
-  wordBankCache = nextBank;
-  wordBankSourceMtime = fs.statSync(officialWordsPath).mtimeMs;
-  return true;
+  try {
+    fs.writeFileSync(officialWordsPath, nextBank.join("\n"));
+    fs.writeFileSync(gwDataPath, JSON.stringify(nextBank, null, 2));
+    buildWordBankIndices(nextBank);
+    wordBankSourceMtime = fs.statSync(officialWordsPath).mtimeMs;
+    return true;
+  } catch (err) {
+    console.error("[Noitu] Error adding word to dictionary:", err);
+    return false;
+  }
 }
 
 function getReportWords() {
@@ -273,8 +369,13 @@ function addWordToReportList(word) {
   }
 
   reportWords.push(normalized);
-  fs.writeFileSync(reportWordsPath, reportWords.join("\n"));
-  return true;
+  try {
+    fs.writeFileSync(reportWordsPath, reportWords.join("\n"));
+    return true;
+  } catch (err) {
+    console.error("[Noitu] Error adding word to report list:", err);
+    return false;
+  }
 }
 
 function countWordInDictionary() {
@@ -303,7 +404,6 @@ function getGameState(client, guildId) {
   if (!client.noituGames) {
     client.noituGames = new Map();
   }
-
   return client.noituGames.get(guildId) || null;
 }
 
@@ -314,7 +414,6 @@ function setGameState(client, guildId, state) {
 
   client.noituGames.set(guildId, state);
 
-  
   NoituGuild.updateOne(
     { guildId },
     {
@@ -331,7 +430,7 @@ function setGameState(client, guildId, state) {
     },
     { upsert: true }
   ).catch((err) => {
-    console.error(`❌ [Noitu DB] Failed to save state for guild ${guildId}:`, err);
+    console.error(`❌ [Noitu DB] Failed to save state for guild ${guildId}:`, err?.message);
   });
 }
 
@@ -340,7 +439,6 @@ function clearGameState(client, guildId) {
     client.noituGames.delete(guildId);
   }
 
-  
   NoituGuild.updateOne(
     { guildId },
     {
@@ -352,14 +450,16 @@ function clearGameState(client, guildId) {
       },
     }
   ).catch((err) => {
-    console.error(`❌ [Noitu DB] Failed to clear state for guild ${guildId}:`, err);
+    console.error(`❌ [Noitu DB] Failed to clear state for guild ${guildId}:`, err?.message);
   });
 }
 
 async function createGameStartMessage(channel, word) {
   return channel.send(
     `Từ bắt đầu: **${word}**\nHãy nối tiếp bằng 2 tiếng và dùng cùng tiếng cuối của từ trước.`,
-  );
+  ).catch((err) => {
+    console.error("[Noitu] Error sending game start message:", err?.message);
+  });
 }
 
 async function startNoituGame(client, guildId, channel, starterId = null) {
@@ -369,12 +469,14 @@ async function startNoituGame(client, guildId, channel, starterId = null) {
     throw new Error("Không tìm thấy từ mở đầu phù hợp trong ngân hàng từ.");
   }
 
+  const normalized = normalizeWord(nextWord);
+
   setGameState(client, guildId, {
     running: true,
     channelId: channel.id,
-    currentWord: normalizeWord(nextWord),
+    currentWord: normalized,
     currentPlayerId: null,
-    words: [normalizeWord(nextWord)],
+    words: [normalized],
     lastUpdatedAt: Date.now(),
   });
 
@@ -392,7 +494,35 @@ async function stopNoituGame(client, guildId) {
   return true;
 }
 
+// Sequential Message Queue per Guild to prevent race conditions & desyncs
+const guildQueues = new Map();
+
 async function handleNoituMessage(message, client) {
+  const guildId = message.guild?.id;
+  if (!guildId) return false;
+
+  const prevPromise = guildQueues.get(guildId) || Promise.resolve();
+  let release;
+  const currentPromise = new Promise((resolve) => {
+    release = resolve;
+  });
+  guildQueues.set(guildId, currentPromise);
+
+  try {
+    await prevPromise;
+    return await processNoituMessage(message, client);
+  } catch (error) {
+    console.error(`[Noitu] Error processing message in guild ${guildId}:`, error);
+    return false;
+  } finally {
+    release();
+    if (guildQueues.get(guildId) === currentPromise) {
+      guildQueues.delete(guildId);
+    }
+  }
+}
+
+async function processNoituMessage(message, client) {
   if (!message.guild || message.author.bot) {
     return false;
   }
@@ -404,18 +534,22 @@ async function handleNoituMessage(message, client) {
 
   let state = getGameState(client, message.guild.id);
   if (!state) {
-    const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
-    if (guildDoc?.gameState?.running) {
-      state = {
-        running: guildDoc.gameState.running,
-        channelId: guildDoc.gameState.channelId,
-        currentWord: guildDoc.gameState.currentWord,
-        currentPlayerId: guildDoc.gameState.currentPlayerId,
-        words: guildDoc.gameState.words || [],
-        lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
-      };
-      if (!client.noituGames) client.noituGames = new Map();
-      client.noituGames.set(message.guild.id, state);
+    try {
+      const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
+      if (guildDoc?.gameState?.running) {
+        state = {
+          running: guildDoc.gameState.running,
+          channelId: guildDoc.gameState.channelId,
+          currentWord: guildDoc.gameState.currentWord,
+          currentPlayerId: guildDoc.gameState.currentPlayerId,
+          words: guildDoc.gameState.words || [],
+          lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
+        };
+        if (!client.noituGames) client.noituGames = new Map();
+        client.noituGames.set(message.guild.id, state);
+      }
+    } catch (dbErr) {
+      console.error("[Noitu] Error loading fallback game state from DB:", dbErr?.message);
     }
   }
 
@@ -423,13 +557,14 @@ async function handleNoituMessage(message, client) {
     return false;
   }
 
-  const content = normalizeWord(message.content);
-  if (!content) {
+  const rawContent = message.content;
+  if (!rawContent) {
     return false;
   }
 
-  if (content.startsWith(config.prefix)) {
-    const commandTokens = content
+  const contentLower = rawContent.toLowerCase().trim();
+  if (contentLower.startsWith(config.prefix)) {
+    const commandTokens = contentLower
       .slice(config.prefix.length)
       .trim()
       .split(/\s+/);
@@ -450,9 +585,14 @@ async function handleNoituMessage(message, client) {
   }
 
   if (
-    content.startsWith(`${config.prefix} noitu`) ||
-    content.startsWith(`${config.prefix}noitu`)
+    contentLower.startsWith(`${config.prefix} noitu`) ||
+    contentLower.startsWith(`${config.prefix}noitu`)
   ) {
+    return false;
+  }
+
+  const content = normalizeWord(rawContent);
+  if (!content) {
     return false;
   }
 
@@ -461,11 +601,12 @@ async function handleNoituMessage(message, client) {
     return false;
   }
 
-  await upsertNoituStats(message.author.id, message.guild.id, {
+  // Non-blocking background update of user display name and avatar
+  upsertNoituStats(message.author.id, message.guild.id, {
     name: message.member?.displayName || message.author.username,
     avatar:
       message.author.displayAvatarURL?.() || message.author.avatarURL?.() || "",
-  });
+  }).catch(() => {});
 
   addQuery(1);
 
@@ -489,12 +630,12 @@ async function handleNoituMessage(message, client) {
 
   if (!isValidNextWord(currentWord, normalizedContent, state.words)) {
     await message.react("⛔").catch(() => {});
-    await User.updateOne(
+    User.updateOne(
       { userId: message.author.id },
       { $inc: { noituAttempts: 1 }, $set: { noituLastPlayedAt: new Date() } },
       { upsert: true },
-    );
-    await upsertNoituStats(message.author.id, message.guild.id, { total: 1 });
+    ).catch(() => {});
+    upsertNoituStats(message.author.id, message.guild.id, { total: 1 }).catch(() => {});
     return true;
   }
 
@@ -504,45 +645,49 @@ async function handleNoituMessage(message, client) {
   state.lastUpdatedAt = Date.now();
   setGameState(client, message.guild.id, state);
 
-  await User.updateOne(
+  User.updateOne(
     { userId: message.author.id },
     {
       $inc: { noituAttempts: 1, noituCorrect: 1 },
       $set: { noituLastPlayedAt: new Date() },
     },
     { upsert: true },
-  );
-  await upsertNoituStats(message.author.id, message.guild.id, {
+  ).catch(() => {});
+  upsertNoituStats(message.author.id, message.guild.id, {
     true: 1,
     total: 1,
-  });
+  }).catch(() => {});
   addWordPlayedCount();
 
   await message.react("✅").catch(() => {});
 
   if (!hasContinuation(content, state.words)) {
-    await User.updateOne(
+    User.updateOne(
       { userId: message.author.id },
       {
         $inc: { noituWins: 1, coke: 40000 },
         $set: { noituLastPlayedAt: new Date() },
       },
       { upsert: true },
-    );
-    await upsertNoituStats(message.author.id, message.guild.id, { win: 1 });
+    ).catch(() => {});
+    upsertNoituStats(message.author.id, message.guild.id, { win: 1 }).catch(() => {});
     addRoundPlayedCount();
 
     await message.channel.send(
       `👑 **${message.member?.displayName || message.author.username}** chiến thắng sau **${state.words.length - 1} lượt**! Nhận **40,000 coke**.\n` +
         "Lượt mới bắt đầu!",
-    );
+    ).catch(() => {});
 
-    await startNoituGame(
-      client,
-      message.guild.id,
-      message.channel,
-      message.author.id,
-    );
+    try {
+      await startNoituGame(
+        client,
+        message.guild.id,
+        message.channel,
+        message.author.id,
+      );
+    } catch (startErr) {
+      console.error("[Noitu] Error auto-restarting round after win:", startErr);
+    }
   }
 
   return true;
