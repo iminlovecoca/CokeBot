@@ -4,6 +4,9 @@ const dns = require("dns");
 if (typeof dns.setDefaultResultOrder === "function") {
   dns.setDefaultResultOrder("ipv4first");
 }
+try {
+  dns.setServers(["1.1.1.1", "8.8.8.8", "1.0.0.1", "8.8.4.4"]);
+} catch (e) {}
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -75,7 +78,7 @@ process.on("uncaughtException", (error) => {
   if (
     error &&
     !(error.message || "").match(
-      /EAI_AGAIN|getaddrinfo|ENOTFOUND|ECONNRESET|UND_ERR_CONNECT_TIMEOUT|ECONNTIMEDOUT|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ECONNREFUSED|EPIPE/i,
+      /EAI_AGAIN|getaddrinfo|ENOTFOUND|ECONNRESET|UND_ERR_CONNECT_TIMEOUT|ECONNTIMEDOUT|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|ECONNREFUSED|EPIPE|AbortError|SocketError|FetchError|GatewayUnavailable|WebSocket/i,
     )
   ) {
     console.error("Shutting down process due to unrecoverable error...");
@@ -97,17 +100,43 @@ const client = new Client({
     Partials.Reaction,
     Partials.User,
   ],
+  makeCache: Options.cacheWithLimits({
+    ...Options.DefaultMakeCacheSettings,
+    MessageManager: 50,
+    ThreadMemberManager: 0,
+    PresenceManager: 0,
+    VoiceStateManager: 0,
+    StageInstanceManager: 0,
+    AutoModerationRuleManager: 0,
+    GuildScheduledEventManager: 0,
+    GuildInviteManager: 0,
+  }),
   sweepers: {
     ...Options.DefaultSweeperSettings,
     messages: {
-      interval: 3600, 
-      lifetime: 1800, 
+      interval: 300,
+      lifetime: 180,
     },
     users: {
-      interval: 3600, 
-      filter: () => (user) => user.id !== client.user.id, 
-    }
-  }
+      interval: 600,
+      filter: () => (user) => user.id !== client.user?.id,
+    },
+    threads: {
+      interval: 600,
+      lifetime: 1800,
+    },
+    guildMembers: {
+      interval: 600,
+      filter: () => (member) => member.id !== client.user?.id,
+    },
+  },
+  ws: {
+    large_threshold: 50,
+  },
+  rest: {
+    timeout: 15000,
+    retries: 3,
+  },
 });
 
 const discordMakeRequest = client.rest.options.makeRequest;
@@ -462,10 +491,11 @@ client.once(Events.ClientReady, async () => {
 async function connectWithRetry() {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      maxPoolSize: 100,
-      minPoolSize: 10,
-      socketTimeoutMS: 45000,
-      serverSelectionTimeoutMS: 20000,
+      maxPoolSize: 50,
+      minPoolSize: 5,
+      socketTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 15000,
+      heartbeatFrequencyMS: 10000,
       retryWrites: true,
       family: 4,
     });

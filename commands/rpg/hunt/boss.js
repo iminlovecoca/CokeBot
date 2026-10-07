@@ -97,7 +97,7 @@ const sendRewardDm = async ({
   keyDropped,
   topBonus,
 }) => {
-  const discordUser = await client.users.fetch(userId).catch(() => null);
+  const discordUser = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
   if (!discordUser) return;
   const gearLines = gears
     .map(
@@ -461,7 +461,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
               user.markModified("inventory");
             }
           }
-          const discordUser = await client.users.fetch(userId).catch(() => null);
+          const discordUser = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
           var top3Result = {
             rank: topBonus.rank,
             label: topBonus.label,
@@ -1346,9 +1346,7 @@ const handleFightInteraction = async (interaction) => {
       flags: 64,
     });
   }
-  const channel = await interaction.client.channels
-    .fetch(finalChannelId)
-    .catch(() => null);
+  const channel = interaction.channel || interaction.client.channels.cache.get(finalChannelId) || (await interaction.client.channels.fetch(finalChannelId).catch(() => null));
   if (!channel || !channel.isTextBased()) {
     return safeInteractionReply(interaction, {
       content: "Không tìm thấy channel boss.",
@@ -1384,9 +1382,7 @@ const handleFightInteraction = async (interaction) => {
 };
 const handleReviveInteraction = async (interaction) => {
   const [, channelId] = interaction.customId.split(":");
-  const channel = await interaction.client.channels
-    .fetch(channelId || interaction.channelId)
-    .catch(() => null);
+  const channel = interaction.channel || interaction.client.channels.cache.get(channelId || interaction.channelId) || (await interaction.client.channels.fetch(channelId || interaction.channelId).catch(() => null));
   if (!channel || !channel.isTextBased()) {
     return safeInteractionReply(interaction, {
       content: "Không tìm thấy channel boss.",
@@ -1455,7 +1451,7 @@ const fs = require("fs");
 const path = require("path");
 const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   const userId = escrow.userId;
-  const userDiscord = await client.users.fetch(userId).catch(() => null);
+  const userDiscord = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
   const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -1513,7 +1509,7 @@ const startSoulRealmInvite = async (client, channel, activeBoss, escrow) => {
   });
 };
 const startSoulRealmDialogue = async (client, channel, userId) => {
-  const userDiscord = await client.users.fetch(userId).catch(() => null);
+  const userDiscord = client.users.cache.get(userId) || (await client.users.fetch(userId).catch(() => null));
   const displayName = userDiscord ? userDiscord.displayName || userDiscord.username : `<@${userId}>`;
   await channel.send(`💬 **Malzareth**: *Xem ai bước vào kia 1 kẻ không sợ chết !*`);
   await new Promise(resolve => setTimeout(resolve, 3000));

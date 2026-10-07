@@ -27,7 +27,7 @@ const initializeSpawner = (client) => {
 
   const fetchTrackedChannel = async (channelId) => {
     try {
-      return await client.channels.fetch(channelId);
+      return client.channels.cache.get(channelId) || (await client.channels.fetch(channelId));
     } catch (error) {
       if (isMissingChannelError(error)) {
         console.warn(

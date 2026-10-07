@@ -14,4 +14,6 @@ const noituGuildSchema = new mongoose.Schema({
   }
 });
 
+noituGuildSchema.index({ "gameState.running": 1 });
+
 module.exports = mongoose.model("NoituGuild", noituGuildSchema);

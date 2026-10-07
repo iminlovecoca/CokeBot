@@ -31,8 +31,10 @@ function checkInternet(timeout = 4000) {
         connectTimeout: 3000,
         method: "GET",
       })
-        .then((res) => {
-          res.body?.cancel?.();
+        .then(async (res) => {
+          try {
+            await res.body.dump();
+          } catch {}
           return true;
         })
         .catch(() => false),
@@ -52,21 +54,35 @@ function startNetworkMonitor(client) {
   let consecutiveFailures = 0;
   let firstFailureTime = 0;
   let shardDisconnectTimes = {};
-  const CHECK_INTERVAL = 30_000;
-  const MAX_FAILURES = 3;
-  const MIN_DURATION_MS = 90_000;
-  const SHARD_DISCONNECT_TIMEOUT = 90_000;
+  const CHECK_INTERVAL = 20_000;
+  const SHARD_STUCK_TIMEOUT = 180_000; // 3 phút
 
-  console.log("🔍 Network Monitor khởi động (kiểm tra mạng mỗi 30 giây).");
+  console.log("🔍 Network Monitor khởi động (giám sát kết nối mạng thông minh).");
 
-  const intervalId = setInterval(async () => {
+  setInterval(async () => {
     const isOnline = await checkInternet();
 
     if (isOnline) {
       if (consecutiveFailures > 0) {
-        console.log(`✅ Mạng đã phục hồi. Reset bộ đếm lỗi.`);
+        console.log(`✅ Mạng VPS đã phục hồi sau ${consecutiveFailures} lần kiểm tra. Reset bộ đếm lỗi.`);
         consecutiveFailures = 0;
         firstFailureTime = 0;
+
+        // Nếu mạng có lại mà WebSocket chưa online, kích hoạt reconnect các shard
+        if (client.ws.status !== 0 && client.ws.status !== 1 && client.ws.status !== 2) {
+          console.warn("⚠️ Mạng đã online nhưng Gateway chưa sẵn sàng. Đang kích hoạt reconnect...");
+          try {
+            if (client.ws.shards && client.ws.shards.size > 0) {
+              for (const shard of client.ws.shards.values()) {
+                if (shard.status !== 0 && shard.status !== 1 && shard.status !== 2) {
+                  shard.connect().catch((e) => console.warn(`[Shard ${shard.id}] Lỗi reconnect:`, e?.message));
+                }
+              }
+            }
+          } catch (reconnectErr) {
+            console.warn("Lỗi khi kiểm tra shard reconnect:", reconnectErr?.message);
+          }
+        }
       }
     } else {
       if (consecutiveFailures === 0) {
@@ -74,24 +90,22 @@ function startNetworkMonitor(client) {
       }
       consecutiveFailures++;
       const elapsed = Date.now() - firstFailureTime;
-
-      // Chỉ restart khi ĐỦ số lần fail VÀ kéo dài ĐỦ lâu (>90s)
-      const shouldRestart =
-        consecutiveFailures >= MAX_FAILURES && elapsed >= MIN_DURATION_MS;
-
-      if (shouldRestart) {
-        console.error(`❌ Mất mạng ${consecutiveFailures} lần liên tiếp trong ${Math.round(elapsed / 1000)}s. Restart process...`);
-        clearInterval(intervalId);
-        process.exit(1);
-      } else {
-        console.warn(`⚠️ Mất kết nối mạng lần ${consecutiveFailures}/${MAX_FAILURES} (${Math.round(elapsed / 1000)}s).`);
+      // QUAN TRỌNG: TUYỆT ĐỐI KHÔNG exit process khi mạng đang mất!
+      // Giữ process sống để khi VPS có mạng lại, bot tự động kết nối lại tức thì mà không bị PM2 crash loop.
+      if (consecutiveFailures % 3 === 0 || consecutiveFailures === 1) {
+        console.warn(`⚠️ Mất kết nối mạng lần ${consecutiveFailures} (~${Math.round(elapsed / 1000)}s). Đang giữ process sống và chờ mạng hồi phục...`);
       }
     }
   }, CHECK_INTERVAL);
 
   client.on(Events.ShardDisconnect, (event, shardId) => {
-    console.warn(`⚠️ Shard ${shardId} mất kết nối gateway (code: ${event?.code}). Discord.js sẽ tự reconnect.`);
+    console.warn(`⚠️ Shard ${shardId} mất kết nối gateway (code: ${event?.code}). Discord.js đang tự động resume/reconnect.`);
     shardDisconnectTimes[shardId] = Date.now();
+  });
+
+  client.on(Events.ShardResume, (shardId, replayedEvents) => {
+    console.log(`⚡ Shard ${shardId} đã resume thành công (${replayedEvents} events).`);
+    delete shardDisconnectTimes[shardId];
   });
 
   client.on(Events.ShardReady, (shardId) => {
@@ -102,16 +116,27 @@ function startNetworkMonitor(client) {
     }
   });
 
-  setInterval(() => {
+  // Watchdog: Chỉ can thiệp nếu mạng đã online mà shard bị kẹt không tự kết nối lại sau 3 phút
+  setInterval(async () => {
     const now = Date.now();
     for (const [shardId, disconnectTime] of Object.entries(shardDisconnectTimes)) {
-      if (now - disconnectTime > SHARD_DISCONNECT_TIMEOUT) {
-        console.error(`❌ Shard ${shardId} mất kết nối quá ${SHARD_DISCONNECT_TIMEOUT / 1000}s. Restart process...`);
-        clearInterval(intervalId);
-        process.exit(1);
+      if (now - disconnectTime > SHARD_STUCK_TIMEOUT) {
+        const isOnline = await checkInternet(3000);
+        if (isOnline) {
+          console.warn(`⚠️ Mạng bình thường nhưng Shard ${shardId} kẹt mất kết nối > ${SHARD_STUCK_TIMEOUT / 1000}s. Thử kích hoạt lại shard...`);
+          try {
+            const shard = client.ws.shards.get(Number(shardId));
+            if (shard) {
+              await shard.connect().catch((e) => console.warn(`Lỗi reconnect shard ${shardId}:`, e?.message));
+              shardDisconnectTimes[shardId] = Date.now(); // reset timer
+            }
+          } catch (e) {
+            console.error(`Không thể reconnect shard ${shardId}:`, e);
+          }
+        }
       }
     }
-  }, 15_000);
+  }, 30_000);
 }
 
 module.exports = { startNetworkMonitor };

@@ -11,6 +11,11 @@ const TRANSIENT_NETWORK_CODES = new Set([
   "ETIMEDOUT",
   "ECONNTIMEDOUT",
   "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_DESTROYED",
+  "UND_ERR_CLOSED",
 ]);
 
 const SAFE_DISCORD_RETRY_CODES = new Set([
@@ -19,7 +24,14 @@ const SAFE_DISCORD_RETRY_CODES = new Set([
   "EHOSTUNREACH",
   "ENOTFOUND",
   "ECONNREFUSED",
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+  "ECONNTIMEDOUT",
   "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
 ]);
 
 const TRANSIENT_NETWORK_NAMES = new Set([
@@ -28,9 +40,12 @@ const TRANSIENT_NETWORK_NAMES = new Set([
   "BodyTimeoutError",
   "SocketError",
   "FetchError",
+  "AbortError",
+  "GatewayUnavailable",
+  "DiscordAPIError",
 ]);
 
-const TRANSIENT_NETWORK_PATTERN = /(?:getaddrinfo|network|socket|connect timeout|connection (?:reset|refused|timed out)|timed out|timeout of \d+ms exceeded|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|ENOTFOUND|ECONNREFUSED|ECONNRESET|EPIPE|UND_ERR_CONNECT_TIMEOUT)/i;
+const TRANSIENT_NETWORK_PATTERN = /(?:getaddrinfo|network|socket|connect timeout|connection (?:reset|refused|timed out)|timed out|timeout of \d+ms exceeded|EAI_AGAIN|ENETUNREACH|EHOSTUNREACH|ENOTFOUND|ECONNREFUSED|ECONNRESET|EPIPE|UND_ERR_CONNECT_TIMEOUT|Service Unavailable|Bad Gateway|Gateway Timeout|Internal Server Error)/i;
 
 const DISCORD_REQUEST_MAX_ATTEMPTS = 3;
 const DISCORD_REQUEST_RETRY_DELAYS_MS = [250, 750];
@@ -54,6 +69,11 @@ function getErrorEntries(error) {
 }
 
 function isTransientNetworkError(error) {
+  if (!error) return false;
+  const status = error.status || error.rawError?.status;
+  if (status === 500 || status === 502 || status === 503 || status === 504) {
+    return true;
+  }
   return getErrorEntries(error).some(({ code, name, message }) =>
     TRANSIENT_NETWORK_CODES.has(code) ||
     TRANSIENT_NETWORK_NAMES.has(name) ||
@@ -62,7 +82,15 @@ function isTransientNetworkError(error) {
 }
 
 function isSafeToRetryDiscordRequest(error) {
-  return getErrorEntries(error).some(({ code }) => SAFE_DISCORD_RETRY_CODES.has(code));
+  if (!error) return false;
+  const status = error.status || error.rawError?.status;
+  if (status === 500 || status === 502 || status === 503 || status === 504) {
+    return true;
+  }
+  return getErrorEntries(error).some(({ code, name }) => 
+    SAFE_DISCORD_RETRY_CODES.has(code) ||
+    TRANSIENT_NETWORK_NAMES.has(name)
+  );
 }
 
 function getErrorCode(error) {

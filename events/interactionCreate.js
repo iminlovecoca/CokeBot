@@ -7,9 +7,10 @@ module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction, client) {
     try {
-      const user = await getOrCreateUser(interaction.user.id);
-      if (user.bannedUntil && user.bannedUntil > new Date()) {
-        const remainingMs = new Date(user.bannedUntil).getTime() - Date.now();
+      if (!client.bannedUsersCache) client.bannedUsersCache = new Map();
+      const cachedBanUntil = client.bannedUsersCache.get(interaction.user.id);
+      if (cachedBanUntil && cachedBanUntil > Date.now()) {
+        const remainingMs = cachedBanUntil - Date.now();
         const replyOptions = {
           content: `🚫 Bạn đang bị cấm sử dụng bot trong ${formatDuration(Math.floor(remainingMs / 1000))} còn lại.`,
           flags: 64, 
