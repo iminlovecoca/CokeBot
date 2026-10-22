@@ -610,10 +610,10 @@ const getWeaponScaling = (item) => {
   }
 
   if (weaponKey.includes("lunashard")) {
-    return { str: "B", dex: "S", int: "-", arc: "A" };
+    return { str: "-", dex: "S", int: "-", arc: "A" };
   }
   if (weaponKey.includes("eclipsesoul")) {
-    return { str: "-", dex: "B", int: "S", arc: "A" };
+    return { str: "-", dex: "-", int: "S", arc: "A" };
   }
   if (weaponKey.includes("axesnake")) {
     return { str: "S", dex: "-", int: "-", arc: "-" };
@@ -631,10 +631,10 @@ const getWeaponScaling = (item) => {
     return { str: "-", dex: "-", int: "-", arc: "S", pr: "S", mr: "S" };
   }
   if (weaponKey.includes("bladesorrow")) {
-    return { str: "S", dex: "A", int: "-", arc: "B" };
+    return { str: "S", dex: "A", int: "-", arc: "-" };
   }
   if (weaponKey.includes("frostgauntlet")) {
-    return { str: "-", dex: "B", int: "S", arc: "A" };
+    return { str: "-", dex: "-", int: "S", arc: "A" };
   }
   if (weaponKey.includes("demonbook")) {
     return { str: "-", dex: "-", int: "S", arc: "A" };
@@ -1471,13 +1471,13 @@ const generateRpgGearDrop = async (user, options = {}) => {
     if (subName.includes("gravitybow")) {
       scaling = { str: "-", dex: "S", int: "A", arc: "B" };
     } else if (subName.includes("lunashard")) {
-      scaling = { str: "B", dex: "S", int: "-", arc: "A" };
+      scaling = { str: "-", dex: "S", int: "-", arc: "A" };
     } else if (subName.includes("eclipsesoul")) {
-      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
     } else if (subName.includes("bladesorrow")) {
-      scaling = { str: "S", dex: "A", int: "-", arc: "B" };
+      scaling = { str: "S", dex: "A", int: "-", arc: "-" };
     } else if (subName.includes("frostgauntlet")) {
-      scaling = { str: "-", dex: "B", int: "S", arc: "A" };
+      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
     } else if (subName.includes("demonbook")) {
       scaling = { str: "-", dex: "-", int: "S", arc: "A" };
     } else if (subName.includes("thorshammer")) {

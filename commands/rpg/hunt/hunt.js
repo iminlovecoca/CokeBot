@@ -3,37 +3,37 @@ const config = require("../../../data/config");
 const { getUser } = require("../../../utils/userUtil");
 const { checkAndSetCooldown, notifyCooldown } = require("../../../utils/cooldown");
 const {
-  addRpgGearToUser,
   addRpgExp,
   calculateRpgPower,
-  generateRpgGearDrop,
   getRpgClass,
-  getRpgXpNeeded,
   hasRpgCharacter,
   pickRpgHuntGround,
   getEffectiveRpgStats,
 } = require("../../../utils/rpgUtil");
-const { getRarityEmoji } = require("../../../utils/rpgUi");
+const { rollAnimal } = require("../../../data/animals");
+
 class HuntCommand extends BaseCommand {
   constructor() {
     super({
       name: "hunt",
       aliases: ["h"],
-      description: "Đi săn để tăng EXP RPG và có tỉ lệ rớt trang bị.",
+      description: "Đi săn thú phong cách OwO, nhận EXP, Coke, Zoo Points và 30% tỉ lệ rơi Hộp Vũ Khí (wc).",
       usage: `${config.prefix}hunt`,
       examples: [
         { intent: "Đi săn", command: `${config.prefix}hunt` },
         { intent: "Đi săn bằng alias", command: `${config.prefix}h` },
       ],
-      cooldown: 0
+      cooldown: 0,
     });
   }
+
   async execute(message) {
     const user = await getUser(message.author.id);
     if (!hasRpgCharacter(user)) {
       const classCommand = message.client.commands.get("class");
       return classCommand.execute(message, []);
     }
+
     const cooldownSeconds = Math.floor(
       (config.rpg.hunt_cooldown_ms || 10000) / 1000,
     );
@@ -45,6 +45,7 @@ class HuntCommand extends BaseCommand {
     if (remaining > 0) {
       return notifyCooldown(message, remaining);
     }
+
     const rpgClass = getRpgClass(user.rpg.classKey);
     const huntGround = pickRpgHuntGround();
     const effectiveStats = getEffectiveRpgStats(user);
@@ -54,32 +55,65 @@ class HuntCommand extends BaseCommand {
     const expGain = Math.floor(
       config.rpg.hunt_base_exp * variance * (1 + expBonus + luck * 0.003),
     );
-    const droppedItem = await generateRpgGearDrop(user);
     const cokeGain = 50 + Math.floor(Math.random() * 125);
+
+    // 1. OwO-Style Animal Catch
+    const caughtAnimal = rollAnimal();
+    user.zoo = user.zoo || {};
+    if (!user.zoo[caughtAnimal.key]) {
+      user.zoo[caughtAnimal.key] = { count: 0, totalCount: 0 };
+    } else if (typeof user.zoo[caughtAnimal.key] === "number") {
+      user.zoo[caughtAnimal.key] = {
+        count: user.zoo[caughtAnimal.key],
+        totalCount: user.zoo[caughtAnimal.key],
+      };
+    }
+    user.zoo[caughtAnimal.key].count += 1;
+    user.zoo[caughtAnimal.key].totalCount += 1;
+    user.zooPoints = (user.zooPoints || 0) + (caughtAnimal.points || 1);
+    user.markModified("zoo");
+
+    // 2. Weapon Crate (wc) 30% drop chance (no direct gear drops)
+    const wcDropped = Math.random() < 0.30;
+    if (wcDropped) {
+      if (!user.inventory) user.inventory = new Map();
+      const curWc = user.inventory.get("wc") || 0;
+      user.inventory.set("wc", curWc + 1);
+      user.markModified("inventory");
+    }
+
     const previousLevel = user.rpg.level;
     const levelsGained = addRpgExp(user.rpg, expGain);
-    addRpgGearToUser(user, droppedItem);
     user.coke += cokeGain;
     user.rpg.power = calculateRpgPower(user);
     user.rpg.lastHuntAt = new Date();
+
     const { updateQuestProgress } = require("../../../utils/questUtil");
     await updateQuestProgress(user, "exp_gain", expGain, message.channel);
-    if (droppedItem) {
-      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: droppedItem.rarity });
+    if (wcDropped) {
+      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Epic" });
     }
+
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
     const blankEmo = config.emoji.blank || "";
-    let text = `:bow_and_arrow: **| ${characterName}** đã hoàn thành một chuyến đi săn!\n` +
-      `${blankEmo} **|** ${huntGround.emoji} ${huntGround.name} đã bị dọn sạch\n` +
-      `${blankEmo} **| ${rpgClass.name}** nhận **${expGain.toLocaleString()} EXP**, **${cokeGain.toLocaleString()} Coke**`;
+
+    let text = `🌿 **| ${characterName}** đã hoàn thành chuyến đi săn tại ${huntGround.emoji} **${huntGround.name}**!\n` +
+      `${blankEmo} **|** Bắt được thú ${caughtAnimal.emoji} **${caughtAnimal.name}** (\`${caughtAnimal.rankName}\` | **+${caughtAnimal.points}** Zoo Points)!\n` +
+      `${blankEmo} **| ${rpgClass.name}** nhận **+${expGain.toLocaleString()} EXP**, **+${cokeGain.toLocaleString()} Coke**`;
+
+    if (wcDropped) {
+      text += `\n${blankEmo} **|** <:crate:1512793698025603282> Tìm thấy **1x Hộp Vũ Khí (wc)**! Dùng lệnh \`${config.prefix}wc\` để mở trang bị ngẫu nhiên.`;
+    }
+
+    // RPG Pet interaction
     const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../../data/pets");
     const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
     if (user.rpg.equippedPet) {
-      const rarity = droppedItem ? droppedItem.rarity : "Common";
-      const petHuntXp = getHuntXp(rarity);
+      const petHuntXp = getHuntXp(caughtAnimal.rankName || "Common");
       addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
       user.markModified("rpg");
     }
+
     const caughtSpecies = rollHuntPetDrop();
     let petText = "";
     if (caughtSpecies) {
@@ -117,27 +151,17 @@ class HuntCommand extends BaseCommand {
         petText = `\n${blankEmo} **|** **Bắt được linh thú mới!** Bạn đã thu phục ${tierEmo} ${caughtSpecies.emoji} **${caughtSpecies.name}**!`;
       }
     }
-    if (droppedItem) {
-      const slotVi = {
-        weapon: "vũ khí",
-        armor: "giáp",
-        helmet: "mũ",
-        boots: "giày",
-        ring: "nhẫn",
-        necklace: "dây chuyền"
-      }[droppedItem.slot] || "trang bị";
-      const rank = getRarityEmoji(droppedItem.rarity);
-      const itemEmoji = droppedItem.emoji ? `${droppedItem.emoji} ` : "";
-      text += `\n${blankEmo} **|** Bạn tìm thấy ${slotVi} ${rank} ${itemEmoji}**${droppedItem.subType}** (ID: \`${droppedItem.id}\`)`;
-    }
+
     if (petText) {
       text += petText;
     }
     if (levelsGained > 0) {
       text += `\n${blankEmo} **|** **Lên cấp!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
     }
+
     await user.save();
     return message.reply({ content: text });
   }
 }
+
 module.exports = new HuntCommand();

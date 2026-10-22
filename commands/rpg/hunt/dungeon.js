@@ -150,22 +150,63 @@ class DungeonCommand extends BaseCommand {
       await renderGameScreen(message.channel, activeDungeon);
       return;
     }
-    const guild = await RpgGuild.findOne({ members: userId });
-    if (!guild) {
-      return message.reply(`❌ Bạn chưa tham gia party nào. Hãy dùng \`${config.prefix}party @User\` để lập tổ đội!`);
+    const isSoloRequested = args[0]?.toLowerCase() === "solo";
+    const user = await User.findOne({ userId }).exec();
+    if (!user || !hasRpgCharacter(user)) {
+      const classCommand = message.client.commands.get("class");
+      return classCommand ? classCommand.execute(message, []) : message.reply("❌ Bạn chưa tạo nhân vật RPG. Hãy dùng lệnh `class` trước!");
     }
-    if (guild.leaderId !== userId) {
-      return message.reply("❌ Chỉ Trưởng nhóm mới có quyền bắt đầu Dungeon.");
+
+    let isSolo = isSoloRequested;
+    let guild = null;
+    let progress = 0;
+
+    if (!isSolo) {
+      guild = await RpgGuild.findOne({ members: userId });
+      if (!guild || guild.members.length !== 3 || guild.leaderId !== userId) {
+        const rowPrompt = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("rpg_dungeon_choose_solo")
+            .setLabel("🗡️ Khiêu Chiến Solo")
+            .setStyle(ButtonStyle.Success),
+        );
+        const reason = !guild
+          ? "Bạn chưa tham gia party nào."
+          : (guild.leaderId !== userId ? "Chỉ Trưởng nhóm mới có quyền bắt đầu Dungeon tổ đội." : `Party của bạn hiện có **${guild.members.length}/3** thành viên.`);
+        
+        const promptMsg = await message.reply({
+          content: `⚠️ **${reason}**\nBạn có thể nhấn nút bên dưới hoặc gõ \`${config.prefix}dungeon solo\` để khiêu chiến Phó bản Độc Hành (Solo) một mình!`,
+          components: [rowPrompt],
+        });
+
+        const comp = await promptMsg.awaitMessageComponent({
+          filter: (i) => i.user.id === userId && i.customId === "rpg_dungeon_choose_solo",
+          time: 20000,
+        }).catch(() => null);
+
+        if (!comp) {
+          return promptMsg.edit({ components: [] }).catch(() => {});
+        }
+        await comp.deferUpdate().catch(() => {});
+        await promptMsg.delete().catch(() => {});
+        isSolo = true;
+      }
     }
-    if (guild.members.length !== 3) {
-      return message.reply(`❌ Cần chính xác **3 thành viên** trong party để tham gia Dungeon. Hiện tại party bạn có: **${guild.members.length}/3** thành viên.`);
+
+    if (isSolo) {
+      const keyCount = user.inventory?.get("dungeonkey") || 0;
+      if (keyCount <= 0) {
+        return message.reply(`❌ Bạn cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Solo Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
+      }
+      progress = Math.max(0, ...(user.rpg?.clearedDungeons || [0]), user.rpg?.soloDungeonProgress || 0);
+    } else {
+      const leaderUser = await User.findOne({ userId: guild.leaderId }).exec();
+      const keyCount = leaderUser?.inventory?.get("dungeonkey") || 0;
+      if (keyCount <= 0) {
+        return message.reply(`❌ Bạn (Trưởng nhóm) cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
+      }
+      progress = guild.chapterProgress || 0;
     }
-    const leaderUser = await User.findOne({ userId: guild.leaderId }).exec();
-    const keyCount = leaderUser?.inventory?.get("dungeonkey") || 0;
-    if (keyCount <= 0) {
-      return message.reply(`❌ Bạn (Trưởng nhóm) cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
-    }
-    const progress = guild.chapterProgress || 0;
     const row1 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("rpg_dungeon_start_1")
@@ -247,16 +288,18 @@ class DungeonCommand extends BaseCommand {
     );
     const mapEmbed = new EmbedBuilder()
       .setColor(getRpgColor("accent"))
-      .setTitle(formatRpgTitle("Bản đồ Dungeon V1", "🗺️"))
+      .setTitle(formatRpgTitle(isSolo ? "Bản đồ Dungeon Solo (Độc Hành)" : "Bản đồ Dungeon V1", "🗺️"))
       .setDescription(
-        "Chọn chương để bắt đầu khiêu chiến cùng tổ đội. Đi lần lượt từ Chương 1 đến Chương 14."
+        isSolo
+          ? "Chọn chương để bắt đầu khiêu chiến Solo. Quái vật và Boss được cân chỉnh riêng cho đấu sĩ độc hành!"
+          : "Chọn chương để bắt đầu khiêu chiến cùng tổ đội. Đi lần lượt từ Chương 1 đến Chương 14."
       )
       .addFields({
         name: "Tiến trình",
         value: `Đã mở khóa đến **Chương ${Math.min(14, progress + 1)}** / **14**`,
         inline: false,
       })
-      .setFooter(formatRpgFooter("Chỉ Trưởng nhóm có thể bắt đầu • cần đủ 3 thành viên"));
+      .setFooter(formatRpgFooter(isSolo ? "Chế độ Solo • Thưởng riêng biệt & cân bằng quái vật" : "Chỉ Trưởng nhóm có thể bắt đầu • cần đủ 3 thành viên"));
     const selectMsg = await message.reply({
       content: "",
       embeds: [mapEmbed],
@@ -269,7 +312,7 @@ class DungeonCommand extends BaseCommand {
       if (!(await safeDeferUpdate(i))) return;
       const chapter = parseInt(i.customId.replace("rpg_dungeon_start_", ""));
       collector.stop("selected");
-      await askBlessing(message, selectMsg, guild, chapter, i);
+      await askBlessing(message, selectMsg, guild, chapter, i, isSolo);
     });
     collector.on("end", (collected, reason) => {
       if (reason !== "selected") {
@@ -279,7 +322,7 @@ class DungeonCommand extends BaseCommand {
   }
 }
 module.exports = new DungeonCommand();
-const askBlessing = async (message, selectMsg, guild, chapter, startInteraction = null) => {
+const askBlessing = async (message, selectMsg, guild, chapter, startInteraction = null, isSolo = false) => {
   const userId = message.author.id;
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
@@ -324,7 +367,7 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
     const blessing = i.customId.replace("rpg_blessing_", "");
     blessingCollector.stop("selected");
     await selectMsg.delete().catch(() => {});
-    await startDungeon({ message, guild, chapter, blessing });
+    await startDungeon({ message, guild, chapter, blessing, isSolo });
   });
   blessingCollector.on("end", (collected, reason) => {
     if (reason !== "selected") {
@@ -332,28 +375,29 @@ const askBlessing = async (message, selectMsg, guild, chapter, startInteraction 
     }
   });
 };
-const startDungeon = async ({ message, guild, chapter, blessing }) => {
+const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false }) => {
   const client = message.client;
   const channel = message.channel;
   const playerBuff = getDungeonPlayerBuff();
   if (client.rpgDungeons.has(channel.id)) {
     return channel.send("❌ Đang có một phó bản diễn ra tại kênh này.");
   }
-  const leaderId = guild.leaderId;
+  const leaderId = isSolo ? message.author.id : guild.leaderId;
   const leaderUser = await User.findOne({ userId: leaderId }).exec();
   if (!leaderUser) {
-    return channel.send("❌ Không thể tìm thấy thông tin của Trưởng nhóm.");
+    return channel.send("❌ Không thể tìm thấy thông tin của người chơi.");
   }
   const keyCount = leaderUser.inventory?.get("dungeonkey") || 0;
   if (keyCount <= 0) {
-    return channel.send(`❌ Trưởng nhóm không có **Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon!`);
+    return channel.send(`❌ Bạn không có **Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon!`);
   }
   leaderUser.inventory.set("dungeonkey", keyCount - 1);
   leaderUser.markModified("inventory");
   await leaderUser.save();
-  channel.send(`🔑 **${leaderUser.rpg.name || leaderUser.userId}** đã sử dụng **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon!`);
+  channel.send(`🔑 **${leaderUser.rpg.name || leaderUser.userId}** đã sử dụng **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở ${isSolo ? "Solo Dungeon" : "Dungeon"}!`);
   const playerStates = [];
-  for (const memberId of guild.members) {
+  const memberList = isSolo ? [leaderId] : guild.members;
+  for (const memberId of memberList) {
     try {
       const { user, rpgClass } = await requireRpgCharacter(memberId);
       const stats = getEffectiveRpgStats(freshUserObject(user));
@@ -376,6 +420,11 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
         maxHp: maxHp,
         hp: maxHp,
         potions: 3,
+        supportSlots: {
+          hpPotion: 1,
+          manaPotion: 1,
+          atkPotion: 1,
+        },
         stats: stats,
         power: gearPower,
         weapon: weapon,
@@ -394,6 +443,7 @@ const startDungeon = async ({ message, guild, chapter, blessing }) => {
     leaderId: leaderId,
     chapter: chapter,
     blessing: blessing || "none",
+    isSolo: isSolo,
     round: 1,
     players: playerStates,
     currentActor: null,
@@ -451,6 +501,12 @@ const setupRound = (activeDungeon, channel) => {
     let atk = Math.min(900, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
     let armor = Math.floor(normCfg.base_defense * chapter);
     let magicResist = Math.floor(normCfg.base_defense * chapter);
+    if (activeDungeon.isSolo) {
+      maxHp = Math.max(7000, Math.floor(maxHp * 0.40));
+      atk = Math.floor(atk * 0.85);
+      armor = Math.floor(armor * 0.85);
+      magicResist = Math.floor(magicResist * 0.85);
+    }
     let isElite = false;
     const isBossRoundNow = round === 5;
     if (!isBossRoundNow && round >= 3 && Math.random() < 0.28) {
@@ -505,14 +561,20 @@ const setupRound = (activeDungeon, channel) => {
     const bossScalers = getDungeonBossScalers(targetLevel, targetPower);
     const leaderScaler = bossScalers.durability;
     const chapterScaler = 1 + (chapter - 1) * 0.20;
-    const maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
-    const poiseMax = 80 + chapter * 20;
+    let maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
+    let atk = Math.floor(b1Cfg.base_atk * chapterScaler * bossScalers.offense);
+    let poiseMax = 80 + chapter * 20;
+    if (activeDungeon.isSolo) {
+      maxHp = Math.max(30000, Math.floor(maxHp * 0.40));
+      atk = Math.floor(atk * 0.85);
+      poiseMax = Math.floor(poiseMax * 0.50);
+    }
     activeDungeon.enemy = {
       name: bossCfg.name_phase1,
       key: bossCfg.key,
       maxHp: maxHp,
       hp: maxHp,
-      atk: Math.floor(b1Cfg.base_atk * chapterScaler * bossScalers.offense),
+      atk: atk,
       armor: Math.floor(b1Cfg.base_defense * leaderScaler),
       magicResist: Math.floor(b1Cfg.base_defense * leaderScaler),
       isBoss: true,
@@ -706,7 +768,10 @@ const renderGameScreen = async (channel, activeDungeon) => {
       `**${statusText}**${turnIndicator}`,
       `HP **${p.hp.toLocaleString()}/${p.maxHp.toLocaleString()}**`,
       resourceText,
-      `<:healthpotion:1523351206066655333> Bình **${p.potions}/3**${healBanText}`,
+      (() => {
+        const slots = p.supportSlots || { hpPotion: p.potions ?? 1, manaPotion: 1, atkPotion: 1 };
+        return `<:healthpotion:1523351206066655333> Máu: **${slots.hpPotion}** | 🔷 Năng lượng: **${slots.manaPotion}** | 🔥 Thuốc ST: **${slots.atkPotion}**${healBanText}`;
+      })(),
       `Lv.${p.level} • ${className}`,
       `Vũ khí: ${weaponText}${weaponPassiveEmoji ? ` ${weaponPassiveEmoji}` : ""}`,
       pStatus ? `Trạng thái: ${pStatus}` : "",
@@ -724,23 +789,17 @@ const renderGameScreen = async (channel, activeDungeon) => {
     value: recentLogs,
     inline: false,
   });
-  const row = new ActionRowBuilder();
+  const row1 = new ActionRowBuilder();
   let disableControls = activeDungeon.actionInProgress || activeDungeon.isFinished || (enemy.isBoss && enemy.phase === 1 && hasDice && !activeDungeon.diceRolled);
   if (activeDungeon.isSimulation) {
     disableControls = true;
   }
-  row.addComponents(
+  row1.addComponents(
     new ButtonBuilder()
       .setCustomId("rpg_dungeon_action_attack")
       .setLabel("Tấn công")
       .setEmoji(ui.icons?.weapon || "🗡️")
       .setStyle(ButtonStyle.Danger)
-      .setDisabled(disableControls),
-    new ButtonBuilder()
-      .setCustomId("rpg_dungeon_action_heal")
-      .setLabel("Bình máu")
-      .setEmoji("1523351206066655333")
-      .setStyle(ButtonStyle.Success)
       .setDisabled(disableControls),
   );
   const isPlayerTurn = !activeDungeon.isFinished && currentActor && currentActor.id;
@@ -770,7 +829,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       isSkillDisabled = true;
       skillLabel = `${skillLabel.split(" ✨")[0]} 🚫 (Bị Cấm)`;
     }
-    row.addComponents(
+    row1.addComponents(
       new ButtonBuilder()
         .setCustomId("rpg_dungeon_action_skill")
         .setLabel(skillLabel)
@@ -779,7 +838,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     );
     const hasCrimson = currentActor.weapon && getDungeonWeaponKey(currentActor.weapon.subType || currentActor.weapon.subtype) === "crimsondagger";
     if (hasCrimson) {
-      row.addComponents(
+      row1.addComponents(
         new ButtonBuilder()
           .setCustomId("rpg_dungeon_action_crimson")
           .setLabel("Huyết Sát")
@@ -788,6 +847,35 @@ const renderGameScreen = async (channel, activeDungeon) => {
       );
     }
   }
+
+  // Row 2: 3 Support Item / Consumable Slots
+  const row2 = new ActionRowBuilder();
+  const actorSlots = currentActor?.supportSlots || { hpPotion: currentActor?.potions ?? 1, manaPotion: 1, atkPotion: 1 };
+  const isHealDisabled = disableControls || actorSlots.hpPotion <= 0 || Boolean(currentActor?.healBanRounds && currentActor.healBanRounds > 0);
+  const isManaDisabled = disableControls || actorSlots.manaPotion <= 0;
+  const isAtkPotDisabled = disableControls || actorSlots.atkPotion <= 0 || Boolean(currentActor?.nextAtkBuff);
+
+  row2.addComponents(
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_action_heal")
+      .setLabel(`Bình Máu (${actorSlots.hpPotion})`)
+      .setEmoji("1523351206066655333")
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(isHealDisabled),
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_action_mana")
+      .setLabel(`Năng Lượng (${actorSlots.manaPotion})`)
+      .setEmoji("🔷")
+      .setStyle(ButtonStyle.Primary)
+      .setDisabled(isManaDisabled),
+    new ButtonBuilder()
+      .setCustomId("rpg_dungeon_action_atkpot")
+      .setLabel(`Thuốc Tăng ST (${actorSlots.atkPotion})`)
+      .setEmoji("🔥")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(isAtkPotDisabled),
+  );
+  const dungeonComponents = [row1, row2];
   const bossForm = enemy.isBoss ? getBossForm(bossCfg, enemy) : null;
   const imageCacheKey = enemy.isBoss
     ? `boss:${bossCfg?.key || ""}:${bossForm?.name || ""}:${bossForm?.image || bossCfg?.image_phase1 || "TF.png"}`
@@ -854,7 +942,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
   const payload = {
     content: "",
     embeds: [embed],
-    components: [row],
+    components: dungeonComponents,
     skipV2: true,
   };
   if (activeDungeon.gameMessage) {
@@ -867,7 +955,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
       const editPayload = {
         content: "",
         embeds: [embed],
-        components: [row],
+        components: dungeonComponents,
         skipV2: true,
       };
 
@@ -985,20 +1073,70 @@ const setupCollector = (channel, activeDungeon) => {
       }
 
       if (i.customId === "rpg_dungeon_action_heal") {
+        if (!pExist.supportSlots) {
+          pExist.supportSlots = { hpPotion: pExist.potions ?? 1, manaPotion: 1, atkPotion: 1 };
+        }
         if (pExist.healBanRounds && pExist.healBanRounds > 0) {
           activeDungeon.actionInProgress = false;
           const bossCfg = getBossConfig(activeDungeon.chapter);
           const passiveName = bossCfg.passive?.name || "Lời Nguyền Xương";
           return safeInteractionFollowUp(i, { content: `❌ Bạn đang bị dính [${passiveName}] trong **${pExist.healBanRounds}** lượt nữa!`, ephemeral: true });
         }
-        if (pExist.potions <= 0) {
+        if (pExist.supportSlots.hpPotion <= 0) {
           activeDungeon.actionInProgress = false;
-          return safeInteractionFollowUp(i, { content: "❌ Bạn đã dùng hết bình máu trong phó bản này!", ephemeral: true });
+          return safeInteractionFollowUp(i, { content: "❌ Bạn đã dùng hết Bình Máu trong phó bản này!", ephemeral: true });
         }
         const potionHealPct = config.dungeon?.potion_heal_pct ?? 0.35;
-        pExist.hp = Math.min(pExist.maxHp, pExist.hp + Math.floor(pExist.maxHp * potionHealPct));
-        pExist.potions -= 1;
-        activeDungeon.logs.push(`<:heal:1521938487907975198> **${Math.floor(pExist.maxHp * potionHealPct).toLocaleString()}** (uống bình máu hồi phục cho **${pExist.name}**).`);
+        const healAmt = Math.floor(pExist.maxHp * potionHealPct);
+        pExist.hp = Math.min(pExist.maxHp, pExist.hp + healAmt);
+        pExist.supportSlots.hpPotion -= 1;
+        pExist.potions = pExist.supportSlots.hpPotion;
+        activeDungeon.logs.push(`<:heal:1521938487907975198> **${healAmt.toLocaleString()} HP** (uống Bình Máu hồi phục cho **${pExist.name}**).`);
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
+        }
+        pExist.hasActedThisRound = true;
+        activeDungeon.actionInProgress = false;
+        await nextTurn(channel, activeDungeon);
+      } else if (i.customId === "rpg_dungeon_action_mana") {
+        if (!pExist.supportSlots) {
+          pExist.supportSlots = { hpPotion: pExist.potions ?? 1, manaPotion: 1, atkPotion: 1 };
+        }
+        if (pExist.supportSlots.manaPotion <= 0) {
+          activeDungeon.actionInProgress = false;
+          return safeInteractionFollowUp(i, { content: "❌ Bạn đã dùng hết Bình Năng Lượng trong phó bản này!", ephemeral: true });
+        }
+        pExist.supportSlots.manaPotion -= 1;
+        if (pExist.classKey === "mage") {
+          pExist.mana = Math.min(100, (pExist.mana || 0) + 60);
+          activeDungeon.logs.push(`🔷 **${pExist.name}** uống **Bình Năng Lượng**, hồi **+60 MP**! (Hiện có: ${pExist.mana} MP)`);
+        } else {
+          pExist.rage = Math.min(100, (pExist.rage || 0) + 40);
+          activeDungeon.logs.push(`⚡ **${pExist.name}** uống **Bình Năng Lượng**, tăng **+40% Nộ**! (Hiện có: ${pExist.rage}% Nộ)`);
+        }
+        if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
+          pExist.skillBanRounds -= 1;
+          if (pExist.skillBanRounds === 0) {
+            activeDungeon.logs.push(`✨ Phong ấn cấm kỹ năng trên **${pExist.name}** đã được giải trừ.`);
+          }
+        }
+        pExist.hasActedThisRound = true;
+        activeDungeon.actionInProgress = false;
+        await nextTurn(channel, activeDungeon);
+      } else if (i.customId === "rpg_dungeon_action_atkpot") {
+        if (!pExist.supportSlots) {
+          pExist.supportSlots = { hpPotion: pExist.potions ?? 1, manaPotion: 1, atkPotion: 1 };
+        }
+        if (pExist.supportSlots.atkPotion <= 0) {
+          activeDungeon.actionInProgress = false;
+          return safeInteractionFollowUp(i, { content: "❌ Bạn đã dùng hết Thuốc Tăng Sát Thương trong phó bản này!", ephemeral: true });
+        }
+        pExist.supportSlots.atkPotion -= 1;
+        pExist.nextAtkBuff = 1.6;
+        activeDungeon.logs.push(`🔥 **${pExist.name}** uống **Thuốc Tăng Sát Thương**, cường hóa **+60% sát thương** cho đòn đánh / kỹ năng kế tiếp!`);
         if (pExist.skillBanRounds && pExist.skillBanRounds > 0) {
           pExist.skillBanRounds -= 1;
           if (pExist.skillBanRounds === 0) {
@@ -1353,6 +1491,11 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const mrOrArmor = passiveResult.mrOrArmor;
   const mitigation = mrOrArmor / (mrOrArmor + 150 + (player.level || 1) * 2);
   let damage = Math.max(10, Math.floor(finalCalculatedDamage * (1 - mitigation)));
+  if (player.nextAtkBuff && player.nextAtkBuff > 1.0) {
+    damage = Math.floor(damage * player.nextAtkBuff);
+    activeDungeon.logs.push(`🔥 **[Thuốc Tăng ST]** Kích hoạt: Sát thương được cường hóa **x${player.nextAtkBuff}**!`);
+    delete player.nextAtkBuff;
+  }
   if (player.userRef?.rpg?.isGodMode) {
     damage = enemy.hp;
   }
@@ -1924,8 +2067,12 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       const targetLevel = totalLevel / count;
       const targetPower = totalPower / count;
       const leaderScaler = getDungeonBossScalers(targetLevel, targetPower).durability;
-      const maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
-      const poiseMax = 80 + chapter * 20;
+      let maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
+      let poiseMax = 80 + chapter * 20;
+      if (activeDungeon.isSolo) {
+        maxHp = Math.max(30000, Math.floor(maxHp * 0.40));
+        poiseMax = Math.floor(poiseMax * 0.50);
+      }
       enemy.name = bossCfg.name_phase2;
       enemy.hp = maxHp;
       enemy.maxHp = maxHp;
@@ -2030,8 +2177,13 @@ const handleVictory = async (channel, activeDungeon) => {
       isChallenge,
       elitesKilled: activeDungeon.elitesKilled || 0,
     });
-    const userCokeReward = rewardAmounts.coke;
-    const userExpReward = rewardAmounts.exp;
+    let userCokeReward = rewardAmounts.coke;
+    let userExpReward = rewardAmounts.exp;
+    if (activeDungeon.isSolo) {
+      userCokeReward = Math.floor(userCokeReward * 1.35); // +35% solo courage reward bonus
+      userExpReward = Math.floor(userExpReward * 1.35);
+      freshUser.rpg.soloDungeonProgress = Math.max(freshUser.rpg.soloDungeonProgress || 0, activeDungeon.chapter);
+    }
     const challengeMultiplier = rewardAmounts.challengeMultiplier;
     const rewardFatigue = rewardAmounts.fatigue;
     const challengeBonusText = isChallenge ? ` | 🏆 **Thử thách** x${challengeMultiplier.toFixed(1)}` : "";
