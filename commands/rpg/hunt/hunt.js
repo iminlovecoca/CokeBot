@@ -17,7 +17,7 @@ class HuntCommand extends BaseCommand {
     super({
       name: "hunt",
       aliases: ["h"],
-      description: "Đi săn thú phong cách OwO, nhận EXP, Coke, Zoo Points và 30% tỉ lệ rơi Hộp Vũ Khí (wc).",
+      description: "Đi săn thú, nhận EXP, Coke, và 30% tỉ lệ rơi Hộp Vũ Khí (wc).",
       usage: `${config.prefix}hunt`,
       examples: [
         { intent: "Đi săn", command: `${config.prefix}hunt` },
@@ -98,7 +98,7 @@ class HuntCommand extends BaseCommand {
     const blankEmo = config.emoji.blank || "";
 
     let text = `🌿 **| ${characterName}** đã hoàn thành chuyến đi săn tại ${huntGround.emoji} **${huntGround.name}**!\n` +
-      `${blankEmo} **|** Bắt được thú ${caughtAnimal.emoji} **${caughtAnimal.name}** (\`${caughtAnimal.rankName}\` | **+${caughtAnimal.points}** Zoo Points)!\n` +
+      `${blankEmo} **|** Bắt được thú ${caughtAnimal.emoji} **${caughtAnimal.name}**!\n` +
       `${blankEmo} **| ${rpgClass.name}** nhận **+${expGain.toLocaleString()} EXP**, **+${cokeGain.toLocaleString()} Coke**`;
 
     if (wcDropped) {
