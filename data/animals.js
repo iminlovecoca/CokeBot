@@ -35,7 +35,7 @@ const ZOO_RANKS = {
     points: 25000,
     xp: 60000,
     essence: 80000,
-    emoji: PET_TIERS.Secret?.emoji || "",
+    emoji: PET_TIERS.Secret?.emoji || "<a:Secret:1563835098355339285>",
     aliases: ["secret", "s", "bimat"],
   },
   Divine: {
@@ -100,7 +100,7 @@ const ZOO_RANKS = {
     points: 50,
     xp: 300,
     essence: 180,
-    emoji: PET_TIERS.Generation?.emoji || "<:epic:1530878567955566642>",
+    emoji: PET_TIERS.Generation?.emoji || "<a:Generation:1563835095541092352>",
     aliases: ["generation", "gen", "g", "thehe"],
   },
   Epic: {
