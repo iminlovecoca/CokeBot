@@ -180,10 +180,10 @@ class LootboxCommand extends BaseCommand {
     await user.save();
 
     const displayName = message.member?.displayName || message.author.username;
-    const lbstakeEmoji = "<:lbstake:1563961853477130261>";
-    const lbopenEmoji = "<:lbopen:1563961128047091731>";
+    const lbstakeEmoji = "<a:lbstake:1563961853477130261>";
+    const lbopenEmoji = "<a:lbopen:1563961128047091731>";
 
-    // Build drops emoji line with superscripts (e.g. `<:lucky_common:...>¹ <:empowering_mythic:...>¹`)
+    // Build drops emoji line with superscripts (e.g. `<:lucky_common:...>¹ <a:empowering_mythic:...>¹`)
     const dropsEmojisList = Array.from(gemDropsMap.values())
       .map(({ gem, count }) => `${gem.emoji}${toSuperscript(count)}`)
       .join(" ");
@@ -195,7 +195,7 @@ class LootboxCommand extends BaseCommand {
     // Edit message after animation delay (matching OwO style)
     setTimeout(async () => {
       const finalContent =
-        `  **| ${displayName}** mở ${quantity} hộp quà (lootbox)\n` +
+        `${config.emoji.blank} **| ${displayName}** mở ${quantity} hộp quà (lootbox)\n` +
         `${lbopenEmoji} **|** và nhận được: ${dropsEmojisList}`;
       await sentMsg.edit({ content: finalContent }).catch(() => null);
     }, 1500);

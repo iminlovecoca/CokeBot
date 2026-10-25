@@ -1,18 +1,21 @@
 /**
  * CokeBot Gems (Ngọc Săn Thú) System
- * Reference: OwO Bot Gems (https://owobot.fandom.com/wiki/Gems)
+ * Reference: OwO Bot Gems
  *
  * Gem Types:
  * - hunting (💎): Increases the number of animals caught per hunt (+1 to +9).
- *   Durability: Decreases by 1 per hunt.
  * - empowering (🔮): Doubles (2x) the animals caught per hunt.
- *   Durability: Decreases by the number of doubled animals caught (50 to 1,000 animals).
  * - lucky (💖): Increases the probability of catching rare/high-tier animals (+1.0x to +9.0x).
- *   Durability: Decreases by total animals caught (synchronized to Empowering when all 3 active).
  * - special (🔺): Multiplies the chance of finding Divine and Secret animals (+1.5x to +9.0x).
- *   Durability: Decreases by total animals caught.
  *
- * Active Tiers: Common, Rare, Epic, Legendary, Mythic, Ancient, Divine (Max Tier).
+ * Active Tiers:
+ * - Common (Static <:>)
+ * - Rare (Static <:>)
+ * - Epic (Static <:>)
+ * - Legendary (Animated <a:>)
+ * - Mythic (Animated <a:>)
+ * - Ancient (Animated <a:>)
+ * - Divine (Animated <a:>)
  */
 
 const GEM_TYPES = {
@@ -60,7 +63,7 @@ const GEM_TYPES = {
 
 const GEMS_DATA = [
   // ==========================================
-  // 1. HUNTING GEMS (💎) — +Animals per hunt, -1 durability/hunt
+  // 1. HUNTING GEMS (💎)
   // ==========================================
   {
     id: "51",
@@ -105,7 +108,7 @@ const GEMS_DATA = [
     type: "hunting",
     tier: "Legendary",
     rankLetter: "L",
-    emoji: "<:hunting_legendary:1563960200803786924>",
+    emoji: "<a:hunting_legendary:1563960200803786924>",
     bonusAnimals: 5,
     durability: 75,
     description: "Tăng +5 thú bắt được mỗi lần hunt. Độ bền: 75 lượt.",
@@ -117,7 +120,7 @@ const GEMS_DATA = [
     type: "hunting",
     tier: "Mythic",
     rankLetter: "M",
-    emoji: "<:hunting_mythic:1563960197376901151>",
+    emoji: "<a:hunting_mythic:1563960197376901151>",
     bonusAnimals: 6,
     durability: 75,
     description: "Tăng +6 thú bắt được mỗi lần hunt. Độ bền: 75 lượt.",
@@ -129,7 +132,7 @@ const GEMS_DATA = [
     type: "hunting",
     tier: "Ancient",
     rankLetter: "A",
-    emoji: "<:hunting_ancient:1563960203429548142>",
+    emoji: "<a:hunting_ancient:1563960203429548142>",
     bonusAnimals: 7,
     durability: 100,
     description: "Tăng +7 thú bắt được mỗi lần hunt. Độ bền: 100 lượt.",
@@ -141,14 +144,14 @@ const GEMS_DATA = [
     type: "hunting",
     tier: "Divine",
     rankLetter: "D",
-    emoji: "<:hunting_divine:1563960209746165832>",
+    emoji: "<a:hunting_divine:1563960209746165832>",
     bonusAnimals: 9,
     durability: 100,
     description: "Tăng +9 thú bắt được mỗi lần hunt. Độ bền: 100 lượt.",
   },
 
   // ==========================================
-  // 2. EMPOWERING GEMS (🔮) — 2x animals, durability based on doubled animals
+  // 2. EMPOWERING GEMS (🔮)
   // ==========================================
   {
     id: "65",
@@ -193,7 +196,7 @@ const GEMS_DATA = [
     type: "empowering",
     tier: "Legendary",
     rankLetter: "L",
-    emoji: "<:empowering_legendary:1563960227387150558>",
+    emoji: "<a:empowering_legendary:1563960227387150558>",
     multiplier: 2,
     durability: 450,
     description: "Nhân đôi (2x) số lượng thú bắt được. Độ bền: 450 thú nhân đôi.",
@@ -205,7 +208,7 @@ const GEMS_DATA = [
     type: "empowering",
     tier: "Mythic",
     rankLetter: "M",
-    emoji: "<:empowering_mythic:1563960223775989770>",
+    emoji: "<a:empowering_mythic:1563960223775989770>",
     multiplier: 2,
     durability: 525,
     description: "Nhân đôi (2x) số lượng thú bắt được. Độ bền: 525 thú nhân đôi.",
@@ -217,7 +220,7 @@ const GEMS_DATA = [
     type: "empowering",
     tier: "Ancient",
     rankLetter: "A",
-    emoji: "<:empowering_ancient:1563960230478348398>",
+    emoji: "<a:empowering_ancient:1563960230478348398>",
     multiplier: 2,
     durability: 800,
     description: "Nhân đôi (2x) số lượng thú bắt được. Độ bền: 800 thú nhân đôi.",
@@ -229,14 +232,14 @@ const GEMS_DATA = [
     type: "empowering",
     tier: "Divine",
     rankLetter: "D",
-    emoji: "<:empowering_divine:1563960274967335042>",
+    emoji: "<a:empowering_divine:1563960274967335042>",
     multiplier: 2,
     durability: 1000,
     description: "Nhân đôi (2x) số lượng thú bắt được. Độ bền: 1000 thú nhân đôi.",
   },
 
   // ==========================================
-  // 3. LUCKY GEMS (💖) — +Luck multiplier, durability based on total animals caught
+  // 3. LUCKY GEMS (💖)
   // ==========================================
   {
     id: "72",
@@ -281,7 +284,7 @@ const GEMS_DATA = [
     type: "lucky",
     tier: "Legendary",
     rankLetter: "L",
-    emoji: "<:lucky_legendary:1563960244604772524>",
+    emoji: "<a:lucky_legendary:1563960244604772524>",
     luckMultiplier: 4.0,
     durability: 450,
     description: "Tăng +4.0x tỉ lệ gặp thú hiếm. Độ bền: 450 thú.",
@@ -293,7 +296,7 @@ const GEMS_DATA = [
     type: "lucky",
     tier: "Mythic",
     rankLetter: "M",
-    emoji: "<:lucky_mythic:1563960240138100867>",
+    emoji: "<a:lucky_mythic:1563960240138100867>",
     luckMultiplier: 5.0,
     durability: 525,
     description: "Tăng +5.0x tỉ lệ gặp thú hiếm. Độ bền: 525 thú.",
@@ -305,7 +308,7 @@ const GEMS_DATA = [
     type: "lucky",
     tier: "Ancient",
     rankLetter: "A",
-    emoji: "<:lucky_ancient:1563960247666610257>",
+    emoji: "<a:lucky_ancient:1563960247666610257>",
     luckMultiplier: 7.0,
     durability: 800,
     description: "Tăng +7.0x tỉ lệ gặp thú hiếm. Độ bền: 800 thú.",
@@ -317,14 +320,14 @@ const GEMS_DATA = [
     type: "lucky",
     tier: "Divine",
     rankLetter: "D",
-    emoji: "<:lucky_divine:1563960277697826908>",
+    emoji: "<a:lucky_divine:1563960277697826908>",
     luckMultiplier: 9.0,
     durability: 1000,
     description: "Tăng +9.0x tỉ lệ gặp thú hiếm. Độ bền: 1000 thú.",
   },
 
   // ==========================================
-  // 4. SPECIAL GEMS (🔺) — Divine/Secret multiplier, durability based on total animals caught
+  // 4. SPECIAL GEMS (🔺 - Event Only)
   // ==========================================
   {
     id: "79",
@@ -369,7 +372,7 @@ const GEMS_DATA = [
     type: "special",
     tier: "Legendary",
     rankLetter: "L",
-    emoji: "<:special_legendary:1563960264389558393>",
+    emoji: "<a:special_legendary:1563960264389558393>",
     specialMultiplier: 4.0,
     durability: 450,
     description: "Tăng x4.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 450 thú.",
@@ -381,7 +384,7 @@ const GEMS_DATA = [
     type: "special",
     tier: "Mythic",
     rankLetter: "M",
-    emoji: "<:special_mythic:1563960261067542528>",
+    emoji: "<a:special_mythic:1563960261067542528>",
     specialMultiplier: 5.0,
     durability: 525,
     description: "Tăng x5.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 525 thú.",
@@ -393,7 +396,7 @@ const GEMS_DATA = [
     type: "special",
     tier: "Ancient",
     rankLetter: "A",
-    emoji: "<:special_ancient:1563960291631300628>",
+    emoji: "<a:special_ancient:1563960291631300628>",
     specialMultiplier: 7.0,
     durability: 800,
     description: "Tăng x7.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 800 thú.",
@@ -405,7 +408,7 @@ const GEMS_DATA = [
     type: "special",
     tier: "Divine",
     rankLetter: "D",
-    emoji: "<:special_divine:1563960294391283762>",
+    emoji: "<a:special_divine:1563960294391283762>",
     specialMultiplier: 9.0,
     durability: 1000,
     description: "Tăng x9.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 1000 thú.",

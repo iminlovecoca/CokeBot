@@ -55,7 +55,7 @@ class GemCommand extends BaseCommand {
           lines.push(
             `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}**!`,
           );
-          lines.push(`   **|** ${getGemActivationDescription(res.gem)}`);
+          lines.push(`${config.emoji.blank} **|** ${getGemActivationDescription(res.gem)}`);
         } else if (res.code === "ALREADY_ACTIVE") {
           lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
         } else if (res.code === "NOT_OWNED") {
@@ -72,7 +72,7 @@ class GemCommand extends BaseCommand {
     const displayName = message.member?.displayName || message.author.username;
     const embed = new EmbedBuilder()
       .setColor(getRpgColor("Mythic") || "#9b59b6")
-      .setTitle(`💎 BẢNG NGỌC SĂN THÚ (OWO GEMS) • ${displayName}`)
+      .setTitle(`💎 BẢNG NGỌC SĂN THÚ • ${displayName}`)
       .setDescription(
         `Ngọc hỗ trợ gia tăng số lượng thú và tỉ lệ may mắn khi gõ \`${config.prefix}hunt\`.\n` +
         `Kích hoạt ngọc bằng: \`${config.prefix}use <id1> [id2] [id3]\` (ví dụ: \`${config.prefix}use 51 65 72\`).\n` +

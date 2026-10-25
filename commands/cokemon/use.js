@@ -57,7 +57,7 @@ class UseCommand extends BaseCommand {
           lines.push(
             `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}**!`,
           );
-          lines.push(`   **|** ${getGemActivationDescription(res.gem)}`);
+          lines.push(`${config.emoji.blank} **|** ${getGemActivationDescription(res.gem)}`);
         } else if (res.code === "ALREADY_ACTIVE") {
           lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
         } else if (res.code === "NOT_OWNED") {

@@ -207,18 +207,20 @@ class HuntCommand extends BaseCommand {
       lines.push(`🌱 **| ${characterName}** đi săn thú...`);
     }
 
+    const blank = config.emoji.blank;
+
     // Line 2: Caught animal emojis (Image 2 style)
     const animalsEmojiStr = caughtAnimals.map((a) => a.emoji).join(" ");
-    lines.push(`   **|** Bạn đã bắt được: ${animalsEmojiStr}`);
+    lines.push(`${blank} **|** Bạn đã bắt được: ${animalsEmojiStr}`);
 
     // Line 3: Pet / Character XP
     if (user.rpg.equippedPet) {
       const petEmoji = user.rpg.equippedPet.emoji || "🐾";
       lines.push(
-        `   **|** ${petEmoji} nhận được **${(totalPetXp || expGain).toLocaleString()}xp**!${petLeveledUp ? ` (**Lên cấp ${user.rpg.equippedPet.level}!**)` : ""}`,
+        `${blank} **|** ${petEmoji} nhận được **${(totalPetXp || expGain).toLocaleString()}xp**!${petLeveledUp ? ` (**Lên cấp ${user.rpg.equippedPet.level}!**)` : ""}`,
       );
     } else {
-      lines.push(`   **|** Nhận được **${expGain.toLocaleString()}xp**!`);
+      lines.push(`${blank} **|** Nhận được **${expGain.toLocaleString()}xp**!`);
     }
 
     // New species unlocked
@@ -226,7 +228,7 @@ class HuntCommand extends BaseCommand {
       const newAnimalsText = newSpeciesList
         .map((a) => `${a.rankEmoji} ${a.emoji} **${a.name}**`)
         .join(", ");
-      lines.push(`   **|** ✨ **Mở khóa loài mới:** ${newAnimalsText}!`);
+      lines.push(`${blank} **|** ✨ **Mở khóa loài mới:** ${newAnimalsText}!`);
     }
 
     // Lootbox drop
@@ -237,14 +239,14 @@ class HuntCommand extends BaseCommand {
 
     // Level up
     if (levelsGained > 0) {
-      lines.push(`🎉 **| Lên cấp!** Bạn đã lên từ cấp **${previousLevel}** thành **${user.rpg.level}**.`);
+      lines.push(`${blank} **|** 🎉 **Lên cấp!** Bạn đã lên từ cấp **${previousLevel}** thành **${user.rpg.level}**.`);
     }
 
     // Broken gems notice
     if (brokenGems && brokenGems.length > 0) {
       for (const broken of brokenGems) {
         lines.push(
-          `💥 **|** Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`,
+          `${blank} **|** 💥 Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`,
         );
       }
     }

@@ -39,20 +39,18 @@ class InventoryCommand extends BaseCommand {
       const quantity = Number(qty);
       if (!quantity || quantity <= 0) continue;
 
-      const item = getItem(key);
+      let item = getItem(key);
       if (!item) {
-        // Unknown raw item fallback
+        // Fallback: check client.allItems cached from MongoDB
+        const dbItem = message.client.allItems?.find((i) => i.item_id === key);
         const fallbackId = String(key).padStart(3, "0");
-        const existing = aggregated.get(fallbackId);
-        if (existing) {
-          existing.quantity += quantity;
-        } else {
-          aggregated.set(fallbackId, {
-            item: { id: fallbackId, emoji: "📦", name: key, type: "misc", order: 999 },
-            quantity,
-          });
-        }
-        continue;
+        item = {
+          id: fallbackId,
+          emoji: dbItem?.emoji || "📦",
+          name: dbItem?.name || key,
+          type: dbItem?.item_type || "misc",
+          order: 999,
+        };
       }
 
       const existing = aggregated.get(item.id);
