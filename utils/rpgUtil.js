@@ -184,9 +184,9 @@ const dungeonWeapons = [
   { name: "Satan", key: "satan", emoji: "<:Satan:1523380709476274176>" },
   { name: "Bladesorrow", key: "bladesorrow", emoji: "<:Bladesorrow:1523374302685298848>" },
   { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
-  { name: "Quỷ Thư", key: "demonbook", emoji: "📖" },
-  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: "🔨" },
-  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: "🦉" },
+  { name: "Quỷ Thư", key: "demonbook", emoji: config.emoji?.weapons?.demonbook || "<:darkhold:1544258394695934002>" },
+  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: config.emoji?.weapons?.thorshammer || "<:Holysword:1523379675076755556>" },
+  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: config.emoji?.weapons?.odinhammer || "<:bluestaff:1514232160897339442>" },
   { name: "Darkhold", key: "darkhold", emoji: "<:darkhold:1544258394695934002>" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
@@ -1328,12 +1328,12 @@ const getGearDisplayName = (item) => {
     Divine: "<a:divine:1530878610515165365>",
   };
   const slotEmoji = {
-    weapon: "🗡️",
-    armor: "🛡️",
-    helmet: "🪖",
-    boots: "🥾",
-    ring: "💍",
-    necklace: "📿",
+    weapon: "<:longsword:1514231939865903104>",
+    armor: "<:heavyarmor:1514232237724401716>",
+    helmet: "<:warriorhelmet:1514232262793629836>",
+    boots: "<:knightboot:1514232296000192582>",
+    ring: "<:ring:1514236487707791391>",
+    necklace: "<:necklace:1514236494859206729>",
   };
   const rank = bracketEmoji[item.rarity] || "";
   

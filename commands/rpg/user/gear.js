@@ -12,25 +12,24 @@ const fs = require("fs");
 const config = require("../../../data/config");
 const {
   calculateRpgPower,
-  findRpgItem,
   findRpgItemGlobal,
-  formatStats,
   getEffectiveRpgStats,
   getEquippedItems,
+  getEquippedPet,
   getRpgClass,
   getRpgItems,
-  getRpgXpNeeded,
   requireRpgCharacter,
   getItemQuality,
-  getGearDisplayName,
   getItemImageFile,
   getWeaponPower,
   getWeaponScaling,
   getDungeonWeaponKey,
+  getLegacyMapping,
   WEAPON_SETS,
 } = require("../../../utils/rpgUtil");
 const {
   ui,
+  getClassEmoji,
   getRarityEmoji,
   getRarityColor,
   getStatLabel,
@@ -39,176 +38,261 @@ const {
   safeInteractionReply,
   safeInteractionUpdate,
 } = require("../../../utils/rpgUi");
-const ITEMS_PER_PAGE = 10;
-const buildGearLine = (item, isEquipped = false) => {
-  const displayName = getGearDisplayName(item);
+const {
+  getWeaponPassiveEmojis,
+  formatWeaponRichDescription,
+  getStatEmojis,
+  getStatusEmojis,
+} = require("../../../data/rpg/weaponPassives");
+
+const ITEMS_PER_PAGE = 15;
+
+const getWearTier = (quality) => {
+  const q = Number(quality) || 0;
+  if (q >= 95) return "PRISTINE";
+  if (q >= 80) return "FINE";
+  if (q >= 60) return "DECENT";
+  if (q >= 40) return "WORN";
+  return "JAGGED";
+};
+
+const resolveItemDisplayMeta = (item) => {
+  const slotEmoji = {
+    weapon: "<:longsword:1514231939865903104>",
+    armor: "<:heavyarmor:1514232237724401716>",
+    helmet: "<:warriorhelmet:1514232262793629836>",
+    boots: "<:knightboot:1514232296000192582>",
+    ring: "<:ring:1514236487707791391>",
+    necklace: "<:necklace:1514236494859206729>",
+  };
+  const defaultUnicodeSet = new Set(["🗡️", "🛡️", "🪖", "🥾", "💍", "📿", "📖", "🔨", "🦉", "⚡"]);
+  let subTypeName = item.subType || item.subtype || "";
+  let emoji = item.emoji || "";
+
+  const { dungeonWeapons } = require("../../../utils/rpgUtil");
+  const dungKey = getDungeonWeaponKey(subTypeName);
+  const dungWeapon = dungKey ? dungeonWeapons.find((dw) => dw.key === dungKey) : null;
+  if (dungWeapon) {
+    subTypeName = dungWeapon.name;
+    emoji = dungWeapon.emoji;
+  } else if (!subTypeName || !emoji || defaultUnicodeSet.has(emoji)) {
+    const mapping = getLegacyMapping(item.slot);
+    if (mapping.subType && !subTypeName) subTypeName = mapping.subType;
+    if (mapping.emoji && (!emoji || defaultUnicodeSet.has(emoji))) emoji = mapping.emoji;
+  }
+
+  subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "ITEM");
+  emoji = (!emoji || defaultUnicodeSet.has(emoji)) ? (slotEmoji[item.slot] || "<:heavyarmor:1514232237724401716>") : emoji;
+  return { subTypeName, emoji };
+};
+
+const getGearStatBadges = (item) => {
+  const se = getStatEmojis();
+  if (item.slot === "weapon") {
+    return getWeaponPassiveEmojis(item.subType || item.subtype || item.name);
+  }
+  const stats = item.stats || {};
+  const badges = [];
+  for (const [k, v] of Object.entries(stats)) {
+    if (!v) continue;
+    const norm = k.toLowerCase();
+    if (norm === "vigor" || norm === "vit") badges.push(se.hp);
+    else if (norm === "pr" || norm === "def") badges.push(se.pr);
+    else if (norm === "mr") badges.push(se.mr);
+    else if (norm === "str" || norm === "dex" || norm === "agi") badges.push(se.att);
+    else if (norm === "int") badges.push(se.mag);
+    else if (norm === "arc" || norm === "luck") badges.push(se.wp);
+  }
+  return [...new Set(badges)].slice(0, 2).join("");
+};
+
+const buildGearLine = (item, isEquipped = false, user = null, memberName = "") => {
+  const { subTypeName, emoji } = resolveItemDisplayMeta(item);
+  const rankEmoji = getRarityEmoji(item.rarity);
+  const badgeEmojis = getGearStatBadges(item);
   const quality = getItemQuality(item);
-  const itemId = `G${String(item.id).padStart(3, "0")}`;
-  const equippedIndicator = isEquipped ? " · **đang mặc**" : "";
-  // getGearDisplayName already contains the single rarity/item icon pair.
-  return `\`${itemId}\` ${displayName} · ${quality}%${equippedIndicator}`;
+  const itemId = `G${String(item.id).padStart(4, "0")}`;
+  const upgradeBracket = item.upgradeLevel && item.upgradeLevel > 0 ? ` [${item.upgradeLevel}]` : "";
+  const favPrefix = item.isFavorite ? `${config.emoji.slots_heart} ` : "";
+
+  let equippedIndicator = "";
+  if (isEquipped) {
+    const pet = user ? getEquippedPet(user) : null;
+    if (pet) {
+      equippedIndicator = ` ➤ ${pet.emoji || getClassEmoji(user?.rpg?.classKey)} ${pet.nickname || pet.name}`;
+    } else {
+      const classIcon = getClassEmoji(user?.rpg?.classKey);
+      const charName = user?.rpg?.name || memberName || "Equipped";
+      equippedIndicator = ` ➤ ${classIcon} ${charName}`;
+    }
+  }
+
+  return `\`${itemId}\` ${rankEmoji}${emoji}${badgeEmojis} ${favPrefix}**${subTypeName}${upgradeBracket}** ${quality}%${equippedIndicator}`;
 };
-const formatGearStats = (stats = {}) =>
-  Object.entries(stats)
-    .filter(([, value]) => value)
-    .map(([key, value]) => `**${getStatLabel(key)}:** +${value}`)
-    .join(" • ");
+
 const filterLabels = {
-  none: "Không lọc",
-  favorite: "Yêu thích",
-  slot_weapon: "Vũ khí",
-  slot_armor: "Giáp ngực",
-  slot_helmet: "Mũ bảo vệ",
-  slot_boots: "Giày",
-  slot_ring: "Nhẫn",
-  slot_necklace: "Dây chuyền",
-  rarity_all: "Độ hiếm: Cao -> Thấp",
-  stat_vigor: "Chỉ số: Vigor",
-  stat_pr: "Chỉ số: PR (Physical Resist)",
-  stat_mr: "Chỉ số: MR (Magic Resist)",
-  stat_str: "Chỉ số: Strength",
-  stat_dex: "Chỉ số: Dexterity",
-  stat_int: "Chỉ số: Intelligence",
-  stat_arc: "Chỉ số: Arcane",
+  none: "None",
+  favorite: "Favorite",
+  slot_weapon: "Weapon",
+  slot_armor: "Armor",
+  slot_helmet: "Helmet",
+  slot_boots: "Boots",
+  slot_ring: "Ring",
+  slot_necklace: "Necklace",
+  rarity_all: "Rarity (High -> Low)",
+  stat_vigor: "Vigor (HP)",
+  stat_pr: "PR",
+  stat_mr: "MR",
+  stat_str: "STR",
+  stat_dex: "DEX",
+  stat_int: "INT",
+  stat_arc: "ARC",
 };
-const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterTypes, sortBy, rpgClass }) => {
+
+const buildGearListEmbed = ({ user, memberName, items, page, totalPages, filterTypes, rpgClass }) => {
   const start = page * ITEMS_PER_PAGE;
   const pageItems = items.slice(start, start + ITEMS_PER_PAGE);
   const equippedIds = new Set(
     Object.values(getEquippedItems(user)).map((item) => String(item.id)),
   );
   const list = pageItems.length
-    ? pageItems.map((item) => buildGearLine(item, equippedIds.has(String(item.id)))).join("\n")
-    : "*Chưa có trang bị nào khớp bộ lọc.*";
+    ? pageItems.map((item) => buildGearLine(item, equippedIds.has(String(item.id)), user, memberName)).join("\n")
+    : "*Chưa có vũ khí / trang bị nào khớp bộ lọc.*";
+
+  const isWeaponOnly = filterTypes.length === 1 && filterTypes[0] === "slot_weapon";
+  const headerTitle = isWeaponOnly
+    ? `### <:longsword:1514231939865903104> <@${user.userId}>'s Weapons`
+    : `### <:longsword:1514231939865903104> <@${user.userId}>'s Weapons & Gear`;
+
   const filterLabel = filterTypes.includes("none")
-    ? "Không lọc"
-    : filterTypes.map((f) => filterLabels[f] || f).join(", ");
+    ? "`None`"
+    : filterTypes.map((f) => `\`${filterLabels[f] || f}\``).join(" ");
+
+  const description = [
+    headerTitle,
+    `**Weapon Filters:** ${filterLabel}`,
+    `──────────────────────────────────────`,
+    list,
+    `──────────────────────────────────────`,
+  ].join("\n");
+
   return new EmbedBuilder()
     .setColor(getRpgClass(user.rpg.classKey)?.color || rpgClass.color)
-    .setTitle(`Kho trang bị • ${memberName}`)
-    .setDescription(list)
-    .addFields(
-      { name: "Lực chiến", value: `**${Math.floor(calculateRpgPower(user)).toLocaleString()}**`, inline: true },
-      { name: "Bộ lọc", value: `**${filterLabel}**`, inline: true },
-    )
-    .setFooter(formatRpgFooter(`Trang ${page + 1}/${totalPages} • đang mặc`));
+    .setDescription(description)
+    .setFooter(
+      formatRpgFooter(
+        `Trang ${page + 1}/${totalPages} • Tổng: ${items.length} món • Lực chiến: ${Math.floor(calculateRpgPower(user)).toLocaleString()}`
+      )
+    );
 };
+
 class GearCommand extends BaseCommand {
   constructor() {
     super({
       name: "gear",
-      aliases: ["equipment", "power", "tui", "ruong", "ruongdo", "g"],
-      description: "Xem trang bị nhân vật RPG đang mặc và Lực chiến hiện tại.",
+      aliases: ["equipment", "power", "tui", "ruong", "ruongdo", "g", "weapon", "weapons", "w", "wp"],
+      description: "Xem kho vũ khí, trang bị RPG và chi tiết nội tại/chỉ số.",
       usage: `${config.prefix}gear [itemId]`,
       examples: [
-        { intent: "Xem danh sách trang bị", command: `${config.prefix}gear` },
-        { intent: "Xem chi tiết một món", command: `${config.prefix}gear 3` },
+        { intent: "Xem danh sách vũ khí & trang bị", command: `${config.prefix}gear` },
+        { intent: "Xem danh sách vũ khí", command: `${config.prefix}w` },
+        { intent: "Xem chi tiết một vũ khí/trang bị", command: `${config.prefix}w G0003` },
       ],
-      cooldown: 0
+      cooldown: 0,
     });
   }
+
   async execute(message, args = []) {
     const { user, rpgClass } = await requireRpgCharacter(message.author.id);
+    const se = getStatEmojis();
+    const st = getStatusEmojis();
+
     const getDetailEmbedAndComponents = (freshItem, freshOwner) => {
       const equippedEntry = Object.values(getEquippedItems(freshOwner)).find(
         (equippedItem) => String(equippedItem.id) === String(freshItem.id),
       );
-      const imageFile = getItemImageFile(freshItem);
-      let subTypeName = freshItem.subType || freshItem.subtype;
-      if (!subTypeName) {
-        const { getLegacyMapping } = require("../../../utils/rpgUtil");
-        const mapping = getLegacyMapping(freshItem.slot, freshItem.subType || freshItem.subtype);
-        subTypeName = mapping.subType || freshItem.slot.toUpperCase();
-      }
-      const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` +${freshItem.upgradeLevel}` : "";
-      const ownerName = freshOwner.rpg.name || freshOwner.userId;
-      const titleIcon = freshItem.emoji || getRarityEmoji(freshItem.rarity);
-      const titleText = `${titleIcon ? `${titleIcon} ` : ""}${ownerName} • ${subTypeName}${upgradeStr}`;
-      let desc = `**Chủ sở hữu:** <@${freshOwner.userId}>\n` +
-                 `**Mã trang bị:** \`G${String(freshItem.id).padStart(3, "0")}\`\n` +
-                 `**Giá bán:** ${config.emoji.money || "💵"} ${freshItem.sellPrice.toLocaleString()} Coke\n` +
-                 `**Chất lượng:** ${getItemQuality(freshItem)}%\n` +
-                 `**Độ hiếm:** ${getRarityEmoji(freshItem.rarity)} **${freshItem.rarity}**\n\n`;
+      const { subTypeName } = resolveItemDisplayMeta(freshItem);
+      const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` [+${freshItem.upgradeLevel}]` : "";
+      const ownerName = freshOwner.rpg?.name || message.member?.displayName || message.author.username;
+      const quality = getItemQuality(freshItem);
+      const wearLabel = getWearTier(quality);
+      const itemIdCode = `G${String(freshItem.id).padStart(4, "0")}`;
+
+      const titleText = `${ownerName}'s ${subTypeName}${upgradeStr}`;
+
+      const infoLines = [
+        `**Name:** ${subTypeName}${upgradeStr}`,
+        `**Owner:** <@${freshOwner.userId}>`,
+        `**ID:** \`${itemIdCode}\``,
+        `**Sell Value:** ${config.emoji.money} ${freshItem.sellPrice.toLocaleString()}`,
+        `**Quality:** ${getRarityEmoji(freshItem.rarity)} ${quality}%`,
+        `**Wear:** \`${wearLabel}\``,
+      ];
+
       if (freshItem.slot === "weapon") {
         const ownerStats = getEffectiveRpgStats(freshOwner);
         const finalPower = getWeaponPower(freshItem, ownerStats);
         const bonusPower = finalPower - freshItem.power;
-        const powerText = `**${finalPower.toLocaleString()}** (+${bonusPower.toLocaleString()})`;
         const scaling = getWeaponScaling(freshItem);
-        const scalingText = `STR (${scaling.str})  |  DEX (${scaling.dex})  |  INT (${scaling.int})  |  ARC (${scaling.arc})`;
-         desc += `### Sức mạnh vũ khí\n` +
-                 `Cơ bản: **${freshItem.power.toLocaleString()}**  •  Thực tế: ${powerText}\n` +
-                 `Scale: \`${scalingText}\`\n\n`;
-        const freshWeaponSubtype = freshItem.subType || freshItem.subtype;
-        const freshWeaponKey = getDungeonWeaponKey(freshWeaponSubtype) || String(freshWeaponSubtype || "").toLowerCase().replace(/\s+/g, "");
-        const setInfo = WEAPON_SETS[freshWeaponKey] || WEAPON_SETS[getDungeonWeaponKey(freshWeaponSubtype)];
-        if (setInfo) {
-          const bonusText = Object.entries(setInfo.bonus).map(([k, v]) => {
-            if (typeof v === "number") return k === "dual" ? "" : `+${Math.round(v * 100)}% ${k.replace(/([A-Z])/g, " $1").toLowerCase()}`;
-            return "";
-          }).filter(Boolean).join(", ");
-           desc += `✦ **Bộ vũ khí:** \`${setInfo.name}\` — ${bonusText}\n\n`;
-        }
-        desc += `__**Description**__\n`;
-        const dungKey = freshWeaponKey;
-        if (dungKey) {
-          const passives = {
-            shadowdagger: "Giảm 30% giáp vật lý của boss/đối thủ vĩnh viễn (Đồng đội cùng hưởng)",
-            poisondagger: "Tiêm kịch độc ăn mòn: gây độc 3 lượt và giảm 15% phòng ngự đối thủ",
-            firesword: "Giảm 30% hồi máu của boss/đối thủ trong 2 lượt (30 giây đối với World Boss)",
-            greenstaff: "Hồi 10% HP đã mất khi dùng kỹ năng (PvP/World Boss: 45% hồi 10% HP đã mất khi chém thường)",
-            bluestaff: "Đòn đánh xuyên 25% kháng phép",
-            crimsondagger: "Đòn đánh xuyên 50% giáp vật lý",
-            holysword: "Đòn đánh thứ 3 gây gấp đôi (2.0x) sát thương",
-            darksword: "Hắc khí gây thêm 15% sát thương bóng tối và làm suy yếu mục tiêu (giảm 20% sát thương gây ra trong 2 lượt)",
-            darkstaff: "Áp dụng ngẫu nhiên hiệu ứng burn/weakness/pierce",
-            gravitybow: "Lực bắn cực mạnh với hệ số Scale vượt trội DEX (S) | ARC (B) | INT (A) (Không có nội tại kích hoạt)",
-            duskanddawn: "Tấn công thường chém vật lý/phép xen kẽ, 30% cơ hội tấn công thêm 1 lần trong lượt",
-            riverofblood: "Đòn đánh hồi phục HP cho bản thân bằng 2% sát thương gây ra",
-            axesnake: "Phá 10% giáp vật lý của đối thủ mỗi khi tấn công hoặc dùng kỹ năng (Cộng dồn)",
-            sunbow: "Đòn đánh xuyên 10% giáp vật lý và 10% kháng phép của đối thủ",
-            clawhex: "Gây chảy máu khiến đối thủ chịu sát thương bằng 50% Str + 50% Dex mỗi lượt trong 3 lượt",
-            spearhex: "Xuyên giáp bỏ qua 10% PR (phòng ngự vật lý) của đối thủ",
-            shieldhex: "Hấp thụ sát thương trong 3 round, phản lại 90% sát thương đã nhận ở round 4",
-            lunashard: "Tăng 15% Tỷ lệ Bạo kích & 25% Sát thương Bạo kích, 20% cơ hội xuyên 15% phòng thủ đối thủ",
-            eclipsesoul: "Thiêu đốt giảm 15% sát thương đối thủ trong 2 lượt và gây thêm sát thương phép",
-            bladesorrow: "Gây chảy máu trong 3 lượt và giảm 15% giáp mỗi lần kích hoạt (tối đa 30% trong Dungeon)",
-            frostgauntlet: "30% cơ hội đóng băng đối thủ trong 1 lượt; Scale INT (S) / ARC (A) / DEX (B)",
-            demonbook: "Giải phóng ngẫu nhiên Thiêu Đốt (cấm hồi máu), Hủ Bại (phá 30% song phòng) hoặc Choáng | Scale: INT (S) | ARC (A)",
-            thorshammer: "Thiên lôi giáng thế: làm Choáng 1 lượt và tăng 35% sát thương lôi điện | Scale: STR (S) | ARC (A)",
-            odinhammer: "Cổ ngữ khải huyền: đòn đánh thứ 3 gây 1.75x sát thương và xuyên 50% kháng phép | Scale: INT (S) | ARC (A)",
-            asmodeus: "Cuồng vọng bùng nổ: tăng 30% sát thương và phá 15% giáp mục tiêu trong 2 lượt",
-            satan: "Hỏa ngục tận thế: thiêu đốt mục tiêu 3 lượt (theo STR), cấm hồi máu 2 lượt và tăng 10% sát thương",
-            greeddagger: "Hút máu 8% sát thương gây ra; gây thêm 25% sát thương chí mạng khi mục tiêu dưới 50% HP",
-            beelzebub: "Đàn ruồi hoại tử: ăn mòn 20% giáp & 20% kháng phép mục tiêu trong 2 lượt và hồi 5% HP tối đa",
-            fallenangel: "Cố định giảm 12% sát thương nhận vào; khi tấn công tăng 20% sát thương và hồi phục 6% máu đã mất",
-            soulreaper: "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)",
-            darkhold: "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)",
-            bithuathacamdarkhold: "Trói Buộc Hư Vô: phá 25% kháng phép mục tiêu và giảm 15% sát thương nhận vào trong 2 lượt | Scale: INT (S) | ARC (B) | DEX (B)",
-            luoihailinhhonsoulreaper: "Gặt Hái Linh Hồn: cấm hồi máu 2 lượt; gây thêm 40% sát thương kết liễu và hồi phục HP khi mục tiêu dưới 35% HP | Scale: DEX (S) | ARC (S) | STR (C)",
-          };
-          const { getWeaponPassive } = require("../../../data/rpg/weaponPassives");
-          const passiveDef = getWeaponPassive(dungKey) || getWeaponPassive(freshWeaponSubtype);
-          const passiveDesc = passives[dungKey] || passives[getDungeonWeaponKey(freshWeaponSubtype)] || (passiveDef?.description ? `${passiveDef.description} | Scale: ${scalingText}` : null) || "Chưa cập nhật nội tại";
-          const noPassiveWeapons = ["gravitybow", "duskanddawn"];
-          if (noPassiveWeapons.includes(dungKey)) {
-            desc += `*${passiveDesc}*\n`;
-          } else {
-           desc += `*Nội tại (45% kích hoạt): ${passiveDesc}*\n`;
-          }
-        } else {
-          desc += `*Vũ khí cơ bản, không có nội tại đặc biệt.*\n`;
-        }
+
+        const scalingBadges = [];
+        if (scaling.str && scaling.str !== "-") scalingBadges.push(`${se.att} STR **${scaling.str}**`);
+        if (scaling.dex && scaling.dex !== "-") scalingBadges.push(`${se.att} DEX **${scaling.dex}**`);
+        if (scaling.int && scaling.int !== "-") scalingBadges.push(`${se.mag} INT **${scaling.int}**`);
+        if (scaling.arc && scaling.arc !== "-") scalingBadges.push(`${se.wp} ARC **${scaling.arc}**`);
+        if (scaling.pr && scaling.pr !== "-") scalingBadges.push(`${se.pr} PR **${scaling.pr}**`);
+        if (scaling.mr && scaling.mr !== "-") scalingBadges.push(`${se.mr} MR **${scaling.mr}**`);
+
+        infoLines.push(
+          `**Weapon Power:** ${finalPower.toLocaleString()} ${se.wp} *(Base: ${freshItem.power.toLocaleString()} • +${bonusPower.toLocaleString()})*`,
+          `**Scaling:** ${scalingBadges.length ? scalingBadges.join("  •  ") : "None"}`,
+          "",
+          `__**Description**__`
+        );
+
+        const freshWeaponSubtype = freshItem.subType || freshItem.subtype || subTypeName;
+        const freshWeaponKey =
+          getDungeonWeaponKey(freshWeaponSubtype) ||
+          String(freshWeaponSubtype || "").toLowerCase().replace(/\s+/g, "");
+        const setInfo = WEAPON_SETS[freshWeaponKey] || WEAPON_SETS[getDungeonWeaponKey(freshWeaponSubtype)] || null;
+
+        infoLines.push(formatWeaponRichDescription(freshWeaponSubtype, setInfo));
       } else {
-        const statsText = formatStats(freshItem.stats) || "Không có";
-        desc += `### Chỉ số cộng thêm\n` +
-                `Lực chiến: **+${freshItem.power.toLocaleString()}**\n` +
-                `${statsText}`;
+        infoLines.push(
+          `**Gear Power:** +${freshItem.power.toLocaleString()} ${se.pr}`,
+          "",
+          `__**Description**__`,
+          `Trang bị phòng hộ cấp **${freshItem.rarity}**, gia tăng trực tiếp chỉ số chiến đấu khi mặc lên người:`
+        );
+
+        const statLines = [];
+        for (const [k, v] of Object.entries(freshItem.stats || {})) {
+          if (!v) continue;
+          const norm = k.toLowerCase();
+          let icon = se.hp;
+          if (norm === "pr" || norm === "def") icon = se.pr;
+          else if (norm === "mr") icon = se.mr;
+          else if (norm === "str" || norm === "dex" || norm === "agi") icon = se.att;
+          else if (norm === "int") icon = se.mag;
+          else if (norm === "arc" || norm === "luck") icon = se.wp;
+          statLines.push(`> ${icon} __**${getStatLabel(norm)}**__ - Cộng thêm **+${v}** điểm chỉ số.`);
+        }
+        if (statLines.length === 0) {
+          statLines.push(`> ${st.taunt} __**Phòng Hộ Cơ Bản**__ - Cung cấp **+${freshItem.power.toLocaleString()}** Lực chiến phòng ngự.`);
+        }
+        infoLines.push(...statLines);
       }
+
       const embed = new EmbedBuilder()
         .setColor(getRarityColor(freshItem.rarity, rpgClass.color))
         .setTitle(titleText)
-        .setDescription(desc);
+        .setDescription(infoLines.join("\n"))
+        .setFooter(
+          formatRpgFooter(
+            `Cường hóa: +${freshItem.upgradeLevel || 0}  •  Độ hiếm: ${freshItem.rarity}`
+          )
+        );
+
       const row = new ActionRowBuilder();
       if (equippedEntry) {
         row.addComponents(
@@ -231,23 +315,22 @@ class GearCommand extends BaseCommand {
           .setLabel("Bán")
           .setEmoji(config.emoji.money)
           .setStyle(ButtonStyle.Danger)
-          .setDisabled(!!freshItem.isFavorite || !!freshItem.isGodset)
-      );
-      row.addComponents(
+          .setDisabled(!!freshItem.isFavorite || !!freshItem.isGodset),
         new ButtonBuilder()
           .setCustomId(`gear_fav_${freshItem.id}`)
-          .setLabel(freshItem.isFavorite ? "Bỏ yêu thích" : "Yêu thích")
+          .setEmoji(config.emoji.slots_heart)
           .setStyle(freshItem.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
       );
       return { embed, row };
     };
+
     const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
     const itemId = Number(cleanArg);
     if (Number.isInteger(itemId) && itemId > 0) {
       const result = await findRpgItemGlobal(itemId);
       if (!result) {
         return message.reply(
-          `${config.emoji.no} Không tìm thấy trang bị RPG ID \`${itemId}\`.`,
+          `${config.emoji.no} Không tìm thấy vũ khí / trang bị RPG ID \`G${String(itemId).padStart(4, "0")}\`.`
         );
       }
       const { item, owner } = result;
@@ -276,7 +359,10 @@ class GearCommand extends BaseCommand {
       });
       favCollector.on("collect", async (interaction) => {
         if (interaction.user.id !== owner.userId) {
-          return safeInteractionReply(interaction, { content: "❌ Chỉ chủ sở hữu trang bị mới có quyền thực hiện hành động này!", ephemeral: true });
+          return safeInteractionReply(interaction, {
+            content: `${config.emoji.no} Chỉ chủ sở hữu trang bị mới có quyền thực hiện hành động này!`,
+            ephemeral: true,
+          });
         }
         if (interaction.customId.startsWith("gear_fav_")) {
           item.isFavorite = !item.isFavorite;
@@ -284,28 +370,25 @@ class GearCommand extends BaseCommand {
           await owner.save();
           const updated = getDetailEmbedAndComponents(item, owner);
           await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
-        }
-        else if (interaction.customId.startsWith("gear_equip_")) {
+        } else if (interaction.customId.startsWith("gear_equip_")) {
           const { equipRpgItem } = require("../../../utils/rpgUtil");
           try {
             const { user: updatedOwner } = await equipRpgItem(owner.userId, item.id);
             const updated = getDetailEmbedAndComponents(item, updatedOwner);
             await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
           } catch (err) {
-            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `${config.emoji.no} Lỗi: ${err.message}`, ephemeral: true });
           }
-        }
-        else if (interaction.customId.startsWith("gear_uneq_")) {
+        } else if (interaction.customId.startsWith("gear_uneq_")) {
           const { unequipRpgSlot } = require("../../../utils/rpgUtil");
           try {
             const { user: updatedOwner } = await unequipRpgSlot(owner.userId, item.slot);
             const updated = getDetailEmbedAndComponents(item, updatedOwner);
             await safeInteractionUpdate(interaction, { embeds: [updated.embed], components: [updated.row] });
           } catch (err) {
-            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `${config.emoji.no} Lỗi: ${err.message}`, ephemeral: true });
           }
-        }
-        else if (interaction.customId.startsWith("gear_sell_")) {
+        } else if (interaction.customId.startsWith("gear_sell_")) {
           const { sellRpgItem } = require("../../../utils/rpgUtil");
           try {
             const { cokeGain } = await sellRpgItem(owner.userId, item.id);
@@ -317,7 +400,7 @@ class GearCommand extends BaseCommand {
             await safeInteractionUpdate(interaction, { embeds: [soldEmbed], components: [] });
             favCollector.stop();
           } catch (err) {
-            await safeInteractionReply(interaction, { content: `❌ Lỗi: ${err.message}`, ephemeral: true });
+            await safeInteractionReply(interaction, { content: `${config.emoji.no} Lỗi: ${err.message}`, ephemeral: true });
           }
         }
       });
@@ -341,7 +424,7 @@ class GearCommand extends BaseCommand {
             .setDisabled(true),
           new ButtonBuilder()
             .setCustomId(`gear_btn_dis3_${item.id}`)
-            .setLabel(item.isFavorite ? "Bỏ yêu thích" : "Yêu thích")
+            .setEmoji(config.emoji.slots_heart)
             .setStyle(item.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
             .setDisabled(true)
         );
@@ -349,13 +432,24 @@ class GearCommand extends BaseCommand {
       });
       return detailMsg;
     }
+
     user.rpg.power = calculateRpgPower(user);
     await user.save();
     const allItems = getRpgItems(user);
     const memberName = message.member?.displayName || message.author.username;
+
+    // If invoked via xw / xweapon / xweapons / xwp, default filter to weapons like OwO `ow`
+    const rawCmd = message.content
+      .slice(config.prefix.length)
+      .trim()
+      .split(/\s+/)[0]
+      ?.toLowerCase();
+    const isWeaponCommand = ["w", "wp", "weapon", "weapons"].includes(rawCmd);
+
     let page = 0;
     let sortBy = "newest";
-    let filterTypes = ["none"];
+    let filterTypes = isWeaponCommand ? ["slot_weapon"] : ["none"];
+
     const getFilteredAndSortedItems = () => {
       let filtered = [...allItems];
       if (filterTypes.includes("favorite")) {
@@ -379,12 +473,12 @@ class GearCommand extends BaseCommand {
       if (statFilters.length > 0) {
         const statsToFind = statFilters.map((f) => f.slice(5));
         filtered = filtered.filter((item) => {
+          if (item.slot === "weapon") {
+            const sc = getWeaponScaling(item);
+            return statsToFind.every((statName) => sc[statName] && sc[statName] !== "-");
+          }
           if (!item.stats) return false;
-          const getStatVal = (k) => {
-            const val = item.stats[k];
-            if (typeof val === "number") return val;
-            return 0;
-          };
+          const getStatVal = (k) => (typeof item.stats[k] === "number" ? item.stats[k] : 0);
           const hasStat = (statName) => {
             if (statName === "vigor") return getStatVal("vigor") > 0 || getStatVal("vit") > 0;
             if (statName === "pr") return getStatVal("pr") > 0 || getStatVal("def") > 0;
@@ -409,50 +503,50 @@ class GearCommand extends BaseCommand {
       }
       return filtered;
     };
+
     const buildComponents = (total) => {
       const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
       const sortRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId("gear_sort")
-          .setPlaceholder("Sắp xếp trang bị")
+          .setPlaceholder("Sort by Weapon ID")
           .addOptions(
-            { label: "Sắp xếp theo: Mới nhất", value: "newest", default: sortBy === "newest" },
-            { label: "Sắp xếp theo: Cũ nhất", value: "oldest", default: sortBy === "oldest" },
-            { label: "Sắp xếp theo Lực chiến", value: "power", default: sortBy === "power" },
-            { label: "Sắp xếp theo Độ hiếm", value: "rarity", default: sortBy === "rarity" },
-            { label: "Sắp xếp theo Chất lượng (%)", value: "quality", default: sortBy === "quality" }
+            { label: "Sort by Weapon ID (Newest)", value: "newest", default: sortBy === "newest" },
+            { label: "Sort by Weapon ID (Oldest)", value: "oldest", default: sortBy === "oldest" },
+            { label: "Sort by Quality (%)", value: "quality", default: sortBy === "quality" },
+            { label: "Sort by Rarity", value: "rarity", default: sortBy === "rarity" },
+            { label: "Sort by Power", value: "power", default: sortBy === "power" }
           )
       );
       const filterRow = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId("gear_filter")
-          .setPlaceholder("Bộ lọc trang bị")
+          .setPlaceholder("Filter Weapons & Gear")
           .setMinValues(1)
           .setMaxValues(5)
           .addOptions(
-             { label: "Không lọc", value: "none", default: filterTypes.includes("none") },
-            { label: "Lọc: Yêu thích", value: "favorite", default: filterTypes.includes("favorite") },
-            { label: "Lọc: Vũ khí", value: "slot_weapon", default: filterTypes.includes("slot_weapon") },
-            { label: "Lọc: Giáp ngực", value: "slot_armor", default: filterTypes.includes("slot_armor") },
-            { label: "Lọc: Mũ bảo vệ", value: "slot_helmet", default: filterTypes.includes("slot_helmet") },
-            { label: "Lọc: Giày", value: "slot_boots", default: filterTypes.includes("slot_boots") },
-            { label: "Lọc: Nhẫn", value: "slot_ring", default: filterTypes.includes("slot_ring") },
-            { label: "Lọc: Dây chuyền", value: "slot_necklace", default: filterTypes.includes("slot_necklace") },
-            { label: "Lọc: Độ hiếm (Cao -> Thấp)", value: "rarity_all", default: filterTypes.includes("rarity_all") },
-            { label: "Lọc chỉ số: Vigor", value: "stat_vigor", default: filterTypes.includes("stat_vigor") },
-             { label: "Lọc chỉ số: PR", value: "stat_pr", default: filterTypes.includes("stat_pr") },
-             { label: "Lọc chỉ số: MR", value: "stat_mr", default: filterTypes.includes("stat_mr") },
-             { label: "Lọc chỉ số: STR", value: "stat_str", default: filterTypes.includes("stat_str") },
-             { label: "Lọc chỉ số: DEX", value: "stat_dex", default: filterTypes.includes("stat_dex") },
-             { label: "Lọc chỉ số: INT", value: "stat_int", default: filterTypes.includes("stat_int") },
-             { label: "Lọc chỉ số: ARC", value: "stat_arc", default: filterTypes.includes("stat_arc") }
+            { label: "None (Show All)", value: "none", default: filterTypes.includes("none") },
+            { label: "Filter: Favorite", value: "favorite", default: filterTypes.includes("favorite") },
+            { label: "Filter: Weapons Only", value: "slot_weapon", default: filterTypes.includes("slot_weapon") },
+            { label: "Filter: Armor", value: "slot_armor", default: filterTypes.includes("slot_armor") },
+            { label: "Filter: Helmet", value: "slot_helmet", default: filterTypes.includes("slot_helmet") },
+            { label: "Filter: Boots", value: "slot_boots", default: filterTypes.includes("slot_boots") },
+            { label: "Filter: Ring", value: "slot_ring", default: filterTypes.includes("slot_ring") },
+            { label: "Filter: Necklace", value: "slot_necklace", default: filterTypes.includes("slot_necklace") },
+            { label: "Filter: Rarity (High -> Low)", value: "rarity_all", default: filterTypes.includes("rarity_all") },
+            { label: "Stat: Vigor (HP)", value: "stat_vigor", default: filterTypes.includes("stat_vigor") },
+            { label: "Stat: PR", value: "stat_pr", default: filterTypes.includes("stat_pr") },
+            { label: "Stat: MR", value: "stat_mr", default: filterTypes.includes("stat_mr") },
+            { label: "Stat: STR (ATT)", value: "stat_str", default: filterTypes.includes("stat_str") },
+            { label: "Stat: DEX (ATT)", value: "stat_dex", default: filterTypes.includes("stat_dex") },
+            { label: "Stat: INT (MAG)", value: "stat_int", default: filterTypes.includes("stat_int") },
+            { label: "Stat: ARC (WP)", value: "stat_arc", default: filterTypes.includes("stat_arc") }
           )
       );
       const buttonRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId("gear_prev")
-          .setLabel("Trước")
-          .setEmoji(config.emoji.arrow_left || "◀️")
+          .setEmoji(config.emoji.arrow_left)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(totalPages <= 1),
         new ButtonBuilder()
@@ -462,17 +556,17 @@ class GearCommand extends BaseCommand {
           .setDisabled(true),
         new ButtonBuilder()
           .setCustomId("gear_next")
-          .setLabel("Sau")
-          .setEmoji(config.emoji.arrow_right || "▶️")
+          .setEmoji(config.emoji.arrow_right)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(totalPages <= 1),
         new ButtonBuilder()
           .setCustomId("gear_help")
-          .setLabel("Trợ giúp")
+          .setLabel("?")
           .setStyle(ButtonStyle.Secondary)
       );
       return [sortRow, filterRow, buttonRow];
     };
+
     const render = () => {
       const items = getFilteredAndSortedItems();
       const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
@@ -491,6 +585,7 @@ class GearCommand extends BaseCommand {
       const components = buildComponents(items.length);
       return { embeds: [embed], components };
     };
+
     const payload = render();
     const sentMessage = await message.reply(payload);
     const collector = sentMessage.createMessageComponentCollector({
@@ -531,12 +626,13 @@ class GearCommand extends BaseCommand {
         await safeInteractionUpdate(interaction, render());
       } else if (interaction.customId === "gear_help") {
         const helpText = [
-          "**Hướng dẫn rương đồ RPG:**",
-          `• Mặc trang bị: \`${config.prefix}equip [ID]\` (Ví dụ: \`${config.prefix}equip 5\`)`,
-          `• Tháo trang bị: \`${config.prefix}unequip [Slot]\` (Ví dụ: \`${config.prefix}unequip weapon\`)`,
-          `• Bán trang bị lẻ: \`${config.prefix}sellgear [ID]\` (Ví dụ: \`${config.prefix}sellgear 5\`)`,
-          `• Bán hàng loạt theo cấp: \`${config.prefix}sellgear [Viết tắt]\` (Ví dụ: \`${config.prefix}sellgear c,r\`)`,
-          `• Xem chi tiết trang bị: \`${config.prefix}gear [ID]\` (Ví dụ: \`${config.prefix}gear 5\`)`,
+          "**<:longsword:1514231939865903104> Hướng dẫn Kho Vũ Khí & Trang Bị:**",
+          `• Xem kho vũ khí: \`${config.prefix}w\` hoặc \`${config.prefix}gear\``,
+          `• Xem chi tiết vũ khí/trang bị: \`${config.prefix}w [ID]\` (Ví dụ: \`${config.prefix}w G0005\`)`,
+          `• Trang bị nhanh: \`${config.prefix}equip [ID]\``,
+          `• Tháo trang bị: \`${config.prefix}unequip [Slot]\``,
+          `• Cường hóa vũ khí: \`${config.prefix}enhance [ID]\``,
+          `• Bán trang bị: \`${config.prefix}sellgear [ID / c,r,e]\``,
         ].join("\n");
         await safeInteractionReply(interaction, { content: helpText, ephemeral: true });
       }
@@ -548,4 +644,5 @@ class GearCommand extends BaseCommand {
     return sentMessage;
   }
 }
+
 module.exports = new GearCommand();

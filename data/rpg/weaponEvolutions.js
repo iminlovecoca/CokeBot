@@ -19,7 +19,7 @@ const WEAPON_EVOLUTIONS = {
       thorshammer: {
         key: "thorshammer",
         name: "Búa Lôi Thần Thor",
-        emoji: "⚡",
+        emoji: "<:stun:1521938490605178910>",
         style: "Thiên vật lý + ARC",
         description: "STR (S) + ARC (A), DEX (B); 45% cơ hội làm choáng mục tiêu trong 1 lượt.",
         scaling: { str: "S", dex: "B", int: "-", arc: "A" },
@@ -27,7 +27,7 @@ const WEAPON_EVOLUTIONS = {
       odinhammer: {
         key: "odinhammer",
         name: "Búa Toàn Tri Odin",
-        emoji: "🦉",
+        emoji: "<:atkup:1521938477359300648>",
         style: "Thiên phép + ARC",
         description: "INT (S) + ARC (A), STR (B); đòn đánh thứ 3 gây 1.7x sát thương trong Dungeon.",
         scaling: { str: "B", dex: "-", int: "S", arc: "A" },

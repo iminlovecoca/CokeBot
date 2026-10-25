@@ -1,12 +1,13 @@
 const config = require("./config");
 
 const PET_STAT_ICONS = {
-  hp: config.emoji?.petStats?.hp || "🇭",
-  att: config.emoji?.petStats?.att || "🟥",
-  pr: config.emoji?.petStats?.pr || "🛡️",
-  wp: config.emoji?.petStats?.wp || "🇼",
-  mag: config.emoji?.petStats?.mag || "🟦",
-  mr: config.emoji?.petStats?.mr || "💠",
+  hp: config.emoji?.petStats?.hp || "",
+  att: config.emoji?.petStats?.att || "",
+  pr: config.emoji?.petStats?.pr || "",
+  wp: config.emoji?.petStats?.wp || "",
+  mag: config.emoji?.petStats?.mag || "",
+  mr: config.emoji?.petStats?.mr || "",
+  hybrid: config.emoji?.petStats?.hybrid || "",
 };
 
 const PET_TIERS = {
@@ -39,7 +40,7 @@ const PET_TIERS = {
   },
   Generation: {
     name: "Generation",
-    emoji: config.emoji?.ranks?.generation || "🇬",
+    emoji: config.emoji?.ranks?.generation || "",
     catchRate: 0.002,
     baseHp: 75,
     baseAtk: 15,
@@ -84,7 +85,7 @@ const PET_TIERS = {
   },
   Secret: {
     name: "Secret",
-    emoji: config.emoji?.ranks?.secret || "🇸",
+    emoji: config.emoji?.ranks?.secret || "<a:divine:1530878610515165365>",
     catchRate: 0.0000002,
     baseHp: 800,
     baseAtk: 160,

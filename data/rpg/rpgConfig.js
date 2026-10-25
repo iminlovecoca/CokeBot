@@ -126,12 +126,12 @@ module.exports = {
       Divine: "#FFFFFF",
     },
     slotEmojis: {
-      weapon: "🗡️",
-      armor: "🛡️",
-      helmet: "🪖",
-      boots: "🥾",
-      ring: "💍",
-      necklace: "📿",
+      weapon: "<:longsword:1514231939865903104>",
+      armor: "<:heavyarmor:1514232237724401716>",
+      helmet: "<:warriorhelmet:1514232262793629836>",
+      boots: "<:knightboot:1514232296000192582>",
+      ring: "<:ring:1514236487707791391>",
+      necklace: "<:necklace:1514236494859206729>",
     },
     slotNames: {
       weapon: "Vũ khí",

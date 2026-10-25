@@ -366,7 +366,7 @@ function applySecretEffect(ctx, img, frameIndex, totalFrames) {
     dissolveProgress = 1.0 - (progress - 0.85) / (1.0 - 0.85);
   }
 
-  // Phase 1: Solid letter S + dark metallic sheen
+  // Phase 1: Solid letter S + neutral silver-obsidian sheen
   if (dissolveProgress <= 0.001) {
     ctx.save();
     ctx.globalCompositeOperation = 'source-atop';
@@ -374,7 +374,7 @@ function applySecretEffect(ctx, img, frameIndex, totalFrames) {
     const sheenPos = -40 + sheenProg * (width + 80);
     const grad = ctx.createLinearGradient(sheenPos - 28, sheenPos - 28, sheenPos + 28, sheenPos + 28);
     grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-    grad.addColorStop(0.5, 'rgba(175, 190, 220, 0.42)');
+    grad.addColorStop(0.5, 'rgba(225, 225, 230, 0.48)');
     grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
@@ -385,10 +385,8 @@ function applySecretEffect(ctx, img, frameIndex, totalFrames) {
   // Clear the pre-drawn static image so we can render the per-tile Thanos Snap particle simulation
   ctx.clearRect(0, 0, width, height);
 
-  // Phase 3: Long Invisible Hold (keep 1x1 pixel at corner (0,0) so ffmpeg GIF muxer flushes transparent frame)
+  // Phase 3: Long Invisible Hold (completely transparent frame)
   if (dissolveProgress >= 0.999) {
-    ctx.fillStyle = '#09090f';
-    ctx.fillRect(0, 0, 1, 1);
     return;
   }
 
@@ -408,13 +406,10 @@ function applySecretEffect(ctx, img, frameIndex, totalFrames) {
         const py = Math.round(t.y + t.vy * ease + Math.sin(localT * Math.PI * t.swirlFreq) * t.swirlAmp);
 
         if (px >= 0 && px < width && py >= 0 && py < height) {
-          // Particle shrinks as it turns to ash/dust
+          // Particle shrinks as it turns to neutral ash/dust
           const sz = localT < 0.35 ? 4 : (localT < 0.70 ? 3 : 2);
-          // Ash/obsidian dust color
-          const ashR = Math.max(8, Math.round(t.r * (1 - localT * 0.35)));
-          const ashG = Math.max(8, Math.round(t.g * (1 - localT * 0.35)));
-          const ashB = Math.max(14, Math.round(t.b * (1 - localT * 0.30)));
-          ctx.fillStyle = `rgb(${ashR},${ashG},${ashB})`;
+          const ash = Math.max(12, Math.round(t.r * (1 - localT * 0.35)));
+          ctx.fillStyle = `rgb(${ash},${ash},${ash})`;
           ctx.fillRect(px, py, sz, sz);
         }
       }
@@ -462,7 +457,7 @@ async function createRankGIFFromPNG(rankKey, totalFrames = 16, fps = 15) {
   const outputFile = path.join(GIF_DIR, `${rankKey}.gif`);
   const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingEnabled = rankKey !== 'secret';
 
   const ffmpeg = spawn('ffmpeg', [
     '-y',
@@ -471,7 +466,8 @@ async function createRankGIFFromPNG(rankKey, totalFrames = 16, fps = 15) {
     '-s', `${CANVAS_SIZE}x${CANVAS_SIZE}`,
     '-r', `${fps}`,
     '-i', '-',
-    '-vf', 'split[s0][s1];[s0]palettegen=max_colors=128:reserve_transparent=1[p];[s1][p]paletteuse=alpha_threshold=128',
+    '-vf', 'split[s0][s1];[s0]palettegen=max_colors=256:reserve_transparent=1:transparency_color=000000[p];[s1][p]paletteuse=alpha_threshold=128:dither=none',
+    '-gifflags', '-offsetting',
     '-loop', '0',
     outputFile
   ]);
