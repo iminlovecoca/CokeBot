@@ -10,3 +10,6 @@ data/query.txt
 data/round-played.txt
 data/word-played.txt
 data/report-words.txt
+
+# Scratch and temp files
+scratch/

@@ -1,13 +1,17 @@
 /**
- * CokeBot AI-Generated Gem Emojis Pipeline
- * Slices 4 AI-generated 3x3 crystal gem sprite sheets into clean 128x128 transparent Discord emojis:
- * - Hunting Gems: AI-generated faceted diamonds (💎)
- * - Empowering Gems: AI-generated faceted octagons (🔮)
- * - Lucky Gems: AI-generated faceted hearts (💖)
- * - Special Gems: AI-generated faceted triangles (🔺)
+ * CokeBot AI-Generated Pixel Crystal Gem Emojis Pipeline
  *
- * All 4 sheets are strictly colored according to CokeBot's Rank Tier Palette,
- * with animated transparent GIFs generated for special ranks (Generation, Legendary, Mythic, Ancient, Divine, Secret).
+ * Integrates AI-generated crystal gems with a tasteful retro pixel art vibe:
+ * - Hunting Gems: Sharp borderless AI Diamond Crystals (💎)
+ * - Empowering Gems: Sharp borderless AI Octagon Crystals (🔮)
+ * - Lucky Gems: Sharp borderless AI Heart Crystals (💖)
+ * - Special Gems: Sharp borderless AI Triangle Crystals (🔺)
+ *
+ * Pixel Art Touch:
+ * - Quantized to crisp 36px native pixel grid with nearest-neighbor integer scaling to 128x128.
+ * - Zero black outlines: edges transition directly into crisp stepped pixel facets.
+ * - Colors strictly adhering to CokeBot's 9 rank tiers.
+ * - Animated GIFs with pixel sparkle stars and glowing sheen sweeps for special ranks.
  */
 
 const { createCanvas, loadImage } = require('canvas');
@@ -25,9 +29,9 @@ const ARTIFACT_DIR = 'C:/Users/khang/.gemini/antigravity/brain/e1573dd0-adcd-4dc
 });
 
 const AI_SHEETS = {
-  hunting: path.join(BRAIN_DIR, 'ai_sheet_hunting_gems_1792940755501.jpg'),
-  empowering: path.join(BRAIN_DIR, 'ai_sheet_empowering_gems_1792940777916.jpg'),
-  lucky: path.join(BRAIN_DIR, 'ai_sheet_lucky_gems_1792940800841.jpg'),
+  hunting: path.join(BRAIN_DIR, 'ai_sheet_hunting_gems_v2_1792942044519.jpg'),
+  empowering: path.join(BRAIN_DIR, 'ai_sheet_empowering_gems_v2_1792942070810.jpg'),
+  lucky: path.join(BRAIN_DIR, 'ai_sheet_lucky_gems_v2_1792942096006.jpg'),
   special: path.join(BRAIN_DIR, 'ai_sheet_special_gems_1792940828137.jpg'),
 };
 
@@ -37,6 +41,7 @@ const GEM_SPECS = [
     name: 'Hunting Gem',
     shape: 'Diamond (💎)',
     sheetKey: 'hunting',
+    isSpecial: false,
     ids: { common: '51', rare: '53', epic: '54', generation: '58', legendary: '56', mythic: '55', ancient: '57', divine: '59', secret: '60' }
   },
   {
@@ -44,6 +49,7 @@ const GEM_SPECS = [
     name: 'Empowering Gem',
     shape: 'Octagon (🔮)',
     sheetKey: 'empowering',
+    isSpecial: false,
     ids: { common: '65', rare: '67', epic: '68', generation: '85', legendary: '70', mythic: '69', ancient: '71', divine: '87', secret: '89' }
   },
   {
@@ -51,6 +57,7 @@ const GEM_SPECS = [
     name: 'Lucky Gem',
     shape: 'Heart (💖)',
     sheetKey: 'lucky',
+    isSpecial: false,
     ids: { common: '72', rare: '74', epic: '75', generation: '86', legendary: '77', mythic: '76', ancient: '78', divine: '88', secret: '90' }
   },
   {
@@ -58,6 +65,7 @@ const GEM_SPECS = [
     name: 'Special Gem',
     shape: 'Triangle (🔺)',
     sheetKey: 'special',
+    isSpecial: true,
     ids: { common: '79', rare: '81', epic: '82', generation: '91', legendary: '84', mythic: '83', ancient: '92', divine: '93', secret: '94' }
   }
 ];
@@ -65,7 +73,7 @@ const GEM_SPECS = [
 const RANKS = ['common', 'rare', 'epic', 'generation', 'legendary', 'mythic', 'ancient', 'divine', 'secret'];
 
 /**
- * 4-Pointed Sparkle Star for sparkling effects
+ * 4-Pointed Retro Pixel Sparkle Star (✨)
  */
 function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
   if (size <= 0) return;
@@ -74,18 +82,18 @@ function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
   ctx.fillStyle = color;
 
   const s = Math.max(1, Math.round(size));
-  ctx.fillRect(cx - s * 2, cy - Math.max(1, s / 3), s * 4, Math.max(1, s * 0.66));
-  ctx.fillRect(cx - Math.max(1, s / 3), cy - s * 2, Math.max(1, s * 0.66), s * 4);
+  ctx.fillRect(Math.round(cx - s * 2), Math.round(cy - Math.max(1, s / 3)), Math.round(s * 4), Math.max(2, Math.round(s * 0.66)));
+  ctx.fillRect(Math.round(cx - Math.max(1, s / 3)), Math.round(cy - s * 2), Math.max(2, Math.round(s * 0.66)), Math.round(s * 4));
 
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(cx - Math.max(1, s / 2), cy - Math.max(1, s / 2), Math.max(1, s), Math.max(1, s));
+  ctx.fillRect(Math.round(cx - Math.max(1, s / 2)), Math.round(cy - Math.max(1, s / 2)), Math.max(2, Math.round(s)), Math.max(2, Math.round(s)));
   ctx.restore();
 }
 
 /**
- * Extract a single cell from 3x3 AI sheet, remove black background, and center onto 128x128
+ * Extract cell from 3x3 sheet, remove background/borders, and render with crisp pixel art stepping
  */
-function extractAndCleanCell(sheetImg, row, col) {
+function extractPixelGemCell(sheetImg, row, col, isSpecial = false, pixelRes = 36) {
   const cellW = sheetImg.width / 3;
   const cellH = sheetImg.height / 3;
 
@@ -96,6 +104,10 @@ function extractAndCleanCell(sheetImg, row, col) {
   const imgData = rawCtx.getImageData(0, 0, cellW, cellH);
   const data = imgData.data;
 
+  // Threshold to remove background and black borders:
+  // For special (triangle v1), threshold = 60 strips the black border completely.
+  // For v2 sheets, threshold = 35 strips the background cleanly.
+  const threshold = isSpecial ? 60 : 35;
   let minX = cellW, minY = cellH, maxX = 0, maxY = 0;
 
   for (let i = 0; i < data.length; i += 4) {
@@ -104,52 +116,62 @@ function extractAndCleanCell(sheetImg, row, col) {
     const b = data[i + 2];
     const maxC = Math.max(r, g, b);
 
-    // Alpha feathering on pitch black background
-    let a = 0;
-    if (maxC > 40) {
-      a = 255;
-    } else if (maxC > 16) {
-      a = Math.round(((maxC - 16) / 24) * 255);
-    }
-    data[i + 3] = a;
-
-    if (a > 64) {
+    if (maxC > threshold) {
+      data[i + 3] = 255;
       const px = (i / 4) % cellW;
       const py = Math.floor((i / 4) / cellW);
       if (px < minX) minX = px;
       if (px > maxX) maxX = px;
       if (py < minY) minY = py;
       if (py > maxY) maxY = py;
+    } else {
+      data[i + 3] = 0;
     }
   }
 
   rawCtx.putImageData(imgData, 0, 0);
 
-  // Center onto 128x128 canvas
+  // 1. Crop to bounding box
+  const cropW = Math.max(4, maxX - minX + 1);
+  const cropH = Math.max(4, maxY - minY + 1);
+
+  // 2. Downsample to native pixel grid (pixelRes ~ 36px)
+  const scale = Math.min(pixelRes / cropW, pixelRes / cropH);
+  const smallW = Math.max(4, Math.round(cropW * scale));
+  const smallH = Math.max(4, Math.round(cropH * scale));
+
+  const smallCanvas = createCanvas(smallW, smallH);
+  const smallCtx = smallCanvas.getContext('2d');
+  smallCtx.drawImage(rawCanvas, minX, minY, cropW, cropH, 0, 0, smallW, smallH);
+
+  // Clean alpha on small pixel canvas
+  const smallData = smallCtx.getImageData(0, 0, smallW, smallH);
+  const sData = smallData.data;
+  for (let i = 0; i < sData.length; i += 4) {
+    sData[i + 3] = sData[i + 3] > 95 ? 255 : 0;
+  }
+  smallCtx.putImageData(smallData, 0, 0);
+
+  // 3. Upscale using Nearest Neighbor to ~104px body inside 128x128
+  const TARGET_BODY = 104;
+  const upscale = Math.max(1, Math.round(TARGET_BODY / Math.max(smallW, smallH)));
+  const finalW = smallW * upscale;
+  const finalH = smallH * upscale;
+
   const finalCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const finalCtx = finalCanvas.getContext('2d');
+  finalCtx.imageSmoothingEnabled = false; // Nearest-neighbor scaling for pixel art
 
-  if (maxX > minX && maxY > minY) {
-    const cropW = maxX - minX + 1;
-    const cropH = maxY - minY + 1;
+  const destX = Math.round((CANVAS_SIZE - finalW) / 2);
+  const destY = Math.round((CANVAS_SIZE - finalH) / 2);
 
-    const TARGET_SIZE = 104;
-    const scale = Math.min(TARGET_SIZE / cropW, TARGET_SIZE / cropH);
-    const destW = Math.round(cropW * scale);
-    const destH = Math.round(cropH * scale);
-    const destX = Math.round((CANVAS_SIZE - destW) / 2);
-    const destY = Math.round((CANVAS_SIZE - destH) / 2);
-
-    finalCtx.drawImage(rawCanvas, minX, minY, cropW, cropH, destX, destY, destW, destH);
-  } else {
-    finalCtx.drawImage(rawCanvas, 0, 0, cellW, cellH, 12, 12, 104, 104);
-  }
+  finalCtx.drawImage(smallCanvas, 0, 0, smallW, smallH, destX, destY, finalW, finalH);
 
   return finalCanvas;
 }
 
 /**
- * ❄️ GENERATION EFFECT (Cyber Ice-Mint Sheen & Frost Motes)
+ * ❄️ GENERATION EFFECT (Cyber Ice-Mint Sheen & Pixel Frost Motes)
  */
 function applyGenerationEffect(ctx, baseImg, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -182,7 +204,7 @@ function applyGenerationEffect(ctx, baseImg, frameIndex, totalFrames) {
 }
 
 /**
- * 👑 LEGENDARY EFFECT (Royal Purple Arcane Sheen & Violet Stardust)
+ * 👑 LEGENDARY EFFECT (Royal Purple Arcane Sheen & Violet Pixel Stardust)
  */
 function applyLegendaryEffect(ctx, baseImg, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -215,7 +237,7 @@ function applyLegendaryEffect(ctx, baseImg, frameIndex, totalFrames) {
 }
 
 /**
- * 🌸 MYTHIC EFFECT (Hot Magenta Sheen & Pink Diamond Dust)
+ * 🌸 MYTHIC EFFECT (Hot Magenta Sheen & Pink Diamond Pixel Dust)
  */
 function applyMythicEffect(ctx, baseImg, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -248,7 +270,7 @@ function applyMythicEffect(ctx, baseImg, frameIndex, totalFrames) {
 }
 
 /**
- * 🔥 ANCIENT EFFECT (Flame Orange Energy Surge & Embers)
+ * 🔥 ANCIENT EFFECT (Flame Orange Energy Surge & Pixel Embers)
  */
 function applyAncientEffect(ctx, baseImg, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -281,7 +303,7 @@ function applyAncientEffect(ctx, baseImg, frameIndex, totalFrames) {
 }
 
 /**
- * 💎 DIVINE EFFECT (Celestial Turquoise Rotating Ray Cross & Halo)
+ * 💎 DIVINE EFFECT (Celestial Turquoise Rotating Pixel Cross & Halo)
  */
 function applyDivineEffect(ctx, baseImg, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -297,23 +319,12 @@ function applyDivineEffect(ctx, baseImg, frameIndex, totalFrames) {
   ctx.translate(cx, cy);
   ctx.rotate(progress * Math.PI * 2);
   ctx.fillStyle = `rgba(170, 255, 255, ${alpha * 0.85})`;
-  ctx.fillRect(-rayLen, -1.5, rayLen * 2, 3);
-  ctx.fillRect(-1.5, -rayLen, 3, rayLen * 2);
+  ctx.fillRect(Math.round(-rayLen), -1.5, Math.round(rayLen * 2), 3);
+  ctx.fillRect(-1.5, Math.round(-rayLen), 3, Math.round(rayLen * 2));
 
   ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
-  ctx.fillRect(-rayLen * 0.65, -1, rayLen * 1.3, 2);
-  ctx.fillRect(-1, -rayLen * 0.65, 2, rayLen * 1.3);
-  ctx.restore();
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  const ringRadius = (progress * (width * 0.42)) % (width * 0.42);
-  const ringAlpha = (1 - ringRadius / (width * 0.42)) * 0.45;
-  ctx.strokeStyle = `rgba(76, 249, 251, ${ringAlpha})`;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.fillRect(Math.round(-rayLen * 0.65), -1, Math.round(rayLen * 1.3), 2);
+  ctx.fillRect(-1, Math.round(-rayLen * 0.65), 2, Math.round(rayLen * 1.3));
   ctx.restore();
 
   ctx.save();
@@ -392,6 +403,7 @@ const ANIMATION_EFFECTS = {
 async function generateGif(baseCanvas, animFn, outputFile, totalFrames = 16, fps = 15) {
   const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
 
   const ffmpeg = spawn('ffmpeg', [
     '-y',
@@ -427,7 +439,7 @@ async function generateGif(baseCanvas, animFn, outputFile, totalFrames = 16, fps
 }
 
 async function main() {
-  console.log('🚀 Processing AI-Generated Crystal Gem Sprite Sheets...');
+  console.log('🚀 Processing AI-Generated Pixel Crystal Gem Sprite Sheets...');
 
   let pngCount = 0;
   let gifCount = 0;
@@ -451,8 +463,8 @@ async function main() {
       const row = Math.floor(idx / 3);
       const col = idx % 3;
 
-      // Extract and clean individual gem cell from the AI sheet
-      const gemCanvas = extractAndCleanCell(sheetImg, row, col);
+      // Extract, remove dark border, and render with tasteful pixel art stepping
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, spec.isSpecial, 36);
 
       const pngFilename = `gem_${id}_${t}_${rank}.png`;
       const outPng = path.join(OUT_DIR, pngFilename);
@@ -473,9 +485,9 @@ async function main() {
         await generateGif(gemCanvas, animFn, outGif, 16, 15);
         fs.copyFileSync(outGif, artGif);
         gifCount++;
-        console.log(`  ✨ [${rank.toUpperCase()}] ID #${id} -> PNG & GIF (${pngFilename})`);
+        console.log(`  ✨ [${rank.toUpperCase()}] ID #${id} -> Pixel PNG & GIF (${pngFilename})`);
       } else {
-        console.log(`  ✅ [${rank.toUpperCase()}] ID #${id} -> PNG (${pngFilename})`);
+        console.log(`  ✅ [${rank.toUpperCase()}] ID #${id} -> Pixel PNG (${pngFilename})`);
       }
     }
   }
@@ -505,6 +517,7 @@ async function main() {
 
   const showCanvas = createCanvas(matrixW, matrixH);
   const showCtx = showCanvas.getContext('2d');
+  showCtx.imageSmoothingEnabled = false;
 
   showCtx.fillStyle = '#1e1f22';
   showCtx.fillRect(0, 0, matrixW, matrixH);
@@ -538,7 +551,7 @@ async function main() {
       const sheetImg = await loadImage(AI_SHEETS[spec.sheetKey]);
       const row = Math.floor(rIdx / 3);
       const col = rIdx % 3;
-      const gemCanvas = extractAndCleanCell(sheetImg, row, col);
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, spec.isSpecial, 36);
 
       const cx = LABEL_W + cIdx * CELL_W + (CELL_W - CANVAS_SIZE) / 2;
       const cy = yRow + (CELL_H - CANVAS_SIZE) / 2;
