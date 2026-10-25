@@ -32,7 +32,7 @@ const AI_SHEETS = {
   hunting: path.join(BRAIN_DIR, 'ai_sheet_hunting_gems_v2_1792942044519.jpg'),
   empowering: path.join(BRAIN_DIR, 'ai_sheet_empowering_gems_v2_1792942070810.jpg'),
   lucky: path.join(BRAIN_DIR, 'ai_sheet_lucky_gems_v2_1792942096006.jpg'),
-  special: path.join(BRAIN_DIR, 'ai_sheet_special_gems_1792940828137.jpg'),
+  special: path.join(BRAIN_DIR, 'ai_sheet_special_gems_v2_1792944547406.jpg'),
 };
 
 const GEM_SPECS = [
@@ -41,7 +41,6 @@ const GEM_SPECS = [
     name: 'Hunting Gem',
     shape: 'Diamond (💎)',
     sheetKey: 'hunting',
-    isSpecial: false,
     ids: { common: '51', rare: '53', epic: '54', generation: '58', legendary: '56', mythic: '55', ancient: '57', divine: '59', secret: '60' }
   },
   {
@@ -49,7 +48,6 @@ const GEM_SPECS = [
     name: 'Empowering Gem',
     shape: 'Octagon (🔮)',
     sheetKey: 'empowering',
-    isSpecial: false,
     ids: { common: '65', rare: '67', epic: '68', generation: '85', legendary: '70', mythic: '69', ancient: '71', divine: '87', secret: '89' }
   },
   {
@@ -57,7 +55,6 @@ const GEM_SPECS = [
     name: 'Lucky Gem',
     shape: 'Heart (💖)',
     sheetKey: 'lucky',
-    isSpecial: false,
     ids: { common: '72', rare: '74', epic: '75', generation: '86', legendary: '77', mythic: '76', ancient: '78', divine: '88', secret: '90' }
   },
   {
@@ -65,7 +62,6 @@ const GEM_SPECS = [
     name: 'Special Gem',
     shape: 'Triangle (🔺)',
     sheetKey: 'special',
-    isSpecial: true,
     ids: { common: '79', rare: '81', epic: '82', generation: '91', legendary: '84', mythic: '83', ancient: '92', divine: '93', secret: '94' }
   }
 ];
@@ -91,9 +87,9 @@ function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
 }
 
 /**
- * Extract cell from 3x3 sheet, remove background/borders, and render with crisp pixel art stepping
+ * Extract cell from 3x3 sheet, remove background/borders, and render with crisp tasteful pixel art stepping
  */
-function extractPixelGemCell(sheetImg, row, col, isSpecial = false, pixelRes = 36) {
+function extractPixelGemCell(sheetImg, row, col, pixelRes = 64, isSecret = false) {
   const cellW = sheetImg.width / 3;
   const cellH = sheetImg.height / 3;
 
@@ -104,28 +100,67 @@ function extractPixelGemCell(sheetImg, row, col, isSpecial = false, pixelRes = 3
   const imgData = rawCtx.getImageData(0, 0, cellW, cellH);
   const data = imgData.data;
 
-  // Threshold to remove background and black borders:
-  // For special (triangle v1), threshold = 60 strips the black border completely.
-  // For v2 sheets, threshold = 35 strips the background cleanly.
-  const threshold = isSpecial ? 60 : 35;
+  // Outer border flood-fill:
+  // For Secret gems (dark obsidian/void crystals), bgThreshold = 8 stops cleanly at the outer boundary
+  // and completely protects internal dark charcoal facets from being hollowed out.
+  // For other ranks (Common to Divine bright crystals), bgThreshold = 22 strips any dark compression fringe.
+  const bgThreshold = isSecret ? 8 : 22;
+  const bg = new Uint8Array(cellW * cellH);
+  const queue = [];
+
+  for (let x = 0; x < cellW; x++) {
+    let t = x * 4;
+    if (Math.max(data[t], data[t + 1], data[t + 2]) < bgThreshold) { bg[x] = 1; queue.push(x); }
+    let b = ((cellH - 1) * cellW + x) * 4;
+    if (Math.max(data[b], data[b + 1], data[b + 2]) < bgThreshold) { bg[(cellH - 1) * cellW + x] = 1; queue.push((cellH - 1) * cellW + x); }
+  }
+
+  for (let y = 0; y < cellH; y++) {
+    let l = (y * cellW) * 4;
+    if (!bg[y * cellW] && Math.max(data[l], data[l + 1], data[l + 2]) < bgThreshold) { bg[y * cellW] = 1; queue.push(y * cellW); }
+    let r = (y * cellW + (cellW - 1)) * 4;
+    if (!bg[y * cellW + (cellW - 1)] && Math.max(data[r], data[r + 1], data[r + 2]) < bgThreshold) { bg[y * cellW + (cellW - 1)] = 1; queue.push(y * cellW + (cellW - 1)); }
+  }
+
+  let head = 0;
+  while (head < queue.length) {
+    const curr = queue[head++];
+    const cx = curr % cellW;
+    const cy = Math.floor(curr / cellW);
+
+    const neighbors = [
+      cy > 0 ? curr - cellW : -1,
+      cy < cellH - 1 ? curr + cellW : -1,
+      cx > 0 ? curr - 1 : -1,
+      cx < cellW - 1 ? curr + 1 : -1
+    ];
+
+    for (let i = 0; i < 4; i++) {
+      const n = neighbors[i];
+      if (n !== -1 && bg[n] === 0) {
+        const nIdx = n * 4;
+        const maxC = Math.max(data[nIdx], data[nIdx + 1], data[nIdx + 2]);
+        if (maxC < bgThreshold) {
+          bg[n] = 1;
+          queue.push(n);
+        }
+      }
+    }
+  }
+
   let minX = cellW, minY = cellH, maxX = 0, maxY = 0;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const maxC = Math.max(r, g, b);
-
-    if (maxC > threshold) {
-      data[i + 3] = 255;
-      const px = (i / 4) % cellW;
-      const py = Math.floor((i / 4) / cellW);
+  for (let i = 0; i < cellW * cellH; i++) {
+    const pIdx = i * 4;
+    if (bg[i] === 1) {
+      data[pIdx + 3] = 0;
+    } else {
+      data[pIdx + 3] = 255;
+      const px = i % cellW;
+      const py = Math.floor(i / cellW);
       if (px < minX) minX = px;
       if (px > maxX) maxX = px;
       if (py < minY) minY = py;
       if (py > maxY) maxY = py;
-    } else {
-      data[i + 3] = 0;
     }
   }
 
@@ -135,7 +170,7 @@ function extractPixelGemCell(sheetImg, row, col, isSpecial = false, pixelRes = 3
   const cropW = Math.max(4, maxX - minX + 1);
   const cropH = Math.max(4, maxY - minY + 1);
 
-  // 2. Downsample to native pixel grid (pixelRes ~ 36px)
+  // 2. Downsample to refined pixel grid (~64px for tasteful retro RPG pixel vibe without extreme blockiness)
   const scale = Math.min(pixelRes / cropW, pixelRes / cropH);
   const smallW = Math.max(4, Math.round(cropW * scale));
   const smallH = Math.max(4, Math.round(cropH * scale));
@@ -148,19 +183,20 @@ function extractPixelGemCell(sheetImg, row, col, isSpecial = false, pixelRes = 3
   const smallData = smallCtx.getImageData(0, 0, smallW, smallH);
   const sData = smallData.data;
   for (let i = 0; i < sData.length; i += 4) {
-    sData[i + 3] = sData[i + 3] > 95 ? 255 : 0;
+    if (sData[i + 3] < 30) sData[i + 3] = 0;
+    else if (sData[i + 3] > 80) sData[i + 3] = 255;
   }
   smallCtx.putImageData(smallData, 0, 0);
 
-  // 3. Upscale using Nearest Neighbor to ~104px body inside 128x128
+  // 3. Upscale to ~104px body inside 128x128 with nearest neighbor for sharp pixel facet definition
   const TARGET_BODY = 104;
-  const upscale = Math.max(1, Math.round(TARGET_BODY / Math.max(smallW, smallH)));
-  const finalW = smallW * upscale;
-  const finalH = smallH * upscale;
+  const bodyScale = TARGET_BODY / Math.max(smallW, smallH);
+  const finalW = Math.round(smallW * bodyScale);
+  const finalH = Math.round(smallH * bodyScale);
 
   const finalCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const finalCtx = finalCanvas.getContext('2d');
-  finalCtx.imageSmoothingEnabled = false; // Nearest-neighbor scaling for pixel art
+  finalCtx.imageSmoothingEnabled = false; // Nearest-neighbor scaling for retro pixel art vibe
 
   const destX = Math.round((CANVAS_SIZE - finalW) / 2);
   const destY = Math.round((CANVAS_SIZE - finalH) / 2);
@@ -463,8 +499,9 @@ async function main() {
       const row = Math.floor(idx / 3);
       const col = idx % 3;
 
-      // Extract, remove dark border, and render with tasteful pixel art stepping
-      const gemCanvas = extractPixelGemCell(sheetImg, row, col, spec.isSpecial, 36);
+      // Extract with border flood-fill isolation (protects dark obsidian facets) and subtle 64px pixel stepping
+      const isSecret = rank === 'secret';
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret);
 
       const pngFilename = `gem_${id}_${t}_${rank}.png`;
       const outPng = path.join(OUT_DIR, pngFilename);
@@ -551,7 +588,8 @@ async function main() {
       const sheetImg = await loadImage(AI_SHEETS[spec.sheetKey]);
       const row = Math.floor(rIdx / 3);
       const col = rIdx % 3;
-      const gemCanvas = extractPixelGemCell(sheetImg, row, col, spec.isSpecial, 36);
+      const isSecret = rank === 'secret';
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret);
 
       const cx = LABEL_W + cIdx * CELL_W + (CELL_W - CANVAS_SIZE) / 2;
       const cy = yRow + (CELL_H - CANVAS_SIZE) / 2;
