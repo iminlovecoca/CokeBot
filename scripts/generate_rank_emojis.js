@@ -224,10 +224,147 @@ function applyDivineEffect(ctx, img, frameIndex, totalFrames) {
 }
 
 /**
+ * ❄️ GENERATION EFFECT (Tier G - Fresh Sparkling Ice Blue & Mint Frost Shimmer)
+ */
+function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
+  const progress = frameIndex / totalFrames;
+  const width = CANVAS_SIZE;
+  const height = CANVAS_SIZE;
+
+  // 1. Fresh Ice-Mint Sheen Sweep across the G letter
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const sheenPos = -60 + progress * (width + 120);
+  const grad = ctx.createLinearGradient(sheenPos - 35, sheenPos - 35, sheenPos + 35, sheenPos + 35);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  grad.addColorStop(0.5, 'rgba(200, 255, 255, 0.72)');
+  grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  // 2. Floating Fresh Ice-Crystal Sparkles rising gently
+  const frostParticles = [
+    { x: width * 0.24, yBase: height * 0.82, phase: 0.0, color: '#7df9ff' },
+    { x: width * 0.76, yBase: height * 0.78, phase: 0.2, color: '#a7f3d0' },
+    { x: width * 0.56, yBase: height * 0.52, phase: 0.45, color: '#ffffff' },
+    { x: width * 0.30, yBase: height * 0.30, phase: 0.65, color: '#7df9ff' },
+    { x: width * 0.74, yBase: height * 0.24, phase: 0.85, color: '#e0f2fe' }
+  ];
+
+  frostParticles.forEach(p => {
+    const t = (progress + p.phase) % 1;
+    const currY = p.yBase - t * (height * 0.22);
+    const alpha = Math.sin(t * Math.PI);
+    const size = 4 + Math.sin(t * Math.PI) * 5;
+    drawSparkleStar(ctx, p.x, currY, size, alpha, p.color);
+  });
+
+  // 3. Crisp Twinkling Frost Stars on G corners & center bar
+  const twinklePoints = [
+    { x: width * 0.25, y: height * 0.20, phase: 0.05 },
+    { x: width * 0.56, y: height * 0.50, phase: 0.35 },
+    { x: width * 0.78, y: height * 0.16, phase: 0.60 },
+    { x: width * 0.24, y: height * 0.78, phase: 0.82 }
+  ];
+
+  twinklePoints.forEach(tp => {
+    const cycle = (progress + tp.phase) % 1;
+    if (cycle < 0.5) {
+      const prog = cycle / 0.5;
+      const size = Math.sin(prog * Math.PI) * 10;
+      const a = Math.sin(prog * Math.PI);
+      drawSparkleStar(ctx, tp.x, tp.y, size, a, '#b3ffff');
+    }
+  });
+}
+
+/**
+ * 🌑 SECRET EFFECT (Tier S - Gradual Disappearing / Dissolving Black Letter & Void Fragments)
+ * Uses 100% crisp 1-bit alpha pixel-block dissolve so GIF transparency has zero pale fringe on Discord dark mode.
+ */
+function applySecretEffect(ctx, img, frameIndex, totalFrames) {
+  const progress = frameIndex / totalFrames;
+  const width = CANVAS_SIZE;
+  const height = CANVAS_SIZE;
+
+  // Smooth breathing dissolve wave (0 -> 1 -> 0 across the 16 frames)
+  const wave = (1 - Math.cos(progress * Math.PI * 2)) / 2;
+
+  // 1. Dark Silver-Obsidian Sheen Pulse on the visible letter pixels (source-atop preserves original alpha)
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const sheenPos = -40 + progress * (width + 80);
+  const grad = ctx.createLinearGradient(sheenPos - 25, sheenPos - 25, sheenPos + 25, sheenPos + 25);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  grad.addColorStop(0.5, 'rgba(160, 175, 205, 0.35)');
+  grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  // 2. Crisp Pixel-Block Disappearing Mask (100% alpha destination-out so GIF has zero semi-transparent halo)
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+
+  const cell = 6;
+  for (let y = 0; y < height; y += cell) {
+    for (let x = 0; x < width; x += cell) {
+      const diagNorm = (x * 0.55 + y * 0.65) / ((width + height) * 0.6);
+      // Deterministic Bayer-like pixel dither per 6x6 block
+      const gx = Math.floor(x / cell);
+      const gy = Math.floor(y / cell);
+      const bayer = (((gx * 3 + gy * 5) & 7) / 8) * 0.24;
+      const threshold = 0.92 - wave * 0.46;
+      if (diagNorm + bayer > threshold) {
+        ctx.fillRect(x, y, cell, cell);
+      }
+    }
+  }
+  ctx.restore();
+
+  // 3. Dispersing Black/Charcoal Pixel Cubes drifting away as the letter disappears
+  const shards = [
+    { x0: width * 0.56, y0: height * 0.66, dx: 30, dy: 24, s: 12, phase: 0.0 },
+    { x0: width * 0.64, y0: height * 0.56, dx: 36, dy: 16, s: 10, phase: 0.14 },
+    { x0: width * 0.48, y0: height * 0.72, dx: 24, dy: 32, s: 10, phase: 0.28 },
+    { x0: width * 0.60, y0: height * 0.48, dx: 32, dy: 8, s: 9, phase: 0.42 },
+    { x0: width * 0.42, y0: height * 0.62, dx: 28, dy: 26, s: 10, phase: 0.56 },
+    { x0: width * 0.68, y0: height * 0.70, dx: 28, dy: 28, s: 8, phase: 0.70 },
+    { x0: width * 0.52, y0: height * 0.54, dx: 34, dy: 20, s: 9, phase: 0.85 }
+  ];
+
+  shards.forEach(sh => {
+    const t = (progress + sh.phase) % 1;
+    if (t > 0.85) return;
+    const x = Math.round(sh.x0 + t * sh.dx);
+    const y = Math.round(sh.y0 + t * sh.dy);
+    const sz = Math.max(6, Math.round(sh.s * (1 - t * 0.45)));
+
+    ctx.save();
+    ctx.globalAlpha = 1; // 100% opaque for crisp GIF palette
+    ctx.fillStyle = '#09090f';
+    ctx.fillRect(x, y, sz, sz);
+    if (sz >= 8) {
+      ctx.fillStyle = '#373b4d';
+      ctx.fillRect(x + 2, y + 2, sz - 4, sz - 4);
+    }
+    ctx.restore();
+  });
+}
+
+/**
  * Apply rank-specific animation effect
  */
 function applyRankAnimation(ctx, img, rankKey, frameIndex, totalFrames = 16) {
   switch (rankKey) {
+    case 'generation':
+      applyGenerationEffect(ctx, img, frameIndex, totalFrames);
+      break;
+    case 'secret':
+      applySecretEffect(ctx, img, frameIndex, totalFrames);
+      break;
     case 'mythic':
       applyMythicEffect(ctx, img, frameIndex, totalFrames);
       break;
@@ -374,14 +511,23 @@ async function generateSpriteSheetsFromPNG(ranksToAnimate, totalFrames = 16) {
 
 async function main() {
   console.log('🚀 Generating Tiered Rank Sparkling GIFs & Sprite Sheets directly from PNG files...');
-  const ranksToAnimate = ['mythic', 'ancient', 'divine'];
+  const ranksToAnimate = ['generation', 'mythic', 'ancient', 'divine', 'secret'];
 
-  console.log('\n🌟 Generating GIFs for Mythic -> Ancient -> Divine...');
+  console.log('\n🌟 Generating GIFs for Generation, Mythic, Ancient, Divine, Secret...');
   for (const rankKey of ranksToAnimate) {
     await createRankGIFFromPNG(rankKey);
   }
 
   await generateSpriteSheetsFromPNG(ranksToAnimate);
+
+  // Copy generation.gif and secret.gif into assets/emojis/ as well
+  const emojiDir = path.join(__dirname, '..', 'assets', 'emojis');
+  if (fs.existsSync(path.join(GIF_DIR, 'generation.gif'))) {
+    fs.copyFileSync(path.join(GIF_DIR, 'generation.gif'), path.join(emojiDir, 'rank_g_generation.gif'));
+  }
+  if (fs.existsSync(path.join(GIF_DIR, 'secret.gif'))) {
+    fs.copyFileSync(path.join(GIF_DIR, 'secret.gif'), path.join(emojiDir, 'rank_s_secret.gif'));
+  }
 
   console.log('\n🎉 ALL DONE! All GIF animations and Sprite Sheets created from assets/ranks/png/');
 }
