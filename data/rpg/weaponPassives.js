@@ -63,6 +63,17 @@ const getStatusEmojis = () => {
     taunt: st.taunt || "<:taunt:1521938510485917796>",
     frostbite: st.frostbite || "<:frostbite:1521938506425958431>",
     freeze: st.freeze || "<:freeze:1521938500478566639>",
+    lifesteal: st.lifesteal || "",
+    armor_pierce: st.armor_pierce || "",
+    mr_pierce: st.mr_pierce || "",
+    mr_shred: st.mr_shred || "",
+    double_hit: st.double_hit || "",
+    third_hit: st.third_hit || "",
+    reflect: st.reflect || "",
+    shield_guard: st.shield_guard || "",
+    execute: st.execute || "",
+    crit_up: st.crit_up || "",
+    chaos_curse: st.chaos_curse || "",
   };
 };
 
@@ -983,7 +994,7 @@ const WEAPON_UI_META = {
       intro: `Đòn đâm từ bóng tối có **45%** cơ hội kích hoạt ${s.break} **Ám Ảnh Phá Giáp** lên mục tiêu.`,
       quotes: [
         `> ${s.break} __**Ám Ảnh Phá Giáp**__ - Phá hủy **22%–30%** ${se.pr} **PR** (Giáp vật lý) của mục tiêu (Đồng đội cùng hưởng khi đánh World Boss).`,
-        `> • ${s.atkdown} **Giới hạn cộng dồn** - Giảm tối đa **40%** ${se.pr} **PR** trong Dungeon.`,
+        `> • **Giới hạn cộng dồn** - Giảm tối đa **40%** ${se.pr} **PR** trong Dungeon.`,
       ],
     }),
   },
@@ -991,10 +1002,10 @@ const WEAPON_UI_META = {
     icons: ["poisonous", "break"],
     title: "Kịch Độc Ăn Mòn",
     build: (s, se) => ({
-      intro: `Lưỡi đao tẩm độc có **45%** cơ hội tiêm ${s.poisonous} **Kịch Độc** và gây ${s.break} **Ăn Mòn Song Phòng**.`,
+      intro: `Lưỡi đao tẩm độc có **45%** cơ hội tiêm ${s.poisonous} **Kịch Độc** và gây ${s.break} **Ăn Mòn Phòng Ngự**.`,
       quotes: [
-        `> ${s.poisonous} __**Kịch Độc**__ - Gây sát thương độc mỗi lượt trong **3 lượt** theo ${se.att} **DEX** và ${se.wp} **ARC**.`,
-        `> ${s.break} __**Ăn Mòn**__ - Giảm **15%** ${se.pr} **PR** và ${se.mr} **MR** của mục tiêu (tối đa **30%**).`,
+        `> ${s.poisonous} __**Kịch Độc**__ - Gây sát thương độc mỗi lượt trong **3 lượt** theo **DEX** và **ARC**.`,
+        `> ${s.break} __**Ăn Mòn Phòng Ngự**__ - Giảm **15%** ${se.pr} **PR** và ${se.mr} **MR** của mục tiêu (tối đa **30%**).`,
       ],
     }),
   },
@@ -1004,8 +1015,8 @@ const WEAPON_UI_META = {
     build: (s, se) => ({
       intro: `Giải phóng ngọn lửa rồng thiêng, có **45%** cơ hội áp dụng ${s.burn} **Thiêu Đốt** và ${s.healreduction} **Vết Thương Sâu**.`,
       quotes: [
-        `> ${s.burn} __**Thiêu Đốt**__ - Gây sát thương lửa trong **2 lượt** theo ${se.att} **STR/DEX**.`,
-        `> • ${s.healreduction} **Vết Thương Sâu** - Giảm **30%** hiệu quả ${se.hp} hồi máu của mục tiêu trong **2 lượt** (**30s** với World Boss).`,
+        `> ${s.burn} __**Thiêu Đốt**__ - Gây sát thương lửa trong **2 lượt** theo **STR** và **DEX**.`,
+        `> ${s.healreduction} __**Vết Thương Sâu**__ - Giảm **30%** hiệu quả ${se.hp} hồi máu của mục tiêu trong **2 lượt** (**30s** với World Boss).`,
       ],
     }),
   },
@@ -1015,51 +1026,60 @@ const WEAPON_UI_META = {
     build: (s, se) => ({
       intro: `Kết nối sinh mệnh rừng già, kích hoạt ${s.heal} **Mộc Diệp Hồi Sinh** khi chiến đấu.`,
       quotes: [
-        `> ${s.heal} __**Mộc Diệp Hồi Sinh**__ - Hồi phục **10%–12%** ${se.hp} **HP đã mất** theo ${se.mag} **INT** và ${se.wp} **ARC** khi tung kỹ năng hoặc đòn đánh nội tại.`,
+        `> ${s.heal} __**Mộc Diệp Hồi Sinh**__ - Hồi phục **10%–12%** ${se.hp} **HP đã mất** theo **INT** và **ARC** khi tung kỹ năng hoặc đòn đánh nội tại.`,
       ],
     }),
   },
   bluestaff: {
-    icons: ["break", "freeze"],
+    icons: ["mr_pierce", "freeze"],
     title: "Lam Tinh Xuyên Phá",
-    build: (s, se) => ({
-      intro: `Hội tụ hàn băng tinh khiết, có **45%** cơ hội kích hoạt ${s.break} **Xuyên Kháng Phép** và ${s.freeze} **Đóng Băng**.`,
-      quotes: [
-        `> ${s.break} __**Xuyên Kháng Phép**__ - Đòn đánh bỏ qua **25%** ${se.mr} **MR** của đối thủ (**50%** với World Boss).`,
-        `> ${s.freeze} __**Hàn Khí**__ - Có **25%** cơ hội đóng băng mục tiêu trong **1 lượt**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const pIcon = s.mr_pierce || s.armor_pierce || "";
+      return {
+        intro: `Hội tụ hàn băng tinh khiết, có **45%** cơ hội kích hoạt ${pIcon ? `${pIcon} ` : ""}**Xuyên Kháng Phép** và ${s.freeze} **Đóng Băng**.`,
+        quotes: [
+          `> ${pIcon ? `${pIcon} ` : ""}__**Xuyên Kháng Phép**__ - Đòn đánh bỏ qua **25%** ${se.mr} **MR** của đối thủ (**50%** với World Boss).`,
+          `> ${s.freeze} __**Đóng Băng**__ - Có **25%** cơ hội đóng băng mục tiêu trong **1 lượt**.`,
+        ],
+      };
+    },
   },
   crimsondagger: {
-    icons: ["break", "bleed"],
+    icons: ["armor_pierce"],
     title: "Huyết Nguyệt Xuyên Giáp",
-    build: (s, se) => ({
-      intro: `Mũi đao đỏ thẫm xé toạc phòng tuyến, có **45%** cơ hội kích hoạt ${s.break} **Xuyên Giáp Vật Lý**.`,
-      quotes: [
-        `> ${s.break} __**Huyết Nguyệt Xuyên Giáp**__ - Đòn tấn công xuyên thẳng **40%–45%** ${se.pr} **PR** (Giáp vật lý) của mục tiêu.`,
-      ],
-    }),
+    build: (s, se) => {
+      const pIcon = s.armor_pierce || "";
+      return {
+        intro: `Mũi đao đỏ thẫm xé toạc phòng tuyến, có **45%** cơ hội kích hoạt ${pIcon ? `${pIcon} ` : ""}**Huyết Nguyệt Xuyên Giáp**.`,
+        quotes: [
+          `> ${pIcon ? `${pIcon} ` : ""}__**Huyết Nguyệt Xuyên Giáp**__ - Đòn tấn công xuyên thẳng **40%–45%** ${se.pr} **PR** (Giáp vật lý) của mục tiêu.`,
+        ],
+      };
+    },
   },
   gravitybow: {
-    icons: ["stun", "atkup"],
+    icons: ["stun"],
     title: "Mũi Tên Trọng Lực",
-    build: (s, se) => ({
-      intro: `Bắn ra trường trọng lực cực đại với **3 chỉ số Scale** vượt trội và **45%** cơ hội kích hoạt ${s.stun} **Trọng Lực Áp Chế**.`,
+    build: (s) => ({
+      intro: `Bắn ra trường trọng lực cực đại, có **45%** cơ hội kích hoạt ${s.stun} **Trọng Lực Áp Chế**.`,
       quotes: [
         `> ${s.stun} __**Trọng Lực Áp Chế**__ - Làm **Choáng** mục tiêu trong **1 lượt**.`,
-        `> • ${s.atkup} **Cộng Hưởng Đa Chiều** - Tối ưu hóa sát thương theo ${se.att} **DEX (S)**, ${se.mag} **INT (A)** và ${se.wp} **ARC (B)**. `,
+        `> • **Cộng Hưởng Đa Chiều** - Tối ưu hóa sát thương theo **DEX (S)**, **INT (A)** và **ARC (B)**.`,
       ],
     }),
   },
   holysword: {
-    icons: ["atkup", "dispe"],
+    icons: ["third_hit"],
     title: "Thánh Quang Phán Quyết",
-    build: (s, se) => ({
-      intro: `Tích tụ thánh quang qua từng nhát chém để giải phóng ${s.atkup} **Phán Quyết Hoàng Kim**.`,
-      quotes: [
-        `> ${s.atkup} __**Phán Quyết Hoàng Kim**__ - Mỗi đòn đánh thứ **3** được ban phước, gây **165%–180%** ${se.att} sát thương chuẩn xác.`,
-      ],
-    }),
+    build: (s, se) => {
+      const tIcon = s.third_hit || s.atkup || "";
+      return {
+        intro: `Tích tụ thánh quang qua từng nhát chém để giải phóng ${tIcon ? `${tIcon} ` : ""}**Phán Quyết Hoàng Kim**.`,
+        quotes: [
+          `> ${tIcon ? `${tIcon} ` : ""}__**Phán Quyết Hoàng Kim**__ - Mỗi đòn đánh thứ **3** được ban phước, gây **165%–180%** ${se.att} sát thương chuẩn xác.`,
+        ],
+      };
+    },
   },
   darksword: {
     icons: ["atkup", "atkdown"],
@@ -1073,135 +1093,168 @@ const WEAPON_UI_META = {
     }),
   },
   darkstaff: {
-    icons: ["burn", "break"],
+    icons: ["chaos_curse"],
     title: "Hỗn Mang Biến Đổi",
-    build: (s, se) => ({
-      intro: `Quyền trượng hắc ám có **45%** cơ hội biến đổi ngẫu nhiên giữa ${s.burn} **Thiêu Đốt**, ${s.break} **Phá Giáp** và ${s.dispe} **Xuyên Phép**.`,
-      quotes: [
-        `> ${s.burn} __**Hắc Hỏa**__ - Thiêu đốt mục tiêu trong **2 lượt** theo ${se.mag} **INT** và ${se.wp} **ARC**.`,
-        `> ${s.break} __**Hư Vô Xâm Thực**__ - Phá **15%–30%** ${se.pr} **PR** hoặc xuyên **25%–50%** ${se.mr} **MR** của mục tiêu.`,
-      ],
-    }),
+    build: (s, se) => {
+      const cIcon = s.chaos_curse || "";
+      return {
+        intro: `Quyền trượng hắc ám có **45%** cơ hội kích hoạt ${cIcon ? `${cIcon} ` : ""}**Hỗn Mang Biến Đổi** (ngẫu nhiên 1 trong 3 hiệu ứng):`,
+        quotes: [
+          `> ${s.burn} __**Hắc Hỏa**__ - Thiêu đốt mục tiêu trong **2 lượt** theo **INT** và **ARC**.`,
+          `> ${s.break} __**Phá Giáp**__ - Phá hủy **15%–30%** ${se.pr} **PR** của mục tiêu.`,
+          `> • **Xuyên Kháng Phép** - Đòn đánh bỏ qua **25%–50%** ${se.mr} **MR** của mục tiêu.`,
+        ],
+      };
+    },
   },
   duskanddawn: {
-    icons: ["atkup", "dispe"],
-    title: "Song Cực Cộng Hưởng",
-    build: (s, se) => ({
-      intro: `Dung hợp sức mạnh bình minh và hoàng hôn, chém xen kẽ ${se.att} **Vật Lý** & ${se.mag} **Phép Thuật** và kích hoạt ${s.atkup} **Liên Kích**.`,
-      quotes: [
-        `> ${s.atkup} __**Song Cực Liên Kích**__ - Có **28%–30%** cơ hội thực hiện thêm **1 đòn tấn công phụ** ngay trong lượt.`,
-        `> • ${s.dispe} **Scale 3 Chỉ Số** - Cộng hưởng ${se.mag} **INT (S)**, ${se.att} **DEX (A)** và ${se.wp} **ARC (B)**. `,
-      ],
-    }),
+    icons: ["double_hit"],
+    title: "Song Cực Liên Kích",
+    build: (s, se) => {
+      const dIcon = s.double_hit || "";
+      return {
+        intro: `Dung hợp sức mạnh bình minh và hoàng hôn, chém song hệ ${se.hybrid} **Vật Lý / Phép Thuật** và kích hoạt ${dIcon ? `${dIcon} ` : ""}**Song Cực Liên Kích**.`,
+        quotes: [
+          `> ${dIcon ? `${dIcon} ` : ""}__**Song Cực Liên Kích**__ - Có **28%–30%** cơ hội thực hiện thêm **1 đòn tấn công phụ** ngay trong lượt.`,
+          `> • **Scale 3 Chỉ Số** - Cộng hưởng **INT (S)**, **DEX (A)** và **ARC (B)**.`,
+        ],
+      };
+    },
   },
   riverofblood: {
-    icons: ["heal", "bleed"],
-    title: "Huyết Hải Thôn Phệ",
-    build: (s, se) => ({
-      intro: `Lưỡi kiếm nhuốm máu hấp thụ sinh lực kẻ địch qua ${s.heal} **Huyết Hải Hấp Thụ** và ${s.bleed} **Huyết Lưu**.`,
-      quotes: [
-        `> ${s.heal} __**Huyết Hải Hấp Thụ**__ - Hồi phục ${se.hp} **HP** cho bản thân bằng **2%–5%** sát thương gây ra.`,
-        `> • ${s.bleed} **Huyết Khí** - Tăng **5%** tổng uy lực vũ khí theo ${se.wp} **ARC** và ${se.att} **DEX**.`,
-      ],
-    }),
+    icons: ["lifesteal"],
+    title: "Huyết Hải Hấp Thụ",
+    build: (s, se) => {
+      const lIcon = s.lifesteal || "";
+      return {
+        intro: `Lưỡi kiếm nhuốm máu hấp thụ sinh lực kẻ địch qua ${lIcon ? `${lIcon} ` : ""}**Huyết Hải Hấp Thụ**.`,
+        quotes: [
+          `> ${lIcon ? `${lIcon} ` : ""}__**Huyết Hải Hấp Thụ**__ - Hồi phục ${se.hp} **HP** cho bản thân bằng **2%–5%** sát thương gây ra.`,
+          `> • **Huyết Khí** - Tăng **5%** tổng uy lực vũ khí theo **ARC** và **DEX**.`,
+        ],
+      };
+    },
   },
   axesnake: {
-    icons: ["break", "poisonous"],
+    icons: ["break"],
     title: "Mãng Xà Nghiền Giáp",
     build: (s, se) => ({
       intro: `Đòn bổ mang nanh độc mãng xà có **45%** cơ hội kích hoạt ${s.break} **Nghiền Nát Phòng Tuyến**.`,
       quotes: [
         `> ${s.break} __**Nghiền Nát Phòng Tuyến**__ - Phá hủy **10%** ${se.pr} **PR** và ${se.mr} **MR** của mục tiêu mỗi lần kích hoạt.`,
-        `> • ${s.poisonous} **Cộng Dồn** - Cộng dồn tối đa **40%** trong Dungeon và **80%** trong PvP.`,
+        `> • **Giới hạn cộng dồn** - Cộng dồn tối đa **40%** trong Dungeon và **80%** trong PvP.`,
       ],
     }),
   },
   sunbow: {
-    icons: ["break", "atkup"],
+    icons: ["armor_pierce"],
     title: "Thái Dương Xuyên Thấu",
-    build: (s, se) => ({
-      intro: `Mũi tên ánh sáng mặt trời kích hoạt ${s.break} **Thái Dương Xuyên Thấu** và cộng hưởng **3 chỉ số Gacha**.`,
-      quotes: [
-        `> ${s.break} __**Thái Dương Xuyên Thấu**__ - Bỏ qua **10%** ${se.pr} **PR** (Giáp vật lý) và **10%** ${se.mr} **MR** (Kháng phép).`,
-        `> • ${s.atkup} **Cộng Hưởng Thái Dương** - Scale song tu ${se.att} **DEX (S)**, ${se.mag} **INT (S)** và ${se.wp} **ARC (B)**. `,
-      ],
-    }),
+    build: (s, se) => {
+      const pIcon = s.armor_pierce || "";
+      return {
+        intro: `Mũi tên ánh sáng mặt trời kích hoạt ${pIcon ? `${pIcon} ` : ""}**Thái Dương Xuyên Thấu**.`,
+        quotes: [
+          `> ${pIcon ? `${pIcon} ` : ""}__**Thái Dương Xuyên Thấu**__ - Bỏ qua **10%** ${se.pr} **PR** (Giáp vật lý) và **10%** ${se.mr} **MR** (Kháng phép).`,
+          `> • **Cộng Hưởng Thái Dương** - Scale song tu **DEX (S)**, **INT (S)** và **ARC (B)**.`,
+        ],
+      };
+    },
   },
   clawhex: {
     icons: ["bleed", "atkup"],
     title: "Quỷ Trảo Xuất Huyết",
-    build: (s, se) => ({
+    build: (s) => ({
       intro: `Vuốt quỷ xé rách mục tiêu (**45%** cơ hội), gây ${s.bleed} **Chảy Máu** và ${s.atkup} **Cuồng Sát**.`,
       quotes: [
-        `> ${s.bleed} __**Chảy Máu**__ - Mỗi lượt gây sát thương bằng **50%** ${se.att} **STR** + **50%** ${se.att} **DEX** trong **3 lượt**.`,
+        `> ${s.bleed} __**Chảy Máu**__ - Mỗi lượt gây sát thương bằng **50% STR + 50% DEX** trong **3 lượt**.`,
         `> ${s.atkup} __**Cuồng Sát**__ - Tăng trực tiếp **15%** sát thương đòn đánh khi kích hoạt.`,
       ],
     }),
   },
   spearhex: {
-    icons: ["break"],
+    icons: ["armor_pierce"],
     title: "Quỷ Thương Xuyên Phá",
-    build: (s, se) => ({
-      intro: `Mũi thương tà thuật đâm xuyên giáp trụ, kích hoạt ${s.break} **Quỷ Thương Xuyên Phá**.`,
-      quotes: [
-        `> ${s.break} __**Quỷ Thương Xuyên Phá**__ - Đòn đánh bỏ qua **10%** ${se.pr} **PR** (Giáp vật lý) của mục tiêu.`,
-      ],
-    }),
+    build: (s, se) => {
+      const pIcon = s.armor_pierce || "";
+      return {
+        intro: `Mũi thương tà thuật đâm xuyên giáp trụ, kích hoạt ${pIcon ? `${pIcon} ` : ""}**Quỷ Thương Xuyên Phá**.`,
+        quotes: [
+          `> ${pIcon ? `${pIcon} ` : ""}__**Quỷ Thương Xuyên Phá**__ - Đòn đánh bỏ qua **10%** ${se.pr} **PR** (Giáp vật lý) của mục tiêu.`,
+        ],
+      };
+    },
   },
   shieldhex: {
-    icons: ["taunt"],
+    icons: ["reflect"],
     title: "Quỷ Khiên Phản Chấn",
-    build: (s, se) => ({
-      intro: `Tạo lớp chắn tà thuật tích trữ sát thương nhận vào để kích hoạt ${s.taunt} **Quỷ Khiên Phản Chấn**.`,
-      quotes: [
-        `> ${s.taunt} __**Hấp Thụ & Phản Chấn**__ - Hấp thụ **15%** sát thương trong **3 lượt**, sau đó phản lại **75%** sát thương đã tích tụ.`,
-        `> • ${se.pr} **Scale Phòng Thủ** - Tăng sức mạnh trực tiếp theo ${se.pr} **PR (S)** và ${se.mr} **MR (S)**. `,
-      ],
-    }),
+    build: (s, se) => {
+      const rIcon = s.reflect || "";
+      return {
+        intro: `Tạo lớp chắn tà thuật tích trữ sát thương nhận vào để kích hoạt ${rIcon ? `${rIcon} ` : ""}**Quỷ Khiên Phản Chấn**.`,
+        quotes: [
+          `> ${rIcon ? `${rIcon} ` : ""}__**Hấp Thụ & Phản Chấn**__ - Hấp thụ **15%** sát thương trong **3 lượt**, sau đó phản lại **75%** sát thương đã tích tụ.`,
+          `> • **Scale Phòng Thủ** - Tăng sức mạnh trực tiếp theo ${se.pr} **PR (S)** và ${se.mr} **MR (S)**.`,
+        ],
+      };
+    },
   },
   lunashard: {
-    icons: ["freeze", "atkup"],
+    icons: ["freeze", "crit_up"],
     title: "Nguyệt Thực Băng Tinh",
-    build: (s, se) => ({
-      intro: `Mảnh trăng lạnh giá ban tặng ${s.freeze} **Ánh Trăng Đóng Băng** và ${s.atkup} **Nguyệt Quang Chí Mạng**.`,
-      quotes: [
-        `> ${s.freeze} __**Ánh Trăng Đóng Băng**__ - Có **25%** cơ hội đóng băng mục tiêu trong **1 lượt**.`,
-        `> ${s.atkup} __**Nguyệt Quang**__ - Tăng **15%** Tỷ lệ Bạo kích, **25%** Sát thương Bạo kích và xuyên **15%** phòng thủ.`,
-      ],
-    }),
+    build: (s) => {
+      const cIcon = s.crit_up || "";
+      return {
+        intro: `Mảnh trăng lạnh giá ban tặng ${s.freeze} **Ánh Trăng Đóng Băng** và ${cIcon ? `${cIcon} ` : ""}**Nguyệt Quang Chí Mạng**.`,
+        quotes: [
+          `> ${s.freeze} __**Ánh Trăng Đóng Băng**__ - Có **25%** cơ hội đóng băng mục tiêu trong **1 lượt**.`,
+          `> ${cIcon ? `${cIcon} ` : ""}__**Nguyệt Quang Chí Mạng**__ - Tăng **15%** Tỷ lệ Bạo kích, **25%** Sát thương Bạo kích và xuyên **15%** phòng thủ.`,
+        ],
+      };
+    },
   },
   eclipsesoul: {
-    icons: ["burn", "stun"],
+    icons: ["chaos_curse"],
     title: "Nhật Thực Hồn Chú",
-    build: (s, se) => ({
-      intro: `Linh hồn nhật thực biến ảo khôn lường, kích hoạt ngẫu nhiên ${s.burn} **Nhật Thực Thiêu Đốt**, ${s.break} **Xuyên Phá** hoặc ${s.stun} **Choáng**.`,
-      quotes: [
-        `> ${s.burn} __**Nhật Thực Thiêu Đốt**__ - Thiêu đốt mục tiêu **2 lượt** theo ${se.mag} **INT (S)** và ${se.wp} **ARC (A)**.`,
-        `> ${s.stun} __**Thực Nhật Áp Chế**__ - Xuyên **30%** ${se.pr} **PR** hoặc làm **Choáng** mục tiêu **1 lượt**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const cIcon = s.chaos_curse || "";
+      return {
+        intro: `Linh hồn nhật thực biến ảo khôn lường, kích hoạt ngẫu nhiên ${cIcon ? `${cIcon} ` : ""}**Nhật Thực Hồn Chú**:`,
+        quotes: [
+          `> ${s.burn} __**Nhật Thực Thiêu Đốt**__ - Thiêu đốt mục tiêu **2 lượt** theo **INT (S)** và **ARC (A)**.`,
+          `> ${s.stun} __**Thực Nhật Áp Chế**__ - Làm **Choáng** mục tiêu **1 lượt** hoặc xuyên **30%** ${se.pr} **PR**.`,
+        ],
+      };
+    },
   },
   fallenangel: {
-    icons: ["heal", "taunt"],
+    icons: ["shield_guard", "lifesteal"],
     title: "Thiên Sứ Sa Ngã",
-    build: (s, se) => ({
-      intro: `Đôi cánh sa ngã bảo hộ chủ nhân với ${s.taunt} **Thánh Thuẫn Đen** và kích hoạt ${s.heal} **Hấp Huyết Phán Quyết** (**45%** cơ hội).`,
-      quotes: [
-        `> ${s.taunt} __**Thánh Thuẫn Đen**__ - Cố định giảm **12%** mọi sát thương nhận vào.`,
-        `> ${s.heal} __**Hấp Huyết Phán Quyết**__ - Tăng **20%** ${se.att} sát thương gây ra và hồi phục **6%** ${se.hp} **HP đã mất**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const gIcon = s.shield_guard || "";
+      const lIcon = s.lifesteal || "";
+      return {
+        intro: `Đôi cánh sa ngã bảo hộ chủ nhân với ${gIcon ? `${gIcon} ` : ""}**Thánh Thuẫn Đen** và kích hoạt ${lIcon ? `${lIcon} ` : ""}**Hấp Huyết Phán Quyết** (**45%** cơ hội).`,
+        quotes: [
+          `> ${gIcon ? `${gIcon} ` : ""}__**Thánh Thuẫn Đen**__ - Cố định giảm **12%** mọi sát thương nhận vào.`,
+          `> ${lIcon ? `${lIcon} ` : ""}__**Hấp Huyết Phán Quyết**__ - Tăng **20%** ${se.att} sát thương gây ra và hồi phục **6%** ${se.hp} **HP đã mất**.`,
+        ],
+      };
+    },
   },
   greeddagger: {
-    icons: ["heal", "atkup"],
+    icons: ["lifesteal", "execute"],
     title: "Đoạt Mệnh Tham Lam",
-    build: (s, se) => ({
-      intro: `Đoản đao tham lam nuốt chửng sinh lực mục tiêu qua ${s.heal} **Đoạt Mệnh** và ${s.atkup} **Săn Mồi**.`,
-      quotes: [
-        `> ${s.heal} __**Đoạt Mệnh**__ - Hút máu bằng **8%** ${se.hp} sát thương gây ra.`,
-        `> ${s.atkup} __**Săn Mồi**__ - Khi mục tiêu dưới **50%** ${se.hp} **HP**, gây thêm **25%** sát thương chí mạng kết liễu.`,
-      ],
-    }),
+    build: (s, se) => {
+      const lIcon = s.lifesteal || "";
+      const eIcon = s.execute || "";
+      return {
+        intro: `Đoản đao tham lam nuốt chửng sinh lực mục tiêu qua ${lIcon ? `${lIcon} ` : ""}**Đoạt Mệnh** và ${eIcon ? `${eIcon} ` : ""}**Săn Mồi**.`,
+        quotes: [
+          `> ${lIcon ? `${lIcon} ` : ""}__**Đoạt Mệnh**__ - Hút máu bằng **8%** ${se.hp} sát thương gây ra.`,
+          `> ${eIcon ? `${eIcon} ` : ""}__**Săn Mồi Kết Liễu**__ - Khi mục tiêu dưới **50%** ${se.hp} **HP**, gây thêm **25%** sát thương chí mạng kết liễu.`,
+        ],
+      };
+    },
   },
   asmodeus: {
     icons: ["atkup", "break"],
@@ -1215,18 +1268,21 @@ const WEAPON_UI_META = {
     }),
   },
   soulreaper: {
-    icons: ["healreduction", "heal"],
+    icons: ["healreduction", "execute"],
     title: "Gặt Hái Linh Hồn",
-    build: (s, se) => ({
-      intro: `Lưỡi hái tử thần tước đoạt sinh mệnh (**45%** cơ hội), áp dụng ${s.healreduction} **Khóa Hồn** và ${s.heal} **Trảm Hồn Kết Liễu**.`,
-      quotes: [
-        `> ${s.healreduction} __**Khóa Hồn**__ - Cấm mục tiêu hồi máu trong **2 lượt**.`,
-        `> ${s.heal} __**Trảm Hồn Kết Liễu**__ - Khi mục tiêu dưới **35%** ${se.hp} **HP**, gây thêm **40%** sát thương kết liễu và hồi **5%** ${se.hp} **HP**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const eIcon = s.execute || "";
+      return {
+        intro: `Lưỡi hái tử thần tước đoạt sinh mệnh (**45%** cơ hội), áp dụng ${s.healreduction} **Khóa Hồn** và ${eIcon ? `${eIcon} ` : ""}**Trảm Hồn Kết Liễu**.`,
+        quotes: [
+          `> ${s.healreduction} __**Khóa Hồn**__ - Cấm mục tiêu hồi máu trong **2 lượt**.`,
+          `> ${eIcon ? `${eIcon} ` : ""}__**Trảm Hồn Kết Liễu**__ - Khi mục tiêu dưới **35%** ${se.hp} **HP**, gây thêm **40%** sát thương kết liễu và hồi **5%** ${se.hp} **HP**.`,
+        ],
+      };
+    },
   },
   beelzebub: {
-    icons: ["poisonous", "break"],
+    icons: ["break", "heal"],
     title: "Đàn Ruồi Hoại Tử",
     build: (s, se) => ({
       intro: `Triệu hồi bầy ruồi chúa tể (**45%** cơ hội), gây ${s.break} **Ăn Mòn Song Phòng** và ${s.heal} **Phàm Ăn Hồi Phục**.`,
@@ -1242,7 +1298,7 @@ const WEAPON_UI_META = {
     build: (s, se) => ({
       intro: `Triệu hồi ngọn lửa địa ngục tối thượng (**45%** cơ hội), áp dụng ${s.burn} **Hỏa Ngục Tận Thế** và ${s.healreduction} **Tuyệt Diệt**.`,
       quotes: [
-        `> ${s.burn} __**Hỏa Ngục Tận Thế**__ - Thiêu đốt mục tiêu trong **3 lượt** theo ${se.att} **STR** và tăng **10%** sát thương.`,
+        `> ${s.burn} __**Hỏa Ngục Tận Thế**__ - Thiêu đốt mục tiêu trong **3 lượt** theo **STR** và tăng **10%** sát thương.`,
         `> ${s.healreduction} __**Tuyệt Diệt**__ - Cấm mục tiêu hồi phục ${se.hp} **HP** trong **2 lượt**.`,
       ],
     }),
@@ -1253,32 +1309,36 @@ const WEAPON_UI_META = {
     build: (s, se) => ({
       intro: `Kiếm khí bi thương khắc sâu vào kẻ địch (**45%** cơ hội), gây ${s.bleed} **Xuất Huyết** và ${s.break} **Phá Giáp**.`,
       quotes: [
-        `> ${s.bleed} __**Xuất Huyết Bi Thương**__ - Gây chảy máu liên tục trong **3 lượt** theo ${se.att} **STR (S)** và ${se.att} **DEX (A)**.`,
+        `> ${s.bleed} __**Xuất Huyết Bi Thương**__ - Gây chảy máu liên tục trong **3 lượt** theo **STR (S)** và **DEX (A)**.`,
         `> ${s.break} __**Rạn Nứt**__ - Giảm **12%–15%** ${se.pr} **PR** của mục tiêu (cộng dồn tối đa **25%–30%**).`,
       ],
     }),
   },
   frostgauntlet: {
-    icons: ["freeze", "frostbite"],
+    icons: ["freeze"],
     title: "Hàn Băng Tuyệt Đối",
-    build: (s, se) => ({
-      intro: `Găng tay băng giá cực hàn giải phóng ${s.freeze} **Đóng Băng Vĩnh Cửu** và ${s.frostbite} **Hàn Khí**.`,
+    build: (s) => ({
+      intro: `Găng tay băng giá cực hàn giải phóng ${s.freeze} **Đóng Băng Vĩnh Cửu**.`,
       quotes: [
         `> ${s.freeze} __**Đóng Băng**__ - Có **25%–33%** cơ hội đóng băng hoàn toàn mục tiêu trong **1 lượt**.`,
-        `> • ${s.frostbite} **Hàn Quyền Gacha** - Cộng hưởng 3 chỉ số ${se.mag} **INT (S)**, ${se.wp} **ARC (A)** và ${se.att} **DEX (B)**. `,
+        `> • **Hàn Quyền Gacha** - Cộng hưởng 3 chỉ số **INT (S)**, **ARC (A)** và **DEX (B)**.`,
       ],
     }),
   },
   demonbook: {
-    icons: ["burn", "break"],
+    icons: ["chaos_curse"],
     title: "Tà Thuật Cổ Đại",
-    build: (s, se) => ({
-      intro: `Mở trang sách cổ ngữ tà thần (**45%** cơ hội), ngẫu nhiên giáng ${s.burn} **Hỏa Ngục**, ${s.break} **Hủ Bại** hoặc ${s.stun} **Hóa Đá**.`,
-      quotes: [
-        `> ${s.burn} __**Hỏa Ngục / Hủ Bại**__ - Thiêu đốt **2 lượt** theo ${se.mag} **INT** hoặc phá hủy **30%** ${se.pr} **PR** & ${se.mr} **MR**.`,
-        `> ${s.stun} __**Hóa Đá**__ - Phong ấn làm **Choáng** mục tiêu trong **1 lượt**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const cIcon = s.chaos_curse || "";
+      return {
+        intro: `Mở trang sách cổ ngữ tà thần (**45%** cơ hội), kích hoạt ${cIcon ? `${cIcon} ` : ""}**Tà Thuật Cổ Đại** (ngẫu nhiên 1 trong 3 hiệu ứng):`,
+        quotes: [
+          `> ${s.burn} __**Hỏa Ngục**__ - Thiêu đốt mục tiêu **2 lượt** theo **INT** và **ARC**.`,
+          `> ${s.break} __**Hủ Bại**__ - Phá hủy **30%** ${se.pr} **PR** & ${se.mr} **MR** của mục tiêu.`,
+          `> ${s.stun} __**Hóa Đá**__ - Phong ấn làm **Choáng** mục tiêu trong **1 lượt**.`,
+        ],
+      };
+    },
   },
   thorshammer: {
     icons: ["stun", "atkup"],
@@ -1292,26 +1352,34 @@ const WEAPON_UI_META = {
     }),
   },
   odinhammer: {
-    icons: ["atkup", "break"],
+    icons: ["third_hit", "mr_pierce"],
     title: "Cổ Ngữ Khải Huyền",
-    build: (s, se) => ({
-      intro: `Con mắt toàn tri của Odin soi thấu điểm yếu, kích hoạt ${s.atkup} **Khải Huyền** và ${s.break} **Xuyên Thấu Phép**.`,
-      quotes: [
-        `> ${s.atkup} __**Cổ Ngữ Khải Huyền**__ - Mỗi đòn đánh thứ **3** bùng nổ gây **175%** ${se.mag} sát thương.`,
-        `> ${s.break} __**Xuyên Thấu Phép**__ - Đòn khải huyền xuyên thẳng **50%** ${se.mr} **MR** của mục tiêu.`,
-      ],
-    }),
+    build: (s, se) => {
+      const tIcon = s.third_hit || "";
+      const pIcon = s.mr_pierce || "";
+      return {
+        intro: `Con mắt toàn tri của Odin soi thấu điểm yếu, kích hoạt ${tIcon ? `${tIcon} ` : ""}**Khải Huyền** và ${pIcon ? `${pIcon} ` : ""}**Xuyên Thấu Phép**.`,
+        quotes: [
+          `> ${tIcon ? `${tIcon} ` : ""}__**Cổ Ngữ Khải Huyền**__ - Mỗi đòn đánh thứ **3** bùng nổ gây **175%** ${se.mag} sát thương.`,
+          `> ${pIcon ? `${pIcon} ` : ""}__**Xuyên Thấu Phép**__ - Đòn khải huyền xuyên thẳng **50%** ${se.mr} **MR** của mục tiêu.`,
+        ],
+      };
+    },
   },
   darkhold: {
-    icons: ["break", "atkdown"],
+    icons: ["mr_shred", "shield_guard"],
     title: "Trói Buộc Hư Vô",
-    build: (s, se) => ({
-      intro: `Bí thuật cấm kỵ từ Darkhold (**45%** cơ hội) áp dụng ${s.break} **Ăn Mòn Kháng Phép** và ${s.atkdown} **Màn Đêm Hư Vô**.`,
-      quotes: [
-        `> ${s.break} __**Ăn Mòn Kháng Phép**__ - Phá hủy **25%** ${se.mr} **MR** của mục tiêu (tối đa **50%**).`,
-        `> ${s.atkdown} __**Màn Đêm Hư Vô**__ - Giảm **15%** sát thương bản thân phải nhận trong **2 lượt**.`,
-      ],
-    }),
+    build: (s, se) => {
+      const mIcon = s.mr_shred || "";
+      const gIcon = s.shield_guard || "";
+      return {
+        intro: `Bí thuật cấm kỵ từ Darkhold (**45%** cơ hội) áp dụng ${mIcon ? `${mIcon} ` : ""}**Ăn Mòn Kháng Phép** và ${gIcon ? `${gIcon} ` : ""}**Màn Đêm Hư Vô**.`,
+        quotes: [
+          `> ${mIcon ? `${mIcon} ` : ""}__**Ăn Mòn Kháng Phép**__ - Phá hủy **25%** ${se.mr} **MR** của mục tiêu (tối đa **50%**).`,
+          `> ${gIcon ? `${gIcon} ` : ""}__**Màn Đêm Hư Vô**__ - Giảm **15%** sát thương bản thân phải nhận trong **2 lượt**.`,
+        ],
+      };
+    },
   },
 };
 
@@ -1322,13 +1390,10 @@ const getWeaponPassiveEmojis = (subType) => {
   if (meta && Array.isArray(meta.icons)) {
     return meta.icons.map((k) => s[k] || "").filter(Boolean).join("");
   }
-  const lower = String(subType || "").toLowerCase();
-  if (lower.includes("staff") || lower.includes("trượng")) return s.dispe || "";
-  if (lower.includes("dagger") || lower.includes("đao")) return s.bleed || "";
-  return s.atkup || "";
+  return "";
 };
 
-const formatWeaponRichDescription = (subType, setInfo = null) => {
+const formatWeaponRichDescription = (subType) => {
   const s = getStatusEmojis();
   const se = getStatEmojis();
   const key = normalizePassiveKey(subType);
@@ -1344,40 +1409,8 @@ const formatWeaponRichDescription = (subType, setInfo = null) => {
       `Vũ khí chiến đấu cơ bản, cộng hưởng sát thương trực tiếp theo chỉ số ${se.att} **ATT** và ${se.mag} **MAG** của nhân vật.`
     );
     lines.push(
-      `> ${s.atkup} __**Thuần Vũ Khí**__ - Không tiêu hao nội lực, tối ưu hóa sát thương cơ bản theo hệ số Scale.`
+      `> • **Thuần Vũ Khí** - Không tiêu hao nội lực, tối ưu hóa sát thương cơ bản theo hệ số Scale.`
     );
-  }
-
-  if (setInfo && setInfo.bonus) {
-    const bonusParts = [];
-    for (const [k, v] of Object.entries(setInfo.bonus)) {
-      if (k === "dual" && v) bonusParts.push(`${se.hybrid ? `${se.hybrid} ` : ""}Đánh song hệ Vật Lý/Phép`);
-      else if (k === "critRate") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.atkup} Tỷ lệ Bạo kích`);
-      else if (k === "evasion") bonusParts.push(`+**${Math.round(v * 100)}%** Né tránh`);
-      else if (k === "poison") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.poisonous} Sát thương Độc`);
-      else if (k === "burn") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.burn} Sát thương Thiêu đốt`);
-      else if (k === "bleedPower") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.bleed} Sát thương Chảy máu`);
-      else if (k === "bossDamage") bonusParts.push(`+**${Math.round(v * 100)}%** ${se.att} Sát thương lên Boss`);
-      else if (k === "pvpDamage") bonusParts.push(`+**${Math.round(v * 100)}%** ${se.att} Sát thương PvP`);
-      else if (k === "healBonus") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.heal} Hiệu quả Hồi máu`);
-      else if (k === "maxHp") bonusParts.push(`+**${Math.round(v * 100)}%** ${se.hp} Máu tối đa`);
-      else if (k === "mrPierce") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.break} Xuyên ${se.mr} MR`);
-      else if (k === "armorShred") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.break} Phá ${se.pr} PR`);
-      else if (k === "pierceAll") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.break} Xuyên ${se.pr} PR & ${se.mr} MR`);
-      else if (k === "freezeChance") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.freeze} Tỷ lệ Đóng băng`);
-      else if (k === "lifesteal") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.heal} Hút máu`);
-      else if (k === "doubleHit") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.atkup} Tỷ lệ Liên kích`);
-      else if (k === "reflection") bonusParts.push(`+**${Math.round(v * 100)}%** ${s.taunt} Phản sát thương`);
-    }
-    if (bonusParts.length > 0) {
-      lines.push("");
-      lines.push(
-        `${s.dispe} __**Bộ Vũ Khí: ${setInfo.name}**__ - Khi trang bị vũ khí từ bậc **Rare** trở lên, kích hoạt hiệu ứng cộng hưởng:`
-      );
-      lines.push(
-        `> ${s.atkup} __**Cộng Hưởng ${setInfo.name}**__ - Nhận ${bonusParts.join(", ")}.`
-      );
-    }
   }
 
   return lines.join("\n");

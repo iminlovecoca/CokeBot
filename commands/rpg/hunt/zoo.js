@@ -105,14 +105,7 @@ class ZooCommand extends BaseCommand {
       const speciesList = PET_SPECIES.filter((s) => s.tier === tierName);
       const badge = rank.emoji || `\`${rank.letter}\``;
 
-      // Placeholder rows for newly created Generation (G) and Secret (S) tiers before pets are added
       if (speciesList.length === 0) {
-        if (tierName === "Generation" || tierName === "Secret") {
-          const placeholderSlots = Array(5)
-            .fill(`❓${toSmallNum(0, digits)}`)
-            .join("  ");
-          response += `${badge}    ${placeholderSlots}\n`;
-        }
         continue;
       }
 

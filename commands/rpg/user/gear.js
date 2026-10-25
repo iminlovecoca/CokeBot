@@ -87,23 +87,10 @@ const resolveItemDisplayMeta = (item) => {
 };
 
 const getGearStatBadges = (item) => {
-  const se = getStatEmojis();
   if (item.slot === "weapon") {
     return getWeaponPassiveEmojis(item.subType || item.subtype || item.name);
   }
-  const stats = item.stats || {};
-  const badges = [];
-  for (const [k, v] of Object.entries(stats)) {
-    if (!v) continue;
-    const norm = k.toLowerCase();
-    if (norm === "vigor" || norm === "vit") badges.push(se.hp);
-    else if (norm === "pr" || norm === "def") badges.push(se.pr);
-    else if (norm === "mr") badges.push(se.mr);
-    else if (norm === "str" || norm === "dex" || norm === "agi") badges.push(se.att);
-    else if (norm === "int") badges.push(se.mag);
-    else if (norm === "arc" || norm === "luck") badges.push(se.wp);
-  }
-  return [...new Set(badges)].slice(0, 2).join("");
+  return "";
 };
 
 const buildGearLine = (item, isEquipped = false, user = null, memberName = "") => {
@@ -113,7 +100,7 @@ const buildGearLine = (item, isEquipped = false, user = null, memberName = "") =
   const quality = getItemQuality(item);
   const itemId = `G${String(item.id).padStart(4, "0")}`;
   const upgradeBracket = item.upgradeLevel && item.upgradeLevel > 0 ? ` [${item.upgradeLevel}]` : "";
-  const favPrefix = item.isFavorite ? `${config.emoji.slots_heart} ` : "";
+  const favPrefix = item.isFavorite ? "⭐ " : "";
 
   let equippedIndicator = "";
   if (isEquipped) {
@@ -132,7 +119,7 @@ const buildGearLine = (item, isEquipped = false, user = null, memberName = "") =
 
 const filterLabels = {
   none: "None",
-  favorite: "Favorite",
+  favorite: "Favorite ⭐",
   slot_weapon: "Weapon",
   slot_armor: "Armor",
   slot_helmet: "Helmet",
@@ -236,15 +223,15 @@ class GearCommand extends BaseCommand {
         const scaling = getWeaponScaling(freshItem);
 
         const scalingBadges = [];
-        if (scaling.str && scaling.str !== "-") scalingBadges.push(`${se.att} STR **${scaling.str}**`);
-        if (scaling.dex && scaling.dex !== "-") scalingBadges.push(`${se.att} DEX **${scaling.dex}**`);
-        if (scaling.int && scaling.int !== "-") scalingBadges.push(`${se.mag} INT **${scaling.int}**`);
-        if (scaling.arc && scaling.arc !== "-") scalingBadges.push(`${se.wp} ARC **${scaling.arc}**`);
+        if (scaling.str && scaling.str !== "-") scalingBadges.push(`STR **${scaling.str}**`);
+        if (scaling.dex && scaling.dex !== "-") scalingBadges.push(`DEX **${scaling.dex}**`);
+        if (scaling.int && scaling.int !== "-") scalingBadges.push(`INT **${scaling.int}**`);
+        if (scaling.arc && scaling.arc !== "-") scalingBadges.push(`ARC **${scaling.arc}**`);
         if (scaling.pr && scaling.pr !== "-") scalingBadges.push(`${se.pr} PR **${scaling.pr}**`);
         if (scaling.mr && scaling.mr !== "-") scalingBadges.push(`${se.mr} MR **${scaling.mr}**`);
 
         infoLines.push(
-          `**Weapon Power:** ${finalPower.toLocaleString()} ${se.wp} *(Base: ${freshItem.power.toLocaleString()} • +${bonusPower.toLocaleString()})*`,
+          `**Weapon Power:** ${finalPower.toLocaleString()} *(Base: ${freshItem.power.toLocaleString()} • +${bonusPower.toLocaleString()})*`,
           `**Scaling:** ${scalingBadges.length ? scalingBadges.join("  •  ") : "None"}`,
           "",
           `__**Description**__`
@@ -259,7 +246,7 @@ class GearCommand extends BaseCommand {
         infoLines.push(formatWeaponRichDescription(freshWeaponSubtype, setInfo));
       } else {
         infoLines.push(
-          `**Gear Power:** +${freshItem.power.toLocaleString()} ${se.pr}`,
+          `**Gear Power:** +${freshItem.power.toLocaleString()}`,
           "",
           `__**Description**__`,
           `Trang bị phòng hộ cấp **${freshItem.rarity}**, gia tăng trực tiếp chỉ số chiến đấu khi mặc lên người:`
@@ -269,16 +256,13 @@ class GearCommand extends BaseCommand {
         for (const [k, v] of Object.entries(freshItem.stats || {})) {
           if (!v) continue;
           const norm = k.toLowerCase();
-          let icon = se.hp;
-          if (norm === "pr" || norm === "def") icon = se.pr;
-          else if (norm === "mr") icon = se.mr;
-          else if (norm === "str" || norm === "dex" || norm === "agi") icon = se.att;
-          else if (norm === "int") icon = se.mag;
-          else if (norm === "arc" || norm === "luck") icon = se.wp;
-          statLines.push(`> ${icon} __**${getStatLabel(norm)}**__ - Cộng thêm **+${v}** điểm chỉ số.`);
+          let icon = "";
+          if (norm === "pr" || norm === "def") icon = `${se.pr} `;
+          else if (norm === "mr") icon = `${se.mr} `;
+          statLines.push(`> • ${icon}__**${getStatLabel(norm)}**__ - Cộng thêm **+${v}** điểm chỉ số.`);
         }
         if (statLines.length === 0) {
-          statLines.push(`> ${st.taunt} __**Phòng Hộ Cơ Bản**__ - Cung cấp **+${freshItem.power.toLocaleString()}** Lực chiến phòng ngự.`);
+          statLines.push(`> • __**Phòng Hộ Cơ Bản**__ - Cung cấp **+${freshItem.power.toLocaleString()}** Lực chiến phòng ngự.`);
         }
         infoLines.push(...statLines);
       }
@@ -318,7 +302,7 @@ class GearCommand extends BaseCommand {
           .setDisabled(!!freshItem.isFavorite || !!freshItem.isGodset),
         new ButtonBuilder()
           .setCustomId(`gear_fav_${freshItem.id}`)
-          .setEmoji(config.emoji.slots_heart)
+          .setEmoji("⭐")
           .setStyle(freshItem.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
       );
       return { embed, row };
@@ -424,7 +408,7 @@ class GearCommand extends BaseCommand {
             .setDisabled(true),
           new ButtonBuilder()
             .setCustomId(`gear_btn_dis3_${item.id}`)
-            .setEmoji(config.emoji.slots_heart)
+            .setEmoji("⭐")
             .setStyle(item.isFavorite ? ButtonStyle.Success : ButtonStyle.Secondary)
             .setDisabled(true)
         );
@@ -526,7 +510,7 @@ class GearCommand extends BaseCommand {
           .setMaxValues(5)
           .addOptions(
             { label: "None (Show All)", value: "none", default: filterTypes.includes("none") },
-            { label: "Filter: Favorite", value: "favorite", default: filterTypes.includes("favorite") },
+            { label: "Filter: Favorite ⭐", value: "favorite", default: filterTypes.includes("favorite") },
             { label: "Filter: Weapons Only", value: "slot_weapon", default: filterTypes.includes("slot_weapon") },
             { label: "Filter: Armor", value: "slot_armor", default: filterTypes.includes("slot_armor") },
             { label: "Filter: Helmet", value: "slot_helmet", default: filterTypes.includes("slot_helmet") },
