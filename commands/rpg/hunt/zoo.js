@@ -130,9 +130,12 @@ class ZooCommand extends BaseCommand {
       response += `${badge}    ${rowItems.join("  ")}\n`;
     }
 
-    const allTimePoints = dbUser.zooPoints && dbUser.zooPoints > 0
-      ? dbUser.zooPoints
-      : calculateZooPoints(zoo);
+    const computedPoints = calculateZooPoints(zoo);
+    const allTimePoints = Math.max(dbUser.zooPoints || 0, computedPoints);
+    if (allTimePoints !== dbUser.zooPoints) {
+      dbUser.zooPoints = allTimePoints;
+      await dbUser.save().catch(() => {});
+    }
     const scoreText = formatZooScoreText(zoo);
 
     response += `\n**Zoo Points: __${allTimePoints.toLocaleString()}__**\n`;

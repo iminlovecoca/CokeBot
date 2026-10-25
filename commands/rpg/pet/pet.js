@@ -12,6 +12,7 @@ const {
 } = require("../../../data/pets");
 const { getXpRequired } = require("../../../utils/petXpUtil");
 const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const zooCommand = require("../hunt/zoo");
 
 class PetCommand extends BaseCommand {
   constructor() {
@@ -59,10 +60,19 @@ class PetCommand extends BaseCommand {
       }
     }
     const query = args.join(" ").trim();
-    if (query) {
+    const lowerQuery = query.toLowerCase();
+    const isZooFlag =
+      !query ||
+      lowerQuery === "all" ||
+      lowerQuery === "display" ||
+      lowerQuery === "-display" ||
+      lowerQuery === "d" ||
+      Boolean(message.mentions.users.first());
+
+    if (!isZooFlag) {
       return this.showPetDetail(message, user, query);
     }
-    return this.showPetList(message, user);
+    return this.showPetList(message, user, args);
   }
 
   async showPetDetail(message, user, query) {
@@ -212,25 +222,8 @@ class PetCommand extends BaseCommand {
     return message.channel.send(payload);
   }
 
-  async showPetList(message, user) {
-    const pets = user.rpg.pets || [];
-    const ownedKeys = new Set(pets.map((p) => p.key));
-    const username = message.member?.displayName || message.author.displayName || message.author.username;
-    let text = `🌿🌱🌳 **${username}'s zoo!** 🌳🌱🌿\n`;
-    const tierOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
-
-    tierOrder.forEach((tierKey) => {
-      const tierConfig = PET_TIERS[tierKey];
-      const speciesInTier = PET_SPECIES.filter((s) => s.tier === tierKey);
-      if (speciesInTier.length > 0 && tierConfig) {
-        const itemsStr = speciesInTier
-          .map((sp) => (ownedKeys.has(sp.key) ? sp.emoji : "❓"))
-          .join("   ");
-        text += `${tierConfig.emoji}   ${itemsStr}\n`;
-      }
-    });
-
-    return message.channel.send(text);
+  async showPetList(message, _user, args = []) {
+    return zooCommand.execute(message, args);
   }
 }
 

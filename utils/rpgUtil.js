@@ -605,21 +605,38 @@ const getWeaponScaling = (item) => {
   const subType = String(item.subType || "Longsword").toLowerCase().replace(/\s+/g, "");
   const rarity = item.rarity || "Common";
   
+  // Danh sách toàn bộ vũ khí Gacha qua các mùa (luôn giữ 3 chỉ số scaling) + Cung Trọng Lực (GravityBow)
   if (weaponKey.includes("gravitybow")) {
     return { str: "-", dex: "S", int: "A", arc: "B" };
   }
-
-  if (weaponKey.includes("lunashard")) {
-    return { str: "-", dex: "S", int: "-", arc: "A" };
-  }
-  if (weaponKey.includes("eclipsesoul")) {
-    return { str: "-", dex: "-", int: "S", arc: "A" };
-  }
-  if (weaponKey.includes("axesnake")) {
-    return { str: "S", dex: "-", int: "-", arc: "-" };
+  if (weaponKey.includes("duskanddawn")) {
+    return { str: "-", dex: "A", int: "S", arc: "B" };
   }
   if (weaponKey.includes("sunbow")) {
-    return { str: "-", dex: "S", int: "S", arc: "-" };
+    return { str: "-", dex: "S", int: "S", arc: "B" };
+  }
+  if (weaponKey.includes("lunashard")) {
+    return { str: "B", dex: "S", int: "-", arc: "A" };
+  }
+  if (weaponKey.includes("eclipsesoul")) {
+    return { str: "-", dex: "B", int: "S", arc: "A" };
+  }
+  if (weaponKey.includes("bladesorrow")) {
+    return { str: "S", dex: "A", int: "-", arc: "B" };
+  }
+  if (weaponKey.includes("frostgauntlet")) {
+    return { str: "-", dex: "B", int: "S", arc: "A" };
+  }
+  if (weaponKey.includes("darkhold")) {
+    return { str: "-", dex: "B", int: "S", arc: "B" };
+  }
+  if (weaponKey.includes("soulreaper")) {
+    return { str: "C", dex: "S", int: "-", arc: "S" };
+  }
+
+  // Các vũ khí Boss / Sự kiện (không phải Gacha) — tối đa 2 chỉ số scaling
+  if (weaponKey.includes("axesnake")) {
+    return { str: "S", dex: "-", int: "-", arc: "-" };
   }
   if (weaponKey.includes("clawhex")) {
     return { str: "S", dex: "S", int: "-", arc: "-" };
@@ -630,12 +647,6 @@ const getWeaponScaling = (item) => {
   if (weaponKey.includes("shieldhex")) {
     return { str: "-", dex: "-", int: "-", arc: "-", pr: "S", mr: "S" };
   }
-  if (weaponKey.includes("bladesorrow")) {
-    return { str: "S", dex: "A", int: "-", arc: "-" };
-  }
-  if (weaponKey.includes("frostgauntlet")) {
-    return { str: "-", dex: "-", int: "S", arc: "A" };
-  }
   if (weaponKey.includes("demonbook")) {
     return { str: "-", dex: "-", int: "S", arc: "A" };
   }
@@ -644,12 +655,6 @@ const getWeaponScaling = (item) => {
   }
   if (weaponKey.includes("odinhammer")) {
     return { str: "-", dex: "-", int: "S", arc: "A" };
-  }
-  if (weaponKey.includes("darkhold")) {
-    return { str: "-", dex: "B", int: "S", arc: "B" };
-  }
-  if (weaponKey.includes("soulreaper")) {
-    return { str: "C", dex: "S", int: "-", arc: "S" };
   }
   
   const { prim, sec } = getWeaponScalingStats(subType);
@@ -1467,66 +1472,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   let scaling = null;
   if (slot === "weapon") {
-    const subName = getDungeonWeaponKey(chosenSubtype.name) || chosenSubtype.name.toLowerCase();
-    if (subName.includes("gravitybow")) {
-      scaling = { str: "-", dex: "S", int: "A", arc: "B" };
-    } else if (subName.includes("lunashard")) {
-      scaling = { str: "-", dex: "S", int: "-", arc: "A" };
-    } else if (subName.includes("eclipsesoul")) {
-      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
-    } else if (subName.includes("bladesorrow")) {
-      scaling = { str: "S", dex: "A", int: "-", arc: "-" };
-    } else if (subName.includes("frostgauntlet")) {
-      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
-    } else if (subName.includes("demonbook")) {
-      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
-    } else if (subName.includes("thorshammer")) {
-      scaling = { str: "S", dex: "-", int: "-", arc: "A" };
-    } else if (subName.includes("odinhammer")) {
-      scaling = { str: "-", dex: "-", int: "S", arc: "A" };
-    } else if (subName.includes("darkhold")) {
-      scaling = { str: "-", dex: "B", int: "S", arc: "B" };
-    } else if (subName.includes("soulreaper")) {
-      scaling = { str: "C", dex: "S", int: "-", arc: "S" };
-    } else {
-      scaling = { str: "-", dex: "-", int: "-", arc: "-" };
-      const { prim, sec } = getWeaponScalingStats(subName);
-      
-      const primaryGrades = {
-        Common: "D",
-        Rare: "C",
-        Epic: "B",
-        Legendary: "A",
-        Mythic: "S",
-        Ancient: "S",
-        Divine: "S"
-      };
-      const secondaryGrades = {
-        Common: "E",
-        Rare: "D",
-        Epic: "C",
-        Legendary: "B",
-        Mythic: "B",
-        Ancient: "A",
-        Divine: "S"
-      };
-      
-      let primGrade = primaryGrades[rarity] || "E";
-      let secGrade = secondaryGrades[rarity] || "E";
-      if (isDungeon) {
-        const bumpGrade = (grade) => {
-          const grades = ["-", "E", "D", "C", "B", "A", "S"];
-          const idx = grades.indexOf(grade);
-          if (idx === -1) return grade;
-          return grades[Math.min(grades.length - 1, idx + 1)];
-        };
-        primGrade = bumpGrade(primGrade);
-        secGrade = bumpGrade(secGrade);
-      }
-      
-      scaling[prim] = primGrade;
-      scaling[sec] = secGrade;
-    }
+    scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
   }
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
