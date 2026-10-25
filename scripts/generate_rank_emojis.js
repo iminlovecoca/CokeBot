@@ -279,79 +279,147 @@ function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
   });
 }
 
+let cachedSecretTiles = null;
+
+function getSecretTiles(img) {
+  if (cachedSecretTiles) return cachedSecretTiles;
+  const width = CANVAS_SIZE;
+  const height = CANVAS_SIZE;
+  const tempCanvas = createCanvas(width, height);
+  const tCtx = tempCanvas.getContext('2d');
+  tCtx.drawImage(img, 0, 0, width, height);
+  const imgData = tCtx.getImageData(0, 0, width, height).data;
+
+  const tileSize = 4;
+  const rawTiles = [];
+  let minDiag = Infinity;
+  let maxDiag = -Infinity;
+
+  for (let y = 0; y < height; y += tileSize) {
+    for (let x = 0; x < width; x += tileSize) {
+      // Sample center pixel of the 4x4 tile
+      const sx = Math.min(width - 1, x + 2);
+      const sy = Math.min(height - 1, y + 2);
+      const idx = (sy * width + sx) * 4;
+      const a = imgData[idx + 3];
+      if (a > 128) {
+        const r = imgData[idx];
+        const g = imgData[idx + 1];
+        const b = imgData[idx + 2];
+        const diag = x * 0.45 + y * 0.55;
+        if (diag < minDiag) minDiag = diag;
+        if (diag > maxDiag) maxDiag = diag;
+
+        // Deterministic hashes in [0, 1)
+        const h1 = (((x * 73856093) ^ (y * 19349663)) >>> 0) % 1000 / 1000;
+        const h2 = (((x * 83492791) ^ (y * 2971215073)) >>> 0) % 1000 / 1000;
+        const h3 = (((x * 19349663) ^ (y * 73856093)) >>> 0) % 1000 / 1000;
+
+        rawTiles.push({ x, y, r, g, b, diag, h1, h2, h3 });
+      }
+    }
+  }
+
+  const span = Math.max(1, maxDiag - minDiag);
+  cachedSecretTiles = rawTiles.map(t => {
+    // Bottom-right (largest diag) shatters first (order near 0), top-left shatters last (order near 1)
+    const norm = 1.0 - (t.diag - minDiag) / span;
+    const jittered = Math.max(0, Math.min(1, norm + (t.h1 - 0.5) * 0.18));
+    const tStart = jittered * 0.58;
+    const life = 0.24 + t.h2 * 0.14;
+    return {
+      ...t,
+      tileSize,
+      tStart,
+      life,
+      vx: 36 + t.h1 * 62,
+      vy: -20 - t.h2 * 56,
+      swirlAmp: (t.h3 - 0.5) * 18,
+      swirlFreq: 2.0 + t.h1 * 2.0
+    };
+  });
+
+  return cachedSecretTiles;
+}
+
 /**
- * 🌑 SECRET EFFECT (Tier S - Gradual Disappearing / Dissolving Black Letter & Void Fragments)
- * Uses 100% crisp 1-bit alpha pixel-block dissolve so GIF transparency has zero pale fringe on Discord dark mode.
+ * 🌑 SECRET EFFECT (Tier S - Thanos Snap Dust-Shatter Disintegration + OwO Hidden Long Invisible Hold)
  */
 function applySecretEffect(ctx, img, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
   const width = CANVAS_SIZE;
   const height = CANVAS_SIZE;
 
-  // Smooth breathing dissolve wave (0 -> 1 -> 0 across the 16 frames)
-  const wave = (1 - Math.cos(progress * Math.PI * 2)) / 2;
+  // Timeline across 40 frames (3.33s at 12fps):
+  // 0.00 -> 0.14: Intact S with dark obsidian-silver sheen
+  // 0.14 -> 0.62: Thanos Snap Disintegration (tiles detach from bottom-right to top-left and blow away as dust)
+  // 0.62 -> 0.85: COMPLETELY VANISHED / HIDDEN (long invisible hold like OwO Hidden rank)
+  // 0.85 -> 1.00: Dust particles reverse-converge to reform the S seamlessly
+  let dissolveProgress = 0;
+  if (progress < 0.14) {
+    dissolveProgress = 0;
+  } else if (progress < 0.62) {
+    dissolveProgress = (progress - 0.14) / (0.62 - 0.14);
+  } else if (progress < 0.85) {
+    dissolveProgress = 1.0;
+  } else {
+    dissolveProgress = 1.0 - (progress - 0.85) / (1.0 - 0.85);
+  }
 
-  // 1. Dark Silver-Obsidian Sheen Pulse on the visible letter pixels (source-atop preserves original alpha)
-  ctx.save();
-  ctx.globalCompositeOperation = 'source-atop';
-  const sheenPos = -40 + progress * (width + 80);
-  const grad = ctx.createLinearGradient(sheenPos - 25, sheenPos - 25, sheenPos + 25, sheenPos + 25);
-  grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.5, 'rgba(160, 175, 205, 0.35)');
-  grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
-  ctx.restore();
+  // Phase 1: Solid letter S + dark metallic sheen
+  if (dissolveProgress <= 0.001) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-atop';
+    const sheenProg = progress / 0.14;
+    const sheenPos = -40 + sheenProg * (width + 80);
+    const grad = ctx.createLinearGradient(sheenPos - 28, sheenPos - 28, sheenPos + 28, sheenPos + 28);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    grad.addColorStop(0.5, 'rgba(175, 190, 220, 0.42)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+    return;
+  }
 
-  // 2. Crisp Pixel-Block Disappearing Mask (100% alpha destination-out so GIF has zero semi-transparent halo)
-  ctx.save();
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  // Clear the pre-drawn static image so we can render the per-tile Thanos Snap particle simulation
+  ctx.clearRect(0, 0, width, height);
 
-  const cell = 6;
-  for (let y = 0; y < height; y += cell) {
-    for (let x = 0; x < width; x += cell) {
-      const diagNorm = (x * 0.55 + y * 0.65) / ((width + height) * 0.6);
-      // Deterministic Bayer-like pixel dither per 6x6 block
-      const gx = Math.floor(x / cell);
-      const gy = Math.floor(y / cell);
-      const bayer = (((gx * 3 + gy * 5) & 7) / 8) * 0.24;
-      const threshold = 0.92 - wave * 0.46;
-      if (diagNorm + bayer > threshold) {
-        ctx.fillRect(x, y, cell, cell);
+  // Phase 3: Long Invisible Hold (keep 1x1 pixel at corner (0,0) so ffmpeg GIF muxer flushes transparent frame)
+  if (dissolveProgress >= 0.999) {
+    ctx.fillStyle = '#09090f';
+    ctx.fillRect(0, 0, 1, 1);
+    return;
+  }
+
+  const tiles = getSecretTiles(img);
+  for (let i = 0; i < tiles.length; i++) {
+    const t = tiles[i];
+    if (dissolveProgress <= t.tStart) {
+      // Still attached to the S body
+      ctx.fillStyle = `rgb(${t.r},${t.g},${t.b})`;
+      ctx.fillRect(t.x, t.y, t.tileSize, t.tileSize);
+    } else {
+      const localT = (dissolveProgress - t.tStart) / t.life;
+      if (localT < 1.0) {
+        // Detached and blowing away in the wind like Thanos's snap!
+        const ease = Math.pow(localT, 1.15);
+        const px = Math.round(t.x + t.vx * ease);
+        const py = Math.round(t.y + t.vy * ease + Math.sin(localT * Math.PI * t.swirlFreq) * t.swirlAmp);
+
+        if (px >= 0 && px < width && py >= 0 && py < height) {
+          // Particle shrinks as it turns to ash/dust
+          const sz = localT < 0.35 ? 4 : (localT < 0.70 ? 3 : 2);
+          // Ash/obsidian dust color
+          const ashR = Math.max(8, Math.round(t.r * (1 - localT * 0.35)));
+          const ashG = Math.max(8, Math.round(t.g * (1 - localT * 0.35)));
+          const ashB = Math.max(14, Math.round(t.b * (1 - localT * 0.30)));
+          ctx.fillStyle = `rgb(${ashR},${ashG},${ashB})`;
+          ctx.fillRect(px, py, sz, sz);
+        }
       }
     }
   }
-  ctx.restore();
-
-  // 3. Dispersing Black/Charcoal Pixel Cubes drifting away as the letter disappears
-  const shards = [
-    { x0: width * 0.56, y0: height * 0.66, dx: 30, dy: 24, s: 12, phase: 0.0 },
-    { x0: width * 0.64, y0: height * 0.56, dx: 36, dy: 16, s: 10, phase: 0.14 },
-    { x0: width * 0.48, y0: height * 0.72, dx: 24, dy: 32, s: 10, phase: 0.28 },
-    { x0: width * 0.60, y0: height * 0.48, dx: 32, dy: 8, s: 9, phase: 0.42 },
-    { x0: width * 0.42, y0: height * 0.62, dx: 28, dy: 26, s: 10, phase: 0.56 },
-    { x0: width * 0.68, y0: height * 0.70, dx: 28, dy: 28, s: 8, phase: 0.70 },
-    { x0: width * 0.52, y0: height * 0.54, dx: 34, dy: 20, s: 9, phase: 0.85 }
-  ];
-
-  shards.forEach(sh => {
-    const t = (progress + sh.phase) % 1;
-    if (t > 0.85) return;
-    const x = Math.round(sh.x0 + t * sh.dx);
-    const y = Math.round(sh.y0 + t * sh.dy);
-    const sz = Math.max(6, Math.round(sh.s * (1 - t * 0.45)));
-
-    ctx.save();
-    ctx.globalAlpha = 1; // 100% opaque for crisp GIF palette
-    ctx.fillStyle = '#09090f';
-    ctx.fillRect(x, y, sz, sz);
-    if (sz >= 8) {
-      ctx.fillStyle = '#373b4d';
-      ctx.fillRect(x + 2, y + 2, sz - 4, sz - 4);
-    }
-    ctx.restore();
-  });
 }
 
 /**
@@ -515,7 +583,12 @@ async function main() {
 
   console.log('\n🌟 Generating GIFs for Generation, Mythic, Ancient, Divine, Secret...');
   for (const rankKey of ranksToAnimate) {
-    await createRankGIFFromPNG(rankKey);
+    if (rankKey === 'secret') {
+      // 40 frames at 12fps (3.33s loop) for Thanos-snap dust disintegration + long Hidden hold
+      await createRankGIFFromPNG(rankKey, 40, 12);
+    } else {
+      await createRankGIFFromPNG(rankKey, 16, 15);
+    }
   }
 
   await generateSpriteSheetsFromPNG(ranksToAnimate);
