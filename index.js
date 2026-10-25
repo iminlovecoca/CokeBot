@@ -335,6 +335,14 @@ client.once(Events.ClientReady, async () => {
         emoji: "<:souls:1518749776538243082>"
       },
       {
+        item_id: "lootbox",
+        name: "Hộp Quà May Mắn (Lootbox)",
+        description: "Mở hộp nhận ngẫu nhiên Ngọc Săn Thú (Gems) từ Common đến Secret và Coke. Dùng lệnh xuse lootbox hoặc xlb.",
+        item_type: "tool",
+        price: 25000,
+        emoji: "🎁"
+      },
+      {
         item_id: "hexpiece",
         name: "Mảnh Vũ Khí Hex",
         description: "Mảnh vỡ vũ khí cổ xưa rơi từ Godhexa. Dùng để đổi trang bị Hex tại Cửa Hàng Sự Kiện Hex.",
@@ -378,6 +386,8 @@ client.once(Events.ClientReady, async () => {
 
     const { seedUpgradeStones } = require("./utils/rpgUtil");
     await seedUpgradeStones(client);
+    const { seedGems } = require("./utils/gemUtil");
+    await seedGems(client);
 
     console.log(
       `✅ Cached ${client.allSpecies.length} species & ${client.allItems.length} items.`,

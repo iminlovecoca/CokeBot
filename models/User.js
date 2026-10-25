@@ -38,6 +38,15 @@ const userSchema = new mongoose.Schema({
   lastWork: { type: Number, default: 0 },
 
   zoo: { type: Object, default: {} },
+  huntGems: {
+    type: Object,
+    default: {
+      hunting: null,
+      empowering: null,
+      lucky: null,
+      special: null,
+    },
+  },
   zooPoints: { type: Number, default: 0 },
   huntStones: {
     type: Object,

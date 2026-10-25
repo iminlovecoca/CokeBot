@@ -424,6 +424,19 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         quantityToUse = levelsToMax;
         resultMessage = `${config.emoji.warning} **${getCokemonName(cokemon)}** chỉ cần ${levelsToMax} cấp nữa để đạt cấp độ tối đa. Chỉ sử dụng **${quantityToUse} ${item.name} ${item.emoji}**.\n`;
       }
+    } else if (item.item_type === "gem") {
+      const { equipGem, formatActiveGemsBadges } = require("./gemUtil");
+      const dbUser = await User.findOne({ userId: user.id });
+      const equipRes = equipGem(dbUser, item.item_id);
+      if (!equipRes.success) {
+        throw new UserFriendlyError(equipRes.error);
+      }
+      await dbUser.save();
+      const activeBadges = formatActiveGemsBadges(dbUser);
+      return {
+        resultMessage: `✅ **|** Đã kích hoạt **${equipRes.gem.emoji} ${equipRes.gem.nameVi}** (\`#${equipRes.gem.id}\` • Rank **${equipRes.gem.tier}**) vào ô ngọc săn thú!\n💎 **| Ngọc đang kích hoạt:** ${activeBadges}`,
+        itemType: "gem",
+      };
     } else if (itemId === "souls" || itemId === "hexpiece") {
       throw new UserFriendlyError(
         `🟣 **Linh Hồn** và **Mảnh Vũ Khí Hex** không thể sử dụng trực tiếp.\n` +

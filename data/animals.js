@@ -170,22 +170,40 @@ for (const species of PET_SPECIES) {
  * Rolls an animal on every hunt according to CokeBot's tier rates.
  * Only rolls among tiers that currently have at least 1 species defined.
  */
-function rollAnimal(luckMultiplier = 1) {
-  const safeMult = Math.max(1, Math.min(2.5, Number(luckMultiplier) || 1));
-  const roll = Math.random() * 100;
-  let cumulative = 0;
+/**
+ * Rolls an animal on every hunt according to CokeBot's tier rates and gem luck multipliers.
+ * Only rolls among tiers that currently have at least 1 species defined.
+ * Supports OwO-style Lucky Gem and Special Gem probability boosts.
+ */
+function rollAnimal(luckMultiplier = 1, specialMultiplier = 1) {
+  const safeMult = Math.max(1, Number(luckMultiplier) || 1);
+  const safeSpec = Math.max(1, Number(specialMultiplier) || 1);
 
   const activeRanks = Object.values(ZOO_RANKS)
-    .filter((r) => PET_SPECIES.some((s) => s.tier === r.name))
-    .sort((a, b) => a.rarity - b.rarity);
+    .filter((r) => PET_SPECIES.some((s) => s.tier === r.name));
 
+  let totalWeight = 0;
+  const weightedRanks = activeRanks.map((r) => {
+    let weight = r.rarity;
+    if (r.name !== "Common") {
+      weight *= safeMult;
+      if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
+        weight *= safeSpec;
+      }
+    }
+    totalWeight += weight;
+    return { rank: r, weight };
+  });
+
+  const roll = Math.random() * totalWeight;
+  let cumulative = 0;
   let selectedRank = ZOO_RANKS.Common;
 
-  for (const r of activeRanks) {
-    const effectiveRarity = r.name === "Common" ? r.rarity : r.rarity * safeMult;
-    cumulative += effectiveRarity;
+  weightedRanks.sort((a, b) => a.weight - b.weight);
+  for (const item of weightedRanks) {
+    cumulative += item.weight;
     if (roll < cumulative) {
-      selectedRank = r;
+      selectedRank = item.rank;
       break;
     }
   }

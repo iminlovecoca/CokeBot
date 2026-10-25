@@ -20,7 +20,7 @@ const itemSchema = new mongoose.Schema({
         required: true,
         
         
-        enum: ['lure', 'tool', 'evolution_stone', 'key_item']
+        enum: ['lure', 'tool', 'evolution_stone', 'key_item', 'gem']
     },
     price: {
         type: Number,
