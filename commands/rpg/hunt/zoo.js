@@ -43,25 +43,35 @@ class ZooCommand extends BaseCommand {
     }
 
     const dbUser = await getUser(targetUser.id);
-    const zoo = dbUser.zoo || {};
+    if (!dbUser.zoo || typeof dbUser.zoo !== "object") {
+      dbUser.zoo = {};
+    }
+    const zoo = dbUser.zoo;
 
-    // Synchronize with existing RPG pets if any
+    // One-time migration for legacy RPG pets not yet recorded in dbUser.zoo
+    let zooModified = false;
     if (Array.isArray(dbUser.rpg?.pets)) {
       for (const pet of dbUser.rpg.pets) {
         if (pet?.key && !zoo[pet.key]) {
           zoo[pet.key] = { count: 1, totalCount: 1 };
+          zooModified = true;
         }
       }
+    }
+    if (zooModified) {
+      dbUser.markModified("zoo");
+      await dbUser.save().catch(() => {});
     }
 
     let biggest = 0;
     for (const [, val] of Object.entries(zoo)) {
-      const count = typeof val === "object"
+      const count = typeof val === "object" && val !== null
         ? (isDisplayAll ? (val.totalCount ?? val.count ?? 0) : (val.count ?? 0))
         : Number(val) || 0;
       if (count > biggest) biggest = count;
     }
-    const digits = Math.max(3, String(biggest || 1).length);
+    // Dynamic superscript digits (OwO exact formula: 1 digit for 0-9, 2 digits for 10-99, 3 digits for 100-999, etc.)
+    const digits = Math.trunc(Math.log10(biggest || 1) + 1);
 
     // Tiers order: Common -> Rare -> Epic -> Legendary -> Mythic -> Ancient -> Divine
     const tiersOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];

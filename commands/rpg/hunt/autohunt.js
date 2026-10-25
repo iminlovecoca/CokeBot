@@ -246,12 +246,12 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
   }
   return embed;
 };
-const toSuperscript = (num, minDigits = 3) => {
+const toSuperscript = (num, minDigits = 1) => {
   const map = {
     '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
     '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
   };
-  let str = String(num);
+  let str = String(Math.max(0, num));
   if (str.length < minDigits) {
     str = '0'.repeat(minDigits - str.length) + str;
   }
@@ -265,14 +265,19 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
   for (const r of rarityOrder) {
     groupedByRarity[r] = {};
   }
+  let biggest = 0;
   for (const item of gearsDropped) {
-    const rarity = item.rarity || "Common";
+    const rarity = item.rankName || item.tier || item.rarity || "Common";
     const itemEmoji = item.emoji || (item.subType === "Staff" ? "<:staff:1514231936581898240>" : "<:longsword:1514231939865903104>");
     if (!groupedByRarity[rarity]) {
       groupedByRarity[rarity] = {};
     }
     groupedByRarity[rarity][itemEmoji] = (groupedByRarity[rarity][itemEmoji] || 0) + 1;
+    if (groupedByRarity[rarity][itemEmoji] > biggest) {
+      biggest = groupedByRarity[rarity][itemEmoji];
+    }
   }
+  const digits = Math.trunc(Math.log10(biggest || 1) + 1);
   const lines = [
     `${ebotEmoji} **|** **HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
     `${blankEmoji} **|** Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
@@ -289,7 +294,7 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
     if (itemsMap && Object.keys(itemsMap).length > 0) {
       const rarityEmoji = getRarityEmoji(rarity);
       const itemStrings = Object.entries(itemsMap).map(([emoji, count]) => {
-        return `${emoji}${toSuperscript(count, 3)}`;
+        return `${emoji}${toSuperscript(count, digits)}`;
       });
       const chunkSize = 6;
       for (let i = 0; i < itemStrings.length; i += chunkSize) {
@@ -452,20 +457,39 @@ class XautohuntCommand extends BaseCommand {
         const huntsCount = Math.floor(elapsedHours * effInfo.stat);
         const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
         const xpGain = Math.floor(elapsedHours * expInfo.stat);
-        let gearsDropped = [];
-        const {
-          generateRpgGearDrop,
-          addRpgGearToUser,
-        } = require("../../../utils/rpgUtil");
+        const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
+        const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
+        let animalsDropped = [];
+        let petsCaught = [];
+        let totalDuplicatePetExp = 0;
+        let wcCount = 0;
+        const luckMult = 1 + (radInfo.stat || 0) * 5;
         for (let i = 0; i < huntsCount; i++) {
-          const droppedItem = await generateRpgGearDrop(user, {
-            forceDrop: false,
-            dropRateBonus: radInfo.stat / 100,
-          });
-          if (droppedItem) {
-            gearsDropped.push(droppedItem);
-            addRpgGearToUser(user, droppedItem);
+          const caughtAnimal = rollAnimal(luckMult);
+          animalsDropped.push(caughtAnimal);
+          const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
+          const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
+          if (user.rpg.equippedPet) {
+            const petHuntXp = getHuntXp(animalTier);
+            addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
           }
+          if (isNewSpecies && petObj) {
+            petsCaught.push(petObj);
+          } else {
+            const expBonus = getDuplicatePetXp(animalTier);
+            if (user.rpg.equippedPet) {
+              addPetXpUtil(user.rpg.equippedPet, expBonus, user);
+              totalDuplicatePetExp += expBonus;
+            }
+          }
+          if (Math.random() < 0.12 + Math.min(0.18, (radInfo.stat || 0))) {
+            wcCount += 1;
+          }
+        }
+        if (wcCount > 0) {
+          if (!user.inventory) user.inventory = new Map();
+          user.inventory.set("wc", (user.inventory.get("wc") || 0) + wcCount);
+          user.markModified("inventory");
         }
         user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
         user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
@@ -490,11 +514,13 @@ class XautohuntCommand extends BaseCommand {
           huntsCount,
           xpGain,
           essenceGain,
-          gearsDropped,
+          animalsDropped,
           levelsGained,
           previousLevel,
           user.rpg.level,
-          botInfo
+          botInfo,
+          petsCaught,
+          totalDuplicatePetExp
         );
       }
     }
@@ -624,68 +650,41 @@ class XautohuntCommand extends BaseCommand {
       const huntsCount = Math.floor(elapsedHours * effInfo.stat);
       const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
       const xpGain = Math.floor(elapsedHours * expInfo.stat);
-      const {
-        generateRpgGearDrop,
-        addRpgGearToUser,
-      } = require("../../../utils/rpgUtil");
-      const { rollHuntPetDrop, generatePetStats, PET_TIERS } = require("../../../data/pets");
+      const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
       const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
-      let gearsDropped = [];
+      let animalsDropped = [];
       let petsCaught = [];
       let totalDuplicatePetExp = 0;
+      let wcCount = 0;
+      const luckMult = 1 + (radInfo.stat || 0) * 5;
 
-      // Parallelize gear generation to reduce latency
-      const gearPromises = Array.from({ length: huntsCount }, () =>
-        generateRpgGearDrop(user, {
-          forceDrop: false,
-          dropRateBonus: radInfo.stat / 100,
-        })
-      );
-      const gearResults = await Promise.all(gearPromises);
-      gearResults.forEach(droppedItem => {
-        if (droppedItem) {
-          gearsDropped.push(droppedItem);
-          addRpgGearToUser(user, droppedItem);
-        }
-      });
-
-      // Process pet XP and pet captures per hunt
+      // Process animal captures into user.zoo and pet XP per hunt
       for (let i = 0; i < huntsCount; i++) {
+        const caughtAnimal = rollAnimal(luckMult);
+        animalsDropped.push(caughtAnimal);
+        const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
+        const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
         if (user.rpg.equippedPet) {
-          const rarity = gearResults[i] ? gearResults[i].rarity : "Common";
-          const petHuntXp = getHuntXp(rarity);
+          const petHuntXp = getHuntXp(animalTier);
           addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
         }
-        const caughtSpecies = rollHuntPetDrop(true);
-        if (caughtSpecies) {
-          user.rpg.pets = user.rpg.pets || [];
-          const isAlreadyOwned = user.rpg.pets.some(p => p.key === caughtSpecies.key);
-          if (isAlreadyOwned) {
-            const expBonus = getDuplicatePetXp(caughtSpecies.tier);
-            if (user.rpg.equippedPet) {
-              addPetXpUtil(user.rpg.equippedPet, expBonus, user);
-              totalDuplicatePetExp += expBonus;
-            }
-          } else {
-            const newPet = {
-              id: `pet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-              key: caughtSpecies.key,
-              name: caughtSpecies.name,
-              nickname: caughtSpecies.name,
-              tier: caughtSpecies.tier,
-              emoji: caughtSpecies.emoji,
-              level: 1,
-              exp: 0,
-              stats: generatePetStats(caughtSpecies),
-              createdAt: new Date(),
-            };
-            user.rpg.pets.push(newPet);
-            if (!user.rpg.equippedPet) {
-              user.rpg.equippedPet = newPet;
-            }
-            petsCaught.push(newPet);
+        if (isNewSpecies && petObj) {
+          petsCaught.push(petObj);
+        } else {
+          const expBonus = getDuplicatePetXp(animalTier);
+          if (user.rpg.equippedPet) {
+            addPetXpUtil(user.rpg.equippedPet, expBonus, user);
+            totalDuplicatePetExp += expBonus;
           }
         }
+        if (Math.random() < 0.12 + Math.min(0.18, (radInfo.stat || 0))) {
+          wcCount += 1;
+        }
+      }
+      if (wcCount > 0) {
+        if (!user.inventory) user.inventory = new Map();
+        user.inventory.set("wc", (user.inventory.get("wc") || 0) + wcCount);
+        user.markModified("inventory");
       }
       user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
       user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
@@ -710,11 +709,13 @@ class XautohuntCommand extends BaseCommand {
         huntsCount,
         xpGain,
         essenceGain,
-        gearsDropped,
+        animalsDropped,
         levelsGained,
         previousLevel,
         user.rpg.level,
-        botInfo
+        botInfo,
+        petsCaught,
+        totalDuplicatePetExp
       );
     }
     if (subCommand) {

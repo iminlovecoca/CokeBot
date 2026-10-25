@@ -889,7 +889,18 @@ const addUserXp = async (user, amount) => {
   }
 
   if (leveledUp || gain > 0) {
-    await user.save();
+    const updateOp = {
+      $set: {
+        xp: user.xp,
+        level: user.level,
+        dailyXp: user.dailyXp,
+        lastXpReset: user.lastXpReset,
+      },
+    };
+    if (totalReward > 0) {
+      updateOp.$inc = { coke: totalReward };
+    }
+    await User.updateOne({ userId: user.userId }, updateOp);
   }
   return { leveledUp, oldLevel, newLevel: user.level, totalReward };
 };

@@ -4,11 +4,11 @@ module.exports = {
   // These values tune upgrade growth, pets, and mode passives without
   // changing the scaling grades or their multipliers in rpgUtil.js.
   balance: {
-    normal_weapon_upgrade_scale: 0.10,
-    special_weapon_upgrade_scale: 0.45,
+    normal_weapon_upgrade_scale: 0.12,
+    special_weapon_upgrade_scale: 0.28,
     // Vũ khí top-tier (boss chương cuối + event mạnh): tăng trưởng theo
     // cấp cường hóa thấp hơn để không vượt quá xa vũ khí thường.
-    top_weapon_upgrade_scale: 0.35,
+    top_weapon_upgrade_scale: 0.22,
     river_of_blood_power_multiplier: 1.05,
     pet_power_contribution: 0.80,
     pet_tier_attack_multiplier: {

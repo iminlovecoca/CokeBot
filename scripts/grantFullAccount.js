@@ -145,6 +145,14 @@ async function run() {
     stats: generatePetStats(sp),
   }));
 
+  user.zoo = user.zoo || {};
+  for (const sp of PET_SPECIES) {
+    if (!user.zoo[sp.key]) {
+      user.zoo[sp.key] = { count: 1, totalCount: 1 };
+    }
+  }
+  user.markModified("zoo");
+
   // Equipped Pet: Hổ Răng Kiếm (Sabertiger) with custom animated emoji
   const saberTigerSpecies = PET_SPECIES.find((s) => s.key === "sabertiger");
   user.rpg.equippedPet = {

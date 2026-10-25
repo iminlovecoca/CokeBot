@@ -90,7 +90,7 @@ const buildSimulatedDungeonPlayer = ({
   const setBonus = normalizedRarity === "Common" ? null : (WEAPON_SETS[weaponKey] || null);
   const hpBuff = Number(config.dungeon?.player_buff?.max_hp_multiplier) || 1;
   const setHpMultiplier = 1 + (setBonus?.bonus?.maxHp || 0);
-  const maxHp = Math.floor((150 + stats.vigor * 20 + normalizedLevel * 20) * setHpMultiplier * hpBuff);
+  const maxHp = Math.floor((280 + stats.vigor * 28 + normalizedLevel * 26 + Math.floor(power * 0.12)) * setHpMultiplier * hpBuff);
   return {
     id: `sim_${normalizedClass}_${index}`,
     name: `Sim ${classes[normalizedClass].name} ${index + 1}`,
@@ -125,13 +125,13 @@ const getDungeonBossScalers = (averageLevel, averagePower) => {
   const safeLevel = Math.max(1, Number(averageLevel) || 1);
   const safePower = Math.max(0, Number(averagePower) || 0);
   const powerRoot = Math.sqrt(safePower);
-  const pressureStart = Number(config.dungeon?.combat_balance?.overpower_pressure_start) || 24000;
+  const pressureStart = Number(config.dungeon?.combat_balance?.overpower_pressure_start) || 35000;
   const pressureRoot = Math.sqrt(Math.max(0, safePower - pressureStart));
-  const pressureDurability = Number(config.dungeon?.combat_balance?.overpower_durability_per_sqrt_power) || 0.002;
-  const pressureOffense = Number(config.dungeon?.combat_balance?.overpower_offense_per_sqrt_power) || 0.00075;
+  const pressureDurability = Number(config.dungeon?.combat_balance?.overpower_durability_per_sqrt_power) || 0.0022;
+  const pressureOffense = Number(config.dungeon?.combat_balance?.overpower_offense_per_sqrt_power) || 0.0008;
   return {
-    durability: 1 + safeLevel * 0.006 + powerRoot * 0.003 + pressureRoot * pressureDurability,
-    offense: 1 + safeLevel * 0.004 + powerRoot * 0.0015 + pressureRoot * pressureOffense,
+    durability: 1 + safeLevel * 0.004 + powerRoot * 0.0022 + pressureRoot * pressureDurability,
+    offense: 1 + safeLevel * 0.003 + powerRoot * 0.0012 + pressureRoot * pressureOffense,
   };
 };
 
@@ -181,13 +181,15 @@ const getDungeonRewardAmounts = ({
   const safeChapter = Math.max(1, Math.floor(Number(chapter) || 1));
   const challengeMultiplier = isChallenge ? (Number(rewards.challenge_multiplier) || 1.2) : 1;
   const eliteMultiplier = 1 + 0.25 * Math.min(3, Math.max(0, Math.floor(Number(elitesKilled) || 0)));
-  const repeatMultiplier = hasClearedBefore ? (Number(rewards.repeat_clear_multiplier) || 0.25) : 1;
+  const repeatMultiplier = hasClearedBefore ? (Number(rewards.repeat_clear_multiplier) || 0.50) : 1;
   const dailyMultiplier = isDailyFirstClear ? (Number(rewards.daily_first_clear_multiplier) || 1.25) : 1;
   const fatigue = getDungeonRewardFatigue(dailyClearCount);
   const totalMultiplier = challengeMultiplier * eliteMultiplier * repeatMultiplier * dailyMultiplier * fatigue.multiplier;
+  const chapterScaleCoke = Math.pow(safeChapter, 1.25);
+  const chapterScaleExp = Math.pow(safeChapter, 1.20);
   return {
-    coke: Math.floor((Number(rewards.base_coke) || 60000) * safeChapter * totalMultiplier),
-    exp: Math.floor((Number(rewards.base_exp) || 18000) * safeChapter * totalMultiplier),
+    coke: Math.floor((Number(rewards.base_coke) || 150000) * chapterScaleCoke * totalMultiplier),
+    exp: Math.floor((Number(rewards.base_exp) || 35000) * chapterScaleExp * totalMultiplier),
     challengeMultiplier,
     eliteMultiplier,
     fatigue,

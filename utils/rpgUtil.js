@@ -628,7 +628,7 @@ const getWeaponScaling = (item) => {
     return { str: "S", dex: "-", int: "-", arc: "S" };
   }
   if (weaponKey.includes("shieldhex")) {
-    return { str: "-", dex: "-", int: "-", arc: "S", pr: "S", mr: "S" };
+    return { str: "-", dex: "-", int: "-", arc: "-", pr: "S", mr: "S" };
   }
   if (weaponKey.includes("bladesorrow")) {
     return { str: "S", dex: "A", int: "-", arc: "-" };

@@ -12,6 +12,7 @@ const RpgGuild = require("../../../models/RpgGuild");
 const User = require("../../../models/User");
 const {
   requireRpgCharacter,
+  hasRpgCharacter,
   getEffectiveRpgStats,
   calculateRpgPower,
   getEquippedItems,
@@ -403,7 +404,7 @@ const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false 
       const stats = getEffectiveRpgStats(freshUserObject(user));
       const gearPower = calculateRpgPower(freshUserObject(user));
       const weapon = getEquippedItems(user).weapon;
-      let maxHp = 150 + stats.vigor * 20 + user.rpg.level * 20;
+      let maxHp = 280 + stats.vigor * 28 + user.rpg.level * 26 + Math.floor(gearPower * 0.12);
       const setBonus = getWeaponSetBonus(user);
       if (setBonus?.bonus?.maxHp) {
         maxHp += Math.floor(maxHp * setBonus.bonus.maxHp);
@@ -439,7 +440,7 @@ const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false 
     }
   }
   const activeDungeon = {
-    guildId: guild._id,
+    guildId: guild ? guild._id : null,
     leaderId: leaderId,
     chapter: chapter,
     blessing: blessing || "none",
@@ -497,13 +498,13 @@ const setupRound = (activeDungeon, channel) => {
   const setupNormalMonster = () => {
     let name = `Quái Vật Gác Đền (Vòng ${round})`;
     let key = `creep${round}`;
-    let maxHp = Math.max(15000, Math.min(180000, Math.floor(normCfg.base_hp * chapter * (1 + round * normCfg.round_hp_mult))));
-    let atk = Math.min(900, Math.floor(normCfg.base_atk * chapter * (1 + round * normCfg.round_atk_mult)));
+    let maxHp = Math.max(8000, Math.min(220000, Math.floor(normCfg.base_hp * Math.pow(chapter, 1.22) * (1 + round * normCfg.round_hp_mult))));
+    let atk = Math.min(950, Math.floor(normCfg.base_atk * Math.pow(chapter, 1.12) * (1 + round * normCfg.round_atk_mult)));
     let armor = Math.floor(normCfg.base_defense * chapter);
     let magicResist = Math.floor(normCfg.base_defense * chapter);
     if (activeDungeon.isSolo) {
-      maxHp = Math.max(7000, Math.floor(maxHp * 0.40));
-      atk = Math.floor(atk * 0.85);
+      maxHp = Math.max(4000, Math.floor(maxHp * 0.42));
+      atk = Math.floor(atk * 0.80);
       armor = Math.floor(armor * 0.85);
       magicResist = Math.floor(magicResist * 0.85);
     }
@@ -560,13 +561,13 @@ const setupRound = (activeDungeon, channel) => {
     const targetPower = totalPower / count;
     const bossScalers = getDungeonBossScalers(targetLevel, targetPower);
     const leaderScaler = bossScalers.durability;
-    const chapterScaler = 1 + (chapter - 1) * 0.20;
+    const chapterScaler = 1 + (chapter - 1) * 0.14;
     let maxHp = Math.floor(b1Cfg.base_hp * leaderScaler);
     let atk = Math.floor(b1Cfg.base_atk * chapterScaler * bossScalers.offense);
     let poiseMax = 80 + chapter * 20;
     if (activeDungeon.isSolo) {
-      maxHp = Math.max(30000, Math.floor(maxHp * 0.40));
-      atk = Math.floor(atk * 0.85);
+      maxHp = Math.max(18000, Math.floor(maxHp * 0.42));
+      atk = Math.floor(atk * 0.80);
       poiseMax = Math.floor(poiseMax * 0.50);
     }
     activeDungeon.enemy = {
@@ -859,7 +860,7 @@ const renderGameScreen = async (channel, activeDungeon) => {
     new ButtonBuilder()
       .setCustomId("rpg_dungeon_action_heal")
       .setLabel(`Bình Máu (${actorSlots.hpPotion})`)
-      .setEmoji("1523351206066655333")
+      .setEmoji("<:healthpotion:1523351206066655333>")
       .setStyle(ButtonStyle.Success)
       .setDisabled(isHealDisabled),
     new ButtonBuilder()
@@ -1451,10 +1452,11 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
     player.duskDawnNext = isMagical ? "physical" : "magical";
   }
   const baseAttack = isMagical
-    ? player.stats.int * 3.5 + player.stats.arc * 1.5
-    : player.stats.str * 2.5 + player.stats.dex * 1.5;
+    ? player.stats.int * 4.5 + player.stats.arc * 2.0 + (player.level || 1) * 8
+    : player.stats.str * 3.5 + player.stats.dex * 2.0 + (player.level || 1) * 8;
   const playerBuff = getDungeonPlayerBuff();
-  let rawDamage = (baseAttack + player.power) * multiplier * playerBuff.damageMultiplier;
+  const effectivePowerAtk = Math.floor((player.power || 0) * 0.65 + Math.sqrt(Math.max(0, player.power || 0)) * 18);
+  let rawDamage = (baseAttack + effectivePowerAtk) * multiplier * playerBuff.damageMultiplier;
   if (!getDungeonWeaponKey(player.weapon?.subType)) {
     rawDamage *= Number(config.dungeon?.player_buff?.normal_weapon_damage_multiplier) || 1;
   }
@@ -2070,7 +2072,7 @@ const handleEnemyDefeat = async (channel, activeDungeon) => {
       let maxHp = Math.floor(b2Cfg.base_hp * leaderScaler);
       let poiseMax = 80 + chapter * 20;
       if (activeDungeon.isSolo) {
-        maxHp = Math.max(30000, Math.floor(maxHp * 0.40));
+        maxHp = Math.max(12000, Math.floor(maxHp * 0.42));
         poiseMax = Math.floor(poiseMax * 0.50);
       }
       enemy.name = bossCfg.name_phase2;
@@ -2138,7 +2140,7 @@ const handleVictory = async (channel, activeDungeon) => {
     await channel.send({ embeds: [embed], skipV2: true });
     return;
   }
-  const guild = await RpgGuild.findById(activeDungeon.guildId);
+  const guild = activeDungeon.guildId ? await RpgGuild.findById(activeDungeon.guildId) : null;
   if (guild) {
     guild.chapterProgress = Math.max(guild.chapterProgress, activeDungeon.chapter);
     await guild.save();
@@ -2202,7 +2204,7 @@ const handleVictory = async (channel, activeDungeon) => {
     const gear = await generateRpgGearDrop(freshUser, {
       level: freshUser.rpg.level,
       allowedRarities: getChapterRarities(activeDungeon.chapter),
-      forceDrop: !hasClearedBefore,
+      forceDrop: !hasClearedBefore || isDailyFirstClear,
     });
     let specialGear = null;
     const claimedWeapons = freshUser.rpg.claimedBossWeapons || [];
@@ -2231,17 +2233,25 @@ const handleVictory = async (channel, activeDungeon) => {
     if (!freshUser.inventory) {
       freshUser.inventory = new Map();
     }
+    const wcBonusCount = Math.max(1, Math.floor((1 + Math.floor(activeDungeon.chapter / 4)) * rewardFatigue.multiplier));
+    freshUser.inventory.set("wc", (freshUser.inventory.get("wc") || 0) + wcBonusCount);
+    const essenceBonus = Math.floor(250 * activeDungeon.chapter * rewardFatigue.multiplier);
+    if (freshUser.rpg.autohunt) {
+      freshUser.rpg.autohunt.essence = (freshUser.rpg.autohunt.essence || 0) + essenceBonus;
+      freshUser.rpg.autohunt.totalEssence = (freshUser.rpg.autohunt.totalEssence || 0) + essenceBonus;
+    }
     const gotStone = Math.random() < rewardFatigue.stoneDropRate;
     if (gotStone) {
       const currentQty = freshUser.inventory.get(cristalStoneId) || 0;
       freshUser.inventory.set(cristalStoneId, currentQty + 1);
     }
-    const gotSoul = Math.random() < 0.30 * rewardFatigue.multiplier;
+    const gotSoul = Math.random() < 0.45 * rewardFatigue.multiplier;
     let soulText = "*Không nhận được* <:souls:1518749776538243082>";
     if (gotSoul) {
+      const soulBonus = 10 + Math.floor(activeDungeon.chapter / 2) * 5;
       const currentSouls = freshUser.inventory.get("souls") || 0;
-      freshUser.inventory.set("souls", currentSouls + 10);
-      soulText = "**+10 Linh Hồn** <:souls:1518749776538243082>";
+      freshUser.inventory.set("souls", currentSouls + soulBonus);
+      soulText = `**+${soulBonus} Linh Hồn** <:souls:1518749776538243082>`;
     }
     freshUser.markModified("inventory");
     if (gear) {
@@ -2260,12 +2270,13 @@ const handleVictory = async (channel, activeDungeon) => {
       : "Không nhận được";
     let rewardLine = `👤 <@${p.id}>:\n` +
       `  • nhận **+${userCokeReward.toLocaleString()}** <:cokecy:1509951335016173662>` +
-      `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
+      `${hasClearedBefore ? " *(Phó bản đã vượt: x0.5)*" : " *(Thưởng Vượt Lần Đầu: 100%)*"}` +
       `${isDailyFirstClear ? " *(Lần đầu chương trong ngày: x1.25)*" : ""}` +
       `${challengeBonusText}${fatigueText}\n` +
       `  • nhận **+${userExpReward.toLocaleString()} EXP RPG**` +
-      `${hasClearedBefore ? " *(Phó bản đã vượt: 1/3)*" : ""}` +
+      `${hasClearedBefore ? " *(Phó bản đã vượt: x0.5)*" : ""}` +
       `${isDailyFirstClear ? " *(Lần đầu chương trong ngày: x1.25)*" : ""}${challengeBonusText}${fatigueText}\n` +
+      `  • Hộp Vũ Khí & Tinh Hoa: <:crate:1512793698025603282> **+${wcBonusCount}x wc** • <:Essence:1517230428828995594> **+${essenceBonus.toLocaleString()} Essence**\n` +
       `  • Linh Hồn: ${soulText}\n` +
       `  • Đá nâng cấp: ${stoneText}\n` +
       `  • nhận Trang bị: ${gearText}`;

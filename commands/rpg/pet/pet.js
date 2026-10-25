@@ -17,15 +17,47 @@ class PetCommand extends BaseCommand {
   constructor() {
     super({
       name: "pet",
-      aliases: ["pets", "p", "zoo"],
+      aliases: ["pets", "p"],
       category: "rpg",
-      description: "Xem danh sách thú sở hữu (Zoo) hoặc chi tiết Linh Thú của bạn.",
+      description: "Xem danh sách Linh Thú sở hữu hoặc chi tiết Linh Thú của bạn.",
       usage: "xpet [tên_pet]",
     });
   }
 
   async execute(message, args = []) {
     const { user } = await requireRpgCharacter(message.author.id);
+    // Sync any animals unlocked in user.zoo into user.rpg.pets
+    if (user.zoo && typeof user.zoo === "object") {
+      user.rpg.pets = user.rpg.pets || [];
+      let synced = false;
+      for (const [key, entry] of Object.entries(user.zoo)) {
+        const isOwnedInZoo = typeof entry === "object" && entry !== null
+          ? ((entry.totalCount || 0) > 0 || (entry.count || 0) > 0)
+          : Number(entry) > 0;
+        if (isOwnedInZoo && !user.rpg.pets.some((p) => p && p.key === key)) {
+          const sp = findPetSpecies(key);
+          if (sp) {
+            user.rpg.pets.push({
+              id: `pet-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              key: sp.key,
+              name: sp.name,
+              nickname: sp.name,
+              tier: sp.tier,
+              emoji: sp.emoji,
+              level: 1,
+              exp: 0,
+              stats: generatePetStats(sp),
+              createdAt: new Date(),
+            });
+            synced = true;
+          }
+        }
+      }
+      if (synced) {
+        user.markModified("rpg");
+        await user.save().catch(() => {});
+      }
+    }
     const query = args.join(" ").trim();
     if (query) {
       return this.showPetDetail(message, user, query);

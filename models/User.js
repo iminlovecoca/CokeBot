@@ -101,6 +101,7 @@ const userSchema = new mongoose.Schema({
     equipped: { type: Object, default: {} },
     claimedBossWeapons: { type: [String], default: [] },
     clearedDungeons: { type: [Number], default: [] },
+    soloDungeonProgress: { type: Number, default: 0 },
     dailyClears: { type: Object, default: {} },
     dungeonRewardDaily: {
       date: { type: String, default: "" },

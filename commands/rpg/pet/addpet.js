@@ -5,7 +5,7 @@ const {
   requireRpgCharacter,
   calculateRpgPower,
 } = require("../../../utils/rpgUtil");
-const { findPetSpecies } = require("../../../data/pets");
+const { findPetSpecies, generatePetStats } = require("../../../data/pets");
 class AddPetCommand extends BaseCommand {
   constructor() {
     super({
@@ -24,16 +24,40 @@ class AddPetCommand extends BaseCommand {
         `${config.emoji.warning} Vui lòng nhập tên Linh Thú muốn trang bị. Ví dụ: \`${config.prefix}addpet shark\` hoặc \`${config.prefix}addpet daibang\`.`
       );
     }
-    const pets = user.rpg.pets || [];
-    if (pets.length === 0) {
-      return message.channel.send(
-        `${config.emoji.no} Bạn chưa có Linh Thú nào. Dùng \`${config.prefix}pet\` để nhận linh thú tân thủ!`
-      );
-    }
+    user.rpg.pets = user.rpg.pets || [];
     const removeTones = (str) =>
       str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D") : "";
     const cleanQuery = removeTones(query).toLowerCase();
     const sp = findPetSpecies(query);
+
+    // If the user has caught this animal in their zoo, ensure it's unlocked in user.rpg.pets
+    if (sp && user.zoo && user.zoo[sp.key]) {
+      const zEntry = user.zoo[sp.key];
+      const hasEverCaught = typeof zEntry === "object" && zEntry !== null
+        ? ((zEntry.totalCount || 0) > 0 || (zEntry.count || 0) > 0)
+        : Number(zEntry) > 0;
+      if (hasEverCaught && !user.rpg.pets.some((p) => p && p.key === sp.key)) {
+        user.rpg.pets.push({
+          id: `pet-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          key: sp.key,
+          name: sp.name,
+          nickname: sp.name,
+          tier: sp.tier,
+          emoji: sp.emoji,
+          level: 1,
+          exp: 0,
+          stats: generatePetStats(sp),
+          createdAt: new Date(),
+        });
+      }
+    }
+
+    const pets = user.rpg.pets;
+    if (pets.length === 0) {
+      return message.channel.send(
+        `${config.emoji.no} Bạn chưa thu phục Linh Thú nào. Hãy dùng \`${config.prefix}hunt\` để săn thú nhé!`
+      );
+    }
 
     const targetPet = pets.find((p) => {
       if (sp && sp.key === p.key) return true;

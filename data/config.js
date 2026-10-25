@@ -468,36 +468,36 @@ module.exports = {
       bossPhase2: 7 * 60 * 1000,
     },
     player_buff: {
-      damage_multiplier: 1.05,
-      max_hp_multiplier: 1.05,
-      crit_rate_bonus: 0.01,
-      normal_weapon_damage_multiplier: 1.10,
+      damage_multiplier: 1.10,
+      max_hp_multiplier: 1.10,
+      crit_rate_bonus: 0.02,
+      normal_weapon_damage_multiplier: 1.15,
     },
     combat_balance: {
       // Boss damage is compressed above these percentages so upgraded weapons
       // remain valuable without allowing a single stacked hit to skip mechanics.
       boss_damage_soft_cap: {
-        basic_pct: 0.060,
-        skill_pct: 0.100,
+        basic_pct: 0.065,
+        skill_pct: 0.110,
         overflow_efficiency: 0.22,
-        basic_hard_cap_pct: 0.120,
+        basic_hard_cap_pct: 0.125,
         skill_hard_cap_pct: 0.200,
       },
-      poise_damage_cap: 24,
+      poise_damage_cap: 25,
       // Only the over-geared band receives this extra pressure. On-curve
       // teams keep the light player buff, while bug-inflated power cannot
       // outgrow boss durability indefinitely.
-      overpower_pressure_start: 100000,
-      overpower_durability_per_sqrt_power: 0.0028,
-      overpower_offense_per_sqrt_power: 0.001,
+      overpower_pressure_start: 35000,
+      overpower_durability_per_sqrt_power: 0.0022,
+      overpower_offense_per_sqrt_power: 0.0008,
     },
-    potion_heal_pct: 0.35,
+    potion_heal_pct: 0.38,
     normal_monster: {
-      base_hp: 9100,
-      round_hp_mult: 0.1,
-      base_atk: 91,
-      round_atk_mult: 0.05,
-      base_defense: 58,
+      base_hp: 6500,
+      round_hp_mult: 0.12,
+      base_atk: 85,
+      round_atk_mult: 0.06,
+      base_defense: 40,
     },
     ranged_class_mitigation: {
       classes: ["archer", "mage"],
@@ -507,17 +507,17 @@ module.exports = {
     boss_phase2_aoe_interval: 2,
     boss_phase2_single_target_damage_multiplier: 0.55,
     rewards: {
-      base_coke: 60000,
-      base_exp: 18000,
-      repeat_clear_multiplier: 0.25,
+      base_coke: 150000,
+      base_exp: 35000,
+      repeat_clear_multiplier: 0.50,
       daily_first_clear_multiplier: 1.25,
       challenge_multiplier: 1.20,
       full_reward_clears_per_day: 3,
       reduced_reward_clears_per_day: 6,
       reduced_reward_multiplier: 0.50,
-      exhausted_reward_multiplier: 0.20,
-      reduced_stone_drop_rate: 0.35,
-      exhausted_stone_drop_rate: 0.10,
+      exhausted_reward_multiplier: 0.25,
+      reduced_stone_drop_rate: 0.45,
+      exhausted_stone_drop_rate: 0.15,
     },
     default_boss: {
       key: "tf",
@@ -553,14 +553,14 @@ module.exports = {
           image_phase2: "skulgod-2.png",
           stats: {
             phase1: {
-              base_hp: 215000,
-              base_atk: 300,
-              base_defense: 190,
+              base_hp: 75000,
+              base_atk: 190,
+              base_defense: 90,
             },
             phase2: {
-              base_hp: 118000,
-              base_atk_mult: 1.6,
-              base_defense: 180,
+              base_hp: 45000,
+              base_atk_mult: 1.35,
+              base_defense: 85,
             },
           },
           passive: {
@@ -593,14 +593,14 @@ module.exports = {
           image_phase2: "Vaelmor.png",
           stats: {
             phase1: {
-              base_hp: 340000,
-              base_atk: 330,
-              base_defense: 205,
+              base_hp: 110000,
+              base_atk: 220,
+              base_defense: 110,
             },
             phase2: {
-              base_hp: 180000,
-              base_atk_mult: 1.6,
-              base_defense: 185,
+              base_hp: 65000,
+              base_atk_mult: 1.35,
+              base_defense: 105,
             },
           },
           mechanics: {
@@ -627,14 +627,14 @@ module.exports = {
           image_phase2: "Mourngait.png",
           stats: {
             phase1: {
-              base_hp: 550000,
-              base_atk: 430,
-              base_defense: 260,
+              base_hp: 210000,
+              base_atk: 260,
+              base_defense: 130,
             },
             phase2: {
-              base_hp: 215000,
-              base_atk_mult: 1.7,
-              base_defense: 195,
+              base_hp: 120000,
+              base_atk_mult: 1.4,
+              base_defense: 120,
             },
           },
           mechanics: {
@@ -660,14 +660,14 @@ module.exports = {
           image_phase2: "Eldric.png",
           stats: {
             phase1: {
-              base_hp: 340000,
-              base_atk: 330,
-              base_defense: 210,
+              base_hp: 165000,
+              base_atk: 250,
+              base_defense: 140,
             },
             phase2: {
-              base_hp: 175000,
-              base_atk_mult: 1.45,
-              base_defense: 180,
+              base_hp: 95000,
+              base_atk_mult: 1.35,
+              base_defense: 130,
             },
           },
           mechanics: {
@@ -694,14 +694,14 @@ module.exports = {
           image_phase2: "TF-2.png",
           stats: {
             phase1: {
-              base_hp: 340000,
-              base_atk: 420,
-              base_defense: 260,
+              base_hp: 210000,
+              base_atk: 280,
+              base_defense: 160,
             },
             phase2: {
-              base_hp: 185000,
-              base_atk_mult: 1.60,
-              base_defense: 230,
+              base_hp: 120000,
+              base_atk_mult: 1.40,
+              base_defense: 150,
             },
           },
           mechanics: {
@@ -728,14 +728,14 @@ module.exports = {
           image_phase2: "Veilreaper.png",
           stats: {
             phase1: {
-              base_hp: 355000,
-              base_atk: 400,
-              base_defense: 275,
+              base_hp: 260000,
+              base_atk: 310,
+              base_defense: 180,
             },
             phase2: {
-              base_hp: 195000,
+              base_hp: 150000,
               base_atk_mult: 1.35,
-              base_defense: 250,
+              base_defense: 170,
             },
           },
           mechanics: {
@@ -760,9 +760,9 @@ module.exports = {
           image_phase1: "Chapter2/lucifer.png",
           stats: {
             phase1: {
-              base_hp: 975000,
-              base_atk: 235,
-              base_defense: 225,
+              base_hp: 450000,
+              base_atk: 260,
+              base_defense: 195,
             }
           },
           passive: {
@@ -792,9 +792,9 @@ module.exports = {
           image_phase1: "Chapter2/mammon.png",
           stats: {
             phase1: {
-              base_hp: 1050000,
-              base_atk: 275,
-              base_defense: 240,
+              base_hp: 520000,
+              base_atk: 285,
+              base_defense: 210,
             }
           },
           passive: {
@@ -824,9 +824,9 @@ module.exports = {
           image_phase1: "Chapter2/asmodeus.png",
           stats: {
             phase1: {
-              base_hp: 1425000,
-              base_atk: 360,
-              base_defense: 295,
+              base_hp: 600000,
+              base_atk: 310,
+              base_defense: 225,
             }
           },
           passive: {
@@ -856,9 +856,9 @@ module.exports = {
           image_phase1: "Chapter2/leviathan.png",
           stats: {
             phase1: {
-              base_hp: 1050000,
-              base_atk: 255,
-              base_defense: 255,
+              base_hp: 680000,
+              base_atk: 330,
+              base_defense: 240,
             }
           },
           passive: {
@@ -888,9 +888,9 @@ module.exports = {
           image_phase1: "Chapter2/beelzebub.png",
           stats: {
             phase1: {
-              base_hp: 750000,
-              base_atk: 175,
-              base_defense: 215,
+              base_hp: 760000,
+              base_atk: 340,
+              base_defense: 250,
             }
           },
           passive: {
@@ -920,9 +920,9 @@ module.exports = {
           image_phase1: "Chapter2/satan.png",
           stats: {
             phase1: {
-              base_hp: 1200000,
-              base_atk: 285,
-              base_defense: 280,
+              base_hp: 860000,
+              base_atk: 365,
+              base_defense: 265,
             }
           },
           passive: {
@@ -952,9 +952,9 @@ module.exports = {
           image_phase1: "Chapter2/belphegor.png",
           stats: {
             phase1: {
-              base_hp: 1275000,
-              base_atk: 305,
-              base_defense: 300,
+              base_hp: 960000,
+              base_atk: 385,
+              base_defense: 280,
             }
           },
           passive: {
@@ -984,9 +984,9 @@ module.exports = {
           image_phase1: "Chapter2/Pandemonium/Base.png",
           stats: {
             phase1: {
-              base_hp: 1300000,
-              base_atk: 290,
-              base_defense: 295,
+              base_hp: 1150000,
+              base_atk: 410,
+              base_defense: 300,
             }
           },
           passive: {
