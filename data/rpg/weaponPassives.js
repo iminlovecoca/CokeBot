@@ -1034,7 +1034,7 @@ const WEAPON_UI_META = {
     icons: ["mr_pierce", "freeze"],
     title: "Lam Tinh Xuyên Phá",
     build: (s, se) => {
-      const pIcon = s.mr_pierce || s.armor_pierce || "";
+      const pIcon = s.mr_pierce || "";
       return {
         intro: `Hội tụ hàn băng tinh khiết, có **45%** cơ hội kích hoạt ${pIcon ? `${pIcon} ` : ""}**Xuyên Kháng Phép** và ${s.freeze} **Đóng Băng**.`,
         quotes: [
@@ -1072,7 +1072,7 @@ const WEAPON_UI_META = {
     icons: ["third_hit"],
     title: "Thánh Quang Phán Quyết",
     build: (s, se) => {
-      const tIcon = s.third_hit || s.atkup || "";
+      const tIcon = s.third_hit || "";
       return {
         intro: `Tích tụ thánh quang qua từng nhát chém để giải phóng ${tIcon ? `${tIcon} ` : ""}**Phán Quyết Hoàng Kim**.`,
         quotes: [
@@ -1406,10 +1406,10 @@ const formatWeaponRichDescription = (subType) => {
     lines.push(...built.quotes);
   } else {
     lines.push(
-      `Vũ khí chiến đấu cơ bản, cộng hưởng sát thương trực tiếp theo chỉ số ${se.att} **ATT** và ${se.mag} **MAG** của nhân vật.`
+      `Vũ khí chiến đấu cơ bản, cộng hưởng sát thương trực tiếp theo hệ số Scale của nhân vật.`
     );
     lines.push(
-      `> • **Thuần Vũ Khí** - Không tiêu hao nội lực, tối ưu hóa sát thương cơ bản theo hệ số Scale.`
+      `> • **Thuần Vũ Khí** - Không có nội tại đặc biệt, tối ưu hóa sát thương cơ bản.`
     );
   }
 
