@@ -50,7 +50,7 @@ const GEM_TYPES = {
     id: "special",
     name: "Special Gem",
     nameVi: "Ngọc Đặc Biệt",
-    shape: "Star",
+    shape: "Triangle",
     emoji: "⭐",
     slot: "special",
     durabilityType: "animals",

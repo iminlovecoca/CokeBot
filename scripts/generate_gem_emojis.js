@@ -488,7 +488,7 @@ const GEM_SPECS = [
   },
   {
     type: 'special',
-    shapeName: 'Special Gem',
+    shapeName: 'Special Gem (Triangle)',
     prefix: 'Generic Special Gem.png',
     ids: { common: '79', rare: '81', epic: '82', generation: '91', legendary: '84', mythic: '83', ancient: '92', divine: '93', secret: '94' }
   }
@@ -544,7 +544,7 @@ async function main() {
 
   // 3. Generate Complete Showcase Matrix Image
   console.log('\n📊 Generating Complete Showcase Matrix Image (gem_showcase_all.png)...');
-  const typeHeaders = ['Hunting Gem 💎', 'Empowering Gem 🔮', 'Lucky Gem 💖', 'Special Gem ⭐'];
+  const typeHeaders = ['Hunting Gem 💎', 'Empowering Gem 🔮', 'Lucky Gem 💖', 'Special Gem 🔺'];
 
   const CELL_W = 140;
   const CELL_H = 140;
