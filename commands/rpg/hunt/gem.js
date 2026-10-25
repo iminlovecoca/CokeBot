@@ -44,6 +44,8 @@ class GemCommand extends BaseCommand {
 
     const gemArgs = potentialIds.filter((arg) => isGemId(arg));
     if (gemArgs.length > 0) {
+      const { getGemActivationDescription } = require("../../../utils/gemUtil");
+      const displayName = message.member?.displayName || message.author.username;
       const results = equipMultipleGems(dbUser, gemArgs);
       await dbUser.save();
 
@@ -51,16 +53,16 @@ class GemCommand extends BaseCommand {
       for (const res of results) {
         if (res.success) {
           lines.push(
-            `✅ **|** Đã kích hoạt **${res.gem.emoji} ${res.gem.nameVi}** (\`#${res.gem.id}\` • Rank **${res.gem.tier}**) vào ô ngọc!`,
+            `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}**!`,
           );
+          lines.push(`   **|** ${getGemActivationDescription(res.gem)}`);
+        } else if (res.code === "ALREADY_ACTIVE") {
+          lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
+        } else if (res.code === "NOT_OWNED") {
+          lines.push(`❌ **| ${displayName}**, bạn không có viên ngọc này trong túi đồ!`);
         } else {
-          lines.push(`❌ **|** \`#${res.id}\`: ${res.error}`);
+          lines.push(`❌ **| ${displayName}**, ${res.error}`);
         }
-      }
-
-      const activeBadges = formatActiveGemsBadges(dbUser);
-      if (activeBadges) {
-        lines.push(`\n💎 **| Ngọc đang kích hoạt:** ${activeBadges}`);
       }
 
       return message.reply(lines.join("\n"));
@@ -82,7 +84,7 @@ class GemCommand extends BaseCommand {
       { key: "hunting", name: "Hunting Gem (Đi Săn)", emoji: "💎", desc: "Tăng số lượng thú mỗi lần hunt" },
       { key: "empowering", name: "Empowering Gem (Cường Hóa)", emoji: "🔮", desc: "Nhân đôi (2x) số thú bắt được" },
       { key: "lucky", name: "Lucky Gem (May Mắn)", emoji: "💖", desc: "Tăng tỉ lệ thú hiếm / giảm Common" },
-      { key: "special", name: "Special Gem (Đặc Biệt)", emoji: "⭐", desc: "Tăng tỉ lệ thú Thần Thoại / Bí Mật" },
+      { key: "special", name: "Special Gem (Đặc Biệt)", emoji: "🔺", desc: "Tăng tỉ lệ thú Thần Thoại / Bí Mật" },
     ];
 
     let activeSlotsText = "";

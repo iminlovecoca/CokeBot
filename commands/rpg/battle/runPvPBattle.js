@@ -63,10 +63,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     footerText = `${winText} trong ${result.turns} lượt! | +${xpGained} XP | ${streakText}${rewards.petFooterInfo || ""}`;
   }
 
+  let descText = `Trận đấu kết thúc sau **${result.turns} lượt**. ${result.isDraw ? "Hai bên giữ nguyên chuỗi thắng." : "Kết quả đã được ghi nhận vào mùa giải."}`;
+  if (rewards.wcDropped) {
+    descText += `\n<:crate:1512793698025603282> **|** **${p1Name}** nhận được **1x Hộp Vũ Khí (wc)**! Dùng lệnh \`wc\` để mở.`;
+  }
+
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? getRpgColor("warning") : isP1Winner ? getRpgColor("success") : getRpgColor("danger"))
     .setTitle(formatRpgTitle("Kết quả PvP", "⚔️"))
-    .setDescription(`Trận đấu kết thúc sau **${result.turns} lượt**. ${result.isDraw ? "Hai bên giữ nguyên chuỗi thắng." : "Kết quả đã được ghi nhận vào mùa giải."}`);
+    .setDescription(descText);
     const class1Name = class1?.name || user1.rpg?.classKey || "Chiến binh";
     const class2Name = class2?.name || user2.rpg?.classKey || "Chiến binh";
 

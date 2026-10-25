@@ -507,7 +507,7 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
       const dbUser = await User.findOne({ userId: user.id });
       const gears = [];
       for (let i = 0; i < quantityToUse; i++) {
-        const gear = await generateRpgGearDrop(dbUser, { forceDrop: true, fromWc: true });
+        const gear = await generateRpgGearDrop(dbUser, { forceDrop: true, fromWc: true, slot: "weapon" });
         if (gear) {
           addRpgGearToUser(dbUser, gear);
           gears.push(gear);
@@ -563,7 +563,9 @@ const useItem = async (client, user, channelId, itemId, targetId, quantity) => {
         let finalContent = "";
         if (quantityToUse === 1) {
           const g = gears[0];
-          finalContent = `<a:wcopen:1512793700181475469> | \`G${g.id}\` ${g.name} **${g.quality.toFixed(1)}%**`;
+          const wearTag = g.wear?.name && g.wear.name !== "Worn" ? ` [${g.wear.name}]` : "";
+          const randPassText = g.randomPassive ? `\n> ${g.randomPassive.description}` : "";
+          finalContent = `<a:wcopen:1512793700181475469> | \`G${g.id}\` ${g.name}${wearTag} **${g.quality.toFixed(1)}%**${randPassText}`;
         } else {
           const emojiLine = gears.map(g => {
             const gBracket = bracketEmoji[g.rarity] || "<:common:1530878565489311826>";

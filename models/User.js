@@ -116,6 +116,11 @@ const userSchema = new mongoose.Schema({
       date: { type: String, default: "" },
       count: { type: Number, default: 0 },
     },
+    dailyDrops: {
+      date: { type: String, default: "" },
+      huntLbCount: { type: Number, default: 0 },
+      battleWcCount: { type: Number, default: 0 },
+    },
     claimedEvents: { type: [String], default: [] },
     isGodMode: { type: Boolean, default: false },
     godsetBackup: { type: Object, default: null },

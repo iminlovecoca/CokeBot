@@ -7,14 +7,12 @@ const {
   calculateRpgPower,
   getRpgClass,
   hasRpgCharacter,
-  pickRpgHuntGround,
   getEffectiveRpgStats,
 } = require("../../../utils/rpgUtil");
 const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
 const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
 const {
   consumeGemsOnHunt,
-  formatActiveGemsBadges,
   ensureUserGems,
 } = require("../../../utils/gemUtil");
 
@@ -23,7 +21,7 @@ class HuntCommand extends BaseCommand {
     super({
       name: "hunt",
       aliases: ["h"],
-      description: "Đi săn thú bổ sung vào Zoo, nhận EXP và 30% tỉ lệ rơi Hộp Vũ Khí (wc). Hỗ trợ ngọc săn thú chuẩn OwO.",
+      description: "Đi săn thú bổ sung vào Zoo, nhận EXP và nhận Hộp Quà (Lootbox) chuẩn OwO.",
       usage: `${config.prefix}hunt`,
       examples: [
         { intent: "Đi săn", command: `${config.prefix}hunt` },
@@ -53,7 +51,6 @@ class HuntCommand extends BaseCommand {
     }
 
     const rpgClass = getRpgClass(user.rpg.classKey);
-    const huntGround = pickRpgHuntGround();
     const effectiveStats = getEffectiveRpgStats(user);
     const luck = effectiveStats.arc || 0;
     const expBonus = rpgClass.bonuses?.expGain || 0;
@@ -66,6 +63,16 @@ class HuntCommand extends BaseCommand {
     const empoweringGem = huntGems.empowering && huntGems.empowering.durability > 0 ? huntGems.empowering : null;
     const luckyGem = huntGems.lucky && huntGems.lucky.durability > 0 ? huntGems.lucky : null;
     const specialGem = huntGems.special && huntGems.special.durability > 0 ? huntGems.special : null;
+
+    // Snapshot of active gems before hunt to show empowered status
+    const activeGemsBefore = [];
+    const checkOrder = ["hunting", "empowering", "lucky", "special"];
+    for (const key of checkOrder) {
+      const g = huntGems[key];
+      if (g && g.durability > 0) {
+        activeGemsBefore.push({ ...g });
+      }
+    }
 
     // Number of animals to catch
     const baseCatchCount = 1 + (huntingGem ? (huntingGem.bonusAnimals || 0) : 0);
@@ -112,13 +119,40 @@ class HuntCommand extends BaseCommand {
         (1 + expBonus + luck * 0.003),
     );
 
-    // 3. Weapon Crate (wc) 30% drop chance
-    const wcDropped = Math.random() < 0.30;
-    if (wcDropped) {
+    // 3. Daily Lootbox (lb) Drop Tracking (1st 100%, 2nd/3rd 5%, max 3/day)
+    const todayDate = new Date().toISOString().slice(0, 10);
+    if (!user.rpg.dailyDrops || typeof user.rpg.dailyDrops !== "object" || user.rpg.dailyDrops.date !== todayDate) {
+      user.rpg.dailyDrops = {
+        date: todayDate,
+        huntLbCount: 0,
+        battleWcCount: user.rpg?.dailyDrops?.date === todayDate ? (user.rpg.dailyDrops.battleWcCount || 0) : 0,
+      };
+    }
+
+    let lbDropped = false;
+    if (user.rpg.dailyDrops.huntLbCount === 0) {
+      lbDropped = true;
+      user.rpg.dailyDrops.huntLbCount = 1;
+    } else if (user.rpg.dailyDrops.huntLbCount < 3) {
+      if (Math.random() < 0.05) {
+        lbDropped = true;
+        user.rpg.dailyDrops.huntLbCount += 1;
+      }
+    }
+
+    if (lbDropped) {
       if (!user.inventory) user.inventory = new Map();
-      const curWc = user.inventory.get("wc") || 0;
-      user.inventory.set("wc", curWc + 1);
+      const curLb =
+        user.inventory instanceof Map
+          ? user.inventory.get("lootbox") || user.inventory.get("lb") || 0
+          : user.inventory.lootbox || user.inventory.lb || 0;
+      if (user.inventory instanceof Map) {
+        user.inventory.set("lootbox", curLb + 1);
+      } else {
+        user.inventory.lootbox = curLb + 1;
+      }
       user.markModified("inventory");
+      user.markModified("rpg");
     }
 
     // 4. Equipped Pet XP (Base Hunt XP + Duplicate Bonus if species already owned)
@@ -149,62 +183,74 @@ class HuntCommand extends BaseCommand {
 
     const { updateQuestProgress } = require("../../../utils/questUtil");
     await updateQuestProgress(user, "exp_gain", expGain, message.channel);
-    if (wcDropped) {
+    if (lbDropped) {
       await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Epic" });
     }
 
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
-    const blankEmo = config.emoji.blank || "";
 
-    // 6. Format Hunt Output Message
-    let text = "";
-    if (totalAnimalsToCatch === 1) {
-      const single = caughtAnimals[0];
-      text += `🌿 **| ${characterName}** đi săn tại ${huntGround.emoji} **${huntGround.name}** và bắt được một con ${single.rankEmoji} ${single.emoji} **${single.name}**!\n`;
+    // 6. Format Hunt Output Message (Image 2 OwO UI)
+    const lines = [];
+
+    // Line 1: Empowered header if gems were active
+    if (activeGemsBefore.length > 0) {
+      const gemBadges = activeGemsBefore
+        .map((bg) => {
+          const currentGem = user.huntGems[bg.type];
+          const remaining = currentGem ? Math.max(0, currentGem.durability) : 0;
+          const maxD = bg.maxDurability || bg.durability || 100;
+          return `${bg.emoji} [${remaining}/${maxD}]`;
+        })
+        .join(" ");
+      lines.push(`🌱 **| ${characterName}**, chuyến đi săn được cường hóa bởi ${gemBadges} !`);
     } else {
-      const summaryList = Array.from(caughtMap.values())
-        .sort((a, b) => (b.animal.price || 0) - (a.animal.price || 0))
-        .map(({ animal, count }) => `${count > 1 ? `**${count}x** ` : ""}${animal.rankEmoji} ${animal.emoji} **${animal.name}**`)
-        .join(", ");
-      text += `🌿 **| ${characterName}** đi săn tại ${huntGround.emoji} **${huntGround.name}** và bắt được **${totalAnimalsToCatch} con thú**:\n> ${summaryList}\n`;
+      lines.push(`🌱 **| ${characterName}** đi săn thú...`);
     }
 
-    text += `${blankEmo} **| ${rpgClass.name}** nhận **+${expGain.toLocaleString()} EXP**`;
+    // Line 2: Caught animal emojis (Image 2 style)
+    const animalsEmojiStr = caughtAnimals.map((a) => a.emoji).join(" ");
+    lines.push(`   **|** Bạn đã bắt được: ${animalsEmojiStr}`);
 
-    if (user.rpg.equippedPet && totalPetXp > 0) {
-      text += ` • ${user.rpg.equippedPet.emoji} **+${totalPetXp.toLocaleString()} EXP**${petLeveledUp ? ` (**Lên cấp ${user.rpg.equippedPet.level}!**)` : ""}`;
+    // Line 3: Pet / Character XP
+    if (user.rpg.equippedPet) {
+      const petEmoji = user.rpg.equippedPet.emoji || "🐾";
+      lines.push(
+        `   **|** ${petEmoji} nhận được **${(totalPetXp || expGain).toLocaleString()}xp**!${petLeveledUp ? ` (**Lên cấp ${user.rpg.equippedPet.level}!**)` : ""}`,
+      );
+    } else {
+      lines.push(`   **|** Nhận được **${expGain.toLocaleString()}xp**!`);
     }
 
+    // New species unlocked
     if (newSpeciesList.length > 0) {
       const newAnimalsText = newSpeciesList
         .map((a) => `${a.rankEmoji} ${a.emoji} **${a.name}**`)
         .join(", ");
-      text += `\n${blankEmo} **|** ✨ **Thu phục loài mới!** Bạn đã mở khóa: ${newAnimalsText}!`;
+      lines.push(`   **|** ✨ **Mở khóa loài mới:** ${newAnimalsText}!`);
     }
 
-    if (wcDropped) {
-      text += `\n${blankEmo} **|** <:crate:1512793698025603282> Tìm thấy **1x Hộp Vũ Khí (wc)**! Dùng lệnh \`${config.prefix}wc\` để mở trang bị ngẫu nhiên.`;
+    // Lootbox drop
+    if (lbDropped) {
+      const lbEmoji = "<:lootbox:1563961108727992470>";
+      lines.push(`${lbEmoji} **|** Bạn nhận được **1x Hộp Quà (Lootbox)**! Dùng lệnh \`${config.prefix}lb\` để mở.`);
     }
 
+    // Level up
     if (levelsGained > 0) {
-      text += `\n${blankEmo} **|** 🎉 **Lên cấp!** Bạn đã lên từ level **${previousLevel}** thành **${user.rpg.level}**.`;
+      lines.push(`🎉 **| Lên cấp!** Bạn đã lên từ cấp **${previousLevel}** thành **${user.rpg.level}**.`);
     }
 
-    // Active gem badges bar (OwO Style)
-    const activeBadges = formatActiveGemsBadges(user);
-    if (activeBadges) {
-      text += `\n${blankEmo} **|** 💎 ${activeBadges}`;
-    }
-
-    // Broken gem notices
+    // Broken gems notice
     if (brokenGems && brokenGems.length > 0) {
       for (const broken of brokenGems) {
-        text += `\n💥 **|** Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`;
+        lines.push(
+          `💥 **|** Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`,
+        );
       }
     }
 
     await user.save();
-    return message.reply({ content: text });
+    return message.reply({ content: lines.join("\n") });
   }
 }
 

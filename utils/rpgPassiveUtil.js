@@ -568,8 +568,107 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     result.selfDamageReduce = passive.selfDamageReduce;
   }
 
+  // Resolve Random Variable Passive (OwO-style dual passive)
+  const randPassive = player.weapon?.randomPassive;
+  if (randPassive && typeof randPassive === "object") {
+    const randTriggered = Math.random() < 0.45;
+    if (randTriggered) {
+      switch (randPassive.type) {
+        case "lifesteal": {
+          const heal = Math.floor(result.damage * (randPassive.value || 0.1));
+          if (heal > 0) {
+            result.healAmount = (result.healAmount || 0) + heal;
+            result.logs.push(`${randPassive.emoji || "💖"} **[${randPassive.name}]** Hút máu hồi **+${heal.toLocaleString()}** HP!`);
+          }
+          break;
+        }
+        case "armor_pierce":
+        case "mr_pierce": {
+          const shred = randPassive.value || 0.15;
+          result.mrOrArmor = Math.max(0, result.mrOrArmor * (1 - shred));
+          result.logs.push(`${randPassive.emoji || "🗡️"} **[${randPassive.name}]** Bỏ qua ${Math.round(shred * 100)}% phòng ngự!`);
+          break;
+        }
+        case "bleed": {
+          const dotDmg = Math.max(10, Math.floor(result.damage * (randPassive.value || 0.12)));
+          applyStatusEffect(enemy, "bleed", 2, { damage: dotDmg });
+          result.logs.push(`${randPassive.emoji || "<:bleed:1521938497642958889>"} **[${randPassive.name}]** Gây chảy máu lên **${enemy.name}**!`);
+          break;
+        }
+        case "burn": {
+          const dotDmg = Math.max(10, Math.floor(result.damage * (randPassive.value || 0.12)));
+          applyStatusEffect(enemy, "burn", 2, { damage: dotDmg });
+          result.logs.push(`${randPassive.emoji || "<:burn:1521938494094835774>"} **[${randPassive.name}]** Thiêu đốt **${enemy.name}**!`);
+          break;
+        }
+        case "freeze": {
+          applyStatusEffect(enemy, "freeze", 1);
+          result.logs.push(`${randPassive.emoji || "<:freeze:1521938500478566639>"} **[${randPassive.name}]** Đóng băng **${enemy.name}** 1 lượt!`);
+          break;
+        }
+        case "stun": {
+          applyStatusEffect(enemy, "stun", 1);
+          result.logs.push(`${randPassive.emoji || "<:stun:1521938490605178910>"} **[${randPassive.name}]** Làm choáng **${enemy.name}** 1 lượt!`);
+          break;
+        }
+        case "crit": {
+          const critMult = 1 + (randPassive.value || 0.25);
+          result.damage = Math.floor(result.damage * critMult);
+          result.logs.push(`${randPassive.emoji || "💥"} **[${randPassive.name}]** Đòn đánh bạo kích gia tăng sát thương!`);
+          break;
+        }
+        case "double_hit": {
+          result.doubleHitTriggered = true;
+          const extraDmg = Math.floor(result.damage * (randPassive.value || 0.35));
+          result.damage += extraDmg;
+          result.logs.push(`${randPassive.emoji || "⚡"} **[${randPassive.name}]** Tấn công kép gây thêm **+${extraDmg.toLocaleString()}** sát thương!`);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  }
+
   return result;
 };
+
+function rollRandomWeaponPassive(rarity = "Common", quality = 50) {
+  const PASSIVE_POOL = [
+    { type: "lifesteal", name: "Hút Máu", emoji: "<:LifeSteal:1563844557026893924>", baseMin: 0.04, baseMax: 0.08 },
+    { type: "armor_pierce", name: "Xuyên Giáp", emoji: "<:ArmorPierce:1563844554728276018>", baseMin: 0.06, baseMax: 0.12 },
+    { type: "mr_pierce", name: "Xuyên Kháng Phép", emoji: "🔮", baseMin: 0.06, baseMax: 0.12 },
+    { type: "bleed", name: "Chảy Máu", emoji: "<:bleed:1521938497642958889>", baseMin: 0.05, baseMax: 0.10 },
+    { type: "burn", name: "Thiêu Đốt", emoji: "<:burn:1521938494094835774>", baseMin: 0.05, baseMax: 0.10 },
+    { type: "crit", name: "Bạo Kích", emoji: "💥", baseMin: 0.08, baseMax: 0.15 },
+    { type: "double_hit", name: "Đòn Kép", emoji: "⚡", baseMin: 0.05, baseMax: 0.10 },
+    { type: "stun", name: "Làm Choáng", emoji: "<:stun:1521938490605178910>", baseMin: 0.03, baseMax: 0.06 },
+  ];
+
+  const picked = PASSIVE_POOL[Math.floor(Math.random() * PASSIVE_POOL.length)];
+  const rarityMultipliers = {
+    Common: 1.0,
+    Rare: 1.25,
+    Epic: 1.6,
+    Legendary: 2.1,
+    Mythic: 2.7,
+    Ancient: 3.4,
+    Divine: 4.2,
+  };
+  const mult = rarityMultipliers[rarity] || 1.0;
+  const qualityFactor = 0.85 + (Math.max(0, Math.min(105, quality)) / 100) * 0.3;
+  const baseVal = picked.baseMin + Math.random() * (picked.baseMax - picked.baseMin);
+  const finalValue = Math.round(baseVal * mult * qualityFactor * 1000) / 1000;
+  const percentText = `${Math.round(finalValue * 100)}%`;
+
+  return {
+    type: picked.type,
+    name: picked.name,
+    emoji: picked.emoji,
+    value: finalValue,
+    description: `${picked.emoji} **${picked.name}**: +${percentText}`,
+  };
+}
 
 const resolveShieldhexDefense = (target, damage, activeDungeon) => {
   const playerSubType = target.weapon?.subType
@@ -666,4 +765,5 @@ module.exports = {
   getWeaponPassive,
   isLockedWeapon,
   getPassiveForMode,
+  rollRandomWeaponPassive,
 };

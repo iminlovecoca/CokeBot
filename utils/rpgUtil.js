@@ -1419,25 +1419,51 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const isDungeon = isDungeonWeaponHelper(slot, chosenSubtype.name);
 
   let rarity, rarityConfig;
-  if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
+  let wear = null;
+  let quality;
+
+  if (options.fromWc) {
+    // 1. Wear Condition Roll (OwO 1:1 match)
+    const wearRoll = Math.random() * 100;
+    if (wearRoll < 1.0) {
+      wear = { name: "Pristine", bonus: 5 };
+    } else if (wearRoll < 6.0) {
+      wear = { name: "Fine", bonus: 3 };
+    } else if (wearRoll < 16.0) {
+      wear = { name: "Decent", bonus: 1 };
+    } else {
+      wear = { name: "Worn", bonus: 0 };
+    }
+
+    // 2. Quality Roll (OwO central limit bell curve: average of 4 random 0-100 values)
+    const baseQuality = (Math.random() + Math.random() + Math.random() + Math.random()) / 4 * 100;
+    quality = Math.min(105, Math.round((baseQuality + wear.bonus) * 10) / 10);
+
+    // 3. Map to Rarity Tier (OwO quality boundaries)
+    if (quality <= 20.0) {
+      rarity = "Common";
+    } else if (quality <= 40.0) {
+      rarity = "Rare";
+    } else if (quality <= 60.0) {
+      rarity = "Epic";
+    } else if (quality <= 80.0) {
+      rarity = "Legendary";
+    } else if (quality <= 94.0) {
+      rarity = "Mythic";
+    } else if (quality <= 99.0) {
+      rarity = "Ancient";
+    } else {
+      rarity = "Divine";
+    }
+    rarityConfig = config.rpg.gear_rarities[rarity] || config.rpg.gear_rarities["Common"];
+  } else if (options.rarity && config.rpg.gear_rarities[options.rarity]) {
     rarity = options.rarity;
     rarityConfig = config.rpg.gear_rarities[rarity];
   } else if (isDungeon) {
     rarity = "Ancient";
     rarityConfig = config.rpg.gear_rarities["Ancient"];
   } else {
-    let rarityConfigMap = config.rpg.gear_rarities;
-    if (options.fromWc) {
-      rarityConfigMap = {
-        Common: { rate: 50, power: 45, sell: 120, stat: 1 },
-        Rare: { rate: 35, power: 90, sell: 350, stat: 2 },
-        Epic: { rate: 13.5, power: 180, sell: 1100, stat: 4 },
-        Legendary: { rate: 1.2, power: 380, sell: 4200, stat: 7 },
-        Mythic: { rate: 0.2, power: 780, sell: 15000, stat: 11 },
-        Ancient: { rate: 0.08, power: 1450, sell: 65000, stat: 16 },
-        Divine: { rate: 0.02, power: 2800, sell: 250000, stat: 24 },
-      };
-    }
+    const rarityConfigMap = config.rpg.gear_rarities;
     const rarityEntries = Object.entries(rarityConfigMap).filter(
       ([r]) => !options.allowedRarities || options.allowedRarities.includes(r),
     );
@@ -1466,22 +1492,46 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const levelBonus = Math.floor(level * 4.5);
   const variance = 0.9 + Math.random() * 0.2;
   const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  const quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  if (!options.fromWc) {
+    quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  }
   const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name);
   const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 
   let scaling = null;
+  let fixedPassive = null;
+  let randomPassive = null;
+
   if (slot === "weapon") {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
+    const { getWeaponPassive } = require("../data/rpg/weaponPassives");
+    const { rollRandomWeaponPassive } = require("./rpgPassiveUtil");
+    const baseP = getWeaponPassive(chosenSubtype.name);
+    if (baseP) {
+      fixedPassive = {
+        name: baseP.name,
+        type: baseP.type,
+        description: baseP.description,
+      };
+    }
+    randomPassive = rollRandomWeaponPassive(rarity, quality);
   }
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
 
   if (globalLastItemId === null) {
-    const User = require("../models/User");
-    const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-    const dbLastId = topUser?.rpg?.lastItemId || 0;
-    const memoryLastId = user.rpg.lastItemId || 0;
+    let dbLastId = 0;
+    try {
+      const mongoose = require("mongoose");
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        const User = require("../models/User");
+        const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
+        dbLastId = topUser?.rpg?.lastItemId || 0;
+      }
+    } catch {
+      dbLastId = 0;
+    }
+    const memoryLastId = user?.rpg?.lastItemId || 0;
     globalLastItemId = Math.max(dbLastId, memoryLastId);
   }
   globalLastItemId += 1;
@@ -1499,6 +1549,9 @@ const generateRpgGearDrop = async (user, options = {}) => {
     power,
     stats,
     quality,
+    wear: wear || { name: "Worn", bonus: 0 },
+    fixedPassive,
+    randomPassive,
     sellPrice,
     imageKey: options.imageKey || getItemImageFile({ slot, rarity, subType: chosenSubtype.name }),
     subType: chosenSubtype.name,

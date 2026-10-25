@@ -1,41 +1,35 @@
 const BaseCommand = require("../../../core/BaseCommand");
-const { EmbedBuilder } = require("discord.js");
 const config = require("../../../data/config");
 const { getUser } = require("../../../utils/userUtil");
 const { UserFriendlyError } = require("../../../utils/errors");
-const { getGemsByType, GEMS_DATA } = require("../../../data/gems");
-const { getRpgColor, formatRpgFooter } = require("../../../utils/rpgUi");
+const { GEMS_DATA } = require("../../../data/gems");
 
-// Tier probability weights for Lootbox drops (Calibrated to OwO Bot rates)
+// Tier probability weights for Lootbox drops (OwO Bot 1:1 match)
 const LOOTBOX_TIER_WEIGHTS = [
   { tier: "Common", weight: 22.0 },
-  { tier: "Rare", weight: 20.0 },
+  { tier: "Rare", weight: 22.0 },
   { tier: "Epic", weight: 20.0 },
-  { tier: "Generation", weight: 15.0 },
-  { tier: "Legendary", weight: 10.0 },
-  { tier: "Mythic", weight: 7.0 },
-  { tier: "Ancient", weight: 4.0 },
-  { tier: "Divine", weight: 1.5 },
-  { tier: "Secret", weight: 0.5 },
+  { tier: "Legendary", weight: 20.0 },
+  { tier: "Mythic", weight: 10.0 },
+  { tier: "Ancient", weight: 5.0 },
+  { tier: "Divine", weight: 1.0 },
 ];
 
 const TOTAL_WEIGHT = LOOTBOX_TIER_WEIGHTS.reduce((sum, item) => sum + item.weight, 0);
 
 function rollGemFromLootbox() {
-  // 1. Pick gem type (Hunting 32%, Empowering 32%, Lucky 32%, Special 4%)
-  const typeRoll = Math.random() * 100;
+  // 1. Pick gem type: 33.33% Hunting, 33.33% Empowering, 33.33% Lucky
+  const typeRoll = Math.random() * 99.99;
   let pickedType = "hunting";
-  if (typeRoll < 32) {
+  if (typeRoll < 33.33) {
     pickedType = "hunting";
-  } else if (typeRoll < 64) {
+  } else if (typeRoll < 66.66) {
     pickedType = "empowering";
-  } else if (typeRoll < 96) {
-    pickedType = "lucky";
   } else {
-    pickedType = "special";
+    pickedType = "lucky";
   }
 
-  // 2. Pick tier
+  // 2. Pick tier (Common 22%, Rare 22%, Epic 20%, Legendary 20%, Mythic 10%, Ancient 5%, Divine 1%)
   const tierRoll = Math.random() * TOTAL_WEIGHT;
   let cumulative = 0;
   let pickedTier = "Common";
@@ -55,21 +49,39 @@ function rollGemFromLootbox() {
     return pool[0];
   }
 
-  // Fallback to Common of that type
-  const fallback = GEMS_DATA.find((g) => g.type === pickedType && g.tier === "Common");
-  return fallback || GEMS_DATA[0];
+  // Fallback
+  return GEMS_DATA.find((g) => g.type === pickedType) || GEMS_DATA[0];
+}
+
+function toSuperscript(num) {
+  const digits = {
+    "0": "⁰",
+    "1": "¹",
+    "2": "²",
+    "3": "³",
+    "4": "⁴",
+    "5": "⁵",
+    "6": "⁶",
+    "7": "⁷",
+    "8": "⁸",
+    "9": "⁹",
+  };
+  return String(num)
+    .split("")
+    .map((d) => digits[d] || d)
+    .join("");
 }
 
 class LootboxCommand extends BaseCommand {
   constructor() {
     super({
       name: "lootbox",
-      aliases: ["lb", "box", "hopqua"],
-      description: "Mở Hộp Quà (Lootbox) để nhận ngẫu nhiên Ngọc Săn Thú (Gems) và Coke.",
+      aliases: ["xlb", "lb", "box", "hopqua"],
+      description: "Mở Hộp Quà (Lootbox) để nhận ngẫu nhiên Ngọc Săn Thú (Gems) chuẩn OwO.",
       usage: `${config.prefix}lb [số_lượng / all]`,
       examples: [
         { intent: "Mở 1 hộp quà", command: `${config.prefix}lb` },
-        { intent: "Mở 5 hộp quà", command: `${config.prefix}lb 5` },
+        { intent: "Mở 5 hộp quà", command: `${config.prefix}xlb 5` },
         { intent: "Mở tất cả hộp quà đang có", command: `${config.prefix}lb all` },
       ],
       cooldown: 2,
@@ -90,7 +102,7 @@ class LootboxCommand extends BaseCommand {
     if (ownedLb <= 0) {
       throw new UserFriendlyError(
         `${config.emoji.no} Bạn không có **Hộp Quà (Lootbox)** nào trong túi đồ!\n` +
-        `💡 Bạn có thể mua tại cửa hàng bằng lệnh: \`${config.prefix}buy lootbox [số_lượng]\` (25.000 Coke/hộp).`,
+        `💡 Bạn nhận được Lootbox từ lần săn thú (\`${config.prefix}hunt\`) đầu tiên mỗi ngày!`,
       );
     }
 
@@ -145,8 +157,8 @@ class LootboxCommand extends BaseCommand {
         gemDropsMap.set(rolledGem.id, { gem: rolledGem, count: 1 });
       }
 
-      // 2,000 to 8,000 Coke per box
-      const cokeGained = Math.floor(2000 + Math.random() * 6000);
+      // Small Coke bonus per box
+      const cokeGained = Math.floor(2000 + Math.random() * 4000);
       totalCokeBonus += cokeGained;
     }
 
@@ -167,29 +179,29 @@ class LootboxCommand extends BaseCommand {
     }
     await user.save();
 
-    // Format Embed Output
     const displayName = message.member?.displayName || message.author.username;
-    const sortedDrops = Array.from(gemDropsMap.values()).sort(
-      (a, b) => (b.gem.price || 0) - (a.gem.price || 0),
-    );
+    const lbstakeEmoji = "<:lbstake:1563961853477130261>";
+    const lbopenEmoji = "<:lbopen:1563961128047091731>";
 
-    const dropLines = sortedDrops.map(
-      ({ gem, count }) =>
-        `${gem.emoji} **${gem.nameVi}** (\`#${gem.id}\` • Rank **${gem.tier}**) x**${count}**\n└ *${gem.description}*`,
-    );
+    // Build drops emoji line with superscripts (e.g. `<:lucky_common:...>¹ <:empowering_mythic:...>¹`)
+    const dropsEmojisList = Array.from(gemDropsMap.values())
+      .map(({ gem, count }) => `${gem.emoji}${toSuperscript(count)}`)
+      .join(" ");
 
-    const embed = new EmbedBuilder()
-      .setColor(getRpgColor("Legendary") || "#f39c12")
-      .setTitle(`🎁 KẾT QUẢ MỞ ${quantity} HỘP QUÀ (LOOTBOX) • ${displayName}`)
-      .setDescription(
-        `Bạn đã mở thành công **${quantity}x Hộp Quà** và nhận được:\n\n` +
-        dropLines.join("\n\n") +
-        `\n\n🪙 **+${totalCokeBonus.toLocaleString()} Coke**`,
-      )
-      .setFooter(formatRpgFooter(`Dùng ${config.prefix}use <id1> <id2> <id3> để kích hoạt ngọc`));
+    // Initial message before opening
+    const initialContent = `${lbstakeEmoji} **| ${displayName}** đang mở **${quantity}** hộp quà (lootbox)...`;
+    const sentMsg = await message.reply({ content: initialContent });
 
-    return message.reply({ embeds: [embed] });
+    // Edit message after animation delay (matching OwO style)
+    setTimeout(async () => {
+      const finalContent =
+        `  **| ${displayName}** mở ${quantity} hộp quà (lootbox)\n` +
+        `${lbopenEmoji} **|** và nhận được: ${dropsEmojisList}`;
+      await sentMsg.edit({ content: finalContent }).catch(() => null);
+    }, 1500);
+
+    return sentMsg;
   }
-}
+};
 
 module.exports = new LootboxCommand();

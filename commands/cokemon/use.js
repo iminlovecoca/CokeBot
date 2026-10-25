@@ -46,6 +46,8 @@ class UseCommand extends BaseCommand {
     const gemArgs = args.filter((arg) => isGemId(arg));
     if (gemArgs.length > 0) {
       const dbUser = await getUser(message.author.id);
+      const displayName = message.member?.displayName || message.author.username;
+      const { getGemActivationDescription } = require("../../utils/gemUtil");
       const results = equipMultipleGems(dbUser, gemArgs);
       await dbUser.save();
 
@@ -53,22 +55,25 @@ class UseCommand extends BaseCommand {
       for (const res of results) {
         if (res.success) {
           lines.push(
-            `✅ **|** Đã kích hoạt **${res.gem.emoji} ${res.gem.nameVi}** (\`#${res.gem.id}\` • Rank **${res.gem.tier}**) vào ô ngọc săn thú!`,
+            `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}**!`,
           );
+          lines.push(`   **|** ${getGemActivationDescription(res.gem)}`);
+        } else if (res.code === "ALREADY_ACTIVE") {
+          lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
+        } else if (res.code === "NOT_OWNED") {
+          lines.push(`❌ **| ${displayName}**, bạn không có viên ngọc này trong túi đồ!`);
         } else {
-          lines.push(`❌ **|** \`#${res.id}\`: ${res.error}`);
+          lines.push(`❌ **| ${displayName}**, ${res.error}`);
         }
-      }
-
-      const activeBadges = formatActiveGemsBadges(dbUser);
-      if (activeBadges) {
-        lines.push(`\n💎 **| Ngọc đang kích hoạt:** ${activeBadges}`);
       }
 
       return message.reply(lines.join("\n"));
     }
 
-    const itemId = firstArg;
+    const { getItem } = require("../../data/items");
+    const matchedItem = getItem(firstArg);
+    const itemId = matchedItem?.key || firstArg;
+
     let targetId = null;
     let quantity = 1;
     if (itemId === "rare-candy") {
@@ -89,9 +94,14 @@ class UseCommand extends BaseCommand {
       );
     }
 
-    if (itemId === "lootbox" || itemId === "lb" || itemId === "box") {
+    if (itemId === "lootbox" || itemId === "lb" || itemId === "box" || itemId === "050") {
       const lbCommand = require("../rpg/hunt/lootbox");
       return lbCommand.execute(message, [String(quantity)]);
+    }
+
+    if (itemId === "wc" || itemId === "crate" || itemId === "weaponcrate" || itemId === "099") {
+      const wcCommand = require("../rpg/user/wc");
+      return wcCommand.execute(message, [String(quantity)]);
     }
 
     const { resultMessage, itemType } = await useItem(

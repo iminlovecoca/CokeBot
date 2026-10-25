@@ -4,7 +4,6 @@
  */
 
 const { getGemById, getAllGems, GEMS_DATA, GEM_TYPES } = require("../data/gems");
-const { ZOO_RANKS } = require("../data/animals");
 const Item = require("../models/cokemon/Item");
 
 /**
@@ -23,7 +22,7 @@ async function seedGems(client) {
       name: `${gem.emoji} ${gem.nameVi} (${gem.name})`,
       description: gem.description,
       item_type: "gem",
-      price: gem.price || null,
+      price: null,
       emoji: gem.emoji,
       effects: {
         type: gem.type,
@@ -57,10 +56,6 @@ async function seedGems(client) {
       }
       if (dbItem.item_type !== itemData.item_type) {
         dbItem.item_type = itemData.item_type;
-        changed = true;
-      }
-      if (dbItem.price !== itemData.price) {
-        dbItem.price = itemData.price;
         changed = true;
       }
       if (changed) {
@@ -99,19 +94,22 @@ function ensureUserGems(user) {
  */
 function getUserGemInventoryCount(user, gemId) {
   if (!user || !user.inventory) return 0;
-  const rawId = String(gemId).toLowerCase();
+  const rawId = String(gemId).replace(/^0+/, "") || "0";
+  const paddedId = String(gemId).padStart(3, "0");
+  const keys = [paddedId, rawId, `gem-${paddedId}`, `gem-${rawId}`];
+
   if (user.inventory instanceof Map) {
-    return (
-      user.inventory.get(rawId) ||
-      user.inventory.get(`gem-${rawId}`) ||
-      0
-    );
+    for (const k of keys) {
+      const val = user.inventory.get(k);
+      if (val !== undefined && val > 0) return val;
+    }
+    return 0;
   }
-  return (
-    user.inventory[rawId] ||
-    user.inventory[`gem-${rawId}`] ||
-    0
-  );
+  for (const k of keys) {
+    const val = user.inventory[k];
+    if (val !== undefined && val > 0) return val;
+  }
+  return 0;
 }
 
 /**
@@ -119,18 +117,25 @@ function getUserGemInventoryCount(user, gemId) {
  */
 function deductGemFromInventory(user, gemId) {
   if (!user || !user.inventory) return false;
-  const rawId = String(gemId).toLowerCase();
-  let keyToUse = rawId;
+  const rawId = String(gemId).replace(/^0+/, "") || "0";
+  const paddedId = String(gemId).padStart(3, "0");
+  const keys = [paddedId, rawId, `gem-${paddedId}`, `gem-${rawId}`];
 
   if (user.inventory instanceof Map) {
-    if (!user.inventory.has(keyToUse) && user.inventory.has(`gem-${rawId}`)) {
-      keyToUse = `gem-${rawId}`;
+    let targetKey = null;
+    for (const k of keys) {
+      if (user.inventory.has(k) && user.inventory.get(k) > 0) {
+        targetKey = k;
+        break;
+      }
     }
-    const current = user.inventory.get(keyToUse) || 0;
+    if (!targetKey) return false;
+
+    const current = user.inventory.get(targetKey) || 0;
     if (current <= 1) {
-      user.inventory.delete(keyToUse);
+      user.inventory.delete(targetKey);
     } else {
-      user.inventory.set(keyToUse, current - 1);
+      user.inventory.set(targetKey, current - 1);
     }
     if (typeof user.markModified === "function") {
       user.markModified("inventory");
@@ -138,14 +143,20 @@ function deductGemFromInventory(user, gemId) {
     return true;
   }
 
-  if (user.inventory[keyToUse] === undefined && user.inventory[`gem-${rawId}`] !== undefined) {
-    keyToUse = `gem-${rawId}`;
+  let targetKey = null;
+  for (const k of keys) {
+    if (user.inventory[k] !== undefined && user.inventory[k] > 0) {
+      targetKey = k;
+      break;
+    }
   }
-  const current = user.inventory[keyToUse] || 0;
+  if (!targetKey) return false;
+
+  const current = user.inventory[targetKey] || 0;
   if (current <= 1) {
-    delete user.inventory[keyToUse];
+    delete user.inventory[targetKey];
   } else {
-    user.inventory[keyToUse] = current - 1;
+    user.inventory[targetKey] = current - 1;
   }
   if (typeof user.markModified === "function") {
     user.markModified("inventory");
@@ -164,7 +175,8 @@ function equipGem(user, gemIdOrName) {
   if (!gem) {
     return {
       success: false,
-      error: `Vật phẩm \`${gemIdOrName}\` không phải là một viên ngọc hợp lệ.`,
+      code: "INVALID_ID",
+      error: `ID ngọc \`${gemIdOrName}\` không hợp lệ!`,
     };
   }
 
@@ -173,7 +185,10 @@ function equipGem(user, gemIdOrName) {
   if (currentSlot && currentSlot.durability > 0) {
     return {
       success: false,
-      error: `Bạn đã gắn **${currentSlot.emoji} ${currentSlot.name}** (còn **${currentSlot.durability}** độ bền). Theo luật OwO, bạn không thể thay hoặc tháo ngọc cho đến khi nó vỡ hoàn toàn!`,
+      code: "ALREADY_ACTIVE",
+      type: gem.type,
+      gem,
+      error: `bạn đã gắn loại ngọc này rồi!`,
     };
   }
 
@@ -181,7 +196,9 @@ function equipGem(user, gemIdOrName) {
   if (owned < 1) {
     return {
       success: false,
-      error: `Bạn không có viên ngọc **${gem.emoji} ${gem.nameVi}** (\`#${gem.id}\`) trong túi đồ!`,
+      code: "NOT_OWNED",
+      gem,
+      error: `bạn không có viên ngọc này trong túi đồ!`,
     };
   }
 
@@ -216,7 +233,7 @@ function equipGem(user, gemIdOrName) {
 }
 
 /**
- * Equips multiple gems at once (e.g. xuse 51 65 72).
+ * Equips multiple gems at once (e.g. use 51 65 72).
  */
 function equipMultipleGems(user, gemIds) {
   const results = [];
@@ -228,10 +245,29 @@ function equipMultipleGems(user, gemIds) {
 }
 
 /**
- * Consumes gem durabilities after an xhunt execution.
+ * Returns formatted description of the gem's activation effect (matching OwO style).
+ */
+function getGemActivationDescription(gem) {
+  if (!gem) return "";
+  switch (gem.type) {
+    case "hunting":
+      return `${gem.durability} lần săn thủ công tiếp theo của bạn sẽ được tăng thêm ${gem.bonusAnimals} con thú`;
+    case "empowering":
+      return `${gem.durability} con thú tiếp theo bắt được sẽ được nhân đôi (2x)`;
+    case "lucky":
+      return `${gem.durability} con thú tiếp theo sẽ được tăng tỉ lệ may mắn thêm +${gem.luckMultiplier}x`;
+    case "special":
+      return `${gem.durability} con thú tiếp theo sẽ được tăng tỉ lệ thú Thần Thoại & Bí Mật thêm +${gem.specialMultiplier}x`;
+    default:
+      return `${gem.description}`;
+  }
+}
+
+/**
+ * Consumes gem durabilities after an hunt execution.
  * Rules calibrated to OwO:
  * - Hunting Gem: -1 durability per hunt.
- * - Empowering Gem: -doubledAnimals durability (number of animals gained from doubling).
+ * - Empowering Gem: -doubledAnimals durability.
  * - Lucky Gem: -animals caught (synchronized with Empowering when all 3 active).
  * - Special Gem: -animals caught.
  * - Breaks gem when durability <= 0.
@@ -269,7 +305,6 @@ function consumeGemsOnHunt(user, totalAnimalsCaught, baseCatchCount) {
   // 3. Lucky Gem
   if (hasLucky) {
     if (isAllThreeActive) {
-      // Synchronized to empower rate so same-tier sets run out together
       gems.lucky.durability -= doubledAnimals;
     } else {
       gems.lucky.durability -= totalAnimalsCaught;
@@ -300,7 +335,7 @@ function consumeGemsOnHunt(user, totalAnimalsCaught, baseCatchCount) {
 }
 
 /**
- * Formats active gems into badge strings: e.g. `[💎 C (24)] [🔮 C (48)] [💖 C (48)]`
+ * Formats active gems into OwO hunt badge string: e.g. `<:hunting_mythic:...> [0/100] <:empowering_mythic:...> [381/525] <:lucky_mythic:...> [261/525]`
  */
 function formatActiveGemsBadges(user) {
   if (!user || !user.huntGems) return "";
@@ -309,8 +344,10 @@ function formatActiveGemsBadges(user) {
 
   for (const slot of order) {
     const gem = user.huntGems[slot];
-    if (gem && gem.durability > 0) {
-      badges.push(`[${gem.emoji} ${gem.rankLetter} (${gem.durability})]`);
+    if (gem && gem.durability !== undefined) {
+      const remaining = Math.max(0, gem.durability);
+      const maxD = gem.maxDurability || gem.durability || 100;
+      badges.push(`${gem.emoji} [${remaining}/${maxD}]`);
     }
   }
 
@@ -318,35 +355,34 @@ function formatActiveGemsBadges(user) {
 }
 
 /**
- * Returns formatted text description of active gems for inventory or gem info command.
+ * Formats active gems before consumption for hunt header.
  */
-function formatActiveGemsDetailed(user) {
-  ensureUserGems(user);
-  const slots = [
-    { key: "hunting", label: "Hunting Gem (Đi Săn)", emoji: "💎" },
-    { key: "empowering", label: "Empowering Gem (Cường Hóa)", emoji: "🔮" },
-    { key: "lucky", label: "Lucky Gem (May Mắn)", emoji: "💖" },
-    { key: "special", label: "Special Gem (Đặc Biệt)", emoji: "⭐" },
-  ];
+function formatActiveGemsBeforeHunt(gems) {
+  if (!gems) return "";
+  const badges = [];
+  const order = ["hunting", "empowering", "lucky", "special"];
 
-  return slots
-    .map((s) => {
-      const g = user.huntGems[s.key];
-      if (!g || g.durability <= 0) {
-        return `${s.emoji} **${s.label}:** *(Trống)*`;
-      }
-      return `${s.emoji} **${g.nameVi}** (\`#${g.id}\` • Rank **${g.tier}**)\n└ Độ bền: **${g.durability}/${g.maxDurability}**`;
-    })
-    .join("\n");
+  for (const slot of order) {
+    const gem = gems[slot];
+    if (gem && gem.durability > 0) {
+      const remaining = Math.max(0, gem.durability);
+      const maxD = gem.maxDurability || gem.durability || 100;
+      badges.push(`${gem.emoji} [${remaining}/${maxD}]`);
+    }
+  }
+
+  return badges.length > 0 ? badges.join(" ") : "";
 }
 
 module.exports = {
   seedGems,
   ensureUserGems,
   getUserGemInventoryCount,
+  deductGemFromInventory,
   equipGem,
   equipMultipleGems,
+  getGemActivationDescription,
   consumeGemsOnHunt,
   formatActiveGemsBadges,
-  formatActiveGemsDetailed,
+  formatActiveGemsBeforeHunt,
 };
