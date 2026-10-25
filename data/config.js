@@ -5,6 +5,18 @@ module.exports = {
     money: "<:cokecy:1509951335016173662>",
     arrow_left: "<:arrow_left:1545626807573676162>",
     arrow_right: "<:arrow_right:1524456913406791902>",
+    petStats: {
+      hp: "🇭",
+      att: "🟥",
+      pr: "🛡️",
+      wp: "🇼",
+      mag: "🟦",
+      mr: "💠",
+    },
+    ranks: {
+      generation: "🇬",
+      secret: "🇸",
+    },
     coinflip: "<a:coinflip:1394380327014891530>",
     heads: "<:heads:1405448328728285254>",
     tails: "<:tails:1405448342141403156>",

@@ -41,6 +41,18 @@ const RANK_TIERS = {
     gem: "#00ffff",
     glow: "rgba(0, 168, 255, 0.55)"
   },
+  generation: {
+    key: "generation",
+    name: "GENERATION",
+    subtitle: "Viền Băng Tinh Lấp Lánh",
+    emoji: "🇬",
+    textColor: "#7df9ff",
+    c1: "#ffffff",
+    c2: "#7df9ff",
+    c3: "#0f4c75",
+    gem: "#a5f2f3",
+    glow: "rgba(125, 249, 255, 0.65)"
+  },
   legendary: {
     key: "legendary",
     name: "LEGENDARY",
@@ -90,6 +102,20 @@ const RANK_TIERS = {
     goldLight: "#fff3a8",
     gem: "#ffffff",
     glow: "rgba(0, 245, 212, 0.85)"
+  },
+  secret: {
+    key: "secret",
+    name: "SECRET",
+    subtitle: "Viền Hư Không Ẩn Mật",
+    emoji: "🇸",
+    textColor: "#1e1b2e",
+    c1: "#9ca3af",
+    c2: "#1f2937",
+    c3: "#09090d",
+    goldMid: "#6b7280",
+    goldLight: "#d1d5db",
+    gem: "#374151",
+    glow: "rgba(17, 24, 39, 0.9)"
   }
 };
 
@@ -157,10 +183,12 @@ function drawRankFrame(ctx, x, y, width, height, rankTierInput, options = {}) {
     common: 1,
     rare: 2,
     epic: 3,
-    legendary: 4,
-    mythic: 5,
-    ancient: 6,
-    divine: 7
+    generation: 4,
+    legendary: 5,
+    mythic: 6,
+    ancient: 7,
+    divine: 8,
+    secret: 9
   };
   const level = tierLevels[tier] || 1;
 

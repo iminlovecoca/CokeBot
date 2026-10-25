@@ -1,8 +1,19 @@
+const config = require("./config");
+
+const PET_STAT_ICONS = {
+  hp: config.emoji?.petStats?.hp || "🇭",
+  att: config.emoji?.petStats?.att || "🟥",
+  pr: config.emoji?.petStats?.pr || "🛡️",
+  wp: config.emoji?.petStats?.wp || "🇼",
+  mag: config.emoji?.petStats?.mag || "🟦",
+  mr: config.emoji?.petStats?.mr || "💠",
+};
+
 const PET_TIERS = {
   Common: {
     name: "Common",
     emoji: "<:common:1530878565489311826>",
-    catchRate: 0.15, // 15%
+    catchRate: 0.15,
     baseHp: 10,
     baseAtk: 2,
     baseDef: 2,
@@ -11,7 +22,7 @@ const PET_TIERS = {
   Rare: {
     name: "Rare",
     emoji: "<:rare:1530878574104547378>",
-    catchRate: 0.05, // 5%
+    catchRate: 0.05,
     baseHp: 25,
     baseAtk: 5,
     baseDef: 4,
@@ -20,16 +31,25 @@ const PET_TIERS = {
   Epic: {
     name: "Epic",
     emoji: "<:epic:1530878567955566642>",
-    catchRate: 0.01, // 1%
+    catchRate: 0.01,
     baseHp: 50,
     baseAtk: 10,
     baseDef: 8,
     points: 100,
   },
+  Generation: {
+    name: "Generation",
+    emoji: config.emoji?.ranks?.generation || "🇬",
+    catchRate: 0.002,
+    baseHp: 75,
+    baseAtk: 15,
+    baseDef: 12,
+    points: 150,
+  },
   Legendary: {
     name: "Legendary",
     emoji: "<:legendary:1530878570858287205>",
-    catchRate: 0.0005, // 0.05%
+    catchRate: 0.0005,
     baseHp: 100,
     baseAtk: 20,
     baseDef: 15,
@@ -38,7 +58,7 @@ const PET_TIERS = {
   Mythic: {
     name: "Mythic",
     emoji: "<a:mythic:1530878614843686912>",
-    catchRate: 0.0001, // 0.01%
+    catchRate: 0.0001,
     baseHp: 180,
     baseAtk: 35,
     baseDef: 28,
@@ -47,7 +67,7 @@ const PET_TIERS = {
   Ancient: {
     name: "Ancient",
     emoji: "<a:ancient:1530878606656540814>",
-    catchRate: 0.00001, // 0.001%
+    catchRate: 0.00001,
     baseHp: 300,
     baseAtk: 60,
     baseDef: 50,
@@ -56,23 +76,43 @@ const PET_TIERS = {
   Divine: {
     name: "Divine",
     emoji: "<a:divine:1530878610515165365>",
-    catchRate: 0.000001, // 0.0001%
+    catchRate: 0.000001,
     baseHp: 500,
     baseAtk: 100,
     baseDef: 80,
     points: 1200,
   },
+  Secret: {
+    name: "Secret",
+    emoji: config.emoji?.ranks?.secret || "🇸",
+    catchRate: 0.0000002,
+    baseHp: 800,
+    baseAtk: 160,
+    baseDef: 130,
+    points: 2500,
+  },
 };
 
+/**
+ * 6 Battle Stats per Pet (0 - 19 scale, calibrated for 3v3 team building):
+ * - hp  (Máu):        Max HP  = (2 * hp * level) + 500
+ * - att (Vật lý):     PATK    = (att * level) + 100
+ * - pr  (Kháng VL):   PR%     = 80 * (25 + 2 * pr * level) / (125 + 2 * pr * level)
+ * - wp  (Năng lượng): Max WP  = (2 * wp * level) + 500
+ * - mag (Phép):       MATK    = (mag * level) + 100
+ * - mr  (Kháng Phép): MR%     = 80 * (25 + 2 * mr * level) / (125 + 2 * mr * level)
+ */
 const PET_SPECIES = [
-  // --- Common ---
+  // --- Common (Total: 15 - 18 points) ---
   {
     key: "bee",
     name: "Ong",
     tier: "Common",
     emoji: "🐝",
     aliases: ["bee", "ong"],
-    description: "Chú ong chăm chỉ bay lượn tích lũy mật ngọt và sinh lực.",
+    role: "Hỗ Trợ Kháng Phép",
+    battleStats: { hp: 1, att: 5, pr: 2, wp: 3, mag: 2, mr: 5 },
+    description: "Chú ong chăm chỉ bay lượn tích lũy mật ngọt và kháng phép tự nhiên.",
   },
   {
     key: "bug",
@@ -80,6 +120,8 @@ const PET_SPECIES = [
     tier: "Common",
     emoji: "🐛",
     aliases: ["bug", "sau"],
+    role: "Cân Bằng Khởi Đầu",
+    battleStats: { hp: 4, att: 2, pr: 3, wp: 2, mag: 3, mr: 2 },
     description: "Chú sâu nhỏ kiên trì với lớp vỏ mềm mại dẻo dai.",
   },
   {
@@ -88,6 +130,8 @@ const PET_SPECIES = [
     tier: "Common",
     emoji: "🐌",
     aliases: ["snail", "ocsen"],
+    role: "Tanker Khởi Đầu",
+    battleStats: { hp: 8, att: 1, pr: 4, wp: 2, mag: 1, mr: 2 },
     description: "Ốc sên mang chiếc vỏ kiên cố chống chọi mọi ngoại lực.",
   },
   {
@@ -96,7 +140,9 @@ const PET_SPECIES = [
     tier: "Common",
     emoji: "🐞",
     aliases: ["ladybug", "borua"],
-    description: "Bọ rùa may mắn mang lại sinh khí nhẹ nhàng.",
+    role: "Hộ Vệ Giáp Kép",
+    battleStats: { hp: 3, att: 1, pr: 4, wp: 3, mag: 2, mr: 4 },
+    description: "Bọ rùa may mắn mang lại lớp giáp hộ thể cân bằng.",
   },
   {
     key: "butterfly",
@@ -104,17 +150,21 @@ const PET_SPECIES = [
     tier: "Common",
     emoji: "🦋",
     aliases: ["butterfly", "buom"],
-    description: "Đôi cánh bướm rực rỡ lướt nhẹ trong gió.",
+    role: "Hồi Phục / Phép Sơ Cấp",
+    battleStats: { hp: 1, att: 1, pr: 1, wp: 5, mag: 5, mr: 2 },
+    description: "Đôi cánh bướm rực rỡ hội tụ linh khí và ma pháp trị liệu.",
   },
 
-  // --- Rare ---
+  // --- Rare (Total: 18 - 19 points) ---
   {
     key: "duck",
     name: "Vịt",
     tier: "Rare",
     emoji: "🦆",
     aliases: ["duck", "vit"],
-    description: "Chú vịt nhanh nhẹn bơi lội linh hoạt trên mặt nước.",
+    role: "Song Tu Vật Lý & Phép",
+    battleStats: { hp: 2, att: 6, pr: 1, wp: 2, mag: 6, mr: 1 },
+    description: "Chú vịt linh hoạt vừa tấn công vật lý vừa phóng thủy thuật.",
   },
   {
     key: "rooster",
@@ -122,6 +172,8 @@ const PET_SPECIES = [
     tier: "Rare",
     emoji: "🐓",
     aliases: ["rooster", "gatrong", "ga"],
+    role: "Công Kích Vật Lý",
+    battleStats: { hp: 3, att: 8, pr: 2, wp: 2, mag: 1, mr: 2 },
     description: "Gà trống oai phong cất tiếng gáy đánh thức sức mạnh dũng mãnh.",
   },
   {
@@ -130,7 +182,9 @@ const PET_SPECIES = [
     tier: "Rare",
     emoji: "🐖",
     aliases: ["pig", "heo", "lợn"],
-    description: "Chú heo tròn trĩnh sở hữu thể lực dồi dào dẻo dai.",
+    role: "Đấu Sĩ Bền Bỉ",
+    battleStats: { hp: 5, att: 2, pr: 3, wp: 2, mag: 2, mr: 4 },
+    description: "Chú heo tròn trĩnh sở hữu thể lực và sức chống chịu dẻo dai.",
   },
   {
     key: "cow",
@@ -138,7 +192,9 @@ const PET_SPECIES = [
     tier: "Rare",
     emoji: "🐄",
     aliases: ["cow", "bo"],
-    description: "Chú bò kiên cường mang lại nguồn sinh lực cuồn cuộn.",
+    role: "Tanker Vật Lý",
+    battleStats: { hp: 6, att: 4, pr: 4, wp: 1, mag: 1, mr: 3 },
+    description: "Chú bò kiên cường mang lại nguồn sinh lực và giáp trụ vững vàng.",
   },
   {
     key: "sheep",
@@ -146,17 +202,21 @@ const PET_SPECIES = [
     tier: "Rare",
     emoji: "🐑",
     aliases: ["sheep", "cuu"],
-    description: "Cừu bông ấm áp xua tan những ma pháp tà khí.",
+    role: "Tanker Kháng Phép",
+    battleStats: { hp: 5, att: 1, pr: 2, wp: 4, mag: 1, mr: 5 },
+    description: "Cừu bông ấm áp hấp thụ và xua tan các đòn ma pháp.",
   },
 
-  // --- Epic ---
+  // --- Epic (Total: 20 points) ---
   {
     key: "monkey",
     name: "Khỉ",
     tier: "Epic",
     emoji: "🐒",
     aliases: ["monkey", "khi"],
-    description: "Chú khỉ thông minh, nhanh trí và vô cùng lanh lợi.",
+    role: "Đấu Sĩ Song Công",
+    battleStats: { hp: 3, att: 7, pr: 2, wp: 1, mag: 5, mr: 2 },
+    description: "Chú khỉ thông minh biến ảo giữa đòn đánh vật lý và cổ ngữ.",
   },
   {
     key: "parrot",
@@ -164,7 +224,9 @@ const PET_SPECIES = [
     tier: "Epic",
     emoji: "🦜",
     aliases: ["parrot", "vet"],
-    description: "Vẹt sặc sỡ nhạy bén với ma pháp nguyên tố.",
+    role: "Trợ Thủ Năng Lượng (WP)",
+    battleStats: { hp: 2, att: 1, pr: 2, wp: 8, mag: 5, mr: 2 },
+    description: "Vẹt sặc sỡ nhạy bén với nguồn năng lượng vũ khí dồi dào.",
   },
   {
     key: "horse",
@@ -172,7 +234,9 @@ const PET_SPECIES = [
     tier: "Epic",
     emoji: "🐎",
     aliases: ["horse", "ngua"],
-    description: "Chiến mã dũng mãnh phi nước đại trên mọi chiến trường.",
+    role: "Chiến Mã Sinh Lực",
+    battleStats: { hp: 10, att: 2, pr: 1, wp: 5, mag: 1, mr: 1 },
+    description: "Chiến mã dũng mãnh với lượng máu và bền bỉ phi thường.",
   },
   {
     key: "scorpion",
@@ -180,7 +244,9 @@ const PET_SPECIES = [
     tier: "Epic",
     emoji: "🦂",
     aliases: ["scorpion", "bocap"],
-    description: "Bọ cạp nguy hiểm sở hữu đòn độc chí mạng và giáp cứng.",
+    role: "Thiết Giáp Công Kích",
+    battleStats: { hp: 3, att: 7, pr: 5, wp: 2, mag: 1, mr: 2 },
+    description: "Bọ cạp nguy hiểm sở hữu đòn độc chí mạng và lớp vỏ cứng cáp.",
   },
   {
     key: "dolphin",
@@ -188,17 +254,23 @@ const PET_SPECIES = [
     tier: "Epic",
     emoji: "🐬",
     aliases: ["dolphin", "caheo"],
-    description: "Cá heo biển sâu tràn đầy trí tuệ và dòng chảy pháp thuật.",
+    role: "Pháp Sư Trị Liệu",
+    battleStats: { hp: 2, att: 1, pr: 1, wp: 4, mag: 10, mr: 2 },
+    description: "Cá heo biển sâu tràn đầy trí tuệ và ma pháp hồi phục đồng đội.",
   },
 
-  // --- Legendary ---
+  // --- Generation (Sẽ cập nhật thú sau — đứng sau bậc Epic) ---
+
+  // --- Legendary (Total: 21 points) ---
   {
     key: "mammoth",
     name: "Voi Ma Mút",
     tier: "Legendary",
     emoji: "<a:mammoth:1531537276675559434>",
     aliases: ["mammoth", "voimamut"],
-    description: "Voi ma mút thời băng hà sở hữu lớp giáp và sức mạnh khổng lồ.",
+    role: "Siêu Tanker Tiền Tuyến",
+    battleStats: { hp: 11, att: 2, pr: 4, wp: 1, mag: 0, mr: 3 },
+    description: "Voi ma mút thời băng hà sở hữu lớp giáp và lượng máu khổng lồ.",
   },
   {
     key: "eagle",
@@ -206,7 +278,9 @@ const PET_SPECIES = [
     tier: "Legendary",
     emoji: "<a:eagle:1531537266042736731>",
     aliases: ["eagle", "daibang"],
-    description: "Chúa tể bầu trời sải cánh uy dũng với tầm nhìn và tốc độ vượt trội.",
+    role: "Chủ Lực Vật Lý",
+    battleStats: { hp: 2, att: 13, pr: 2, wp: 1, mag: 1, mr: 2 },
+    description: "Chúa tể bầu trời sải cánh uy dũng với đòn bổ nhào xuyên thủng mọi mục tiêu.",
   },
   {
     key: "sabertiger",
@@ -214,7 +288,9 @@ const PET_SPECIES = [
     tier: "Legendary",
     emoji: "<a:sabertiger:1531537287836340255>",
     aliases: ["sabertiger", "horangkiem", "saber"],
-    description: "Mãnh thú tiễn hung tợn với đôi nanh kiếm xé rách mọi kẻ thù.",
+    role: "Sát Thủ Kỹ Năng",
+    battleStats: { hp: 3, att: 11, pr: 2, wp: 3, mag: 0, mr: 2 },
+    description: "Mãnh thú tiền sử hung tợn với đôi nanh kiếm xé rách mọi kẻ thù.",
   },
   {
     key: "shark",
@@ -222,7 +298,9 @@ const PET_SPECIES = [
     tier: "Legendary",
     emoji: "<a:shark:1531537293465354281>",
     aliases: ["shark", "camap"],
-    description: "Sát thủ đại dương cuồng bạo tấn công áp đảo đối thủ.",
+    role: "Chủ Lực Thủy Pháp",
+    battleStats: { hp: 2, att: 1, pr: 1, wp: 2, mag: 14, mr: 1 },
+    description: "Sát thủ đại dương cuồng bạo triệu hồi sóng dữ nghiền nát đối thủ.",
   },
   {
     key: "snake",
@@ -230,17 +308,21 @@ const PET_SPECIES = [
     tier: "Legendary",
     emoji: "<a:snake:1531537301522350191>",
     aliases: ["snake", "ran"],
-    description: "Xà vương hiểm hóc siết chặt ma lực và né tránh chí mạng.",
+    role: "Sát Thủ Độc Kích",
+    battleStats: { hp: 2, att: 12, pr: 3, wp: 1, mag: 1, mr: 2 },
+    description: "Xà vương hiểm hóc kết hợp sát thương vật lý cao và khả năng phòng ngự khéo léo.",
   },
 
-  // --- Mythic ---
+  // --- Mythic (Total: 22 points) ---
   {
     key: "redsnake",
     name: "Xích Huyết Xà",
     tier: "Mythic",
     emoji: "<:redsnake:1531358996177621124>",
     aliases: ["redsnake", "xichhuyetxa"],
-    description: "Con rắn huyền bí mang dòng máu đỏ rực như ngọn lửa bùng cháy.",
+    role: "Pháp Sư Huyết Hỏa",
+    battleStats: { hp: 2, att: 1, pr: 1, wp: 4, mag: 12, mr: 2 },
+    description: "Con rắn huyền bí mang dòng máu đỏ rực như ngọn lửa ma pháp bùng cháy.",
   },
   {
     key: "rockcat",
@@ -248,7 +330,9 @@ const PET_SPECIES = [
     tier: "Mythic",
     emoji: "<:rockcat:1531002667680137417>",
     aliases: ["rockcat", "thachnhammieu"],
-    description: "Linh miêu bọc đá kiên cố sở hữu thân thủ và khả năng phòng thủ tuyệt hảo.",
+    role: "Pháo Đài Kháng Kép",
+    battleStats: { hp: 7, att: 1, pr: 6, wp: 2, mag: 0, mr: 6 },
+    description: "Linh miêu bọc đá kiên cố sở hữu cả kháng vật lý lẫn kháng phép thượng thừa.",
   },
   {
     key: "moonwolf",
@@ -256,7 +340,9 @@ const PET_SPECIES = [
     tier: "Mythic",
     emoji: "<:moonwolf:1531002665536983091>",
     aliases: ["moonwolf", "nguyetlang"],
-    description: "Sói tuyết dưới ánh mặt trăng mang ma lực bí ẩn của bầu trời đêm.",
+    role: "Hồi Phục / Trợ Thủ Ánh Trăng",
+    battleStats: { hp: 2, att: 1, pr: 2, wp: 7, mag: 8, mr: 2 },
+    description: "Sói tuyết dưới ánh mặt trăng mang nguồn năng lượng WP và ma lực dồi dào.",
   },
   {
     key: "crocnekton",
@@ -264,7 +350,9 @@ const PET_SPECIES = [
     tier: "Mythic",
     emoji: "<:crocnekton:1531002661883740201>",
     aliases: ["crocnekton", "thuyngac"],
-    description: "Cá sấu vực thẳm bộc phát uy lực cuồng bạo xé rách lá chắn ma pháp.",
+    role: "Đấu Sĩ Tuyến Đầu",
+    battleStats: { hp: 5, att: 10, pr: 3, wp: 2, mag: 0, mr: 2 },
+    description: "Cá sấu vực thẳm vừa chịu đòn bền bỉ vừa tung cú đớp chí mạng.",
   },
   {
     key: "icebear",
@@ -272,17 +360,21 @@ const PET_SPECIES = [
     tier: "Mythic",
     emoji: "<:icebear:1531002670121222354>",
     aliases: ["icebear", "banghung"],
-    description: "Gấu bắc cực khổng lồ sở hữu lượng máu và lớp băng bảo hộ vững chắc.",
+    role: "Chắn Băng Kháng Phép",
+    battleStats: { hp: 12, att: 1, pr: 2, wp: 2, mag: 0, mr: 5 },
+    description: "Gấu bắc cực khổng lồ sở hữu lượng máu cực lớn và lớp băng chống phép.",
   },
 
-  // --- Ancient ---
+  // --- Ancient (Total: 23 points) ---
   {
     key: "argentinosaurus",
     name: "Argentinosaurus",
     tier: "Ancient",
     emoji: "<:Argentinosaurus:1531012502815772743>",
     aliases: ["argentinosaurus", "argentino"],
-    description: "Khủng long cổ đại siêu khổng lồ với lượng sinh lực cực đại.",
+    role: "Cự Long Sinh Lực",
+    battleStats: { hp: 16, att: 0, pr: 3, wp: 1, mag: 0, mr: 3 },
+    description: "Khủng long cổ đại siêu khổng lồ với lượng sinh lực (HP 16) gần như bất tận.",
   },
   {
     key: "titanoceratops",
@@ -290,7 +382,9 @@ const PET_SPECIES = [
     tier: "Ancient",
     emoji: "<:Titanoceratops:1531002661883740201>",
     aliases: ["titanoceratops", "titano"],
-    description: "Khủng long ba sừng khổng lồ húc đổ mọi rào chắn bảo vệ.",
+    role: "Thiết Khiên Cổ Đại",
+    battleStats: { hp: 6, att: 2, pr: 8, wp: 2, mag: 0, mr: 5 },
+    description: "Khủng long ba sừng khổng lồ với tấm khiên đầu cứng nhất giới tự nhiên.",
   },
   {
     key: "tyrannosaurus",
@@ -298,7 +392,9 @@ const PET_SPECIES = [
     tier: "Ancient",
     emoji: "<:Tyrannosaurus:1531012505105596478>",
     aliases: ["tyrannosaurus", "trex"],
-    description: "Bạo chúa cổ đại cai trị muôn loài với sức mạnh áp đảo.",
+    role: "Bạo Chúa Vật Lý",
+    battleStats: { hp: 2, att: 16, pr: 2, wp: 1, mag: 0, mr: 2 },
+    description: "Bạo chúa cổ đại cai trị muôn loài với sức cắn vật lý (ATT 16) hủy diệt.",
   },
   {
     key: "mosasaurus",
@@ -306,7 +402,9 @@ const PET_SPECIES = [
     tier: "Ancient",
     emoji: "<:Mosasaurus:1531012511317622814>",
     aliases: ["mosasaurus", "mosa"],
-    description: "Thủy quái biển cổ đại nuốt chửng ma pháp đối phương.",
+    role: "Thủy Quái Phép Thuật",
+    battleStats: { hp: 2, att: 0, pr: 1, wp: 3, mag: 13, mr: 4 },
+    description: "Thủy quái biển cổ đại nuốt chửng mọi sinh vật bằng ma pháp đại dương.",
   },
   {
     key: "quetzalcoatlus",
@@ -314,17 +412,21 @@ const PET_SPECIES = [
     tier: "Ancient",
     emoji: "<:Quetzalcoatlus:1531012513548996788>",
     aliases: ["quetzalcoatlus", "quetzal"],
-    description: "Thằn lằn có cánh cổ đại bao phủ bầu trời với tốc độ thần tốc.",
+    role: "Thần Điểu Năng Lượng (WP)",
+    battleStats: { hp: 2, att: 1, pr: 1, wp: 11, mag: 6, mr: 2 },
+    description: "Dực long cổ đại mang nguồn năng lượng WP bất tận để kích hoạt vũ khí liên tục.",
   },
 
-  // --- Divine ---
+  // --- Divine (Total: 24 points) ---
   {
     key: "kirin",
     name: "Kỳ Lân",
     tier: "Divine",
     emoji: "<:Kirin:1531346257019404378>",
     aliases: ["kirin", "kylan"],
-    description: "Thần thú Kỳ Lân mang lại điềm lành, trường thọ và thánh lực.",
+    role: "Thánh Thú Hộ Mệnh",
+    battleStats: { hp: 3, att: 0, pr: 2, wp: 8, mag: 6, mr: 5 },
+    description: "Thần thú Kỳ Lân mang lại điềm lành, hồi phục thánh quang và kháng phép tối cao.",
   },
   {
     key: "leviathan",
@@ -332,7 +434,9 @@ const PET_SPECIES = [
     tier: "Divine",
     emoji: "<:Leviathan:1531346259497975889>",
     aliases: ["leviathan", "thuyquai"],
-    description: "Thủy quái huyền thoại thống trị đại dương vô tận.",
+    role: "Chúa Tể Biển Sâu (Tanker)",
+    battleStats: { hp: 14, att: 0, pr: 4, wp: 2, mag: 0, mr: 4 },
+    description: "Thủy quái thần thoại bất khả xâm phạm với lượng máu và kháng kép khổng lồ.",
   },
   {
     key: "griffin",
@@ -340,7 +444,9 @@ const PET_SPECIES = [
     tier: "Divine",
     emoji: "<:Griffin:1531346254217351229>",
     aliases: ["griffin", "dieusu"],
-    description: "Sinh vật huyền thoại kết hợp sức mạnh đại bàng và sư tử thần thánh.",
+    role: "Chiến Thần Vật Lý",
+    battleStats: { hp: 4, att: 14, pr: 3, wp: 1, mag: 0, mr: 2 },
+    description: "Sinh vật thần thánh kết hợp sức mạnh sư tử và tốc độ đại bàng.",
   },
   {
     key: "phoenix",
@@ -348,7 +454,9 @@ const PET_SPECIES = [
     tier: "Divine",
     emoji: "<:Phoenix:1531346250903851188>",
     aliases: ["phoenix", "phuonghoang"],
-    description: "Phượng hoàng tái sinh từ tro tàn với ngọn lửa thần ma pháp.",
+    role: "Thần Hỏa Pháp Sư",
+    battleStats: { hp: 1, att: 0, pr: 1, wp: 4, mag: 17, mr: 1 },
+    description: "Phượng hoàng tái sinh từ tro tàn với ngọn lửa thần ma pháp (MAG 17) cực đại.",
   },
   {
     key: "shenlong",
@@ -356,20 +464,79 @@ const PET_SPECIES = [
     tier: "Divine",
     emoji: "<:Shenlong:1531346248525807698>",
     aliases: ["shenlong", "thanlong"],
-    description: "Rồng thần tối cao nắm giữ thiên đạo và vạn vật vương quyền.",
+    role: "Thiên Đạo Toàn Năng",
+    battleStats: { hp: 2, att: 9, pr: 1, wp: 2, mag: 9, mr: 1 },
+    description: "Rồng thần tối cao làm chủ cả sát thương vật lý lẫn pháp thuật tối thượng.",
   },
+
+  // --- Secret (Sẽ cập nhật thú sau — đứng sau bậc Divine) ---
 ];
 
 /**
- * Generate pet stats with balanced HP, ATK, and DEF
+ * Retrieve 6-stat profile (0 - 19 points each) and scaled combat metrics at a given pet level.
+ * Exact OwO Wiki scaling formulas:
+ * - HP  = (2 * hp * level) + 500
+ * - WP  = (2 * wp * level) + 500
+ * - ATT = (att * level) + 100
+ * - MAG = (mag * level) + 100
+ * - PR% = 80 * (25 + 2 * pr * level) / (125 + 2 * pr * level)
+ * - MR% = 80 * (25 + 2 * mr * level) / (125 + 2 * mr * level)
+ */
+function getPetBattleStats(speciesOrPet, levelInput = 1) {
+  const key = speciesOrPet?.key || "";
+  const matchedSpecies = PET_SPECIES.find((s) => s.key.toLowerCase() === String(key).toLowerCase());
+  const raw = speciesOrPet?.battleStats || speciesOrPet?.stats?.battleStats || matchedSpecies?.battleStats || {
+    hp: 3,
+    att: 3,
+    pr: 2,
+    wp: 3,
+    mag: 3,
+    mr: 2,
+  };
+
+  const clamp0to19 = (v) => Math.max(0, Math.min(19, Math.round(Number(v) || 0)));
+  const hp = clamp0to19(raw.hp);
+  const att = clamp0to19(raw.att ?? raw.str);
+  const pr = clamp0to19(raw.pr);
+  const wp = clamp0to19(raw.wp);
+  const mag = clamp0to19(raw.mag);
+  const mr = clamp0to19(raw.mr);
+
+  const level = Math.max(1, Number(levelInput || speciesOrPet?.level || 1));
+  const maxHp = 2 * hp * level + 500;
+  const maxWp = 2 * wp * level + 500;
+  const physAtk = att * level + 100;
+  const magAtk = mag * level + 100;
+  const physResPct = Math.round(80 * ((25 + 2 * pr * level) / (125 + 2 * pr * level)));
+  const magResPct = Math.round(80 * ((25 + 2 * mr * level) / (125 + 2 * mr * level)));
+
+  return {
+    points: { hp, att, pr, wp, mag, mr },
+    totalPoints: hp + att + pr + wp + mag + mr,
+    role: speciesOrPet?.role || matchedSpecies?.role || "Linh Thú Chiến Đấu",
+    scaled: {
+      maxHp,
+      maxWp,
+      physAtk,
+      magAtk,
+      physResPct,
+      magResPct,
+    },
+  };
+}
+
+/**
+ * Generate pet stats for both 3v3 Pet Battle (6 stats 0-19) and RPG companion bonuses
  */
 function generatePetStats(species) {
   const tierConfig = PET_TIERS[species.tier] || PET_TIERS.Common;
-  const variance = 0.95 + Math.random() * 0.1;
+  const { points } = getPetBattleStats(species, 1);
+
   return {
-    baseHp: Math.floor(tierConfig.baseHp * variance),
-    baseAtk: Math.floor(tierConfig.baseAtk * variance),
-    baseDef: Math.floor(tierConfig.baseDef * variance),
+    baseHp: tierConfig.baseHp + points.hp * 6,
+    baseAtk: tierConfig.baseAtk + Math.max(points.att, points.mag) * 2,
+    baseDef: tierConfig.baseDef + (points.pr + points.mr) * 2,
+    battleStats: { ...points },
   };
 }
 
@@ -401,27 +568,38 @@ function findPetSpecies(query) {
  * @param {boolean} [isAutohunt=false] - If true, applies 50% lower rate penalty for AFK autohunt
  */
 function rollHuntPetDrop(isAutohunt = false) {
-  const mult = isAutohunt ? 0.5 : 1.0; // 50% lower catch rate for autohunt
+  const mult = isAutohunt ? 0.5 : 1.0;
 
   const getRandomSpecies = (tier) => {
     const list = PET_SPECIES.filter((s) => s.tier === tier);
+    if (!list.length) return null;
     return list[Math.floor(Math.random() * list.length)];
   };
 
-  if (Math.random() < 0.000001 * mult) return getRandomSpecies("Divine");      // 0.0001%
-  if (Math.random() < 0.00001 * mult)  return getRandomSpecies("Ancient");     // 0.001%
-  if (Math.random() < 0.0001 * mult)   return getRandomSpecies("Mythic");      // 0.01%
-  if (Math.random() < 0.0005 * mult)   return getRandomSpecies("Legendary");   // 0.05%
-  if (Math.random() < 0.01 * mult)     return getRandomSpecies("Epic");        // 1%
-  if (Math.random() < 0.05 * mult)     return getRandomSpecies("Rare");        // 5%
-  if (Math.random() < 0.15 * mult)     return getRandomSpecies("Common");      // 15%
+  if (Math.random() < 0.0000002 * mult) {
+    const s = getRandomSpecies("Secret");
+    if (s) return s;
+  }
+  if (Math.random() < 0.000001 * mult) return getRandomSpecies("Divine");
+  if (Math.random() < 0.00001 * mult)  return getRandomSpecies("Ancient");
+  if (Math.random() < 0.0001 * mult)   return getRandomSpecies("Mythic");
+  if (Math.random() < 0.0005 * mult)   return getRandomSpecies("Legendary");
+  if (Math.random() < 0.002 * mult) {
+    const g = getRandomSpecies("Generation");
+    if (g) return g;
+  }
+  if (Math.random() < 0.01 * mult)     return getRandomSpecies("Epic");
+  if (Math.random() < 0.05 * mult)     return getRandomSpecies("Rare");
+  if (Math.random() < 0.15 * mult)     return getRandomSpecies("Common");
 
   return null;
 }
 
 module.exports = {
+  PET_STAT_ICONS,
   PET_TIERS,
   PET_SPECIES,
+  getPetBattleStats,
   generatePetStats,
   getPetXpNeeded,
   findPetSpecies,

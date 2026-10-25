@@ -35,10 +35,12 @@ class UserService extends BaseService {
     if (level <= 10) return "<:common:1530878565489311826>";
     if (level <= 20) return "<:rare:1530878574104547378>";
     if (level <= 30) return "<:epic:1530878567955566642>";
-    if (level <= 40) return "<:legendary:1530878570858287205>";
-    if (level <= 50) return "<a:mythic:1530878614843686912>";
-    if (level <= 60) return "<a:ancient:1530878606656540814>";
-    return "<a:divine:1530878610515165365>";
+    if (level <= 35) return config.emoji?.ranks?.generation || "🇬";
+    if (level <= 45) return "<:legendary:1530878570858287205>";
+    if (level <= 55) return "<a:mythic:1530878614843686912>";
+    if (level <= 65) return "<a:ancient:1530878606656540814>";
+    if (level <= 80) return "<a:divine:1530878610515165365>";
+    return config.emoji?.ranks?.secret || "🇸";
   }
 }
 

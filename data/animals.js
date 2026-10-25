@@ -1,10 +1,11 @@
 /**
- * CokeBot Zoo & Animal System (OwO Style)
- * Uses CokeBot's RPG tiers: Common, Rare, Epic, Legendary, Mythic, Ancient, Divine
+ * CokeBot Zoo & Animal System
+ * Uses CokeBot's Pet & Battle tiers:
+ * Common (C) -> Rare (R) -> Epic (E) -> Generation (G) -> Legendary (L) -> Mythic (M) -> Ancient (A) -> Divine (D) -> Secret (S)
  * and species defined in data/pets.js.
  */
 
-const { PET_TIERS, PET_SPECIES, generatePetStats } = require("./pets");
+const { PET_TIERS, PET_SPECIES, generatePetStats, getPetBattleStats } = require("./pets");
 
 const SUPERSCRIPT_NUMBERS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
 
@@ -21,13 +22,27 @@ const toSmallNum = (count, digits = 1) => {
     .join("");
 };
 
-// Rank metadata calibrated to OwO style hunting probabilities and selling prices
+// Rank metadata calibrated to hunting probabilities and selling prices
+// Order: Common (1) -> Rare (2) -> Epic (3) -> Generation (4) -> Legendary (5) -> Mythic (6) -> Ancient (7) -> Divine (8) -> Secret (9)
 const ZOO_RANKS = {
+  Secret: {
+    id: "Secret",
+    name: "Secret",
+    letter: "S",
+    order: 9,
+    rarity: 0.01, // 0.01%
+    price: 2500000,
+    points: 25000,
+    xp: 60000,
+    essence: 80000,
+    emoji: PET_TIERS.Secret?.emoji || "🇸",
+    aliases: ["secret", "s", "bimat"],
+  },
   Divine: {
     id: "Divine",
     name: "Divine",
     letter: "D",
-    order: 7,
+    order: 8,
     rarity: 0.05, // 0.05%
     price: 1000000,
     points: 10000,
@@ -40,7 +55,7 @@ const ZOO_RANKS = {
     id: "Ancient",
     name: "Ancient",
     letter: "A",
-    order: 6,
+    order: 7,
     rarity: 0.15, // 0.15%
     price: 180000,
     points: 2500,
@@ -53,7 +68,7 @@ const ZOO_RANKS = {
     id: "Mythic",
     name: "Mythic",
     letter: "M",
-    order: 5,
+    order: 6,
     rarity: 0.6, // 0.6%
     price: 35000,
     points: 500,
@@ -66,7 +81,7 @@ const ZOO_RANKS = {
     id: "Legendary",
     name: "Legendary",
     letter: "L",
-    order: 4,
+    order: 5,
     rarity: 2.2, // 2.2%
     price: 6000,
     points: 100,
@@ -74,6 +89,19 @@ const ZOO_RANKS = {
     essence: 350,
     emoji: PET_TIERS.Legendary?.emoji || "<:legendary:1530878570858287205>",
     aliases: ["legendary", "l", "huyenthoai"],
+  },
+  Generation: {
+    id: "Generation",
+    name: "Generation",
+    letter: "G",
+    order: 4,
+    rarity: 1.5, // 1.5% (placed right after Epic)
+    price: 3000,
+    points: 50,
+    xp: 300,
+    essence: 180,
+    emoji: PET_TIERS.Generation?.emoji || "🇬",
+    aliases: ["generation", "gen", "g", "thehe"],
   },
   Epic: {
     id: "Epic",
@@ -106,7 +134,7 @@ const ZOO_RANKS = {
     name: "Common",
     letter: "C",
     order: 1,
-    rarity: 64.0, // 64.0% (Total = 100%)
+    rarity: 62.49,
     price: 80,
     points: 1,
     xp: 15,
@@ -140,18 +168,20 @@ for (const species of PET_SPECIES) {
 
 /**
  * Rolls an animal on every hunt according to CokeBot's tier rates.
- * Supports optional luckMultiplier (e.g. from ARC or HuntBot radar) to boost non-Common tiers.
+ * Only rolls among tiers that currently have at least 1 species defined.
  */
 function rollAnimal(luckMultiplier = 1) {
   const safeMult = Math.max(1, Math.min(2.5, Number(luckMultiplier) || 1));
   const roll = Math.random() * 100;
   let cumulative = 0;
 
-  // Order: Divine -> Ancient -> Mythic -> Legendary -> Epic -> Rare -> Common
-  const sortedRanks = Object.values(ZOO_RANKS).sort((a, b) => a.rarity - b.rarity);
+  const activeRanks = Object.values(ZOO_RANKS)
+    .filter((r) => PET_SPECIES.some((s) => s.tier === r.name))
+    .sort((a, b) => a.rarity - b.rarity);
+
   let selectedRank = ZOO_RANKS.Common;
 
-  for (const r of sortedRanks) {
+  for (const r of activeRanks) {
     const effectiveRarity = r.name === "Common" ? r.rarity : r.rarity * safeMult;
     cumulative += effectiveRarity;
     if (roll < cumulative) {
@@ -197,7 +227,6 @@ function addAnimalToUserZoo(user, caughtAnimal, count = 1) {
     user.markModified("zoo");
   }
 
-  // Sync with RPG pets so any caught animal is immediately usable in RPG
   let isNewSpecies = false;
   let petObj = null;
   if (user.rpg) {
@@ -276,14 +305,16 @@ function calculateZooPoints(zoo = {}) {
 
 /**
  * Formats footer rank breakdown text:
- * D-X, A-X, M-X, L-X, E-X, R-X, C-X
+ * S-X, D-X, A-X, M-X, L-X, G-X, E-X, R-X, C-X
  */
 function formatZooScoreText(zoo = {}) {
   const counts = {
+    S: 0,
     D: 0,
     A: 0,
     M: 0,
     L: 0,
+    G: 0,
     E: 0,
     R: 0,
     C: 0,
@@ -300,12 +331,13 @@ function formatZooScoreText(zoo = {}) {
     }
   }
 
-  return `D-${counts.D}, A-${counts.A}, M-${counts.M}, L-${counts.L}, E-${counts.E}, R-${counts.R}, C-${counts.C}`;
+  return `S-${counts.S}, D-${counts.D}, A-${counts.A}, M-${counts.M}, L-${counts.L}, G-${counts.G}, E-${counts.E}, R-${counts.R}, C-${counts.C}`;
 }
 
 module.exports = {
   ZOO_RANKS,
   PET_SPECIES,
+  getPetBattleStats,
   rollAnimal,
   addAnimalToUserZoo,
   getAnimal,

@@ -8,17 +8,19 @@ const {
   calculateZooPoints,
   formatZooScoreText,
 } = require("../../../data/animals");
+const { findPetSpecies } = require("../../../data/pets");
 
 class ZooCommand extends BaseCommand {
   constructor() {
     super({
       name: "zoo",
       aliases: ["z"],
-      description: "Hiển thị sở thú (zoo) với các loài thú đã thu phục theo bậc của CokeBot.",
-      usage: `${config.prefix}zoo [all / display / @User]`,
+      description: "Hiển thị sở thú (zoo) hoặc xem chi tiết chỉ số Linh Thú.",
+      usage: `${config.prefix}zoo [all / display / @User / tên_thú]`,
       examples: [
         { intent: "Xem zoo cá nhân", command: `${config.prefix}zoo` },
         { intent: "Xem zoo bằng alias", command: `${config.prefix}z` },
+        { intent: "Xem chi tiết thú", command: `${config.prefix}zoo ong` },
         { intent: "Xem toàn bộ lịch sử thú đã từng bắt", command: `${config.prefix}zoo display` },
         { intent: "Xem zoo người khác", command: `${config.prefix}zoo @User` },
       ],
@@ -26,7 +28,7 @@ class ZooCommand extends BaseCommand {
     });
   }
 
-  async execute(message, args) {
+  async execute(message, args = []) {
     let targetUser = message.author;
     let isDisplayAll = false;
 
@@ -40,6 +42,13 @@ class ZooCommand extends BaseCommand {
     const mentioned = message.mentions.users.first();
     if (mentioned) {
       targetUser = mentioned;
+    }
+
+    // If the user passed a specific pet name/alias (e.g. `xzoo ong`), delegate to PetCommand's detail view
+    const query = args.join(" ").trim();
+    if (query && !isDisplayAll && !mentioned && findPetSpecies(query)) {
+      const petCommand = require("../pet/pet");
+      return petCommand.execute(message, args);
     }
 
     const dbUser = await getUser(targetUser.id);
@@ -70,25 +79,43 @@ class ZooCommand extends BaseCommand {
         : Number(val) || 0;
       if (count > biggest) biggest = count;
     }
-    // Dynamic superscript digits (OwO exact formula: 1 digit for 0-9, 2 digits for 10-99, 3 digits for 100-999, etc.)
+    // Dynamic superscript digits (1 digit for 0-9, 2 digits for 10-99, 3 digits for 100-999, etc.)
     const digits = Math.trunc(Math.log10(biggest || 1) + 1);
 
-    // Tiers order: Common -> Rare -> Epic -> Legendary -> Mythic -> Ancient -> Divine
-    const tiersOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+    // Tiers order: Common -> Rare -> Epic -> Generation (G) -> Legendary -> Mythic -> Ancient -> Divine -> Secret (S)
+    const tiersOrder = [
+      "Common",
+      "Rare",
+      "Epic",
+      "Generation",
+      "Legendary",
+      "Mythic",
+      "Ancient",
+      "Divine",
+      "Secret",
+    ];
 
     const targetName = message.guild?.members?.cache?.get(targetUser.id)?.displayName || targetUser.username;
     let response = `🌿 🌱 🌳 **${targetName}'s zoo!** 🌳 🌱 🌿\n\n`;
-
-    let displayedRowCount = 0;
 
     for (const tierName of tiersOrder) {
       const rank = ZOO_RANKS[tierName];
       if (!rank) continue;
 
       const speciesList = PET_SPECIES.filter((s) => s.tier === tierName);
-      if (!speciesList || speciesList.length === 0) continue;
+      const badge = rank.emoji || `\`${rank.letter}\``;
 
-      // Check how many animals in this tier have been discovered (totalCount > 0 or count > 0)
+      // Placeholder rows for newly created Generation (G) and Secret (S) tiers before pets are added
+      if (speciesList.length === 0) {
+        if (tierName === "Generation" || tierName === "Secret") {
+          const placeholderSlots = Array(5)
+            .fill(`❓${toSmallNum(0, digits)}`)
+            .join("  ");
+          response += `${badge}    ${placeholderSlots}\n`;
+        }
+        continue;
+      }
+
       const tierDiscovered = speciesList.filter((a) => {
         const stored = zoo[a.key];
         if (!stored) return false;
@@ -98,13 +125,11 @@ class ZooCommand extends BaseCommand {
         return Number(stored) > 0;
       });
 
-      // Higher tiers (Rare, Epic, Legendary, Mythic, Ancient, Divine) are hidden until at least 1 animal is discovered!
-      if (tierName !== "Common" && tierDiscovered.length === 0) {
+      // Higher tiers are hidden until at least 1 animal in that tier is discovered (unless `display` / `all` is passed)
+      if (tierName !== "Common" && tierDiscovered.length === 0 && !isDisplayAll) {
         continue;
       }
 
-      displayedRowCount++;
-      const badge = rank.emoji || `\`${rank.letter}\``;
       const rowItems = speciesList.map((a) => {
         const stored = zoo[a.key];
         let cnt = 0;
@@ -118,12 +143,10 @@ class ZooCommand extends BaseCommand {
           cnt = stored;
         }
 
-        // If never owned before, do NOT reveal the animal emoji! Show as mystery question mark
         if (!isDiscovered) {
           return `❓${toSmallNum(0, digits)}`;
         }
 
-        // If discovered (even if currently 0 due to selling), show the revealed emoji!
         return `${a.emoji}${toSmallNum(cnt, digits)}`;
       });
 
@@ -141,7 +164,7 @@ class ZooCommand extends BaseCommand {
     response += `\n**Zoo Points: __${allTimePoints.toLocaleString()}__**\n`;
     response += `\t**${scoreText}**`;
 
-    return message.reply({ content: response, allowedMentions: { repliedUser: false } });
+    return message.channel.send(response);
   }
 }
 

@@ -6,12 +6,14 @@ function getXpNeeded(level) {
 }
 
 function getRankEmoji(level) {
-  if (level >= 71) return "<a:divine:1530878610515165365>";
-  if (level >= 61) return "<a:ancient:1530878606656540814>";
-  if (level >= 51) return "<a:mythic:1530878614843686912>";
-  if (level >= 41) return "<:legendary:1530878570858287205>";
-  if (level >= 31) return "<:epic:1530878567955566642>";
-  if (level >= 21) return "<:rare:1530878574104547378>";
+  if (level >= 81) return config.emoji?.ranks?.secret || "🇸";
+  if (level >= 66) return "<a:divine:1530878610515165365>";
+  if (level >= 56) return "<a:ancient:1530878606656540814>";
+  if (level >= 46) return "<a:mythic:1530878614843686912>";
+  if (level >= 36) return "<:legendary:1530878570858287205>";
+  if (level >= 31) return config.emoji?.ranks?.generation || "🇬";
+  if (level >= 21) return "<:epic:1530878567955566642>";
+  if (level >= 11) return "<:rare:1530878574104547378>";
   return "<:common:1530878565489311826>";
 }
 

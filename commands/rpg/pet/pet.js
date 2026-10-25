@@ -3,24 +3,26 @@ const { EmbedBuilder, AttachmentBuilder } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 const config = require("../../../data/config");
-const { requireRpgCharacter, getEquippedPet } = require("../../../utils/rpgUtil");
+const { requireRpgCharacter } = require("../../../utils/rpgUtil");
 const {
+  PET_STAT_ICONS,
   PET_TIERS,
-  PET_SPECIES,
+  getPetBattleStats,
   generatePetStats,
   findPetSpecies,
 } = require("../../../data/pets");
+const { ZOO_RANKS } = require("../../../data/animals");
 const { getXpRequired } = require("../../../utils/petXpUtil");
-const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
+const { getRpgColor, formatRpgFooter } = require("../../../utils/rpgUi");
 const zooCommand = require("../hunt/zoo");
 
 class PetCommand extends BaseCommand {
   constructor() {
     super({
       name: "pet",
-      aliases: ["pets", "p"],
+      aliases: ["pets", "p", "dex"],
       category: "rpg",
-      description: "Xem danh sách Linh Thú sở hữu hoặc chi tiết Linh Thú của bạn.",
+      description: "Xem sở thú (zoo) hoặc bảng Dex 6 chỉ số chi tiết của một Linh Thú.",
       usage: "xpet [tên_pet]",
     });
   }
@@ -59,6 +61,7 @@ class PetCommand extends BaseCommand {
         await user.save().catch(() => {});
       }
     }
+
     const query = args.join(" ").trim();
     const lowerQuery = query.toLowerCase();
     const isZooFlag =
@@ -101,21 +104,20 @@ class PetCommand extends BaseCommand {
       );
     }
 
-    const tierConfig = PET_TIERS[targetSpecies ? targetSpecies.tier : "Common"] || PET_TIERS.Common;
+    const tierName = targetSpecies ? targetSpecies.tier : (ownedPet?.tier || "Common");
+    const tierConfig = PET_TIERS[tierName] || PET_TIERS.Common;
+    const zooRank = ZOO_RANKS[tierName] || ZOO_RANKS.Common;
+
     const petData = ownedPet || {
       id: "preview",
       key: targetSpecies.key,
       name: targetSpecies.name,
       nickname: targetSpecies.name,
-      tier: targetSpecies.tier,
+      tier: tierName,
       emoji: targetSpecies.emoji,
       level: 1,
       exp: 0,
-      stats: {
-        baseHp: tierConfig.baseHp,
-        baseAtk: tierConfig.baseAtk,
-        baseDef: tierConfig.baseDef,
-      },
+      stats: generatePetStats(targetSpecies),
     };
 
     const isOwned = Boolean(ownedPet);
@@ -128,53 +130,58 @@ class PetCommand extends BaseCommand {
     const level = petData.level || 1;
     const currentExp = petData.exp || 0;
     const neededExp = getXpRequired(level);
-
-    const tierMulti = {
-      Common: 100,
-      Rare: 250,
-      Epic: 500,
-      Legendary: 1000,
-      Mythic: 2000,
-      Ancient: 3500,
-      Divine: 5000,
-    };
-
-    const hpVal = petData.stats?.baseHp || tierConfig.baseHp || 0;
-    const atkVal = petData.stats?.baseAtk || tierConfig.baseAtk || 0;
-    const defVal = petData.stats?.baseDef || tierConfig.baseDef || 0;
-
-    const powerPoints =
-      (tierMulti[petData.tier] || 100) +
-      hpVal * 2 +
-      atkVal * 5 +
-      defVal * 4 +
-      level * 35;
-
-    const hpPct = (level * 0.5).toFixed(1);
-    const atkPct = (level * 0.4).toFixed(1);
-    const defPct = (level * 0.35).toFixed(2);
-
-    const aliasesStr = (targetSpecies?.aliases || [petData.key]).join(", ");
-    const desc = targetSpecies?.description || "*Linh thú huyền bí mang sức mạnh bổ trợ.*";
     const expStr = typeof neededExp === "number" && Number.isFinite(neededExp) ? `${currentExp}/${neededExp}` : "MAX";
 
-    const embed = new EmbedBuilder()
-      .setColor(isEquipped ? getRpgColor("accent") : getRpgColor("surface"))
-      .setTitle(formatRpgTitle(`${petData.name}${isEquipped ? " • đang trang bị" : ""}`, petData.emoji))
-      .setDescription(`*${desc}*`)
-      .addFields(
-        { name: "Cấp độ", value: `\`${level}\` • ${expStr} XP`, inline: true },
-        { name: "Hạng", value: `${tierConfig.emoji} ${petData.tier}`, inline: true },
-        { name: "Điểm hỗ trợ", value: `+${powerPoints.toLocaleString()}`, inline: true },
-        { name: "HP", value: `+${hpVal} (+${hpPct}%)`, inline: true },
-        { name: "ATK", value: `+${atkVal} (+${atkPct}%)`, inline: true },
-        { name: "DEF", value: `+${defVal} (+${defPct}%)`, inline: true },
-        { name: "Tên gọi khác", value: `\`${aliasesStr}\``, inline: true },
-        { name: "Trạng thái", value: isOwned ? (isEquipped ? `${config.emoji.yes} Đang trang bị` : "Trong kho") : `${config.emoji.no} Chưa sở hữu`, inline: true }
-      )
-      .setFooter(formatRpgFooter("Linh thú • dùng xpet <tên> để xem chi tiết"));
+    // Zoo counts (current / total caught)
+    const zooEntry = user.zoo?.[petData.key];
+    const currentCount = typeof zooEntry === "object" && zooEntry !== null
+      ? (zooEntry.count ?? 0)
+      : (Number(zooEntry) || (isOwned ? 1 : 0));
+    const totalCount = typeof zooEntry === "object" && zooEntry !== null
+      ? (zooEntry.totalCount ?? currentCount)
+      : currentCount;
 
-    // Resolve and attach pet image for display at bottom of embed
+    // 6 Battle Stats (0 - 19 points) & scaled combat stats
+    const { points: bStats, role, scaled } = getPetBattleStats(targetSpecies || petData, level);
+
+    const aliasesStr = (targetSpecies?.aliases || [petData.key]).join(", ");
+    const desc = targetSpecies?.description || "Linh thú huyền bí mang sức mạnh bổ trợ.";
+
+    const statIcons = {
+      hp: config.emoji?.petStats?.hp || PET_STAT_ICONS.hp,
+      att: config.emoji?.petStats?.att || PET_STAT_ICONS.att,
+      pr: config.emoji?.petStats?.pr || PET_STAT_ICONS.pr,
+      wp: config.emoji?.petStats?.wp || PET_STAT_ICONS.wp,
+      mag: config.emoji?.petStats?.mag || PET_STAT_ICONS.mag,
+      mr: config.emoji?.petStats?.mr || PET_STAT_ICONS.mr,
+    };
+
+    const dexLines = [
+      `*${desc}*`,
+      "",
+      `**Count:** ${currentCount}/${totalCount}`,
+      `**Rank:** ${zooRank.emoji || tierConfig.emoji} ${tierName.toLowerCase()}`,
+      `**Role:** ${role} *(Lv.${level} • ${expStr} XP)*`,
+      `**Alias:** ${aliasesStr}`,
+      `**Points:** ${(zooRank.points || tierConfig.points || 1).toLocaleString()}`,
+      `**Sell:** ${(zooRank.price || 80).toLocaleString()} Coke`,
+      `**Sacrifice:** ${(zooRank.essence || 5).toLocaleString()} Essence`,
+      `${statIcons.hp} \`${bStats.hp}\` ${statIcons.att} \`${bStats.att}\` ${statIcons.pr} \`${bStats.pr}\``,
+      `${statIcons.wp} \`${bStats.wp}\` ${statIcons.mag} \`${bStats.mag}\` ${statIcons.mr} \`${bStats.mr}\``,
+    ];
+
+    const embed = new EmbedBuilder()
+      .setColor(isEquipped ? getRpgColor("accent") : 0x3b82f6)
+      .setTitle(`${petData.emoji} ${petData.name}${isEquipped ? " • Đang trang bị" : ""}`)
+      .setDescription(dexLines.join("\n"))
+      .addFields({
+        name: `Chỉ số thực chiến (Lv.${level})`,
+        value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
+        inline: false,
+      })
+      .setFooter(formatRpgFooter("Dex Linh Thú • Dùng xaddpet <tên> để trang bị"));
+
+    // Resolve and attach pet image as top-right thumbnail (matching Dex card layout)
     let petImageAttachment = null;
     let petImageUrl = null;
 
@@ -211,7 +218,7 @@ class PetCommand extends BaseCommand {
     }
 
     if (petImageUrl) {
-      embed.setImage(petImageUrl);
+      embed.setThumbnail(petImageUrl);
     }
 
     const payload = { embeds: [embed] };
