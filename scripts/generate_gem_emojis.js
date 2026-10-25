@@ -87,11 +87,62 @@ function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
 }
 
 /**
+ * HSL color adjuster for precise rank hue shift, desaturation, and lightness tuning
+ */
+function adjustPixelHSL(r, g, b, satMult = 1.0, lightMult = 1.0, hueShift = 0) {
+  let rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rNorm: h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0); break;
+      case gNorm: h = (bNorm - rNorm) / d + 2; break;
+      case bNorm: h = (rNorm - gNorm) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  h = (h + hueShift + 1) % 1;
+  s = Math.max(0, Math.min(1, s * satMult));
+  l = Math.max(0, Math.min(1, l * lightMult));
+
+  function hue2rgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  }
+
+  let rOut, gOut, bOut;
+  if (s === 0) {
+    rOut = gOut = bOut = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    rOut = hue2rgb(p, q, h + 1/3);
+    gOut = hue2rgb(p, q, h);
+    bOut = hue2rgb(p, q, h - 1/3);
+  }
+
+  return [Math.round(rOut * 255), Math.round(gOut * 255), Math.round(bOut * 255)];
+}
+
+/**
  * Extract cell from 3x3 sheet, remove background/borders, and render with crisp tasteful pixel art stepping
  */
-function extractPixelGemCell(sheetImg, row, col, pixelRes = 64, isSecret = false) {
-  const cellW = sheetImg.width / 3;
-  const cellH = sheetImg.height / 3;
+function extractPixelGemCell(sheetImg, row, col, pixelRes = 64, isSecret = false, rankName = '') {
+  // CRITICAL FIX: Math.floor prevents fractional width/height floats (1024/3 = 341.333)
+  // which broke typed-array integer indexing and caused black background rectangular artifacts.
+  const cellW = Math.floor(sheetImg.width / 3);
+  const cellH = Math.floor(sheetImg.height / 3);
 
   const rawCanvas = createCanvas(cellW, cellH);
   const rawCtx = rawCanvas.getContext('2d');
@@ -161,6 +212,24 @@ function extractPixelGemCell(sheetImg, row, col, pixelRes = 64, isSecret = false
       if (px > maxX) maxX = px;
       if (py < minY) minY = py;
       if (py > maxY) maxY = py;
+
+      // Color tuning based on rank tier:
+      // 1. First 3 low ranks: simpler, paler, soft pastel mineral tones
+      if (rankName === 'common') {
+        const [nr, ng, nb] = adjustPixelHSL(data[pIdx], data[pIdx + 1], data[pIdx + 2], 0.20, 0.95, 0);
+        data[pIdx] = nr; data[pIdx + 1] = ng; data[pIdx + 2] = nb;
+      } else if (rankName === 'rare') {
+        const [nr, ng, nb] = adjustPixelHSL(data[pIdx], data[pIdx + 1], data[pIdx + 2], 0.65, 0.95, 0);
+        data[pIdx] = nr; data[pIdx + 1] = ng; data[pIdx + 2] = nb;
+      } else if (rankName === 'epic') {
+        const [nr, ng, nb] = adjustPixelHSL(data[pIdx], data[pIdx + 1], data[pIdx + 2], 0.60, 0.95, 0);
+        data[pIdx] = nr; data[pIdx + 1] = ng; data[pIdx + 2] = nb;
+      }
+      // 2. Divine: distinctly Celestial Emerald Jade Green (completely separate from Generation's Ice Mint Cyan)
+      else if (rankName === 'divine') {
+        const [nr, ng, nb] = adjustPixelHSL(data[pIdx], data[pIdx + 1], data[pIdx + 2], 1.25, 1.0, -0.09);
+        data[pIdx] = nr; data[pIdx + 1] = ng; data[pIdx + 2] = nb;
+      }
     }
   }
 
@@ -354,7 +423,7 @@ function applyDivineEffect(ctx, baseImg, frameIndex, totalFrames) {
   ctx.globalCompositeOperation = 'lighter';
   ctx.translate(cx, cy);
   ctx.rotate(progress * Math.PI * 2);
-  ctx.fillStyle = `rgba(170, 255, 255, ${alpha * 0.85})`;
+  ctx.fillStyle = `rgba(160, 255, 200, ${alpha * 0.85})`;
   ctx.fillRect(Math.round(-rayLen), -1.5, Math.round(rayLen * 2), 3);
   ctx.fillRect(-1.5, Math.round(-rayLen), 3, Math.round(rayLen * 2));
 
@@ -368,7 +437,7 @@ function applyDivineEffect(ctx, baseImg, frameIndex, totalFrames) {
   const sheenPos = -25 + progress * (width + 50);
   const grad = ctx.createLinearGradient(sheenPos - 22, sheenPos - 22, sheenPos + 22, sheenPos + 22);
   grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.5, 'rgba(180, 255, 255, 0.75)');
+  grad.addColorStop(0.5, 'rgba(180, 255, 210, 0.75)');
   grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
@@ -385,7 +454,7 @@ function applyDivineEffect(ctx, baseImg, frameIndex, totalFrames) {
       const prog = cycle / 0.45;
       const size = Math.sin(prog * Math.PI) * 3.5;
       const a = Math.sin(prog * Math.PI);
-      drawSparkleStar(ctx, p.x, p.y, size, a, '#a4feff');
+      drawSparkleStar(ctx, p.x, p.y, size, a, '#7bed9f');
     }
   });
 }
@@ -501,7 +570,7 @@ async function main() {
 
       // Extract with border flood-fill isolation (protects dark obsidian facets) and subtle 64px pixel stepping
       const isSecret = rank === 'secret';
-      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret);
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret, rank);
 
       const pngFilename = `gem_${id}_${t}_${rank}.png`;
       const outPng = path.join(OUT_DIR, pngFilename);
@@ -534,13 +603,13 @@ async function main() {
   const typeHeaders = ['Hunting Gem 💎', 'Empowering Gem 🔮', 'Lucky Gem 💖', 'Special Gem 🔺'];
   const rankColors = {
     common: '#c4c2c7',
-    rare: '#fdef2e',
-    epic: '#5bcafd',
+    rare: '#e6d875',
+    epic: '#7ab8d6',
     generation: '#4ce1f9',
     legendary: '#c487fa',
     mythic: '#f65fc3',
     ancient: '#fb8c2e',
-    divine: '#4cf9fb',
+    divine: '#0be881',
     secret: '#dcdce1'
   };
 
@@ -589,7 +658,7 @@ async function main() {
       const row = Math.floor(rIdx / 3);
       const col = rIdx % 3;
       const isSecret = rank === 'secret';
-      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret);
+      const gemCanvas = extractPixelGemCell(sheetImg, row, col, 64, isSecret, rank);
 
       const cx = LABEL_W + cIdx * CELL_W + (CELL_W - CANVAS_SIZE) / 2;
       const cy = yRow + (CELL_H - CANVAS_SIZE) / 2;
