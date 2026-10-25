@@ -1,7 +1,18 @@
 /**
  * CokeBot OwO-Style Gem Emojis Generator
- * Generates simple, clean geometric vector gems matching OwO Bot with rank-based recoloring
- * and animated GIFs for special ranks (Generation, Mythic, Ancient, Divine, Secret, Legendary).
+ * Generates simple, clean geometric vector gems matching OwO Bot with exact CokeBot rank colors
+ * and animated GIFs for special ranks (Generation, Legendary, Mythic, Ancient, Divine, Secret).
+ *
+ * CokeBot Rank Palette Mapping:
+ * - Common (C): Silver / White (#c4c2c7 / #f1f0f2)
+ * - Rare (R): Bright Golden Yellow (#fdef2e / #fffa81)
+ * - Epic (E): Electric Sky Blue (#5bcafd / #92e5ff)
+ * - Generation (G): Ice-Mint Cyan (#4ce1f9 / #d5fcfd)
+ * - Legendary (L): Royal Orchid Purple (#c487fa / #e9c3ff)
+ * - Mythic (M): Hot Magenta / Neon Pink (#f65fc3 / #fd96e4)
+ * - Ancient (A): Flame Orange / Amber Fire (#fb8c2e / #ffb66e)
+ * - Divine (D): Celestial Turquoise Teal (#4cf9fb / #a4feff)
+ * - Secret (S): Obsidian Dark Void / Carbon Silver (#18181a / #b9b9b9)
  */
 
 const { createCanvas, loadImage } = require('canvas');
@@ -24,7 +35,7 @@ const ARTIFACT_DIR = 'C:/Users/khang/.gemini/antigravity/brain/e1573dd0-adcd-4dc
 function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
   if (size <= 0) return;
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
   ctx.fillStyle = color;
 
   const s = Math.max(1, Math.round(size));
@@ -37,15 +48,93 @@ function drawSparkleStar(ctx, cx, cy, size, alpha = 1, color = '#ffffff') {
 }
 
 /**
- * Recolor greyscale image using 3-segment color ramp on Canvas
+ * Exact 5-Point Color Ramps matching CokeBot Rank Badges
  */
-function recolorCanvasImage(img, shadowRgb, midRgb, highlightRgb, specRgb = [255, 255, 255]) {
+const RANK_RAMPS = {
+  common: {
+    border: [16, 16, 18],
+    shadow: [60, 60, 65],
+    mid: [120, 120, 128],
+    light: [196, 194, 199],
+    hi: [255, 255, 255]
+  },
+  uncommon: {
+    border: [0, 51, 0],
+    shadow: [27, 94, 32],
+    mid: [56, 142, 60],
+    light: [129, 199, 132],
+    hi: [220, 245, 220]
+  },
+  rare: { // R = Bright Yellow / Gold (Rank R in CokeBot)
+    border: [35, 25, 0],
+    shadow: [120, 85, 5],
+    mid: [200, 160, 15],
+    light: [253, 239, 46],
+    hi: [255, 252, 180]
+  },
+  epic: { // E = Electric Sky Blue (Rank E in CokeBot)
+    border: [4, 17, 46],
+    shadow: [15, 50, 100],
+    mid: [35, 120, 200],
+    light: [91, 202, 253],
+    hi: [200, 245, 255]
+  },
+  generation: { // G = Ice-Mint Cyan (Rank G in CokeBot)
+    border: [6, 34, 52],
+    shadow: [10, 65, 95],
+    mid: [25, 145, 185],
+    light: [76, 225, 249],
+    hi: [220, 254, 254]
+  },
+  legendary: { // L = Royal Purple / Violet (Rank L in CokeBot)
+    border: [22, 10, 40],
+    shadow: [70, 25, 110],
+    mid: [135, 55, 195],
+    light: [196, 135, 250],
+    hi: [245, 225, 255]
+  },
+  mythic: { // M = Hot Magenta / Neon Pink (Rank M in CokeBot)
+    border: [33, 2, 19],
+    shadow: [95, 12, 60],
+    mid: [180, 35, 125],
+    light: [246, 95, 195],
+    hi: [255, 210, 245]
+  },
+  ancient: { // A = Fiery Flame Orange (Rank A in CokeBot)
+    border: [30, 7, 0],
+    shadow: [100, 35, 5],
+    mid: [190, 75, 12],
+    light: [251, 140, 46],
+    hi: [255, 220, 160]
+  },
+  divine: { // D = Celestial Turquoise Teal (Rank D in CokeBot)
+    border: [3, 31, 32],
+    shadow: [10, 75, 75],
+    mid: [25, 165, 165],
+    light: [76, 249, 251],
+    hi: [215, 255, 255]
+  },
+  secret: { // S = Obsidian Dark Void / Carbon Silver (Rank S in CokeBot)
+    border: [8, 8, 8],
+    shadow: [24, 24, 26],
+    mid: [55, 55, 60],
+    light: [120, 120, 125],
+    hi: [220, 220, 225]
+  }
+};
+
+/**
+ * High-fidelity 4-segment color ramp mapping greyscale OwO gem pixels to rank palette
+ */
+function recolorCanvasImage(img, ramp) {
   const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   const imgData = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   const data = imgData.data;
+
+  const { border, shadow, mid, light, hi } = ramp;
 
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3];
@@ -56,24 +145,24 @@ function recolorCanvasImage(img, shadowRgb, midRgb, highlightRgb, specRgb = [255
 
     if (lum < 0.45) {
       const t = lum / 0.45;
-      r = t * shadowRgb[0];
-      g = t * shadowRgb[1];
-      b = t * shadowRgb[2];
-    } else if (lum < 0.75) {
-      const t = (lum - 0.45) / 0.30;
-      r = (1 - t) * shadowRgb[0] + t * midRgb[0];
-      g = (1 - t) * shadowRgb[1] + t * midRgb[1];
-      b = (1 - t) * shadowRgb[2] + t * midRgb[2];
-    } else if (lum < 0.92) {
-      const t = (lum - 0.75) / 0.17;
-      r = (1 - t) * midRgb[0] + t * highlightRgb[0];
-      g = (1 - t) * midRgb[1] + t * highlightRgb[1];
-      b = (1 - t) * midRgb[2] + t * highlightRgb[2];
+      r = (1 - t) * border[0] + t * shadow[0];
+      g = (1 - t) * border[1] + t * shadow[1];
+      b = (1 - t) * border[2] + t * shadow[2];
+    } else if (lum < 0.68) {
+      const t = (lum - 0.45) / 0.23;
+      r = (1 - t) * shadow[0] + t * mid[0];
+      g = (1 - t) * shadow[1] + t * mid[1];
+      b = (1 - t) * shadow[2] + t * mid[2];
+    } else if (lum < 0.88) {
+      const t = (lum - 0.68) / 0.20;
+      r = (1 - t) * mid[0] + t * light[0];
+      g = (1 - t) * mid[1] + t * light[1];
+      b = (1 - t) * mid[2] + t * light[2];
     } else {
-      const t = (lum - 0.92) / 0.08;
-      r = (1 - t) * highlightRgb[0] + t * specRgb[0];
-      g = (1 - t) * highlightRgb[1] + t * specRgb[1];
-      b = (1 - t) * highlightRgb[2] + t * specRgb[2];
+      const t = (lum - 0.88) / 0.12;
+      r = (1 - t) * light[0] + t * hi[0];
+      g = (1 - t) * light[1] + t * hi[1];
+      b = (1 - t) * light[2] + t * hi[2];
     }
 
     data[i] = Math.round(Math.min(255, Math.max(0, r)));
@@ -86,7 +175,7 @@ function recolorCanvasImage(img, shadowRgb, midRgb, highlightRgb, specRgb = [255
 }
 
 /**
- * ❄️ GENERATION EFFECT (Tier G - Mint & Ice-Cyan Cyber Sweep)
+ * ❄️ GENERATION EFFECT (Tier G - Ice-Mint Cyan Cyber Sweep)
  */
 function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
@@ -98,7 +187,7 @@ function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
   const sheenPos = -30 + progress * (width + 60);
   const grad = ctx.createLinearGradient(sheenPos - 22, sheenPos - 22, sheenPos + 22, sheenPos + 22);
   grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.5, 'rgba(180, 255, 255, 0.75)');
+  grad.addColorStop(0.5, 'rgba(200, 255, 255, 0.75)');
   grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
@@ -106,9 +195,9 @@ function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
 
   // Floating frost motes
   const particles = [
-    { x: width * 0.28, yBase: height * 0.82, phase: 0.0, color: '#00f2fe' },
-    { x: width * 0.72, yBase: height * 0.78, phase: 0.3, color: '#4facfe' },
-    { x: width * 0.50, yBase: height * 0.65, phase: 0.6, color: '#ffffff' }
+    { x: width * 0.28, yBase: height * 0.82, phase: 0.0, color: '#7df9ff' },
+    { x: width * 0.72, yBase: height * 0.78, phase: 0.33, color: '#a7f3d0' },
+    { x: width * 0.50, yBase: height * 0.65, phase: 0.66, color: '#ffffff' }
   ];
 
   particles.forEach(p => {
@@ -121,28 +210,63 @@ function applyGenerationEffect(ctx, img, frameIndex, totalFrames) {
 }
 
 /**
- * 🌸 MYTHIC EFFECT (Tier M - Ruby Flame & Pink Diamond Dust)
+ * 👑 LEGENDARY EFFECT (Tier L - Royal Purple Arcane Sheen & Violet Stardust)
  */
-function applyMythicEffect(ctx, img, frameIndex, totalFrames) {
+function applyLegendaryEffect(ctx, img, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
   const width = CANVAS_SIZE, height = CANVAS_SIZE;
 
-  // Sheen sweep
+  // Royal Purple Sheen Sweep
   ctx.save();
   ctx.globalCompositeOperation = 'source-atop';
-  const sheenPos = -25 + progress * (width + 50);
-  const grad = ctx.createLinearGradient(sheenPos - 20, sheenPos - 20, sheenPos + 20, sheenPos + 20);
+  const sheenPos = -30 + progress * (width + 60);
+  const grad = ctx.createLinearGradient(sheenPos - 24, sheenPos - 24, sheenPos + 24, sheenPos + 24);
   grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.5, 'rgba(255, 180, 200, 0.7)');
+  grad.addColorStop(0.5, 'rgba(220, 175, 255, 0.78)');
   grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
   ctx.restore();
 
-  // Ruby sparkles
+  // Violet arcane dust
+  const sparks = [
+    { x: width * 0.26, yBase: height * 0.82, phase: 0.1, color: '#c487fa' },
+    { x: width * 0.74, yBase: height * 0.80, phase: 0.45, color: '#e9c3ff' },
+    { x: width * 0.50, yBase: height * 0.50, phase: 0.8, color: '#ffffff' }
+  ];
+
+  sparks.forEach(p => {
+    const t = (progress + p.phase) % 1;
+    const currY = p.yBase - t * (height * 0.45);
+    const alpha = Math.sin(t * Math.PI);
+    const size = 1.5 + Math.sin(t * Math.PI) * 2.8;
+    drawSparkleStar(ctx, p.x, currY, size, alpha, p.color);
+  });
+}
+
+/**
+ * 🌸 MYTHIC EFFECT (Tier M - Hot Magenta Sheen & Pink Diamond Dust)
+ */
+function applyMythicEffect(ctx, img, frameIndex, totalFrames) {
+  const progress = frameIndex / totalFrames;
+  const width = CANVAS_SIZE, height = CANVAS_SIZE;
+
+  // Magenta Sheen Sweep
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const sheenPos = -25 + progress * (width + 50);
+  const grad = ctx.createLinearGradient(sheenPos - 20, sheenPos - 20, sheenPos + 20, sheenPos + 20);
+  grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  grad.addColorStop(0.5, 'rgba(255, 180, 225, 0.75)');
+  grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  // Pink diamond sparkles
   const sparkles = [
-    { x: width * 0.30, yBase: height * 0.85, phase: 0.1, color: '#ff4081' },
-    { x: width * 0.70, yBase: height * 0.85, phase: 0.4, color: '#ff5252' },
+    { x: width * 0.30, yBase: height * 0.85, phase: 0.1, color: '#f65fc3' },
+    { x: width * 0.70, yBase: height * 0.85, phase: 0.4, color: '#fd96e4' },
     { x: width * 0.50, yBase: height * 0.45, phase: 0.7, color: '#ffffff' }
   ];
 
@@ -156,14 +280,49 @@ function applyMythicEffect(ctx, img, frameIndex, totalFrames) {
 }
 
 /**
- * 💎 DIVINE EFFECT (Tier D - Celestial Supernova & Rotating Golden Rays)
+ * 🔥 ANCIENT EFFECT (Tier A - Flame Orange Energy Surge & Embers)
+ */
+function applyAncientEffect(ctx, img, frameIndex, totalFrames) {
+  const progress = frameIndex / totalFrames;
+  const width = CANVAS_SIZE, height = CANVAS_SIZE;
+
+  // Energy surge rising
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-atop';
+  const surgeY = height * 0.95 - progress * (height * 0.9);
+  const grad = ctx.createLinearGradient(0, surgeY - 18, 0, surgeY + 18);
+  grad.addColorStop(0, 'rgba(255, 200, 80, 0)');
+  grad.addColorStop(0.5, 'rgba(255, 200, 80, 0.70)');
+  grad.addColorStop(1, 'rgba(255, 200, 80, 0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+
+  // Rising embers
+  const embers = [
+    { x: width * 0.30, yBase: height * 0.85, drift: 8, phase: 0.0, color: '#fb8c2e' },
+    { x: width * 0.70, yBase: height * 0.85, drift: -8, phase: 0.33, color: '#ffe600' },
+    { x: width * 0.50, yBase: height * 0.75, drift: 4, phase: 0.66, color: '#ff5722' }
+  ];
+
+  embers.forEach(e => {
+    const t = (progress + e.phase) % 1;
+    const currY = e.yBase - t * (height * 0.55);
+    const currX = e.x + Math.sin(t * Math.PI * 2) * e.drift;
+    const alpha = Math.sin(t * Math.PI);
+    drawSparkleStar(ctx, currX, currY, 2.5, alpha, e.color);
+  });
+}
+
+/**
+ * 💎 DIVINE EFFECT (Tier D - Celestial Turquoise Rotating Ray Cross & Halo)
  */
 function applyDivineEffect(ctx, img, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
   const width = CANVAS_SIZE, height = CANVAS_SIZE;
   const cx = width * 0.5, cy = height * 0.5;
 
-  // Rotating holy ray cross
+  // Rotating holy ray cross in celestial turquoise
   const starPulse = Math.sin(progress * Math.PI * 2);
   const rayLen = 16 + starPulse * 8;
   const alpha = 0.65 + Math.sin(progress * Math.PI * 2) * 0.3;
@@ -172,23 +331,35 @@ function applyDivineEffect(ctx, img, frameIndex, totalFrames) {
   ctx.globalCompositeOperation = 'lighter';
   ctx.translate(cx, cy);
   ctx.rotate(progress * Math.PI * 2);
-  ctx.fillStyle = `rgba(255, 240, 150, ${alpha * 0.75})`;
+  ctx.fillStyle = `rgba(170, 255, 255, ${alpha * 0.85})`;
   ctx.fillRect(-rayLen, -1.5, rayLen * 2, 3);
   ctx.fillRect(-1.5, -rayLen, 3, rayLen * 2);
 
   // Diagonal rays
-  ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.55})`;
+  ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
   ctx.fillRect(-rayLen * 0.65, -1, rayLen * 1.3, 2);
   ctx.fillRect(-1, -rayLen * 0.65, 2, rayLen * 1.3);
   ctx.restore();
 
-  // Golden sheen sweep
+  // Expanding halo ring
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const ringRadius = (progress * (width * 0.42)) % (width * 0.42);
+  const ringAlpha = (1 - ringRadius / (width * 0.42)) * 0.45;
+  ctx.strokeStyle = `rgba(76, 249, 251, ${ringAlpha})`;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Turquoise sheen sweep
   ctx.save();
   ctx.globalCompositeOperation = 'source-atop';
   const sheenPos = -25 + progress * (width + 50);
   const grad = ctx.createLinearGradient(sheenPos - 22, sheenPos - 22, sheenPos + 22, sheenPos + 22);
   grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.5, 'rgba(255, 250, 180, 0.75)');
+  grad.addColorStop(0.5, 'rgba(180, 255, 255, 0.75)');
   grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
@@ -196,62 +367,70 @@ function applyDivineEffect(ctx, img, frameIndex, totalFrames) {
 
   // Corner sparkles
   const corners = [
-    { x: width * 0.25, y: height * 0.25, phase: 0.0 },
-    { x: width * 0.75, y: height * 0.25, phase: 0.33 },
+    { x: width * 0.22, y: height * 0.22, phase: 0.0 },
+    { x: width * 0.78, y: height * 0.22, phase: 0.33 },
     { x: width * 0.50, y: height * 0.82, phase: 0.66 }
   ];
   corners.forEach(p => {
     const cycle = (progress + p.phase) % 1;
     if (cycle < 0.45) {
       const prog = cycle / 0.45;
-      const size = Math.sin(prog * Math.PI) * 4;
+      const size = Math.sin(prog * Math.PI) * 3.5;
       const a = Math.sin(prog * Math.PI);
-      drawSparkleStar(ctx, p.x, p.y, size, a, '#fff8b3');
+      drawSparkleStar(ctx, p.x, p.y, size, a, '#a4feff');
     }
   });
 }
 
 /**
- * 🌌 SECRET EFFECT (Tier S - Cosmic Void Galaxy Pulse & Chromatic Prismatic Shimmer)
+ * 🌌 SECRET EFFECT (Tier S - Obsidian Dark Void Silver Sheen & Floating Stardust)
  */
 function applySecretEffect(ctx, img, frameIndex, totalFrames) {
   const progress = frameIndex / totalFrames;
   const width = CANVAS_SIZE, height = CANVAS_SIZE;
 
-  // Cosmic color wave sheen
+  // Dark obsidian silver sheen sweep
   ctx.save();
   ctx.globalCompositeOperation = 'source-atop';
   const sheenPos = -30 + progress * (width + 60);
-  const grad = ctx.createLinearGradient(sheenPos - 25, sheenPos - 25, sheenPos + 25, sheenPos + 25);
+  const grad = ctx.createLinearGradient(sheenPos - 24, sheenPos - 24, sheenPos + 24, sheenPos + 24);
   grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-  grad.addColorStop(0.3, 'rgba(230, 80, 255, 0.65)');
-  grad.addColorStop(0.7, 'rgba(0, 240, 255, 0.65)');
+  grad.addColorStop(0.5, 'rgba(225, 225, 235, 0.60)');
   grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, width, height);
   ctx.restore();
 
-  // Galaxy starlight motes
+  // Floating void dust sparkles
   const stars = [
-    { x: width * 0.22, yBase: height * 0.80, phase: 0.0, color: '#e040fb' },
-    { x: width * 0.78, yBase: height * 0.75, phase: 0.25, color: '#00e5ff' },
-    { x: width * 0.45, yBase: height * 0.60, phase: 0.50, color: '#ffffff' },
-    { x: width * 0.65, yBase: height * 0.88, phase: 0.75, color: '#b388ff' }
+    { x: width * 0.22, yBase: height * 0.80, phase: 0.0, color: '#dcdce1' },
+    { x: width * 0.78, yBase: height * 0.75, phase: 0.25, color: '#ffffff' },
+    { x: width * 0.45, yBase: height * 0.60, phase: 0.50, color: '#b9b9b9' },
+    { x: width * 0.65, yBase: height * 0.88, phase: 0.75, color: '#ffffff' }
   ];
 
   stars.forEach(p => {
     const t = (progress + p.phase) % 1;
     const currY = p.yBase - t * (height * 0.5);
     const alpha = Math.sin(t * Math.PI);
-    const size = 1.5 + Math.sin(t * Math.PI) * 3;
+    const size = 1.5 + Math.sin(t * Math.PI) * 2.8;
     drawSparkleStar(ctx, p.x, currY, size, alpha, p.color);
   });
 }
 
+const ANIMATION_EFFECTS = {
+  generation: applyGenerationEffect,
+  legendary: applyLegendaryEffect,
+  mythic: applyMythicEffect,
+  ancient: applyAncientEffect,
+  divine: applyDivineEffect,
+  secret: applySecretEffect
+};
+
 /**
  * Generate animated GIF via FFmpeg
  */
-async function generateGif(baseCanvasOrImg, animFn, outputFile, totalFrames = 16, fps = 15) {
+async function generateGif(baseCanvas, animFn, outputFile, totalFrames = 16, fps = 15) {
   const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
   const ctx = canvas.getContext('2d');
 
@@ -270,9 +449,9 @@ async function generateGif(baseCanvasOrImg, animFn, outputFile, totalFrames = 16
 
   for (let i = 0; i < totalFrames; i++) {
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    ctx.drawImage(baseCanvasOrImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.drawImage(baseCanvas, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
     if (animFn) {
-      animFn(ctx, baseCanvasOrImg, i, totalFrames);
+      animFn(ctx, baseCanvas, i, totalFrames);
     }
     const buffer = canvas.toBuffer('raw');
     ffmpeg.stdin.write(buffer);
@@ -293,162 +472,142 @@ const GEM_SPECS = [
     type: 'hunting',
     shapeName: 'Hunting Gem',
     prefix: 'Generic Hunting Gem.png',
-    commonFile: 'Common Hunting Gem.png',
-    rareFile: 'Rare Hunting Gem.png',
-    epicFile: 'Epic Hunting Gem.png',
-    mythicalFile: 'Mythical Hunting Gem.png',
-    legendaryGif: 'Legendary Hunting Gem.gif',
-    ancientGif: 'Fabled Hunting Gem.gif',
     ids: { common: '51', rare: '53', epic: '54', generation: '58', legendary: '56', mythic: '55', ancient: '57', divine: '59', secret: '60' }
   },
   {
     type: 'empowering',
     shapeName: 'Empowering Gem',
     prefix: 'Generic Empowering Gem.png',
-    commonFile: 'Common Empowering Gem.png',
-    rareFile: 'Rare Empowering Gem.png',
-    epicFile: 'Epic Empowering Gem.png',
-    mythicalFile: 'Mythical Empowering Gem.png',
-    legendaryGif: 'Legendary Empowering Gem.gif',
-    ancientGif: 'Fabled Empowering Gem.gif',
     ids: { common: '65', rare: '67', epic: '68', generation: '85', legendary: '70', mythic: '69', ancient: '71', divine: '87', secret: '89' }
   },
   {
     type: 'lucky',
     shapeName: 'Lucky Gem',
     prefix: 'Generic Lucky Gem.png',
-    commonFile: 'Common Lucky Gem.png',
-    rareFile: 'Rare Lucky Gem.png',
-    epicFile: 'Epic Lucky Gem.png',
-    mythicalFile: 'Mythical Lucky Gem.png',
-    legendaryGif: 'Legendary Lucky Gem.gif',
-    ancientGif: 'Fabled Lucky Gem.gif',
     ids: { common: '72', rare: '74', epic: '75', generation: '86', legendary: '77', mythic: '76', ancient: '78', divine: '88', secret: '90' }
   },
   {
     type: 'special',
     shapeName: 'Special Gem',
     prefix: 'Generic Special Gem.png',
-    commonFile: 'Common Special Gem.png',
-    rareFile: 'Rare Special Gem.png',
-    epicFile: 'Epic Special Gem.png',
-    mythicalFile: 'Mythical Special Gem.png',
-    legendaryGif: 'Legendary Special Gem.gif',
-    ancientGif: 'Fabled Special Gem.gif',
     ids: { common: '79', rare: '81', epic: '82', generation: '91', legendary: '84', mythic: '83', ancient: '92', divine: '93', secret: '94' }
   }
 ];
 
+const RANKS = ['common', 'rare', 'epic', 'generation', 'legendary', 'mythic', 'ancient', 'divine', 'secret'];
+
 async function main() {
-  console.log('🚀 Generating simple, clean OwO-style gem emojis with animations...');
+  console.log('🚀 Generating OwO-style gem emojis adhering strictly to CokeBot Rank Colors...');
+
+  let pngCount = 0;
+  let gifCount = 0;
 
   for (const spec of GEM_SPECS) {
     const t = spec.type;
     console.log(`\n💎 Processing Gem Type: ${spec.shapeName} (${t})`);
 
     const genericImg = await loadImage(path.join(BASE_OWO_DIR, spec.prefix));
-    const commonImg = await loadImage(path.join(BASE_OWO_DIR, spec.commonFile));
-    const rareImg = await loadImage(path.join(BASE_OWO_DIR, spec.rareFile));
-    const epicImg = await loadImage(path.join(BASE_OWO_DIR, spec.epicFile));
-    const mythicImg = await loadImage(path.join(BASE_OWO_DIR, spec.mythicalFile));
 
-    // 1. Common (PNG)
-    const comPng = path.join(OUT_DIR, `gem_${spec.ids.common}_${t}_common.png`);
-    const comCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    comCanvas.getContext('2d').drawImage(commonImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(comPng, comCanvas.toBuffer('image/png'));
-    fs.copyFileSync(comPng, path.join(ARTIFACT_DIR, path.basename(comPng)));
-    console.log(`  ✅ Common: ${path.basename(comPng)}`);
+    for (const rank of RANKS) {
+      const id = spec.ids[rank];
+      const ramp = RANK_RAMPS[rank];
+      if (!id || !ramp) continue;
 
-    // 2. Rare (PNG)
-    const rarePng = path.join(OUT_DIR, `gem_${spec.ids.rare}_${t}_rare.png`);
-    const rareCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    rareCanvas.getContext('2d').drawImage(rareImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(rarePng, rareCanvas.toBuffer('image/png'));
-    fs.copyFileSync(rarePng, path.join(ARTIFACT_DIR, path.basename(rarePng)));
-    console.log(`  ✅ Rare: ${path.basename(rarePng)}`);
+      // 1. Recolor greyscale OwO gem using CokeBot rank color ramp
+      const recoloredCanvas = recolorCanvasImage(genericImg, ramp);
 
-    // 3. Epic (PNG)
-    const epicPng = path.join(OUT_DIR, `gem_${spec.ids.epic}_${t}_epic.png`);
-    const epicCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    epicCanvas.getContext('2d').drawImage(epicImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(epicPng, epicCanvas.toBuffer('image/png'));
-    fs.copyFileSync(epicPng, path.join(ARTIFACT_DIR, path.basename(epicPng)));
-    console.log(`  ✅ Epic: ${path.basename(epicPng)}`);
+      const pngFilename = `gem_${id}_${t}_${rank}.png`;
+      const outPng = path.join(OUT_DIR, pngFilename);
+      const artPng = path.join(ARTIFACT_DIR, pngFilename);
 
-    // 4. Generation (PNG & Animated GIF)
-    // Recolor to Fresh Ice-Mint Cyan (#00f2fe / #4facfe)
-    const genCanvas = recolorCanvasImage(genericImg, [0, 75, 95], [0, 200, 235], [130, 245, 255]);
-    const genPng = path.join(OUT_DIR, `gem_${spec.ids.generation}_${t}_generation.png`);
-    const genGif = path.join(OUT_DIR, `gem_${spec.ids.generation}_${t}_generation.gif`);
-    fs.writeFileSync(genPng, genCanvas.toBuffer('image/png'));
-    fs.copyFileSync(genPng, path.join(ARTIFACT_DIR, path.basename(genPng)));
-    await generateGif(genCanvas, applyGenerationEffect, genGif, 16, 15);
-    fs.copyFileSync(genGif, path.join(ARTIFACT_DIR, path.basename(genGif)));
-    console.log(`  ✨ Generation: ${path.basename(genPng)} & ${path.basename(genGif)}`);
+      const pngBuffer = recoloredCanvas.toBuffer('image/png');
+      fs.writeFileSync(outPng, pngBuffer);
+      fs.writeFileSync(artPng, pngBuffer);
+      pngCount++;
 
-    // 5. Legendary (PNG & Animated GIF from OwO)
-    const legGifSrc = path.join(BASE_OWO_DIR, spec.legendaryGif);
-    const legGifDest = path.join(OUT_DIR, `gem_${spec.ids.legendary}_${t}_legendary.gif`);
-    const legPng = path.join(OUT_DIR, `gem_${spec.ids.legendary}_${t}_legendary.png`);
-    fs.copyFileSync(legGifSrc, legGifDest);
-    fs.copyFileSync(legGifDest, path.join(ARTIFACT_DIR, path.basename(legGifDest)));
-    // Extract first frame as PNG
-    const legImg = await loadImage(legGifSrc.replace('.gif', '_frame0.png'));
-    const legCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    legCanvas.getContext('2d').drawImage(legImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(legPng, legCanvas.toBuffer('image/png'));
-    fs.copyFileSync(legPng, path.join(ARTIFACT_DIR, path.basename(legPng)));
-    console.log(`  ✨ Legendary: ${path.basename(legPng)} & ${path.basename(legGifDest)}`);
+      // 2. Animated GIF if rank has animation effect
+      const animFn = ANIMATION_EFFECTS[rank];
+      if (animFn) {
+        const gifFilename = `gem_${id}_${t}_${rank}.gif`;
+        const outGif = path.join(OUT_DIR, gifFilename);
+        const artGif = path.join(ARTIFACT_DIR, gifFilename);
 
-    // 6. Mythic (PNG & Animated GIF)
-    const mythPng = path.join(OUT_DIR, `gem_${spec.ids.mythic}_${t}_mythic.png`);
-    const mythGif = path.join(OUT_DIR, `gem_${spec.ids.mythic}_${t}_mythic.gif`);
-    const mythCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    mythCanvas.getContext('2d').drawImage(mythicImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(mythPng, mythCanvas.toBuffer('image/png'));
-    fs.copyFileSync(mythPng, path.join(ARTIFACT_DIR, path.basename(mythPng)));
-    await generateGif(mythCanvas, applyMythicEffect, mythGif, 16, 15);
-    fs.copyFileSync(mythGif, path.join(ARTIFACT_DIR, path.basename(mythGif)));
-    console.log(`  ✨ Mythic: ${path.basename(mythPng)} & ${path.basename(mythGif)}`);
-
-    // 7. Ancient (PNG & Animated GIF from OwO Fabled)
-    const ancGifSrc = path.join(BASE_OWO_DIR, spec.ancientGif);
-    const ancGifDest = path.join(OUT_DIR, `gem_${spec.ids.ancient}_${t}_ancient.gif`);
-    const ancPng = path.join(OUT_DIR, `gem_${spec.ids.ancient}_${t}_ancient.png`);
-    fs.copyFileSync(ancGifSrc, ancGifDest);
-    fs.copyFileSync(ancGifDest, path.join(ARTIFACT_DIR, path.basename(ancGifDest)));
-    const ancImg = await loadImage(ancGifSrc.replace('.gif', '_frame0.png'));
-    const ancCanvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
-    ancCanvas.getContext('2d').drawImage(ancImg, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    fs.writeFileSync(ancPng, ancCanvas.toBuffer('image/png'));
-    fs.copyFileSync(ancPng, path.join(ARTIFACT_DIR, path.basename(ancPng)));
-    console.log(`  ✨ Ancient: ${path.basename(ancPng)} & ${path.basename(ancGifDest)}`);
-
-    // 8. Divine (PNG & Animated GIF)
-    // Recolor to Radiant Celestial Gold (#ffd700 / #fff176)
-    const divCanvas = recolorCanvasImage(genericImg, [115, 75, 0], [255, 190, 0], [255, 245, 140]);
-    const divPng = path.join(OUT_DIR, `gem_${spec.ids.divine}_${t}_divine.png`);
-    const divGif = path.join(OUT_DIR, `gem_${spec.ids.divine}_${t}_divine.gif`);
-    fs.writeFileSync(divPng, divCanvas.toBuffer('image/png'));
-    fs.copyFileSync(divPng, path.join(ARTIFACT_DIR, path.basename(divPng)));
-    await generateGif(divCanvas, applyDivineEffect, divGif, 16, 15);
-    fs.copyFileSync(divGif, path.join(ARTIFACT_DIR, path.basename(divGif)));
-    console.log(`  ✨ Divine: ${path.basename(divPng)} & ${path.basename(divGif)}`);
-
-    // 9. Secret (PNG & Animated GIF)
-    // Recolor to Cosmic Nebula Violet (#9900ff / #e040fb)
-    const secCanvas = recolorCanvasImage(genericImg, [45, 10, 70], [148, 30, 185], [235, 85, 255]);
-    const secPng = path.join(OUT_DIR, `gem_${spec.ids.secret}_${t}_secret.png`);
-    const secGif = path.join(OUT_DIR, `gem_${spec.ids.secret}_${t}_secret.gif`);
-    fs.writeFileSync(secPng, secCanvas.toBuffer('image/png'));
-    fs.copyFileSync(secPng, path.join(ARTIFACT_DIR, path.basename(secPng)));
-    await generateGif(secCanvas, applySecretEffect, secGif, 16, 15);
-    fs.copyFileSync(secGif, path.join(ARTIFACT_DIR, path.basename(secGif)));
-    console.log(`  ✨ Secret: ${path.basename(secPng)} & ${path.basename(secGif)}`);
+        await generateGif(recoloredCanvas, animFn, outGif, 16, 15);
+        fs.copyFileSync(outGif, artGif);
+        gifCount++;
+        console.log(`  ✨ [${rank.toUpperCase()}] ID #${id} -> PNG & GIF (${pngFilename})`);
+      } else {
+        console.log(`  ✅ [${rank.toUpperCase()}] ID #${id} -> PNG (${pngFilename})`);
+      }
+    }
   }
 
-  console.log('\n🎉 ALL DONE! All 36 gem emojis (PNG + Animated GIFs) generated successfully!');
+  // 3. Generate Complete Showcase Matrix Image
+  console.log('\n📊 Generating Complete Showcase Matrix Image (gem_showcase_all.png)...');
+  const typeHeaders = ['Hunting Gem 💎', 'Empowering Gem 🔮', 'Lucky Gem 💖', 'Special Gem ⭐'];
+
+  const CELL_W = 140;
+  const CELL_H = 140;
+  const HEADER_H = 50;
+  const LABEL_W = 160;
+
+  const matrixW = LABEL_W + CELL_W * GEM_SPECS.length;
+  const matrixH = HEADER_H + CELL_H * RANKS.length;
+
+  const showCanvas = createCanvas(matrixW, matrixH);
+  const showCtx = showCanvas.getContext('2d');
+
+  showCtx.fillStyle = '#1e1f22';
+  showCtx.fillRect(0, 0, matrixW, matrixH);
+
+  showCtx.font = 'bold 15px sans-serif';
+  showCtx.textAlign = 'center';
+  showCtx.textBaseline = 'middle';
+  showCtx.fillStyle = '#ffffff';
+
+  GEM_SPECS.forEach((s, i) => {
+    const x = LABEL_W + i * CELL_W + CELL_W / 2;
+    showCtx.fillText(typeHeaders[i], x, HEADER_H / 2);
+  });
+
+  for (let rIdx = 0; rIdx < RANKS.length; rIdx++) {
+    const rank = RANKS[rIdx];
+    const yRow = HEADER_H + rIdx * CELL_H;
+    const ramp = RANK_RAMPS[rank];
+
+    if (rIdx % 2 === 1) {
+      showCtx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      showCtx.fillRect(0, yRow, matrixW, CELL_H);
+    }
+
+    // Rank label in rank's bright highlight color
+    showCtx.font = 'bold 16px sans-serif';
+    showCtx.textAlign = 'right';
+    const [r, g, b] = ramp.light;
+    showCtx.fillStyle = `rgb(${r},${g},${b})`;
+    showCtx.fillText(rank.toUpperCase(), LABEL_W - 20, yRow + CELL_H / 2);
+
+    for (let cIdx = 0; cIdx < GEM_SPECS.length; cIdx++) {
+      const spec = GEM_SPECS[cIdx];
+      const genericImg = await loadImage(path.join(BASE_OWO_DIR, spec.prefix));
+      const gemCanvas = recolorCanvasImage(genericImg, ramp);
+      const cx = LABEL_W + cIdx * CELL_W + (CELL_W - CANVAS_SIZE) / 2;
+      const cy = yRow + (CELL_H - CANVAS_SIZE) / 2;
+      showCtx.drawImage(gemCanvas, cx, cy, CANVAS_SIZE, CANVAS_SIZE);
+    }
+  }
+
+  const showcaseOut = path.join(OUT_DIR, 'gem_showcase_all.png');
+  const showcaseBuffer = showCanvas.toBuffer('image/png');
+  fs.writeFileSync(showcaseOut, showcaseBuffer);
+  fs.writeFileSync(path.join(ARTIFACT_DIR, 'gem_showcase_all.png'), showcaseBuffer);
+
+  console.log(`\n🎉 DONE! Generated ${pngCount} static PNGs, ${gifCount} animated GIFs, and showcase image.`);
+  console.log(`📁 Assets written to: ${OUT_DIR}`);
+  console.log(`📁 Artifacts written to: ${ARTIFACT_DIR}`);
 }
 
-main().catch(console.error);
+main().catch(err => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});
