@@ -257,16 +257,39 @@ const toSuperscript = (num, minDigits = 1) => {
   }
   return str.split('').map(c => map[c] || c).join('');
 };
-const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
-  const ebotEmoji = botInfo.emoji || "🤖";
+const renderHarvestReportLines = (
+  elapsedHours,
+  huntsCount,
+  xpGain,
+  essenceGain,
+  gearsDropped,
+  levelsGained,
+  previousLevel,
+  newLevel,
+  botInfo,
+  petsCaught = [],
+  totalPetExpGained = 0
+) => {
+  const ebotEmoji = botInfo?.emoji || "🤖";
   const blankEmoji = config.emoji.blank || "<:blank:1403928807395819671>";
-  const rarityOrder = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+  const rarityOrder = [
+    "Common",
+    "Rare",
+    "Epic",
+    "Generation",
+    "Legendary",
+    "Mythic",
+    "Ancient",
+    "Divine",
+    "Secret",
+  ];
   const groupedByRarity = {};
   for (const r of rarityOrder) {
     groupedByRarity[r] = {};
   }
   let biggest = 0;
-  for (const item of gearsDropped) {
+  for (const item of (gearsDropped || [])) {
+    if (!item) continue;
     const rarity = item.rankName || item.tier || item.rarity || "Common";
     const itemEmoji = item.emoji || (item.subType === "Staff" ? "<:staff:1514231936581898240>" : "<:longsword:1514231939865903104>");
     if (!groupedByRarity[rarity]) {
@@ -282,9 +305,25 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
     `${ebotEmoji} **|** **HuntBot đã hoàn thành** • ${huntsCount.toLocaleString()} lượt săn`,
     `${blankEmoji} **|** Nhận **${essenceGain.toLocaleString()} Essence** và **${xpGain.toLocaleString()} EXP**`,
   ];
-  if (petsCaught.length > 0) {
-    const petStr = petsCaught.map((p) => `${getRarityEmoji(p.tier)} ${p.emoji} **${p.name}**`).join(", ");
-    lines.push(`🔮 **|** 🎉 **Linh thú mới:** ${petStr}`);
+  if (levelsGained > 0) {
+    lines.push(`🆙 **|** Nhân vật đã thăng cấp! **Lv.${previousLevel}** ➔ **Lv.${newLevel}** (+${levelsGained} cấp)`);
+  }
+  if (petsCaught && petsCaught.length > 0) {
+    const validPets = petsCaught.filter(Boolean);
+    if (validPets.length > 0) {
+      const chunkSize = 5;
+      for (let i = 0; i < validPets.length; i += chunkSize) {
+        const chunk = validPets.slice(i, i + chunkSize);
+        const petStr = chunk
+          .map((p) => `${getRarityEmoji(p.tier || "Common")} ${p.emoji || "🐾"} **${p.name || "Pet"}**`)
+          .join(", ");
+        if (i === 0) {
+          lines.push(`🔮 **|** 🎉 **Linh thú mới:** ${petStr}`);
+        } else {
+          lines.push(`${blankEmoji} **|** ${petStr}`);
+        }
+      }
+    }
   }
   if (totalPetExpGained > 0) {
     lines.push(`🐾 **|** Linh thú đang trang bị nhận được **+${totalPetExpGained.toLocaleString()} EXP**!`);
@@ -307,7 +346,20 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
   return lines;
 };
 
-const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalPetExpGained = 0) => {
+const sendHarvestReport = async (
+  message,
+  elapsedHours,
+  huntsCount,
+  xpGain,
+  essenceGain,
+  gearsDropped,
+  levelsGained,
+  previousLevel,
+  newLevel,
+  botInfo,
+  petsCaught = [],
+  totalPetExpGained = 0
+) => {
   const lines = renderHarvestReportLines(
     elapsedHours,
     huntsCount,
@@ -348,6 +400,93 @@ const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, esse
     await message.channel.send({ content: chunks[i], skipV2: true }).catch(() => null);
   }
   return firstMsg;
+};
+
+const processHuntSettlement = async (
+  user,
+  elapsedHours,
+  effInfo,
+  gainInfo,
+  expInfo,
+  radInfo,
+  message,
+  botInfo
+) => {
+  const huntsCount = Math.floor(elapsedHours * effInfo.stat);
+  const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
+  const xpGain = Math.floor(elapsedHours * expInfo.stat);
+  const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
+  const { getHuntXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
+
+  let animalsDropped = [];
+  let petsCaught = [];
+  let totalPetExpGained = 0;
+
+  for (let i = 0; i < huntsCount; i++) {
+    const caughtAnimal = rollAnimal(1.0, 1.0, {
+      isAutohunt: true,
+      radarStat: radInfo.stat || 0,
+    });
+    if (!caughtAnimal) continue;
+    animalsDropped.push(caughtAnimal);
+    const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
+    const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
+    if (user.rpg?.equippedPet) {
+      const petHuntXp = getHuntXp(animalTier);
+      addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
+      totalPetExpGained += petHuntXp;
+    }
+    if (isNewSpecies && petObj) {
+      petsCaught.push(petObj);
+    }
+  }
+
+  if (user.rpg?.equippedPet && xpGain > 0) {
+    addPetXpUtil(user.rpg.equippedPet, xpGain, user);
+    totalPetExpGained += xpGain;
+  }
+
+  user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
+  user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
+  const previousLevel = user.rpg.level || 1;
+  const levelsGained = addRpgExp(user.rpg, xpGain);
+  user.rpg.power = calculateRpgPower(user);
+
+  if (xpGain > 0) {
+    try {
+      const { updateQuestProgress } = require("../../../utils/questUtil");
+      await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+    } catch (questErr) {
+      console.error("[AutoHunt] Lỗi cập nhật quest:", questErr);
+    }
+  }
+
+  user.rpg.autohunt.isActive = false;
+  user.rpg.autohunt.startTime = null;
+  user.rpg.autohunt.durationHours = 0;
+  user.rpg.autohunt.captchaCode = null;
+  user.rpg.autohunt.pendingDuration = 0;
+  user.rpg.autohunt.dmReminder = false;
+  user.markModified("rpg");
+  if (user.inventory && typeof user.markModified === "function") {
+    user.markModified("inventory");
+  }
+  await user.save();
+
+  return sendHarvestReport(
+    message,
+    elapsedHours,
+    huntsCount,
+    xpGain,
+    essenceGain,
+    animalsDropped,
+    levelsGained,
+    previousLevel,
+    user.rpg.level,
+    botInfo,
+    petsCaught,
+    totalPetExpGained
+  );
 };
 class XautohuntCommand extends BaseCommand {
   constructor() {
@@ -454,65 +593,15 @@ class XautohuntCommand extends BaseCommand {
         const expInfo = getLvl(xp.experience, 0, 'experience');
         const radInfo = getLvl(xp.radar, 0, 'radar');
         const elapsedHours = user.rpg.autohunt.durationHours;
-        const huntsCount = Math.floor(elapsedHours * effInfo.stat);
-        const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
-        const xpGain = Math.floor(elapsedHours * expInfo.stat);
-        const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
-        const { getHuntXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
-        let animalsDropped = [];
-        let petsCaught = [];
-        let totalPetExpGained = 0;
-        for (let i = 0; i < huntsCount; i++) {
-          const caughtAnimal = rollAnimal(1.0, 1.0, {
-            isAutohunt: true,
-            radarStat: radInfo.stat || 0,
-          });
-          animalsDropped.push(caughtAnimal);
-          const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
-          const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
-                    if (user.rpg.equippedPet) {
-            const petHuntXp = getHuntXp(animalTier);
-            addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
-            totalPetExpGained += petHuntXp;
-          }
-          if (isNewSpecies && petObj) {
-            petsCaught.push(petObj);
-          }
-        }
-        if (user.rpg.equippedPet && xpGain > 0) {
-          addPetXpUtil(user.rpg.equippedPet, xpGain, user);
-          totalPetExpGained += xpGain;
-        }
-        user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
-        user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
-        const previousLevel = user.rpg.level;
-        const levelsGained = addRpgExp(user.rpg, xpGain);
-        user.rpg.power = calculateRpgPower(user);
-        const { updateQuestProgress } = require("../../../utils/questUtil");
-        if (xpGain > 0) {
-          await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
-        }
-        user.rpg.autohunt.isActive = false;
-        user.rpg.autohunt.startTime = null;
-        user.rpg.autohunt.durationHours = 0;
-        user.rpg.autohunt.captchaCode = null;
-        user.rpg.autohunt.pendingDuration = 0;
-        user.rpg.autohunt.dmReminder = false;
-        user.markModified("rpg");
-        await user.save();
-        return sendHarvestReport(
-          message,
+        return await processHuntSettlement(
+          user,
           elapsedHours,
-          huntsCount,
-          xpGain,
-          essenceGain,
-          animalsDropped,
-          levelsGained,
-          previousLevel,
-          user.rpg.level,
-          botInfo,
-          petsCaught,
-          totalPetExpGained
+          effInfo,
+          gainInfo,
+          expInfo,
+          radInfo,
+          message,
+          botInfo
         );
       }
     }
@@ -600,6 +689,7 @@ class XautohuntCommand extends BaseCommand {
       const lvlAfter = getLvl(nextXp, 0, trait).lvl;
       user.rpg.autohunt.essence = currentEssence - essenceToSpend;
       user.rpg.autohunt.xp[trait] = nextXp;
+      if (!user.rpg.autohunt.levels) user.rpg.autohunt.levels = {};
       user.rpg.autohunt.levels[trait] = lvlAfter;
       user.markModified("rpg");
       await user.save();
@@ -639,66 +729,15 @@ class XautohuntCommand extends BaseCommand {
       const gainInfo = getLvl(xp.gain, 0, 'gain');
       const expInfo = getLvl(xp.experience, 0, 'experience');
       const radInfo = getLvl(xp.radar, 0, 'radar');
-      const huntsCount = Math.floor(elapsedHours * effInfo.stat);
-      const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
-      const xpGain = Math.floor(elapsedHours * expInfo.stat);
-      const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
-      const { getHuntXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
-      let animalsDropped = [];
-      let petsCaught = [];
-      let totalPetExpGained = 0;
-      // Process animal captures into user.zoo and pet XP per hunt (Strict OwO Autohunt rates with Radar)
-      for (let i = 0; i < huntsCount; i++) {
-        const caughtAnimal = rollAnimal(1.0, 1.0, {
-          isAutohunt: true,
-          radarStat: radInfo.stat || 0,
-        });
-        animalsDropped.push(caughtAnimal);
-        const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
-        const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
-                if (user.rpg.equippedPet) {
-          const petHuntXp = getHuntXp(animalTier);
-          addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
-          totalPetExpGained += petHuntXp;
-        }
-        if (isNewSpecies && petObj) {
-          petsCaught.push(petObj);
-        }
-      }
-      if (user.rpg.equippedPet && xpGain > 0) {
-        addPetXpUtil(user.rpg.equippedPet, xpGain, user);
-        totalPetExpGained += xpGain;
-      }
-      user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
-      user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
-      const previousLevel = user.rpg.level;
-      const levelsGained = addRpgExp(user.rpg, xpGain);
-      user.rpg.power = calculateRpgPower(user);
-      const { updateQuestProgress } = require("../../../utils/questUtil");
-      if (xpGain > 0) {
-        await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
-      }
-      user.rpg.autohunt.isActive = false;
-      user.rpg.autohunt.startTime = null;
-      user.rpg.autohunt.durationHours = 0;
-      user.rpg.autohunt.captchaCode = null;
-      user.rpg.autohunt.pendingDuration = 0;
-      user.rpg.autohunt.dmReminder = false;
-      user.markModified("rpg");
-      await user.save();
-      return sendHarvestReport(
-        message,
+      return await processHuntSettlement(
+        user,
         elapsedHours,
-        huntsCount,
-        xpGain,
-        essenceGain,
-        animalsDropped,
-        levelsGained,
-        previousLevel,
-        user.rpg.level,
-        botInfo,
-        petsCaught,
-        totalPetExpGained
+        effInfo,
+        gainInfo,
+        expInfo,
+        radInfo,
+        message,
+        botInfo
       );
     }
     if (subCommand) {

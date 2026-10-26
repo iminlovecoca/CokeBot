@@ -236,9 +236,19 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
         user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + quest.rewardValue;
         rewardText = `+**${quest.rewardValue.toLocaleString()} Essence** <:Essence:1517230428828995594>`;
       } else if (quest.rewardType === "box") {
-        if (!user.inventory) user.inventory = {};
-        const currentCount = user.inventory.get("wc") || 0;
-        user.inventory.set("wc", currentCount + quest.rewardValue);
+        if (!user.inventory) {
+          user.inventory = new Map();
+        } else if (!(user.inventory instanceof Map) && typeof user.inventory === "object") {
+          try {
+            user.inventory = new Map(Object.entries(user.inventory));
+          } catch {}
+        }
+        const currentCount = (user.inventory instanceof Map ? user.inventory.get("wc") : user.inventory?.wc) || 0;
+        if (user.inventory instanceof Map) {
+          user.inventory.set("wc", currentCount + quest.rewardValue);
+        } else {
+          user.inventory.wc = currentCount + quest.rewardValue;
+        }
         rewardText = `+**${quest.rewardValue} Hộp Vũ Khí** <:crate:1512793698025603282>`;
       }
       
