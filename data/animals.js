@@ -47,7 +47,7 @@ const ZOO_RANKS = {
     letter: "S",
     order: 9,
     rarity: 0.0001, // 0.0001% (OwO Hidden = 0.0001% / 1 in 1,000,000)
-    price: 2500000,
+    price: 1000000,
     points: 25000,
     xp: 60000,
     essence: 80000,
@@ -60,7 +60,7 @@ const ZOO_RANKS = {
     letter: "D",
     order: 8,
     rarity: 0.00025, // 0.00025% (OwO Distorted = 0.00025% / 1 in 400,000)
-    price: 1000000,
+    price: 300000,
     points: 10000,
     xp: 25000,
     essence: 35000,
@@ -73,7 +73,7 @@ const ZOO_RANKS = {
     letter: "A",
     order: 7,
     rarity: 0.001, // 0.001% (OwO Fabled = 0.001% / 1 in 100,000)
-    price: 180000,
+    price: 250000,
     points: 2500,
     xp: 6000,
     essence: 7500,
@@ -86,7 +86,7 @@ const ZOO_RANKS = {
     letter: "M",
     order: 6,
     rarity: 0.01, // 0.01% (OwO Gem = 0.01% / 1 in 10,000)
-    price: 35000,
+    price: 30000,
     points: 500,
     xp: 1800,
     essence: 1500,
@@ -99,7 +99,7 @@ const ZOO_RANKS = {
     letter: "L",
     order: 5,
     rarity: 0.05, // 0.05% (OwO Legendary = 0.05% / 1 in 2,000)
-    price: 6000,
+    price: 15000,
     points: 100,
     xp: 500,
     essence: 350,
@@ -112,7 +112,7 @@ const ZOO_RANKS = {
     letter: "G",
     order: 4,
     rarity: 0.05, // 0.05% (placed right after Epic, conditional if species defined)
-    price: 3000,
+    price: 1000,
     points: 50,
     xp: 300,
     essence: 180,
@@ -125,7 +125,7 @@ const ZOO_RANKS = {
     letter: "E",
     order: 3,
     rarity: 1.0, // 1.0% (OwO Epic = 1.0% / 1 in 100)
-    price: 1200,
+    price: 250,
     points: 25,
     xp: 150,
     essence: 80,
@@ -138,7 +138,7 @@ const ZOO_RANKS = {
     letter: "R",
     order: 2,
     rarity: 10.0, // 10.0% (OwO Rare = 10.0% / 1 in 10)
-    price: 300,
+    price: 10,
     points: 5,
     xp: 45,
     essence: 20,
@@ -151,7 +151,7 @@ const ZOO_RANKS = {
     letter: "C",
     order: 1,
     rarity: 88.93865, // OwO Common (58.85%) + Uncommon (30%)
-    price: 80,
+    price: 1,
     points: 1,
     xp: 15,
     essence: 5,

@@ -166,16 +166,14 @@ class HuntCommand extends BaseCommand {
       user.markModified("rpg");
     }
 
-    // 4. Equipped Pet XP (Base Hunt XP + Duplicate Bonus if species already owned)
+    // 4. Equipped Pet XP (Strict OwO standard: rank XP of caught animals, NO duplicate bonus)
     let totalPetXp = 0;
     let petLeveledUp = false;
     if (user.rpg.equippedPet) {
-      for (const [key, { animal, count }] of caughtMap.entries()) {
+      for (const [, { animal, count }] of caughtMap.entries()) {
         const animalTier = animal.rankName || animal.tier || "Common";
-        const isNew = newSpeciesList.some((s) => s.key === key);
         const basePetXp = getHuntXp(animalTier);
-        const dupPetXp = isNew ? 0 : getDuplicatePetXp(animalTier);
-        totalPetXp += (basePetXp + dupPetXp) * count;
+        totalPetXp += basePetXp * count;
       }
       if (totalPetXp > 0) {
         const petRes = addPetXpUtil(user.rpg.equippedPet, totalPetXp, user);
@@ -242,10 +240,13 @@ class HuntCommand extends BaseCommand {
       lines.push(`${blank} **|** ✨ **Mở khóa loài mới:** ${newAnimalsText}!`);
     }
 
-    // Lootbox drop
+    // Lootbox drop (OwO Bot standard [X/3] RESETS IN: XH YM ZS countdown)
     if (lbDropped) {
+      const { getDailyResetCountdown } = require("../../../utils/dateUtil");
+      const { hours, minutes, seconds } = getDailyResetCountdown();
       const lbEmoji = "<:lootbox:1563961108727992470>";
-      lines.push(`${lbEmoji} **|** Bạn nhận được **1x Hộp Quà (Lootbox)**! Dùng lệnh \`${config.prefix}lb\` để mở.`);
+      const count = user.rpg.dailyDrops.huntLbCount || 1;
+      lines.push(`${lbEmoji} **|** Bạn tìm thấy một **Hộp Quà (Lootbox)**! \`[${count}/3] RESETS IN: ${hours}H ${minutes}M ${seconds}S\``);
     }
 
     // Level up

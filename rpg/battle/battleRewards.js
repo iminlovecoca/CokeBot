@@ -135,15 +135,14 @@ class BattleRewards {
     // Save MongoDB documents
     await Promise.all([user1.save(), user2.save()]);
 
-    const wcText = wcDropped ? " | <:crate:1512793698025603282> +1 Hộp Vũ Khí (wc)" : "";
-
     return {
-      petFooterInfo: petFooterInfo + lpSummaryInfo + wcText,
+      petFooterInfo: petFooterInfo + lpSummaryInfo,
       p1Xp: p1PlayerXp,
       p2Xp: p2PlayerXp,
       petXp1,
       petXp2,
       wcDropped,
+      wcCount: user1.rpg.dailyDrops?.battleWcCount || 1,
     };
   }
 }

@@ -286,8 +286,8 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
     const petStr = petsCaught.map((p) => `${getRarityEmoji(p.tier)} ${p.emoji} **${p.name}**`).join(", ");
     lines.push(`🔮 **|** 🎉 **Linh thú mới:** ${petStr}`);
   }
-  if (totalDuplicatePetExp > 0) {
-    lines.push(`🐾 **|** Linh thú đang trang bị nhận thêm **+${totalDuplicatePetExp.toLocaleString()} EXP** trùng pet!`);
+  if (totalPetExpGained > 0) {
+    lines.push(`🐾 **|** Linh thú đang trang bị nhận được **+${totalPetExpGained.toLocaleString()} EXP**!`);
   }
   for (const rarity of rarityOrder) {
     const itemsMap = groupedByRarity[rarity];
@@ -307,7 +307,7 @@ const renderHarvestReportLines = (elapsedHours, huntsCount, xpGain, essenceGain,
   return lines;
 };
 
-const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalDuplicatePetExp = 0) => {
+const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, essenceGain, gearsDropped, levelsGained, previousLevel, newLevel, botInfo, petsCaught = [], totalPetExpGained = 0) => {
   const lines = renderHarvestReportLines(
     elapsedHours,
     huntsCount,
@@ -319,7 +319,7 @@ const sendHarvestReport = async (message, elapsedHours, huntsCount, xpGain, esse
     newLevel,
     botInfo,
     petsCaught,
-    totalDuplicatePetExp
+    totalPetExpGained
   );
 
   const chunks = [];
@@ -458,10 +458,10 @@ class XautohuntCommand extends BaseCommand {
         const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
         const xpGain = Math.floor(elapsedHours * expInfo.stat);
         const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
-        const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
+        const { getHuntXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
         let animalsDropped = [];
         let petsCaught = [];
-        let totalDuplicatePetExp = 0;
+        let totalPetExpGained = 0;
         for (let i = 0; i < huntsCount; i++) {
           const caughtAnimal = rollAnimal(1.0, 1.0, {
             isAutohunt: true,
@@ -476,16 +476,15 @@ class XautohuntCommand extends BaseCommand {
           if (user.rpg.equippedPet) {
             const petHuntXp = getHuntXp(animalTier);
             addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
+            totalPetExpGained += petHuntXp;
           }
           if (isNewSpecies && petObj) {
             petsCaught.push(petObj);
-          } else {
-            const expBonus = getDuplicatePetXp(animalTier);
-            if (user.rpg.equippedPet) {
-              addPetXpUtil(user.rpg.equippedPet, expBonus, user);
-              totalDuplicatePetExp += expBonus;
-            }
           }
+        }
+        if (user.rpg.equippedPet && xpGain > 0) {
+          addPetXpUtil(user.rpg.equippedPet, xpGain, user);
+          totalPetExpGained += xpGain;
         }
         user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
         user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
@@ -516,7 +515,7 @@ class XautohuntCommand extends BaseCommand {
           user.rpg.level,
           botInfo,
           petsCaught,
-          totalDuplicatePetExp
+          totalPetExpGained
         );
       }
     }
@@ -647,10 +646,10 @@ class XautohuntCommand extends BaseCommand {
       const essenceGain = Math.floor(elapsedHours * gainInfo.stat);
       const xpGain = Math.floor(elapsedHours * expInfo.stat);
       const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
-      const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
+      const { getHuntXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
       let animalsDropped = [];
       let petsCaught = [];
-      let totalDuplicatePetExp = 0;
+      let totalPetExpGained = 0;
       // Process animal captures into user.zoo and pet XP per hunt (Strict OwO Autohunt rates with Radar)
       for (let i = 0; i < huntsCount; i++) {
         const caughtAnimal = rollAnimal(1.0, 1.0, {
@@ -666,16 +665,15 @@ class XautohuntCommand extends BaseCommand {
         if (user.rpg.equippedPet) {
           const petHuntXp = getHuntXp(animalTier);
           addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
+          totalPetExpGained += petHuntXp;
         }
         if (isNewSpecies && petObj) {
           petsCaught.push(petObj);
-        } else {
-          const expBonus = getDuplicatePetXp(animalTier);
-          if (user.rpg.equippedPet) {
-            addPetXpUtil(user.rpg.equippedPet, expBonus, user);
-            totalDuplicatePetExp += expBonus;
-          }
         }
+      }
+      if (user.rpg.equippedPet && xpGain > 0) {
+        addPetXpUtil(user.rpg.equippedPet, xpGain, user);
+        totalPetExpGained += xpGain;
       }
       user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
       user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
@@ -706,7 +704,7 @@ class XautohuntCommand extends BaseCommand {
         user.rpg.level,
         botInfo,
         petsCaught,
-        totalDuplicatePetExp
+        totalPetExpGained
       );
     }
     if (subCommand) {

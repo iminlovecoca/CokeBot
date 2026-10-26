@@ -64,8 +64,15 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   }
 
   let descText = `Trận đấu kết thúc sau **${result.turns} lượt**. ${result.isDraw ? "Hai bên giữ nguyên chuỗi thắng." : "Kết quả đã được ghi nhận vào mùa giải."}`;
+
+  // Weapon crate drop text outside embed (OwO Bot standard [X/3] RESETS IN: XH YM ZS countdown)
+  let wcTextOutside = null;
   if (rewards.wcDropped) {
-    descText += `\n<:crate:1512793698025603282> **|** **${p1Name}** nhận được **1x Hộp Vũ Khí (wc)**! Dùng lệnh \`wc\` để mở.`;
+    const { getDailyResetCountdown } = require("../../../utils/dateUtil");
+    const { hours, minutes, seconds } = getDailyResetCountdown();
+    const count = rewards.wcCount || user1.rpg?.dailyDrops?.battleWcCount || 1;
+    const crateEmoji = "<:crate:1512793698025603282>";
+    wcTextOutside = `**${crateEmoji} | ${p1Name}**, Bạn tìm thấy một **Hộp Vũ Khí (weapon crate)**! \`[${count}/3] RESETS IN: ${hours}H ${minutes}M ${seconds}S\``;
   }
 
   const finalEmbed = new EmbedBuilder()
@@ -195,7 +202,12 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
           currentEmbed.setFooter(formatRpgFooter(`Đang chiến đấu... lượt ${state.turn}/${result.turns}`));
         }
 
-        const payload = { embeds: [currentEmbed], files: [attachment], skipV2: true };
+        const payload = {
+          content: isFinalFrame ? wcTextOutside : null,
+          embeds: [currentEmbed],
+          files: [attachment],
+          skipV2: true,
+        };
         if (activeMessage && activeMessage.editable) {
           const edited = await activeMessage.edit({ ...payload, components: [] }).catch((err) => {
             console.error("[PVP_BATTLE] Error editing activeMessage:", err);
@@ -215,16 +227,21 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
     }
   } else {
     const finalEmbedWithFooter = EmbedBuilder.from(finalEmbed).setFooter(formatRpgFooter(footerText));
+    const payload = {
+      content: wcTextOutside,
+      embeds: [finalEmbedWithFooter],
+      skipV2: true,
+    };
     if (promptMessage && promptMessage.editable) {
-      const edited = await promptMessage.edit({ embeds: [finalEmbedWithFooter], components: [], skipV2: true }).catch((err) => {
+      const edited = await promptMessage.edit({ ...payload, components: [] }).catch((err) => {
         console.error("[PVP_BATTLE] Error editing promptMessage:", err);
         return null;
       });
       if (!edited) {
-        await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
+        await message.channel.send(payload).catch(() => {});
       }
     } else {
-      await message.channel.send({ embeds: [finalEmbedWithFooter], skipV2: true }).catch(() => {});
+      await message.channel.send(payload).catch(() => {});
     }
   }
 };

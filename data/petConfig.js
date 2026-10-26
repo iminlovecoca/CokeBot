@@ -9,45 +9,48 @@ module.exports = {
     MULTIPLIER: 0.8,
   },
 
-  // Base Battle XP Rewards (PvP)
+  // Base Battle XP Rewards (PvP - OwO Bot Standard: win 200, draw 100, lose 50)
   BATTLE_XP: {
-    win: 120,
-    draw: 50,
-    lose: 25,
+    win: 200,
+    draw: 100,
+    lose: 50,
   },
 
   // Boss Battle XP Reward
-  BOSS_XP: 350,
+  BOSS_XP: 500,
 
   // Daily Claim XP Reward
   DAILY_XP: 0,
 
-  // Hunt XP Rewards by Loot/Creature Rank
+  // Hunt XP Rewards by Loot/Creature Rank (Calibrated 1:1 with OwO & ZOO_RANKS)
   HUNT_XP: {
     Common: 15,
-    Rare: 30,
-    Epic: 60,
-    Legendary: 120,
-    Mythic: 220,
-    Ancient: 450,
-    Divine: 900,
-    Secret: 1800,
-    Bot: 1500,
+    Rare: 45,
+    Epic: 150,
+    Generation: 300,
+    Legendary: 500,
+    Mythic: 1800,
+    Ancient: 6000,
+    Divine: 25000,
+    Secret: 60000,
+    Bot: 100000,
   },
 
-  // Balanced Win Streak Bonus Milestones for PvP
+  // Win Streak Bonus for PvP (OwO Milestones)
   STREAK_BONUS: {
-    MAX_CAP: 500,
+    MAX_CAP: 25000,
     MILESTONES: [
-      { minStreak: 100, base: 150, scale: 5 },
-      { minStreak: 50, base: 100, scale: 3 },
-      { minStreak: 20, base: 50, scale: 2 },
-      { minStreak: 10, base: 25, scale: 1 },
+      { minStreak: 1000, multiplier: 25 },
+      { minStreak: 500, multiplier: 10 },
+      { minStreak: 100, multiplier: 5 },
+      { minStreak: 50, multiplier: 3 },
+      { minStreak: 10, multiplier: 1 },
     ],
   },
 
-  // Higher Level Opponent Bonus per level difference (Only applied on WIN, capped at 150 XP)
+  // Higher Level Opponent Bonus per level difference (Applied on WIN, capped at 600 XP)
   OPPONENT_BONUS: {
-    MULTIPLIER_PER_LEVEL: 5,
+    MULTIPLIER_PER_LEVEL: 50,
+    MAX_CAP: 600,
   },
 };

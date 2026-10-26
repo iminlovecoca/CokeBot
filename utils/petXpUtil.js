@@ -1,23 +1,27 @@
 const petConfig = require("../data/petConfig");
 
+// Deprecated per OwO standard (duplicate pets no longer grant bonus XP)
 const DUPLICATE_PET_XP = {
-  Common: 100,
-  Rare: 150,
-  Epic: 175,
-  Legendary: 200,
-  Mythic: 250,
-  Ancient: 300,
-  Divine: 350,
+  Common: 0,
+  Rare: 0,
+  Epic: 0,
+  Legendary: 0,
+  Mythic: 0,
+  Ancient: 0,
+  Divine: 0,
+  Secret: 0,
+  Bot: 0,
 };
 
 /**
  * Get flat XP awarded when catching a duplicate pet species.
+ * Deprecated: strictly aligned with OwO Bot where duplicate pet bonus does not exist.
  *
- * @param {string} tier - Pet rarity tier
- * @returns {number} XP amount
+ * @param {string} [tier="Common"] - Pet rarity tier
+ * @returns {number} 0 (no duplicate bonus)
  */
 function getDuplicatePetXp(tier = "Common") {
-  return DUPLICATE_PET_XP[tier] || 100;
+  return 0;
 }
 
 /**
@@ -37,7 +41,10 @@ function getXpRequired(level) {
 
 /**
  * Calculate total Battle XP awarded to a pet in PvP.
- * Includes Base XP, Win Streak Bonus, and Higher Level Opponent Bonus.
+ * Calibrated 1:1 with OwO Bot battleXP:
+ * - Loss: 50 XP
+ * - Draw: 100 XP
+ * - Win: 200 XP + Level Difference Bonus + Win Streak Bonus
  *
  * @param {string} result - 'win', 'draw', or 'lose'
  * @param {number} [streak=0] - Current consecutive win streak
@@ -45,39 +52,42 @@ function getXpRequired(level) {
  * @returns {number} Total Battle XP earned
  */
 function getBattleXp(result = "win", streak = 0, levelDifference = 0) {
-  // 1. Base Battle XP
   const baseType = String(result || "win").toLowerCase();
-  const baseBuffer = petConfig.BATTLE_XP[baseType] || petConfig.BATTLE_XP.lose;
 
-  // Defeat only receives fixed small compensation XP (no streak, no level difference bonuses)
+  // 1. Defeat: OwO standard = 50 XP (no streak, no level difference bonuses)
   if (baseType === "lose") {
-    return baseBuffer;
+    return petConfig.BATTLE_XP?.lose || 50;
   }
 
-  // 2. Win Streak Bonus (Only on WIN and only highest applicable milestone is used)
-  let streakBonus = 0;
-  if (baseType === "win" && streak >= 10) {
-    const milestone = petConfig.STREAK_BONUS.MILESTONES.find(
-      (m) => streak >= m.minStreak
-    );
-    if (milestone) {
-      streakBonus = Math.floor(
-        milestone.scale * Math.sqrt(streak) + milestone.base
-      );
-      streakBonus = Math.min(petConfig.STREAK_BONUS.MAX_CAP, streakBonus);
-    }
+  // 2. Tie/Draw: OwO standard = 100 XP
+  if (baseType === "draw" || baseType === "tie") {
+    return petConfig.BATTLE_XP?.draw || 100;
   }
 
-  // 3. Higher Level Opponent Bonus (Only granted when winning against a higher level player)
+  // 3. Victory: OwO standard = 200 XP + Bonuses
+  const baseWin = petConfig.BATTLE_XP?.win || 200;
+
+  // Higher Level Opponent Bonus (OwO formula: Math.round(600 * lvlDiff), capped)
   let opponentBonus = 0;
-  if (baseType === "win" && levelDifference > 0) {
+  if (levelDifference > 0) {
     opponentBonus = Math.min(
-      150,
-      Math.round(levelDifference) * (petConfig.OPPONENT_BONUS?.MULTIPLIER_PER_LEVEL || 5)
+      petConfig.OPPONENT_BONUS?.MAX_CAP || 600,
+      Math.round(levelDifference * (petConfig.OPPONENT_BONUS?.MULTIPLIER_PER_LEVEL || 50))
     );
   }
 
-  return baseBuffer + streakBonus + opponentBonus;
+  // Win Streak Bonus (OwO milestone formula)
+  let streakBonus = 0;
+  if (streak > 0) {
+    if (streak % 1000 === 0) streakBonus = 25 * (Math.sqrt(streak / 100) * 100 + 500);
+    else if (streak % 500 === 0) streakBonus = 10 * (Math.sqrt(streak / 100) * 100 + 500);
+    else if (streak % 100 === 0) streakBonus = 5 * (Math.sqrt(streak / 100) * 100 + 500);
+    else if (streak % 50 === 0) streakBonus = 3 * (Math.sqrt(streak / 100) * 100 + 500);
+    else if (streak % 10 === 0) streakBonus = Math.sqrt(streak / 100) * 100 + 500;
+    streakBonus = Math.min(petConfig.STREAK_BONUS?.MAX_CAP || 25000, Math.round(streakBonus));
+  }
+
+  return baseWin + opponentBonus + streakBonus;
 }
 
 /**
