@@ -339,7 +339,7 @@ client.once(Events.ClientReady, async () => {
         name: "Hộp Quà May Mắn (Lootbox)",
         description: "Mở hộp nhận ngẫu nhiên Ngọc Săn Thú (Gems) từ Common đến Secret và Coke. Dùng lệnh xuse lootbox hoặc xlb.",
         item_type: "tool",
-        price: 25000,
+        price: null,
         emoji: "🎁"
       },
       {

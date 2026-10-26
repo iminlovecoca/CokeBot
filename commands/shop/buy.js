@@ -40,6 +40,11 @@ class BuyCommand extends BaseCommand {
         `${config.emoji.no} Chìa khóa phó bản (Dungeon Key) hiện **không còn bán** trong Cửa Hàng. Bạn có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (${config.prefix}cl)!`
       );
     }
+    if (["lootbox", "lb", "box", "hopqua", "050", "50"].includes(cleanId)) {
+      throw new UserFriendlyError(
+        `${config.emoji.no} Hộp Quà (Lootbox) hiện **không còn bán** trong Cửa Hàng. Bạn có thể kiếm được từ hoạt động Săn Thú (${config.prefix}hunt), Checklist hàng ngày (${config.prefix}cl), hoặc phần thưởng thăng cấp!`
+      );
+    }
     if (["spearhex", "shieldhex", "clawhex"].includes(cleanId)) {
       
       
