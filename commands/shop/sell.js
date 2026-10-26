@@ -11,9 +11,9 @@ class SellCommand extends BaseCommand {
       description: "Bán thú trong Zoo hoặc vật phẩm từ túi đồ chuẩn OwO Bot.",
       usage: `${config.prefix}sell <rank | all | tên thú | vật phẩm> [số lượng]`,
       examples: [
-        { intent: "Bán tất cả thú thường & hiếm & sử thi", command: `${config.prefix}sell all` },
+        { intent: "Bán tất cả thú trong sở thú", command: `${config.prefix}sell all` },
         { intent: "Bán tất cả thú theo rank", command: `${config.prefix}sell common` },
-        { intent: "Bán nhiều rank", command: `${config.prefix}sell c r` },
+        { intent: "Bán nhiều rank cùng lúc", command: `${config.prefix}sell c r e` },
         { intent: "Bán theo tên thú", command: `${config.prefix}sell bee 5` },
         { intent: "Bán 1 vật phẩm shop", command: `${config.prefix}sell sun-stone 1` },
       ],
@@ -22,27 +22,29 @@ class SellCommand extends BaseCommand {
   }
 
   async execute(message, args) {
+    const displayName = message.member?.displayName || message.author.username;
+    const moneyEmoji = config.emoji?.money || "<:cokecy:1509951335016173662>";
+
     if (!args[0]) {
       throw new UserFriendlyError(
-        `**🚫 | ${message.member?.displayName || message.author.username}**, Vui lòng chỉ định rank hoặc loài thú cần bán!\nVí dụ: \`${config.prefix}sell common\`, \`${config.prefix}sell all\`, \`${config.prefix}sell bee 5\``,
+        `**🚫 | ${displayName}**, vui lòng chỉ định rank hoặc loài thú cần bán!\nVí dụ: \`${config.prefix}sell common\`, \`${config.prefix}sell all\`, \`${config.prefix}sell c r\`, \`${config.prefix}sell bee 5\``,
       );
     }
 
     const user = await getUser(message.author.id);
     const zoo = user.zoo || {};
-    const displayName = message.member?.displayName || message.author.username;
-    const moneyEmoji = config.emoji?.money || "🪙";
 
     // 1. Check if argument is "all" or matches one or more ranks
     let isRankSell = false;
     let targetRanks = [];
 
-    if (args[0].toLowerCase() === "all") {
+    const lowerFirst = args[0].toLowerCase();
+    if (lowerFirst === "all") {
       isRankSell = true;
-      // Default 'sell all' sells Common, Rare, Epic (protects high-tier Legendary+)
-      targetRanks = [ZOO_RANKS.Common, ZOO_RANKS.Rare, ZOO_RANKS.Epic];
+      // OwO standard: 'sell all' sells all tiers currently in Zoo
+      targetRanks = Object.values(ZOO_RANKS).sort((a, b) => a.order - b.order);
     } else {
-      // Check if all provided args are valid ranks (supports: "sell c r" or "sell common rare")
+      // Check if all provided args are valid ranks (supports: "sell c r", "sell common rare", "sell l m", etc.)
       const matchedRanks = [];
       for (const arg of args) {
         const found = getRank(arg);
@@ -69,18 +71,39 @@ class SellCommand extends BaseCommand {
       for (const r of targetRanks) {
         const speciesInRank = PET_SPECIES.filter((s) => s.tier === r.name);
         let rankCount = 0;
+
+        // Check canonical species in this rank
         for (const a of speciesInRank) {
           const entry = zoo[a.key];
-          const count = typeof entry === "object" ? (entry.count || 0) : Number(entry) || 0;
+          const count = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
           if (count > 0) {
             rankCount += count;
-            if (typeof entry === "object") {
+            if (typeof entry === "object" && entry !== null) {
               entry.count = 0;
             } else {
               zoo[a.key] = { count: 0, totalCount: count };
             }
           }
         }
+
+        // Also check any extra animal in zoo that belongs to this rank
+        for (const [key, entry] of Object.entries(zoo)) {
+          if (speciesInRank.some((s) => s.key.toLowerCase() === key.toLowerCase())) continue;
+          const anim = getAnimal(key);
+          const animRank = anim?.rankName || anim?.tier || (anim && ZOO_RANKS[anim.tier]?.name);
+          if (animRank === r.name) {
+            const count = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
+            if (count > 0) {
+              rankCount += count;
+              if (typeof entry === "object" && entry !== null) {
+                entry.count = 0;
+              } else {
+                zoo[key] = { count: 0, totalCount: count };
+              }
+            }
+          }
+        }
+
         if (rankCount > 0) {
           totalSold += rankCount;
           totalCokeGain += rankCount * r.price;
@@ -89,7 +112,7 @@ class SellCommand extends BaseCommand {
       }
 
       if (totalSold <= 0) {
-        return message.reply(`**🚫 | ${displayName}**, You don't have enough animals! >:c`);
+        return message.reply(`**🚫 | ${displayName}**, bạn không có đủ thú để bán! >:c`);
       }
 
       user.coke = (user.coke || 0) + totalCokeGain;
@@ -97,11 +120,11 @@ class SellCommand extends BaseCommand {
       await user.save();
 
       return message.reply(
-        `**🔪 | ${displayName}** sold **${rankPieces.join(" ")}** for a total of **${moneyEmoji} ${totalCokeGain.toLocaleString()}**`,
+        `**🔪 | ${displayName}** đã bán **${rankPieces.join(" ")}** và nhận được tổng cộng **${moneyEmoji} ${totalCokeGain.toLocaleString()} Coke**!`,
       );
     }
 
-    // 2. Check if selling a single animal (e.g. "sell bee 5" or "sell 5 bee" or "sell bee all")
+    // 2. Check if selling a single animal (e.g. "sell bee 5" or "sell 5 bee" or "sell bee all" or "sell bee")
     let animalArg = args[0].toLowerCase();
     let countArg = args[1]?.toLowerCase();
 
@@ -115,10 +138,10 @@ class SellCommand extends BaseCommand {
     const targetAnimal = getAnimal(animalArg);
     if (targetAnimal) {
       const entry = zoo[targetAnimal.key];
-      const available = typeof entry === "object" ? (entry.count || 0) : Number(entry) || 0;
+      const available = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
 
       if (available <= 0) {
-        return message.reply(`**🚫 | ${displayName}**, You don't have enough animals! >:c`);
+        return message.reply(`**🚫 | ${displayName}**, bạn không có đủ thú để bán! >:c`);
       }
 
       let quantityToSell = 1;
@@ -127,16 +150,16 @@ class SellCommand extends BaseCommand {
       } else if (countArg) {
         quantityToSell = parseInt(countArg, 10);
         if (isNaN(quantityToSell) || quantityToSell <= 0) {
-          throw new UserFriendlyError(`**🚫 | ${displayName}**, Số lượng bán không hợp lệ.`);
+          return message.reply(`**🚫 | ${displayName}**, bạn phải bán từ 1 con thú trở lên ngốc ạ~`);
         }
       }
 
       if (quantityToSell > available) {
-        return message.reply(`**🚫 | ${displayName}**, You can't sell more than you have silly! >:c`);
+        return message.reply(`**🚫 | ${displayName}**, bạn không thể bán nhiều hơn số lượng thú bạn đang có! >:c`);
       }
 
       const cokeGain = quantityToSell * targetAnimal.price;
-      if (typeof entry === "object") {
+      if (typeof entry === "object" && entry !== null) {
         entry.count = Math.max(0, entry.count - quantityToSell);
       } else {
         zoo[targetAnimal.key] = {
@@ -151,7 +174,7 @@ class SellCommand extends BaseCommand {
 
       const rank = ZOO_RANKS[targetAnimal.rankName || targetAnimal.tier] || ZOO_RANKS.Common;
       return message.reply(
-        `**🔪 | ${displayName}** sold **${rank.emoji}x${quantityToSell}** for a total of **${moneyEmoji} ${cokeGain.toLocaleString()}**`,
+        `**🔪 | ${displayName}** đã bán **${rank.emoji}x${quantityToSell}** và nhận được tổng cộng **${moneyEmoji} ${cokeGain.toLocaleString()} Coke**!`,
       );
     }
 
@@ -161,7 +184,7 @@ class SellCommand extends BaseCommand {
       quantity = parseInt(args[1], 10);
       if (isNaN(quantity) || quantity <= 0) {
         throw new UserFriendlyError(
-          `${config.emoji.no} Số lượng không hợp lệ. Vui lòng nhập một số lớn hơn 0.`,
+          `**🚫 | ${displayName}**, số lượng không hợp lệ. Vui lòng nhập một số lớn hơn 0.`,
         );
       }
     }
@@ -173,7 +196,7 @@ class SellCommand extends BaseCommand {
       quantity,
     );
     return message.reply(
-      `${config.emoji.yes} Bạn đã bán thành công **${quantity} x ${item.name}** ${item.emoji} và nhận được ${moneyEmoji} **${gain}**!`,
+      `**🔪 | ${displayName}** đã bán **${item.emoji} ${item.name} x${quantity}** và nhận được tổng cộng **${moneyEmoji} ${gain.toLocaleString()} Coke**!`,
     );
   }
 }

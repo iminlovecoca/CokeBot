@@ -161,10 +161,21 @@ for (const species of PET_SPECIES) {
     xp: rank.xp,
     essence: rank.essence,
   };
-  ANIMAL_LOOKUP.set(species.key.toLowerCase(), fullAnimal);
-  ANIMAL_LOOKUP.set(species.name.toLowerCase(), fullAnimal);
+  const rawKey = species.key.toLowerCase();
+  const cleanKey = rawKey.replace(/[^a-z0-9]/g, "");
+  ANIMAL_LOOKUP.set(rawKey, fullAnimal);
+  ANIMAL_LOOKUP.set(cleanKey, fullAnimal);
+
+  const rawName = species.name.toLowerCase();
+  const cleanName = rawName.replace(/[^a-z0-9]/g, "");
+  ANIMAL_LOOKUP.set(rawName, fullAnimal);
+  ANIMAL_LOOKUP.set(cleanName, fullAnimal);
+
   for (const alias of species.aliases || []) {
-    ANIMAL_LOOKUP.set(alias.toLowerCase(), fullAnimal);
+    const rawAlias = alias.toLowerCase();
+    const cleanAlias = rawAlias.replace(/[^a-z0-9]/g, "");
+    ANIMAL_LOOKUP.set(rawAlias, fullAnimal);
+    ANIMAL_LOOKUP.set(cleanAlias, fullAnimal);
   }
 }
 
@@ -357,8 +368,9 @@ function addAnimalToUserZoo(user, caughtAnimal, count = 1) {
  */
 function getAnimal(query) {
   if (!query) return null;
-  const clean = String(query).toLowerCase().replace(/[^a-z0-9]/g, "");
-  return ANIMAL_LOOKUP.get(clean) || null;
+  const raw = String(query).toLowerCase().trim();
+  const clean = raw.replace(/[^a-z0-9]/g, "");
+  return ANIMAL_LOOKUP.get(raw) || ANIMAL_LOOKUP.get(clean) || null;
 }
 
 /**

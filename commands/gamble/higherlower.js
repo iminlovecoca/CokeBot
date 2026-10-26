@@ -39,19 +39,18 @@ const suits = ['s', 'c', 'h', 'd'];
 const ranks = Object.keys(rankValues);
 const CARD_ASSET_DIR = path.join(__dirname, "..", "..", "assets", "cards");
 
-function drawNextCard(cardHistory = []) {
+function drawNextCard(currentCard = null) {
   const deck = [];
   for (const suit of suits) {
     for (const rank of ranks) {
-      deck.push(`${rank}${suit}`);
+      const card = `${rank}${suit}`;
+      if (card !== currentCard) {
+        deck.push(card);
+      }
     }
   }
-
-  const drawn = new Set(Array.isArray(cardHistory) ? cardHistory : (cardHistory ? [cardHistory] : []));
-  const remaining = deck.filter(c => !drawn.has(c));
-  const pool = remaining.length > 0 ? remaining : deck;
-  const randomIndex = Math.floor(Math.random() * pool.length);
-  return pool[randomIndex];
+  const randomIndex = Math.floor(Math.random() * deck.length);
+  return deck[randomIndex];
 }
 
 function calculateMultiplier(type, currentCard) {
@@ -282,7 +281,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         await runTransactionWithRetry(cashOutTxn);
 
-        const nextCard = drawNextCard(game.cardHistory);
+        const nextCard = drawNextCard(game.currentCard);
         const finishedContainer = buildComponentsV2(game, 'cashout', { nextCard });
         await i.editReply({
           content: "",
@@ -312,7 +311,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
     };
     const guess = guessMap[guessId];
 
-    const nextCard = drawNextCard(game.cardHistory);
+    const nextCard = drawNextCard(game.currentCard);
     const currentValue = rankValues[game.currentCard.slice(0, -1)];
     const nextValue = rankValues[nextCard.slice(0, -1)];
 
