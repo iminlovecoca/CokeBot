@@ -34,6 +34,12 @@ class BuyCommand extends BaseCommand {
     }
 
     const cleanId = String(itemId).toLowerCase().replace(/\s+/g, "");
+
+    if (["dungeonkey", "key", "dungeon_key", "001", "1"].includes(cleanId)) {
+      throw new UserFriendlyError(
+        `${config.emoji.no} Chìa khóa phó bản (Dungeon Key) hiện **không còn bán** trong Cửa Hàng. Bạn có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (${config.prefix}cl) hoặc tiêu diệt Boss thế giới!`
+      );
+    }
     if (["spearhex", "shieldhex", "clawhex"].includes(cleanId)) {
       
       

@@ -52,7 +52,7 @@ const FIXED_ITEMS = [
   {
     id: "011",
     key: "catch-net",
-    aliases: ["net", "catchnet"],
+    aliases: ["net", "catchnet", "11"],
     name: "Lưới bắt thú",
     emoji: "🕸️",
     type: "tool",
@@ -68,9 +68,81 @@ const FIXED_ITEMS = [
     order: 12,
   },
   {
+    id: "013",
+    key: "thunder-stone",
+    aliases: ["thunder_stone", "thunderstone", "13"],
+    name: "Lôi Thạch",
+    emoji: "<:thunder_stone:1419643353099927553>",
+    type: "stone",
+    order: 13,
+  },
+  {
+    id: "014",
+    key: "moon-stone",
+    aliases: ["moon_stone", "moonstone", "14"],
+    name: "Nguyệt Thạch",
+    emoji: "<:moon_stone:1419643279070335088>",
+    type: "stone",
+    order: 14,
+  },
+  {
+    id: "015",
+    key: "fire-stone",
+    aliases: ["fire_stone", "firestone", "15"],
+    name: "Hỏa Thạch",
+    emoji: "<:fire_stone:1419643296384553082>",
+    type: "stone",
+    order: 15,
+  },
+  {
+    id: "016",
+    key: "leaf-stone",
+    aliases: ["leaf_stone", "leafstone", "16"],
+    name: "Diệp Thạch",
+    emoji: "<:leaf_stone:1419643372070633525>",
+    type: "stone",
+    order: 16,
+  },
+  {
+    id: "017",
+    key: "water-stone",
+    aliases: ["water_stone", "waterstone", "17"],
+    name: "Thuỷ Thạch",
+    emoji: "<:water_stone:1419643326461775962>",
+    type: "stone",
+    order: 17,
+  },
+  {
+    id: "018",
+    key: "sun-stone",
+    aliases: ["sun_stone", "sunstone", "18"],
+    name: "Nhật Thạch",
+    emoji: "<:sun_stone:1419643257041981481>",
+    type: "stone",
+    order: 18,
+  },
+  {
+    id: "019",
+    key: "dusk-stone",
+    aliases: ["dusk_stone", "duskstone", "19"],
+    name: "Hoàng Hôn Thạch",
+    emoji: "<:dusk_stone:1419643383567224931>",
+    type: "stone",
+    order: 19,
+  },
+  {
+    id: "020",
+    key: "dawn-stone",
+    aliases: ["dawn_stone", "dawnstone", "20"],
+    name: "Bình Minh Thạch",
+    emoji: "<:dawn_stone:1419643394162032641>",
+    type: "stone",
+    order: 20,
+  },
+  {
     id: "021",
     key: "lure-wood",
-    aliases: ["wood-lure"],
+    aliases: ["wood-lure", "lure_wood", "21"],
     name: "Mồi Mộc",
     emoji: "🪵",
     type: "tool",
@@ -79,7 +151,7 @@ const FIXED_ITEMS = [
   {
     id: "022",
     key: "lure-earth",
-    aliases: ["earth-lure"],
+    aliases: ["earth-lure", "lure_earth", "22"],
     name: "Mồi Thổ",
     emoji: "🪨",
     type: "tool",
@@ -88,7 +160,7 @@ const FIXED_ITEMS = [
   {
     id: "023",
     key: "lure-water",
-    aliases: ["water-lure"],
+    aliases: ["water-lure", "lure_water", "23"],
     name: "Mồi Thủy",
     emoji: "💧",
     type: "tool",
@@ -97,7 +169,7 @@ const FIXED_ITEMS = [
   {
     id: "024",
     key: "lure-fire",
-    aliases: ["fire-lure"],
+    aliases: ["fire-lure", "lure_fire", "24"],
     name: "Mồi Hỏa",
     emoji: "🔥",
     type: "tool",
@@ -106,11 +178,56 @@ const FIXED_ITEMS = [
   {
     id: "025",
     key: "lure-metal",
-    aliases: ["metal-lure"],
+    aliases: ["metal-lure", "lure_metal", "25"],
     name: "Mồi Kim",
     emoji: "🪙",
     type: "tool",
     order: 25,
+  },
+  {
+    id: "026",
+    key: "shiny-stone",
+    aliases: ["shiny_stone", "shinystone", "26"],
+    name: "Minh Thạch",
+    emoji: "<:shiny_stone:1419643403733565635>",
+    type: "stone",
+    order: 26,
+  },
+  {
+    id: "027",
+    key: "ice-stone",
+    aliases: ["ice_stone", "icestone", "27"],
+    name: "Băng Thạch",
+    emoji: "<:ice_stone:1435842094089507007>",
+    type: "stone",
+    order: 27,
+  },
+  {
+    id: "028",
+    key: "prism-scale",
+    aliases: ["prism_scale", "prismscale", "28"],
+    name: "Vảy Cầu Vồng",
+    emoji: "<:prism_scale:1419643438676312175>",
+    type: "stone",
+    order: 28,
+  },
+  {
+    id: "029",
+    key: "kings-rock",
+    aliases: ["kings_rock", "kingsrock", "29"],
+    name: "Vương Thạch",
+    emoji: "<:kings_rock:1435842099068141648>",
+    type: "stone",
+    order: 29,
+  },
+  {
+    id: "030",
+    key: "metal-coat",
+    aliases: ["metal_coat", "metalcoat", "30"],
+    name: "Áo Kim Loại",
+    emoji: "<:metal_coat:1435842103442673756>",
+    type: "stone",
+    order: 30,
   },
 
   // --- Somber Smithing Stones (031 - 039) ---
@@ -272,7 +389,7 @@ const FIXED_ITEMS = [
   {
     id: "049",
     key: "cristal-9",
-    aliases: ["cristal9", "cr9", "cristal-dragon"],
+    aliases: ["cristal9", "cr9", "cristal-dragon", "cristal-10", "cristal10", "cr10", "cristal_10", "cristal-11", "cristal-12", "cristal", "cristal-stone", "cristal_stone", "crystal"],
     name: "Cristal Ancient Dragon Smithing Stone",
     emoji: "<:Cristal9:1516030465461715005>",
     type: "stone",
@@ -336,8 +453,39 @@ for (const item of FIXED_ITEMS) {
 
 function getItem(idOrAlias) {
   if (!idOrAlias) return null;
-  const str = String(idOrAlias).trim().toLowerCase();
-  return ITEM_BY_ALIAS.get(str) || null;
+  const raw = String(idOrAlias).trim().toLowerCase();
+  
+  // 1. Direct match
+  if (ITEM_BY_ALIAS.has(raw)) return ITEM_BY_ALIAS.get(raw);
+
+  // 2. Numeric normalization: e.g. "11" -> "011", "1" -> "001", "011" -> "11"
+  if (/^\d+$/.test(raw)) {
+    const padded = raw.padStart(3, "0");
+    if (ITEM_BY_ALIAS.has(padded)) return ITEM_BY_ALIAS.get(padded);
+    const unpadded = String(parseInt(raw, 10));
+    if (ITEM_BY_ALIAS.has(unpadded)) return ITEM_BY_ALIAS.get(unpadded);
+  }
+
+  // 3. Hyphen <-> Underscore normalization (e.g. cristal_1 -> cristal-1)
+  const withHyphen = raw.replace(/_/g, "-");
+  if (ITEM_BY_ALIAS.has(withHyphen)) return ITEM_BY_ALIAS.get(withHyphen);
+
+  const withUnderscore = raw.replace(/-/g, "_");
+  if (ITEM_BY_ALIAS.has(withUnderscore)) return ITEM_BY_ALIAS.get(withUnderscore);
+
+  // 4. Strip hyphens and underscores (e.g. catchnet -> catch-net, cristal1 -> cristal-1)
+  const stripped = raw.replace(/[-_\s]/g, "");
+  if (ITEM_BY_ALIAS.has(stripped)) return ITEM_BY_ALIAS.get(stripped);
+
+  // 5. Special fallbacks for stones: e.g. cristal-10, cr10 -> cristal-9
+  if (/^cristal[-_]?(10|11|12)$/.test(raw) || /^cr(10|11|12)$/.test(raw)) {
+    return ITEM_BY_ALIAS.get("cristal-9");
+  }
+  if (/^somber[-_]?(10|11|12)$/.test(raw) || /^sm(10|11|12)$/.test(raw)) {
+    return ITEM_BY_ALIAS.get("somber-9");
+  }
+
+  return null;
 }
 
 function normalizeToFixedId(idOrAlias) {

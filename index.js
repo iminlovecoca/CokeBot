@@ -313,9 +313,9 @@ client.once(Events.ClientReady, async () => {
       {
         item_id: "dungeonkey",
         name: "Chìa khóa Phó bản",
-        description: "Dùng để mở cổng phó bản Dungeon. Nhận từ việc tiêu diệt Boss Rồng/Thượng Nhân hoặc mua ở cửa hàng.",
+        description: "Dùng để mở cổng phó bản Dungeon. Nhận từ việc hoàn thành Checklist hàng ngày (${config.prefix}cl) hoặc tiêu diệt Boss thế giới.",
         item_type: "tool",
-        price: 250000,
+        price: null,
         emoji: "<:key:1516398711712911461>"
       },
       {

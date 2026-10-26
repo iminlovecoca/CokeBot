@@ -131,14 +131,8 @@ class HuntCommand extends BaseCommand {
     );
 
     // 3. Daily Lootbox (lb) Drop Tracking (1st 100%, 2nd/3rd 5%, max 3/day)
-    const todayDate = new Date().toISOString().slice(0, 10);
-    if (!user.rpg.dailyDrops || typeof user.rpg.dailyDrops !== "object" || user.rpg.dailyDrops.date !== todayDate) {
-      user.rpg.dailyDrops = {
-        date: todayDate,
-        huntLbCount: 0,
-        battleWcCount: user.rpg?.dailyDrops?.date === todayDate ? (user.rpg.dailyDrops.battleWcCount || 0) : 0,
-      };
-    }
+    const { getDailyResetCountdown, getDailyDrops } = require("../../../utils/dateUtil");
+    const dailyDrops = getDailyDrops(user);
 
     let lbDropped = false;
     if (user.rpg.dailyDrops.huntLbCount === 0) {

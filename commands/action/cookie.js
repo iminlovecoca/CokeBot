@@ -11,6 +11,7 @@ class CookieCommand extends BaseCommand {
   constructor() {
     super({
       name: 'cookie',
+      aliases: ['danisa', 'banh'],
       description: 'Tặng hoặc tự thưởng bánh Danisa',
       usage: `${config.prefix}cookie [@user]`,
       examples: [

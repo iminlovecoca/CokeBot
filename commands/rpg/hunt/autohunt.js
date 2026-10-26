@@ -470,10 +470,7 @@ class XautohuntCommand extends BaseCommand {
           animalsDropped.push(caughtAnimal);
           const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
           const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
-          if (caughtAnimal.rankName === "Bot") {
-            essenceGain += (caughtAnimal.essence || 10000);
-          }
-          if (user.rpg.equippedPet) {
+                    if (user.rpg.equippedPet) {
             const petHuntXp = getHuntXp(animalTier);
             addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
             totalPetExpGained += petHuntXp;
@@ -659,10 +656,7 @@ class XautohuntCommand extends BaseCommand {
         animalsDropped.push(caughtAnimal);
         const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
         const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
-        if (caughtAnimal.rankName === "Bot") {
-          essenceGain += (caughtAnimal.essence || 10000);
-        }
-        if (user.rpg.equippedPet) {
+                if (user.rpg.equippedPet) {
           const petHuntXp = getHuntXp(animalTier);
           addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
           totalPetExpGained += petHuntXp;

@@ -21,6 +21,38 @@ function getDailyResetCountdown() {
   };
 }
 
+/**
+ * Returns today's UTC date string (YYYY-MM-DD)
+ */
+function getTodayDateString() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Ensures user.rpg.dailyDrops is initialized and aligned with today's date (resets at 00:00 UTC)
+ * @param {object} user 
+ * @returns {object} user.rpg.dailyDrops
+ */
+function getDailyDrops(user) {
+  if (!user.rpg) user.rpg = {};
+  const today = getTodayDateString();
+  if (!user.rpg.dailyDrops || typeof user.rpg.dailyDrops !== "object" || user.rpg.dailyDrops.date !== today) {
+    user.rpg.dailyDrops = {
+      date: today,
+      huntLbCount: 0,
+      battleWcCount: 0,
+      dailyClaimed: false,
+      cookieSent: false,
+      questCompletedCount: 0,
+      bossAttacks: 0,
+      checklistClaimed: false,
+    };
+  }
+  return user.rpg.dailyDrops;
+}
+
 module.exports = {
   getDailyResetCountdown,
+  getTodayDateString,
+  getDailyDrops,
 };

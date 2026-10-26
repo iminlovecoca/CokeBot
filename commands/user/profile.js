@@ -173,7 +173,15 @@ class ProfileCommand extends BaseCommand {
       while (userData.xp >= userService.getUserXpNeeded(userData.level)) {
         userData.xp -= userService.getUserXpNeeded(userData.level);
         userData.level++;
-        userData.coke += 10000 + (userData.level - 1) * 5000;
+        userData.coke += userData.level * 5000;
+        if (!userData.inventory) userData.inventory = new Map();
+        if (userData.inventory instanceof Map) {
+          userData.inventory.set("lootbox", (userData.inventory.get("lootbox") || 0) + userData.level);
+          userData.inventory.set("wc", (userData.inventory.get("wc") || 0) + userData.level);
+        } else {
+          userData.inventory.lootbox = (userData.inventory.lootbox || 0) + userData.level;
+          userData.inventory.wc = (userData.inventory.wc || 0) + userData.level;
+        }
       }
 
       await userData.save().catch(() => {});

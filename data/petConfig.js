@@ -24,16 +24,15 @@ module.exports = {
 
   // Hunt XP Rewards by Loot/Creature Rank (Calibrated 1:1 with OwO & ZOO_RANKS)
   HUNT_XP: {
-    Common: 15,
-    Rare: 45,
-    Epic: 150,
-    Generation: 300,
-    Legendary: 500,
-    Mythic: 1800,
-    Ancient: 6000,
-    Divine: 25000,
-    Secret: 60000,
-    Bot: 100000,
+    Common: 1,
+    Rare: 20,
+    Epic: 400,
+    Generation: 250,
+    Legendary: 2000,
+    Mythic: 5000,
+    Ancient: 100000,
+    Divine: 100000,
+    Secret: 300000,
   },
 
   // Win Streak Bonus for PvP (OwO Milestones)

@@ -11,6 +11,7 @@ class TeaCommand extends BaseCommand {
   constructor() {
     super({
       name: 'tea',
+      aliases: ['tra'],
       description: 'Tặng hoặc tự thưởng trà',
       usage: `${config.prefix}tea [@user]`,
       examples: [

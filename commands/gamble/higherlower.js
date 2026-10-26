@@ -19,11 +19,11 @@ const User = require("../../models/User");
 const HigherLowerGame = require("../../models/HigherLowerGame");
 
 const CONFIG = {
-  RTP: 0.9584,
+  RTP: 0.94,
   MIN_BET: 10,
   MAX_BET: config.gamble_settings.max_bet || 250000,
   COOLDOWN_SECONDS: 15,
-  SAME_MULTIPLIER_OVERRIDE: 10.0,
+  SAME_MULTIPLIER_OVERRIDE: null,
   EMOJIS: {
     money: config.emoji.money || "<:cokecy:1509951335016173662>",
     arrow_right: config.emoji.arrow_right || "▶️"
@@ -39,22 +39,19 @@ const suits = ['s', 'c', 'h', 'd'];
 const ranks = Object.keys(rankValues);
 const CARD_ASSET_DIR = path.join(__dirname, "..", "..", "assets", "cards");
 
-function drawNextCard(currentCard) {
+function drawNextCard(cardHistory = []) {
   const deck = [];
   for (const suit of suits) {
     for (const rank of ranks) {
       deck.push(`${rank}${suit}`);
     }
   }
-  
-  if (!currentCard) {
-    const randomIndex = Math.floor(Math.random() * deck.length);
-    return deck[randomIndex];
-  }
-  
-  const remaining = deck.filter(card => card !== currentCard);
-  const randomIndex = Math.floor(Math.random() * remaining.length);
-  return remaining[randomIndex];
+
+  const drawn = new Set(Array.isArray(cardHistory) ? cardHistory : (cardHistory ? [cardHistory] : []));
+  const remaining = deck.filter(c => !drawn.has(c));
+  const pool = remaining.length > 0 ? remaining : deck;
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  return pool[randomIndex];
 }
 
 function calculateMultiplier(type, currentCard) {
@@ -119,19 +116,19 @@ function buildButtons(currentCard, currentCashOut, isFinished, streak = 0) {
 
   const btnHigher = new ButtonBuilder()
     .setCustomId('hl_higher')
-    .setLabel(`Cao hơn (+${formatNumber(higherPayout)})`)
+    .setLabel(`Cao hơn (${formatNumber(higherPayout)} • x${higherMultiplier.toFixed(2)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || higherMultiplier === 0);
 
   const btnLower = new ButtonBuilder()
     .setCustomId('hl_lower')
-    .setLabel(`Thấp hơn (+${formatNumber(lowerPayout)})`)
+    .setLabel(`Thấp hơn (${formatNumber(lowerPayout)} • x${lowerMultiplier.toFixed(2)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished || lowerMultiplier === 0);
 
   const btnSame = new ButtonBuilder()
     .setCustomId('hl_same')
-    .setLabel(`Bằng nhau (+${formatNumber(samePayout)})`)
+    .setLabel(`Bằng nhau (${formatNumber(samePayout)} • x${sameMultiplier.toFixed(2)})`)
     .setStyle(ButtonStyle.Primary)
     .setDisabled(isFinished);
 
@@ -285,7 +282,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
 
         await runTransactionWithRetry(cashOutTxn);
 
-        const nextCard = drawNextCard(game.currentCard);
+        const nextCard = drawNextCard(game.cardHistory);
         const finishedContainer = buildComponentsV2(game, 'cashout', { nextCard });
         await i.editReply({
           content: "",
@@ -315,7 +312,7 @@ function setupCollector(collector, replyMsg, gameData, userId, isSlash, context)
     };
     const guess = guessMap[guessId];
 
-    const nextCard = drawNextCard(game.currentCard);
+    const nextCard = drawNextCard(game.cardHistory);
     const currentValue = rankValues[game.currentCard.slice(0, -1)];
     const nextValue = rankValues[nextCard.slice(0, -1)];
 

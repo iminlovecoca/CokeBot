@@ -92,15 +92,7 @@ const PET_TIERS = {
     baseDef: 130,
     points: 25000,
   },
-  Bot: {
-    name: "Bot",
-    emoji: "<:legendary:1530878570858287205>",
-    catchRate: 0, // Chuẩn OwO: 0% khi hunt thường, chỉ dò thấy bằng Radar khi Autohunt
-    baseHp: 600,
-    baseAtk: 120,
-    baseDef: 100,
-    points: 30000,
-  },
+
 };
 
 /**
@@ -489,77 +481,7 @@ const PET_SPECIES = [
     description: "Rồng thần tối cao làm chủ cả sát thương vật lý lẫn pháp thuật tối thượng.",
   },
 
-  // --- Bot Rank (Total: 21 points - 1:1 matching OwO Bot Tier animals) ---
-  {
-    key: "cbot",
-    name: "Common Bot",
-    tier: "Bot",
-    emoji: "<:common:1530878565489311826>",
-    aliases: ["cbot", "bot1"],
-    role: "Robot Do Thám",
-    battleStats: { hp: 5, att: 5, pr: 3, wp: 3, mag: 2, mr: 3 },
-    description: "Người máy do thám thế hệ đầu, chỉ có thể phát hiện qua hệ thống Radar khi Autohunt.",
-  },
-  {
-    key: "rbot",
-    name: "Rare Bot",
-    tier: "Bot",
-    emoji: "<:rare:1530878574104547378>",
-    aliases: ["rbot", "bot2"],
-    role: "Robot Chiến Thuật",
-    battleStats: { hp: 4, att: 7, pr: 2, wp: 4, mag: 1, mr: 3 },
-    description: "Người máy tác chiến bọc giáp hợp kim, được HuntBot định vị từ xa.",
-  },
-  {
-    key: "ebot",
-    name: "Epic Bot",
-    tier: "Bot",
-    emoji: "<:epic:1530878567955566642>",
-    aliases: ["ebot", "bot3"],
-    role: "Robot Bọc Thép",
-    battleStats: { hp: 7, att: 3, pr: 5, wp: 2, mag: 0, mr: 4 },
-    description: "Cỗ máy sử thi với động cơ phản lực, quét được khi nâng cấp Radar tầm xa.",
-  },
-  {
-    key: "lbot",
-    name: "Legendary Bot",
-    tier: "Bot",
-    emoji: "<:legendary:1530878570858287205>",
-    aliases: ["lbot", "bot4"],
-    role: "Phi Thuyền Robot Huyền Thoại",
-    battleStats: { hp: 4, att: 2, pr: 2, wp: 8, mag: 3, mr: 2 },
-    description: "Chiến hạm robot huyền thoại của vũ trụ, chỉ có các HuntBot trang bị Radar tối tân mới có thể dò thấy.",
-  },
-  {
-    key: "mbot",
-    name: "Mythic Bot",
-    tier: "Bot",
-    emoji: "<a:mythic:1530878614843686912>",
-    aliases: ["mbot", "bot5"],
-    role: "Siêu Robot Năng Lượng",
-    battleStats: { hp: 3, att: 1, pr: 2, wp: 4, mag: 9, mr: 2 },
-    description: "Cỗ máy thần thoại tích hợp lõi hạt nhân vô tận, cực kì hiếm gặp trong autohunt.",
-  },
-  {
-    key: "abot",
-    name: "Ancient Bot",
-    tier: "Bot",
-    emoji: "<a:ancient:1530878606656540814>",
-    aliases: ["abot", "bot6"],
-    role: "Cổ Đại Robot Chiến Thần",
-    battleStats: { hp: 3, att: 10, pr: 3, wp: 2, mag: 0, mr: 3 },
-    description: "Người máy cổ đại mang sức mạnh hủy diệt từ nền văn minh đã mất.",
-  },
-  {
-    key: "dbot",
-    name: "Divine Bot",
-    tier: "Bot",
-    emoji: "<a:divine:1530878610515165365>",
-    aliases: ["dbot", "bot7"],
-    role: "Thần Máy Thượng Giới",
-    battleStats: { hp: 13, att: 0, pr: 2, wp: 4, mag: 0, mr: 2 },
-    description: "Thực thể cơ khí thần thánh tối cao, đỉnh cao của công nghệ HuntBot.",
-  },
+
 
   // --- Secret (Sẽ cập nhật thú sau — đứng sau bậc Divine) ---
 ];

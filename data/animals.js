@@ -27,20 +27,6 @@ const toSmallNum = (count, digits = 1) => {
 // OwO Bot standard rates:
 // Common + Uncommon: ~88.94% | Rare: 10% | Epic: 1% | Legendary: 0.05% | Mythic (Gem): 0.01% | Ancient (Fabled): 0.001% | Divine (Distorted): 0.00025% | Secret (Hidden): 0.0001%
 const ZOO_RANKS = {
-  Bot: {
-    id: "Bot",
-    name: "Bot",
-    letter: "B",
-    order: 10,
-    rarity: 0, // 0% by default, only detected by Radar during autohunt (OwO Bot standard)
-    price: 50000,
-    points: 30000,
-    xp: 100000,
-    essence: 10000,
-    emoji: "<:legendary:1530878570858287205>",
-    aliases: ["bot", "b", "cbot", "huntbot"],
-    conditional: true,
-  },
   Secret: {
     id: "Secret",
     name: "Secret",
@@ -49,8 +35,8 @@ const ZOO_RANKS = {
     rarity: 0.0001, // 0.0001% (OwO Hidden = 0.0001% / 1 in 1,000,000)
     price: 1000000,
     points: 25000,
-    xp: 60000,
-    essence: 80000,
+    xp: 300000,
+    essence: 500000,
     emoji: PET_TIERS.Secret?.emoji || "<a:Secret:1563835098355339285>",
     aliases: ["secret", "s", "bimat"],
   },
@@ -62,8 +48,8 @@ const ZOO_RANKS = {
     rarity: 0.00025, // 0.00025% (OwO Distorted = 0.00025% / 1 in 400,000)
     price: 300000,
     points: 10000,
-    xp: 25000,
-    essence: 35000,
+    xp: 100000,
+    essence: 200000,
     emoji: PET_TIERS.Divine?.emoji || "<a:divine:1530878610515165365>",
     aliases: ["divine", "d", "than"],
   },
@@ -75,8 +61,8 @@ const ZOO_RANKS = {
     rarity: 0.001, // 0.001% (OwO Fabled = 0.001% / 1 in 100,000)
     price: 250000,
     points: 2500,
-    xp: 6000,
-    essence: 7500,
+    xp: 100000,
+    essence: 100000,
     emoji: PET_TIERS.Ancient?.emoji || "<a:ancient:1530878606656540814>",
     aliases: ["ancient", "a", "codai"],
   },
@@ -88,8 +74,8 @@ const ZOO_RANKS = {
     rarity: 0.01, // 0.01% (OwO Gem = 0.01% / 1 in 10,000)
     price: 30000,
     points: 500,
-    xp: 1800,
-    essence: 1500,
+    xp: 5000,
+    essence: 20000,
     emoji: PET_TIERS.Mythic?.emoji || "<a:mythic:1530878614843686912>",
     aliases: ["mythic", "m", "thanthoai"],
   },
@@ -101,8 +87,8 @@ const ZOO_RANKS = {
     rarity: 0.05, // 0.05% (OwO Legendary = 0.05% / 1 in 2,000)
     price: 15000,
     points: 100,
-    xp: 500,
-    essence: 350,
+    xp: 2000,
+    essence: 10000,
     emoji: PET_TIERS.Legendary?.emoji || "<:legendary:1530878570858287205>",
     aliases: ["legendary", "l", "huyenthoai"],
   },
@@ -111,13 +97,13 @@ const ZOO_RANKS = {
     name: "Generation",
     letter: "G",
     order: 4,
-    rarity: 0.05, // 0.05% (placed right after Epic, conditional if species defined)
-    price: 1000,
-    points: 50,
-    xp: 300,
-    essence: 180,
+    rarity: 0.05,
+    price: 6000, // Chuẩn OwO Special: giá bán 6.000 Coke
+    points: 500, // Chuẩn OwO Special: 500 điểm Zoo
+    xp: 250,     // Chuẩn OwO Special: 250 XP
+    essence: 5000, // Chuẩn OwO Special: 5.000 Essence khi sacrifice
     emoji: PET_TIERS.Generation?.emoji || "<a:Generation:1563835095541092352>",
-    aliases: ["generation", "gen", "g", "thehe"],
+    aliases: ["generation", "gen", "g", "thehe", "special"],
   },
   Epic: {
     id: "Epic",
@@ -127,8 +113,8 @@ const ZOO_RANKS = {
     rarity: 1.0, // 1.0% (OwO Epic = 1.0% / 1 in 100)
     price: 250,
     points: 25,
-    xp: 150,
-    essence: 80,
+    xp: 400,
+    essence: 250,
     emoji: PET_TIERS.Epic?.emoji || "<:epic:1530878567955566642>",
     aliases: ["epic", "e", "suthi"],
   },
@@ -140,7 +126,7 @@ const ZOO_RANKS = {
     rarity: 10.0, // 10.0% (OwO Rare = 10.0% / 1 in 10)
     price: 10,
     points: 5,
-    xp: 45,
+    xp: 20,
     essence: 20,
     emoji: PET_TIERS.Rare?.emoji || "<:rare:1530878574104547378>",
     aliases: ["rare", "r", "hiem"],
@@ -153,8 +139,8 @@ const ZOO_RANKS = {
     rarity: 88.93865, // OwO Common (58.85%) + Uncommon (30%)
     price: 1,
     points: 1,
-    xp: 15,
-    essence: 5,
+    xp: 1,
+    essence: 1,
     emoji: PET_TIERS.Common?.emoji || "<:common:1530878565489311826>",
     aliases: ["common", "c", "thuong"],
   },
@@ -238,10 +224,17 @@ function rollAnimal(luckMultiplier = 1, specialMultiplier = 1, options = {}) {
     let weight = r.rarity;
     const isHighTier = r.order >= HIGH_TIER_MIN_ORDER;
 
-    if (r.name === "Bot") {
-      // In OwO Bot, Bot rank is only caught in autohunt when radar is upgraded
-      weight = (isAutohunt && radarStat > 0) ? radarStat : 0;
-    } else if (isHighTier) {
+    if (isAutohunt && radarStat > 0) {
+      if (r.name === "Generation") {
+        weight += (radarStat * 2.0);
+      } else if (isHighTier) {
+        weight += (radarStat * 0.5);
+      } else if (r.name === "Common") {
+        weight = Math.max(0, weight - (radarStat * 2.5));
+      }
+    }
+
+    if (isHighTier) {
       if (highTierCount >= maxHighTier) {
         // Enforce hard cap: maximum 2 high-tier pets per hunt
         weight = 0;

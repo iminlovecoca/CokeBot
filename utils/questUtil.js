@@ -220,6 +220,12 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   }
   
   if (modified) {
+    if (completedQuests.length > 0) {
+      const { getDailyDrops } = require("./dateUtil");
+      const drops = getDailyDrops(user);
+      drops.questCompletedCount = (drops.questCompletedCount || 0) + completedQuests.length;
+      user.markModified("rpg");
+    }
     for (const quest of completedQuests) {
       let rewardText = "";
       if (quest.rewardType === "coke") {

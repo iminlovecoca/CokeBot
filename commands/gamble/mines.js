@@ -46,7 +46,8 @@ function getMinesMultiplier(minesCount, revealedCount) {
   if (revealedCount > diamondsCount) return 0.0;
 
   if (minesCount === 3) {
-    const lut = [0.0, 1.41, 2.22, 3.93, 7.82, 19.74, 78.96];
+    // Chuẩn OwO Wiki: [0, 1.41, 2.25, 3.94, 7.89, 19.73, 78.95]
+    const lut = [0.0, 1.41, 2.25, 3.94, 7.89, 19.73, 78.95];
     return lut[revealedCount] || 0.0;
   }
 
@@ -55,7 +56,7 @@ function getMinesMultiplier(minesCount, revealedCount) {
   if (waysDiamonds === 0) return 0.0;
 
   const fairMultiplier = waysTotal / waysDiamonds;
-  const RTP = 0.93;
+  const RTP = 0.94; // Chuẩn OwO 94% RTP
   return Number((fairMultiplier * RTP).toFixed(2));
 }
 

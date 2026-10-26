@@ -341,7 +341,7 @@ module.exports = {
         // XP gain for using a command (+ level-up banner)
         if (isCommand) {
           try {
-            const { leveledUp, newLevel, totalReward } = await addUserXp(user, 10);
+            const { leveledUp, newLevel, totalReward, totalLbReward, totalWcReward } = await addUserXp(user, 10);
             if (leveledUp) {
               try {
                 const avatarUrl = message.author.displayAvatarURL({ extension: "png", size: 256 });
@@ -354,8 +354,12 @@ module.exports = {
                   title,
                 });
                 const attachment = new AttachmentBuilder(buffer, { name: "levelup.png" });
+                let bonusRewardText = "";
+                if (totalLbReward > 0 || totalWcReward > 0) {
+                  bonusRewardText = ` (+**${totalLbReward}** <:lootbox:1339620577748451458>, +**${totalWcReward}** <:weapon_crate:1339620593485611089>)`;
+                }
                 await message.channel.send({
-                  content: `🎉 | **${displayName}** | **${title}** leveled up!`,
+                  content: `🎉 | **${displayName}** | **${title}** leveled up!${bonusRewardText}`,
                   files: [attachment],
                 }).catch(() => {});
               } catch (err) {

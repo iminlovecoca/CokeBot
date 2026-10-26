@@ -894,14 +894,36 @@ const addUserXp = async (user, amount) => {
   let oldLevel = user.level;
   let totalReward = 0;
 
+  let totalCokeReward = 0;
+  let totalLbReward = 0;
+  let totalWcReward = 0;
+
   while (user.xp >= getUserXpNeeded(user.level)) {
     user.xp -= getUserXpNeeded(user.level);
     user.level++;
-    const reward = 10000 + (user.level - 1) * 5000;
-    totalReward += reward;
-    user.coke += reward;
+    // OwO Bot standard level rewards: cowoncy = lvl * 5000, lootbox = lvl, weaponcrate = lvl
+    const cokeReward = user.level * 5000;
+    const lbReward = user.level;
+    const wcReward = user.level;
+
+    totalCokeReward += cokeReward;
+    totalLbReward += lbReward;
+    totalWcReward += wcReward;
+    user.coke += cokeReward;
     leveledUp = true;
   }
+
+  if (totalLbReward > 0 || totalWcReward > 0) {
+    if (!user.inventory) user.inventory = new Map();
+    if (user.inventory instanceof Map) {
+      user.inventory.set("lootbox", (user.inventory.get("lootbox") || 0) + totalLbReward);
+      user.inventory.set("wc", (user.inventory.get("wc") || 0) + totalWcReward);
+    } else {
+      user.inventory.lootbox = (user.inventory.lootbox || 0) + totalLbReward;
+      user.inventory.wc = (user.inventory.wc || 0) + totalWcReward;
+    }
+  }
+  totalReward = totalCokeReward;
 
   if (leveledUp || gain > 0) {
     const updateOp = {
@@ -913,11 +935,20 @@ const addUserXp = async (user, amount) => {
       },
     };
     if (totalReward > 0) {
-      updateOp.$inc = { coke: totalReward };
+      updateOp.$inc = updateOp.$inc || {};
+      updateOp.$inc.coke = totalReward;
+    }
+    if (totalLbReward > 0) {
+      updateOp.$inc = updateOp.$inc || {};
+      updateOp.$inc["inventory.lootbox"] = totalLbReward;
+    }
+    if (totalWcReward > 0) {
+      updateOp.$inc = updateOp.$inc || {};
+      updateOp.$inc["inventory.wc"] = totalWcReward;
     }
     await User.updateOne({ userId: user.userId }, updateOp);
   }
-  return { leveledUp, oldLevel, newLevel: user.level, totalReward };
+  return { leveledUp, oldLevel, newLevel: user.level, totalReward, totalLbReward, totalWcReward };
 };
 
 const addToBlacklist = async (userId, message) => {

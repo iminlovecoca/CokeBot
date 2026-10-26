@@ -59,12 +59,26 @@ class DailyCommand extends BaseCommand {
     user.dailyStreak = streak;
     user.lastDaily = now.toJSDate();
 
+    // Mark daily task done for OwO checklist
+    const { getDailyDrops } = require('../../utils/dateUtil');
+    const dailyDrops = getDailyDrops(user);
+    dailyDrops.dailyClaimed = true;
+    user.markModified("rpg");
+
     
     user.xp += 500;
     while (user.xp >= userService.getUserXpNeeded(user.level)) {
       user.xp -= userService.getUserXpNeeded(user.level);
       user.level++;
-      user.coke += 2000;
+      user.coke += user.level * 5000;
+      if (!user.inventory) user.inventory = new Map();
+      if (user.inventory instanceof Map) {
+        user.inventory.set("lootbox", (user.inventory.get("lootbox") || 0) + user.level);
+        user.inventory.set("wc", (user.inventory.get("wc") || 0) + user.level);
+      } else {
+        user.inventory.lootbox = (user.inventory.lootbox || 0) + user.level;
+        user.inventory.wc = (user.inventory.wc || 0) + user.level;
+      }
     }
 
     

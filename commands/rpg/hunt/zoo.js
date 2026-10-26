@@ -93,8 +93,7 @@ class ZooCommand extends BaseCommand {
       "Ancient",
       "Divine",
       "Secret",
-      "Bot",
-    ];
+      ];
 
     const targetName = message.guild?.members?.cache?.get(targetUser.id)?.displayName || targetUser.username;
     let response = `🌿 🌱 🌳 **${targetName}'s zoo!** 🌳 🌱 🌿\n\n`;

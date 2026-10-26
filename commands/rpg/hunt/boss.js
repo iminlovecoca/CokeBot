@@ -1190,6 +1190,11 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   }
   participant.damage += appliedWorldBossDamage;
   participant.attacks += 1;
+  // Track world boss attack for OwO checklist
+  const { getDailyDrops } = require("../../../utils/dateUtil");
+  const drops = getDailyDrops(user);
+  drops.bossAttacks = (drops.bossAttacks || 0) + 1;
+  user.markModified("rpg");
   participant.lastAttackAt = now;
   activeBoss.participants.set(userId, participant);
   activeBoss.hp = Math.max(0, activeBoss.hp - appliedWorldBossDamage);
