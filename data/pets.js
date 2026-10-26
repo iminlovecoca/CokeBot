@@ -271,57 +271,7 @@ const PET_SPECIES = [
     description: "Cá heo biển sâu tràn đầy trí tuệ và ma pháp hồi phục đồng đội.",
   },
 
-  // --- Generation (Total: 19 points - Chuẩn OwO Special Event) ---
-  {
-    key: "lunar-rabbit",
-    name: "Thỏ Ngọc Nguyệt Cung",
-    tier: "Generation",
-    emoji: "🐇",
-    aliases: ["lunar-rabbit", "thongoc", "rabbit"],
-    role: "Trợ Thủ Nguyệt Quang",
-    battleStats: { hp: 3, att: 4, pr: 3, wp: 5, mag: 2, mr: 2 },
-    description: "Linh thú sự kiện mùa trăng, mang lại năng lượng thần thánh và kháng phép tự nhiên.",
-  },
-  {
-    key: "solar-falcon",
-    name: "Kim Ô Liệt Nhật",
-    tier: "Generation",
-    emoji: "🦅",
-    aliases: ["solar-falcon", "kimo", "falcon"],
-    role: "Chiến Binh Nhật Quang",
-    battleStats: { hp: 2, att: 8, pr: 2, wp: 2, mag: 3, mr: 2 },
-    description: "Hóa thân của mặt trời chói lọi giáng thế trong sự kiện mùa hè.",
-  },
-  {
-    key: "celestial-fox",
-    name: "Hồ Ly Tinh Tú",
-    tier: "Generation",
-    emoji: "🦊",
-    aliases: ["celestial-fox", "holy", "fox"],
-    role: "Ảo Thuật Tinh Tú",
-    battleStats: { hp: 2, att: 2, pr: 2, wp: 4, mag: 7, mr: 2 },
-    description: "Linh hồ cửu vĩ nắm giữ pháp thuật tinh vân huyền bí.",
-  },
-  {
-    key: "sakura-deer",
-    name: "Hươu Hoa Anh Đào",
-    tier: "Generation",
-    emoji: "🦌",
-    aliases: ["sakura-deer", "huouhoa", "deer"],
-    role: "Hồi Phục Sinh Mệnh",
-    battleStats: { hp: 6, att: 2, pr: 3, wp: 3, mag: 2, mr: 3 },
-    description: "Linh hươu mang hơi thở mùa xuân đâm chồi nảy lộc và sinh lực dồi dào.",
-  },
-  {
-    key: "nebula-jellyfish",
-    name: "Sứa Tinh Vân",
-    tier: "Generation",
-    emoji: "🪼",
-    aliases: ["nebula-jellyfish", "suatinhvan", "jellyfish"],
-    role: "Khiên Năng Lượng",
-    battleStats: { hp: 4, att: 1, pr: 2, wp: 6, mag: 4, mr: 2 },
-    description: "Sinh vật trôi dạt trong dải ngân hà với chiếc khiên năng lượng vũ khí bảo hộ.",
-  },
+  // --- Generation (Sẽ cập nhật thú sau khi mở sự kiện hàng tháng) ---
 
   // --- Legendary (Total: 20 points - OwO Legendary Standard) ---
   {
@@ -533,57 +483,7 @@ const PET_SPECIES = [
 
 
 
-  // --- Secret (Total: 24 points - Chuẩn OwO Hidden Tối Thượng) ---
-  {
-    key: "void-dragon",
-    name: "Hư Không Ma Long",
-    tier: "Secret",
-    emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    aliases: ["void-dragon", "hukhonglong", "dragon"],
-    role: "Bá Chủ Hư Không",
-    battleStats: { hp: 4, att: 14, pr: 3, wp: 2, mag: 0, mr: 1 },
-    description: "Thực thể rồng bóng tối cổ xưa trỗi dậy từ vết rách không gian.",
-  },
-  {
-    key: "shadow-reaper",
-    name: "Tử Thần Bóng Đêm",
-    tier: "Secret",
-    emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    aliases: ["shadow-reaper", "tuthan", "reaper"],
-    role: "Sát Thủ Vô Ảnh",
-    battleStats: { hp: 2, att: 16, pr: 2, wp: 2, mag: 0, mr: 2 },
-    description: "Lưỡi hái tử thần ẩn mình trong bóng tối với đòn sát thủ (ATT 16) chí mạng.",
-  },
-  {
-    key: "abyssal-leviathan",
-    name: "Cự Thú Vực Thẳm",
-    tier: "Secret",
-    emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    aliases: ["abyssal-leviathan", "vuctham", "abyss"],
-    role: "Hộ Vệ Hắc Ám",
-    battleStats: { hp: 12, att: 2, pr: 5, wp: 2, mag: 0, mr: 3 },
-    description: "Thủy quái bóng tối ngủ say dưới rãnh vực sâu vô tận với lớp giáp bất khả xâm phạm.",
-  },
-  {
-    key: "astral-phoenix",
-    name: "Phượng Hoàng Tinh Hệ",
-    tier: "Secret",
-    emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    aliases: ["astral-phoenix", "tinhhe", "astral"],
-    role: "Thần Ma Pháp",
-    battleStats: { hp: 2, att: 0, pr: 2, wp: 3, mag: 15, mr: 2 },
-    description: "Phượng hoàng sinh ra từ những vụ nổ siêu tân tinh với ma pháp thiêu đốt tất cả.",
-  },
-  {
-    key: "chronos-beast",
-    name: "Thú Thần Thời Gian",
-    tier: "Secret",
-    emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    aliases: ["chronos-beast", "thoigian", "chronos"],
-    role: "Toàn Năng Thời Không",
-    battleStats: { hp: 4, att: 7, pr: 3, wp: 4, mag: 4, mr: 2 },
-    description: "Linh thú bí ẩn ngự trị trên dòng chảy thời gian của toàn cõi vũ trụ.",
-  },
+  // --- Secret (Sẽ cập nhật thú sau khi mở nhiệm vụ/điều kiện bí mật) ---
 ];
 
 /**
