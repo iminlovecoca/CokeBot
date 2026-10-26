@@ -3,17 +3,82 @@ const { sellItem, getUser } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 const { getAnimal, getRank, ZOO_RANKS, PET_SPECIES } = require("../../data/animals");
+const { getItem } = require("../../data/items");
+const {
+  sellRpgItem,
+  getGearDisplayName,
+  calculateRpgPower,
+  findRpgItem,
+} = require("../../utils/rpgUtil");
+const { getRarityEmoji } = require("../../utils/rpgUi");
+
+const WEAPON_RARITY_MAP = {
+  cw: "Common",
+  commonweapons: "Common",
+  commonweapon: "Common",
+  cweapon: "Common",
+  cweapons: "Common",
+
+  rw: "Rare",
+  rareweapons: "Rare",
+  rareweapon: "Rare",
+  rweapon: "Rare",
+  rweapons: "Rare",
+
+  ew: "Epic",
+  epicweapons: "Epic",
+  epicweapon: "Epic",
+  eweapon: "Epic",
+  eweapons: "Epic",
+
+  lw: "Legendary",
+  legendaryweapons: "Legendary",
+  legendaryweapon: "Legendary",
+  lweapon: "Legendary",
+  lweapons: "Legendary",
+
+  mw: "Mythic",
+  mythicweapons: "Mythic",
+  mythicweapon: "Mythic",
+  mythicalweapons: "Mythic",
+  mweapon: "Mythic",
+  mweapons: "Mythic",
+
+  aw: "Ancient",
+  ancientweapons: "Ancient",
+  ancientweapon: "Ancient",
+  aweapon: "Ancient",
+  aweapons: "Ancient",
+  fw: "Ancient",
+  fabledweapons: "Ancient",
+  fabledweapon: "Ancient",
+
+  dw: "Divine",
+  divineweapons: "Divine",
+  divineweapon: "Divine",
+  dweapon: "Divine",
+  dweapons: "Divine",
+
+  allw: "ALL",
+  allweapons: "ALL",
+  allweapon: "ALL",
+  allgear: "ALL",
+};
 
 class SellCommand extends BaseCommand {
   constructor() {
     super({
       name: "sell",
-      description: "Bán thú trong Zoo hoặc vật phẩm từ túi đồ chuẩn OwO Bot.",
-      usage: `${config.prefix}sell <rank | all | tên thú | vật phẩm> [số lượng]`,
+      aliases: ["sellgear", "sg"],
+      description: "Bán thú trong Zoo, vũ khí RPG, hoặc vật phẩm từ túi đồ chuẩn OwO Bot.",
+      usage: `${config.prefix}sell <rank | all | tên thú | cw,rw,dw... | w<id> | vật phẩm> [số lượng]`,
       examples: [
         { intent: "Bán tất cả thú trong sở thú", command: `${config.prefix}sell all` },
         { intent: "Bán tất cả thú theo rank", command: `${config.prefix}sell common` },
-        { intent: "Bán nhiều rank cùng lúc", command: `${config.prefix}sell c r e` },
+        { intent: "Bán nhiều rank thú cùng lúc", command: `${config.prefix}sell c r e` },
+        { intent: "Bán vũ khí theo độ hiếm (cw, rw, dw...)", command: `${config.prefix}sell cw rw` },
+        { intent: "Bán tất cả vũ khí", command: `${config.prefix}sell allweapons` },
+        { intent: "Bán vũ khí theo ID", command: `${config.prefix}sell w5` },
         { intent: "Bán theo tên thú", command: `${config.prefix}sell bee 5` },
         { intent: "Bán 1 vật phẩm shop", command: `${config.prefix}sell sun-stone 1` },
       ],
@@ -27,24 +92,108 @@ class SellCommand extends BaseCommand {
 
     if (!args[0]) {
       throw new UserFriendlyError(
-        `**🚫 | ${displayName}**, vui lòng chỉ định rank hoặc loài thú cần bán!\nVí dụ: \`${config.prefix}sell common\`, \`${config.prefix}sell all\`, \`${config.prefix}sell c r\`, \`${config.prefix}sell bee 5\``,
+        `**🚫 | ${displayName}**, vui lòng chỉ định rank, loài thú hoặc vũ khí cần bán!\nVí dụ:\n• Bán thú: \`${config.prefix}sell common\`, \`${config.prefix}sell all\`, \`${config.prefix}sell bee 5\`\n• Bán vũ khí: \`${config.prefix}sell cw\`, \`${config.prefix}sell rw\`, \`${config.prefix}sell dw\`, \`${config.prefix}sell w5\``,
       );
     }
 
     const user = await getUser(message.author.id);
+
+    // ==========================================
+    // 1. KIỂM TRA BÁN VŨ KHÍ RPG (WEAPONS / GEAR)
+    // ==========================================
+
+    // 1a. Bán hàng loạt vũ khí theo rank (e.g. `sell cw`, `sell rw`, `sell dw`, `sell cw rw`, `sell cw,rw,ew`, `sell allweapons`)
+    const tokens = args.flatMap((a) => a.toLowerCase().split(",")).map((s) => s.trim()).filter(Boolean);
+    const weaponRarities = [];
+    let isAllWeapons = false;
+
+    for (const t of tokens) {
+      const mapped = WEAPON_RARITY_MAP[t];
+      if (mapped) {
+        if (mapped === "ALL") {
+          isAllWeapons = true;
+        } else if (!weaponRarities.includes(mapped)) {
+          weaponRarities.push(mapped);
+        }
+      }
+    }
+
+    if (isAllWeapons) {
+      weaponRarities.length = 0;
+      weaponRarities.push("Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine");
+    }
+
+    if (weaponRarities.length > 0 && tokens.every((t) => Boolean(WEAPON_RARITY_MAP[t]))) {
+      if (!user.rpg) {
+        return message.reply(`**🚫 | ${displayName}**, bạn chưa tạo nhân vật RPG để sở hữu vũ khí!`);
+      }
+      const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
+      const userItems = user.rpg.items || [];
+      const itemsToSell = userItems.filter(
+        (item) => weaponRarities.includes(item.rarity) && !equippedIds.has(item.id) && !item.isGodset && !item.isFavorite
+      );
+
+      if (itemsToSell.length === 0) {
+        return message.reply(
+          `**🚫 | ${displayName}**, không tìm thấy vũ khí nào thuộc cấp độ này trong rương đồ để bán (hoặc tất cả đều đang được trang bị/khóa ⭐)!`
+        );
+      }
+
+      const totalCoke = itemsToSell.reduce((sum, item) => sum + (item.sellPrice || 0), 0);
+      const sellIds = new Set(itemsToSell.map((item) => item.id));
+      user.rpg.items = userItems.filter((item) => !sellIds.has(item.id));
+      user.coke = (user.coke || 0) + totalCoke;
+      user.rpg.power = calculateRpgPower(user);
+      user.markModified("rpg");
+      await user.save();
+
+      const countsByRarity = {};
+      for (const item of itemsToSell) {
+        countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
+      }
+      const rarityPieces = Object.entries(countsByRarity)
+        .map(([rarity, count]) => `${getRarityEmoji(rarity)}x${count}`)
+        .join(" ");
+
+      return message.reply(
+        `**🗡️ | ${displayName}** đã bán **${rarityPieces}** (${itemsToSell.length} vũ khí) và nhận được tổng cộng **${moneyEmoji} ${totalCoke.toLocaleString()} Coke**!`
+      );
+    }
+
+    // 1b. Bán 1 vũ khí theo ID (ví dụ: `sell w5`, `sell g5`, hoặc `sell 5` nếu khớp ID vũ khí đang sở hữu)
+    const isExplicitWeaponId = /^[wg]\d+$/i.test(args[0]);
+    const isNumericId = /^\d+$/.test(args[0]);
+    let targetWeaponItem = null;
+
+    if (isExplicitWeaponId) {
+      const weaponId = Number(args[0].replace(/^[wgWG]/, ""));
+      targetWeaponItem = findRpgItem(user, weaponId);
+    } else if (isNumericId && !getItem(args[0])) {
+      const weaponId = Number(args[0]);
+      targetWeaponItem = findRpgItem(user, weaponId);
+    }
+
+    if (targetWeaponItem) {
+      const { item, cokeGain } = await sellRpgItem(message.author.id, targetWeaponItem.id);
+      return message.reply(
+        `**🗡️ | ${displayName}** đã bán **${getGearDisplayName(item)}** (\`G${String(item.id).padStart(3, "0")}\`) và nhận được tổng cộng **${moneyEmoji} ${cokeGain.toLocaleString()} Coke**!`
+      );
+    }
+
+    // ==========================================
+    // 2. KIỂM TRA BÁN THÚ TRONG SỞ THÚ (ZOO)
+    // ==========================================
     const zoo = user.zoo || {};
 
-    // 1. Check if argument is "all" or matches one or more ranks
+    // 2a. Bán theo rank thú hoặc bán toàn bộ thú (`sell all`, `sell c`, `sell common`, `sell c r`)
     let isRankSell = false;
     let targetRanks = [];
 
     const lowerFirst = args[0].toLowerCase();
     if (lowerFirst === "all") {
       isRankSell = true;
-      // OwO standard: 'sell all' sells all tiers currently in Zoo
       targetRanks = Object.values(ZOO_RANKS).sort((a, b) => a.order - b.order);
     } else {
-      // Check if all provided args are valid ranks (supports: "sell c r", "sell common rare", "sell l m", etc.)
       const matchedRanks = [];
       for (const arg of args) {
         const found = getRank(arg);
@@ -54,10 +203,7 @@ class SellCommand extends BaseCommand {
           }
         }
       }
-      if (matchedRanks.length > 0 && matchedRanks.length === args.length) {
-        isRankSell = true;
-        targetRanks = matchedRanks;
-      } else if (matchedRanks.length === 1 && args.length === 1) {
+      if (matchedRanks.length > 0 && (matchedRanks.length === args.length || args.length === 1)) {
         isRankSell = true;
         targetRanks = matchedRanks;
       }
@@ -72,7 +218,6 @@ class SellCommand extends BaseCommand {
         const speciesInRank = PET_SPECIES.filter((s) => s.tier === r.name);
         let rankCount = 0;
 
-        // Check canonical species in this rank
         for (const a of speciesInRank) {
           const entry = zoo[a.key];
           const count = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
@@ -86,7 +231,6 @@ class SellCommand extends BaseCommand {
           }
         }
 
-        // Also check any extra animal in zoo that belongs to this rank
         for (const [key, entry] of Object.entries(zoo)) {
           if (speciesInRank.some((s) => s.key.toLowerCase() === key.toLowerCase())) continue;
           const anim = getAnimal(key);
@@ -124,11 +268,10 @@ class SellCommand extends BaseCommand {
       );
     }
 
-    // 2. Check if selling a single animal (e.g. "sell bee 5" or "sell 5 bee" or "sell bee all" or "sell bee")
+    // 2b. Bán 1 loài thú theo tên (ví dụ: `sell bee 5`, `sell 5 bee`, `sell bee all`)
     let animalArg = args[0].toLowerCase();
     let countArg = args[1]?.toLowerCase();
 
-    // Support reverse order: "sell 5 bee" or "sell all bee"
     if (getAnimal(countArg) && (!isNaN(parseInt(animalArg, 10)) || animalArg === "all")) {
       const temp = animalArg;
       animalArg = countArg;
@@ -178,7 +321,9 @@ class SellCommand extends BaseCommand {
       );
     }
 
-    // 3. Fall back to shop item selling
+    // ==========================================
+    // 3. BÁN VẬT PHẨM TÚI ĐỒ (SHOP / INVENTORY ITEM)
+    // ==========================================
     let quantity = 1;
     if (args[1]) {
       quantity = parseInt(args[1], 10);
