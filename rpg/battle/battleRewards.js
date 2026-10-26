@@ -82,14 +82,8 @@ class BattleRewards {
     }
 
     // 5. Daily Weapon Crate (wc) Drop Tracking (1st 100%, 2nd/3rd 5%, max 3/day)
-    const todayDate = new Date().toISOString().slice(0, 10);
-    if (!user1.rpg.dailyDrops || typeof user1.rpg.dailyDrops !== "object" || user1.rpg.dailyDrops.date !== todayDate) {
-      user1.rpg.dailyDrops = {
-        date: todayDate,
-        huntLbCount: user1.rpg?.dailyDrops?.date === todayDate ? (user1.rpg.dailyDrops.huntLbCount || 0) : 0,
-        battleWcCount: 0,
-      };
-    }
+    const { getDailyDrops } = require("../../utils/dateUtil");
+    getDailyDrops(user1);
 
     let wcDropped = false;
     if (user1.rpg.dailyDrops.battleWcCount === 0) {

@@ -21,7 +21,7 @@ class HuntCommand extends BaseCommand {
     super({
       name: "hunt",
       aliases: ["h"],
-      description: "Đi săn thú bổ sung vào Zoo, nhận EXP và nhận Hộp Quà (Lootbox) chuẩn OwO.",
+      description: "Đi săn thú bổ sung vào Zoo, nhận EXP và nhận Hộp Quà (Lootbox).",
       usage: `${config.prefix}hunt`,
       examples: [
         { intent: "Đi săn", command: `${config.prefix}hunt` },
@@ -186,8 +186,23 @@ class HuntCommand extends BaseCommand {
 
     const { updateQuestProgress } = require("../../../utils/questUtil");
     await updateQuestProgress(user, "exp_gain", expGain, message.channel);
-    if (lbDropped) {
+    const hasRareAnimal = caughtAnimals.some((a) => {
+      const rName = a.rankName || a.tier || "Common";
+      return rName === "Rare";
+    });
+    const hasEpicPlusAnimal = caughtAnimals.some((a) => {
+      const rName = a.rankName || a.tier || "Common";
+      const rOrder = ZOO_RANKS[rName]?.order || 0;
+      return rOrder >= (ZOO_RANKS.Epic?.order || 3);
+    });
+    if (hasRareAnimal || lbDropped) {
+      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Rare" });
+    }
+    if (hasEpicPlusAnimal || lbDropped) {
       await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Epic" });
+    }
+    if (user.rpg.equippedPet) {
+      await updateQuestProgress(user, "pet_level", user.rpg.equippedPet.level || 1, message.channel);
     }
 
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;

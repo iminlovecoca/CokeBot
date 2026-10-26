@@ -313,7 +313,7 @@ client.once(Events.ClientReady, async () => {
       {
         item_id: "dungeonkey",
         name: "Chìa khóa Phó bản",
-        description: "Dùng để mở cổng phó bản Dungeon. Nhận từ việc hoàn thành Checklist hàng ngày (${config.prefix}cl) hoặc tiêu diệt Boss thế giới.",
+        description: `Dùng để mở cổng phó bản Dungeon. Nhận từ phần thưởng hoàn thành Checklist hàng ngày (${config.prefix}cl).`,
         item_type: "tool",
         price: null,
         emoji: "<:key:1516398711712911461>"
@@ -340,7 +340,7 @@ client.once(Events.ClientReady, async () => {
         description: "Mở hộp nhận ngẫu nhiên Ngọc Săn Thú (Gems) từ Common đến Secret và Coke. Dùng lệnh xuse lootbox hoặc xlb.",
         item_type: "tool",
         price: null,
-        emoji: "🎁"
+        emoji: "<:lootbox:1563961108727992470>"
       },
       {
         item_id: "hexpiece",
@@ -366,6 +366,10 @@ client.once(Events.ClientReady, async () => {
           }
           if (dbItem.price !== itemData.price) {
             dbItem.price = itemData.price;
+            updated = true;
+          }
+          if (dbItem.description !== itemData.description) {
+            dbItem.description = itemData.description;
             updated = true;
           }
           if (updated) {

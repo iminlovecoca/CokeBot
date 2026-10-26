@@ -356,7 +356,7 @@ module.exports = {
                 const attachment = new AttachmentBuilder(buffer, { name: "levelup.png" });
                 let bonusRewardText = "";
                 if (totalLbReward > 0 || totalWcReward > 0) {
-                  bonusRewardText = ` (+**${totalLbReward}** <:lootbox:1339620577748451458>, +**${totalWcReward}** <:weapon_crate:1339620593485611089>)`;
+                  bonusRewardText = ` (+**${totalLbReward}** <:lootbox:1563961108727992470>, +**${totalWcReward}** <:crate:1512793698025603282>)`;
                 }
                 await message.channel.send({
                   content: `🎉 | **${displayName}** | **${title}** leveled up!${bonusRewardText}`,

@@ -70,7 +70,7 @@ class SellCommand extends BaseCommand {
     super({
       name: "sell",
       aliases: ["sellgear", "sg"],
-      description: "Bán thú trong Zoo, vũ khí RPG, hoặc vật phẩm từ túi đồ chuẩn OwO Bot.",
+      description: "Bán thú trong Zoo, vũ khí RPG, hoặc vật phẩm từ túi đồ.",
       usage: `${config.prefix}sell <rank | all | tên thú | cw,rw,dw... | w<id> | vật phẩm> [số lượng]`,
       examples: [
         { intent: "Bán tất cả thú trong sở thú", command: `${config.prefix}sell all` },

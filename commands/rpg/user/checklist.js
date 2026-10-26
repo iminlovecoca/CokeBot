@@ -8,7 +8,7 @@ class ChecklistCommand extends BaseCommand {
     super({
       name: "checklist",
       aliases: ["cl", "task", "tasks"],
-      description: "Xem danh sách nhiệm vụ hàng ngày và nhận thưởng khi hoàn thành (chuẩn OwO).",
+      description: "Xem danh sách nhiệm vụ hàng ngày và nhận thưởng khi hoàn thành.",
       usage: `${config.prefix}checklist hoặc ${config.prefix}cl`,
       examples: [
         { intent: "Xem checklist hàng ngày", command: `${config.prefix}cl` },

@@ -1,6 +1,7 @@
 const BaseCommand = require('../../core/BaseCommand');
 const { checkAndSetCooldown } = require('../../utils/cooldown');
 const { UserFriendlyError } = require('../../utils/errors');
+const { getDailyDrops } = require('../../utils/dateUtil');
 const config = require('../../data/config');
 
 const danisaEmoji = '<:danisa:1404057793920635043>';
@@ -48,6 +49,9 @@ class CookieCommand extends BaseCommand {
 
     if (!args.length) {
       authorUser.cookie += 1;
+      const dailyDrops = getDailyDrops(authorUser);
+      dailyDrops.cookieSent = true;
+      authorUser.markModified('rpg');
       await authorUser.save();
 
       return message.reply(
@@ -69,8 +73,11 @@ class CookieCommand extends BaseCommand {
         throw new UserFriendlyError(`${config.emoji.no} Bạn không còn hộp **Danisa** nào để tặng!`);
       }
       authorUser.cookie -= 1;
-      await authorUser.save();
     }
+    const dailyDrops = getDailyDrops(authorUser);
+    dailyDrops.cookieSent = true;
+    authorUser.markModified('rpg');
+    await authorUser.save();
 
     let targetUser = await userRepository.getOrCreate(userMention.id);
     if (targetUser.cookie === undefined) {

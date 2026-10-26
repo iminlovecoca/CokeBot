@@ -8,11 +8,11 @@ class InventoryCommand extends BaseCommand {
     super({
       name: "inventory",
       aliases: ["inv", "oinv", "tui", "tuido"],
-      description: "Xem túi đồ dạng lưới chuẩn OwO với mã ID 3 chữ số cố định.",
+      description: "Xem túi đồ dạng lưới với mã ID 3 chữ số cố định.",
       usage: `${config.prefix}inv [gems]`,
       examples: [
         { intent: "Xem túi đồ của bạn", command: `${config.prefix}inv` },
-        { intent: "Xem túi đồ theo cú pháp OwO", command: `${config.prefix}oinv` },
+        { intent: "Xem túi đồ bằng alias", command: `${config.prefix}tui` },
         { intent: "Chỉ lọc ngọc săn thú", command: `${config.prefix}inv gems` },
       ],
       cooldown: 2,

@@ -236,7 +236,7 @@ class BaucuaCommand extends BaseCommand {
     super({
       name: "baucua",
       aliases: ["bc", "bctc"],
-      description: "🎲 Trò chơi Bầu Cua Tôm Cá nhiều người chơi phong cách OwO!",
+      description: "🎲 Trò chơi Bầu Cua Tôm Cá nhiều người chơi!",
       usage: `${config.prefix}baucua`,
       examples: [
         {

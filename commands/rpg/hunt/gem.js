@@ -21,7 +21,7 @@ class GemCommand extends BaseCommand {
     super({
       name: "gem",
       aliases: ["gems", "ngoc"],
-      description: "Xem và quản lý các viên ngọc hỗ trợ đi săn (OwO Gems).",
+      description: "Xem và quản lý các viên ngọc hỗ trợ đi săn (Gems).",
       usage: `${config.prefix}gem [use <id1> <id2>...]`,
       examples: [
         { intent: "Xem các ngọc đang kích hoạt và ngọc trong túi", command: `${config.prefix}gem` },

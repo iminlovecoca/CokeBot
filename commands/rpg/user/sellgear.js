@@ -6,7 +6,7 @@ class SellgearCommand extends BaseCommand {
     super({
       name: "sellgear",
       aliases: ["sg", "rpgsell"],
-      description: "Bán trang bị RPG để nhận Coke (Đã hợp nhất vào lệnh sell chuẩn OwO).",
+      description: "Bán trang bị RPG để nhận Coke (Đã hợp nhất vào lệnh sell).",
       usage: `${config.prefix}sell <cw | rw | ew | dw | allweapons | w<id>>`,
       examples: [
         { intent: "Bán toàn bộ vũ khí Common", command: `${config.prefix}sell cw` },

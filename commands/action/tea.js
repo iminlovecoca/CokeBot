@@ -1,6 +1,7 @@
 const BaseCommand = require('../../core/BaseCommand');
 const { checkAndSetCooldown, notifyCooldown } = require('../../utils/cooldown');
 const { UserFriendlyError } = require('../../utils/errors');
+const { getDailyDrops } = require('../../utils/dateUtil');
 const config = require('../../data/config');
 
 const teaEmoji = '🍵'; 
@@ -39,6 +40,9 @@ class TeaCommand extends BaseCommand {
 
     if (!args.length) {
       authorUser.tea += 1;
+      const dailyDrops = getDailyDrops(authorUser);
+      dailyDrops.cookieSent = true;
+      authorUser.markModified('rpg');
       await authorUser.save();
 
       return message.reply(
@@ -60,8 +64,11 @@ class TeaCommand extends BaseCommand {
         throw new UserFriendlyError(`${config.emoji.no} Bạn không còn tách trà nào để tặng!`);
       }
       authorUser.tea -= 1;
-      await authorUser.save();
     }
+    const dailyDrops = getDailyDrops(authorUser);
+    dailyDrops.cookieSent = true;
+    authorUser.markModified('rpg');
+    await authorUser.save();
 
     let targetUser = await userRepository.getOrCreate(userMention.id);
     if (targetUser.tea === undefined) targetUser.tea = 0;

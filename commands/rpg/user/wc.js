@@ -8,7 +8,7 @@ class WcCommand extends BaseCommand {
     super({
       name: "wc",
       aliases: ["xwc", "crate", "weaponcrate"],
-      description: "Mở hộp vũ khí (wc) nhanh chuẩn OwO.",
+      description: "Mở hộp vũ khí (wc) nhanh.",
       usage: `${config.prefix}wc [số lượng / all]`,
       examples: [
         {

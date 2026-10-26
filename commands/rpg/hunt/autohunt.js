@@ -452,10 +452,15 @@ const processHuntSettlement = async (
   const levelsGained = addRpgExp(user.rpg, xpGain);
   user.rpg.power = calculateRpgPower(user);
 
-  if (xpGain > 0) {
+  if (xpGain > 0 || user.rpg?.equippedPet) {
     try {
       const { updateQuestProgress } = require("../../../utils/questUtil");
-      await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+      if (xpGain > 0) {
+        await updateQuestProgress(user, "exp_gain", xpGain, message.channel);
+      }
+      if (user.rpg?.equippedPet) {
+        await updateQuestProgress(user, "pet_level", user.rpg.equippedPet.level || 1, message.channel);
+      }
     } catch (questErr) {
       console.error("[AutoHunt] Lỗi cập nhật quest:", questErr);
     }

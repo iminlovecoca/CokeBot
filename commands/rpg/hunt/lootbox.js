@@ -77,7 +77,7 @@ class LootboxCommand extends BaseCommand {
     super({
       name: "lootbox",
       aliases: ["xlb", "lb", "box", "hopqua"],
-      description: "Mở Hộp Quà (Lootbox) để nhận ngẫu nhiên Ngọc Săn Thú (Gems) chuẩn OwO.",
+      description: "Mở Hộp Quà (Lootbox) để nhận ngẫu nhiên Ngọc Săn Thú (Gems).",
       usage: `${config.prefix}lb [số_lượng / all]`,
       examples: [
         { intent: "Mở 1 hộp quà", command: `${config.prefix}lb` },
