@@ -430,19 +430,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
               user.markModified("inventory");
             }
           }
-          if (bossRankKey === "thuongnhan" && isLastHit) {
-            if (Math.random() < 0.5) {
-              if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-                if (!user.inventory) {
-                  user.inventory = new Map();
-                }
-                const currentQty = user.inventory.get("dungeonkey") || 0;
-                user.inventory.set("dungeonkey", currentQty + 1);
-                user.markModified("inventory");
-              }
-              keyDropped = true;
-            }
-          }
+          // Dungeon key drop from world boss has been removed
         }
         let topBonus = null;
         if (topBonusMap.has(userId)) {
@@ -1920,12 +1908,7 @@ const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
       });
       user.markModified("inventory");
     }
-    if (escrow.keyDropped) {
-      if (!user.inventory) user.inventory = new Map();
-      const currentQty = user.inventory.get("dungeonkey") || 0;
-      user.inventory.set("dungeonkey", currentQty + 1);
-      user.markModified("inventory");
-    }
+    // Dungeon key drop from world boss has been removed
     if (escrow.topBonus) {
       if (escrow.topBonus.expBonus > 0) {
         addRpgExp(user.rpg, escrow.topBonus.expBonus);

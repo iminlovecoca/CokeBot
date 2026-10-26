@@ -37,7 +37,7 @@ class BuyCommand extends BaseCommand {
 
     if (["dungeonkey", "key", "dungeon_key", "001", "1"].includes(cleanId)) {
       throw new UserFriendlyError(
-        `${config.emoji.no} Chìa khóa phó bản (Dungeon Key) hiện **không còn bán** trong Cửa Hàng. Bạn có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (${config.prefix}cl) hoặc tiêu diệt Boss thế giới!`
+        `${config.emoji.no} Chìa khóa phó bản (Dungeon Key) hiện **không còn bán** trong Cửa Hàng. Bạn có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (${config.prefix}cl)!`
       );
     }
     if (["spearhex", "shieldhex", "clawhex"].includes(cleanId)) {

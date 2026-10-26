@@ -197,14 +197,14 @@ class DungeonCommand extends BaseCommand {
     if (isSolo) {
       const keyCount = user.inventory?.get("dungeonkey") || 0;
       if (keyCount <= 0) {
-        return message.reply(`❌ Bạn cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Solo Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
+        return message.reply(`❌ Bạn cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Solo Dungeon. Có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (\`${config.prefix}cl\`).`);
       }
       progress = Math.max(0, ...(user.rpg?.clearedDungeons || [0]), user.rpg?.soloDungeonProgress || 0);
     } else {
       const leaderUser = await User.findOne({ userId: guild.leaderId }).exec();
       const keyCount = leaderUser?.inventory?.get("dungeonkey") || 0;
       if (keyCount <= 0) {
-        return message.reply(`❌ Bạn (Trưởng nhóm) cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon. Có thể mua trong \`${config.prefix}shop\` với giá 250k Coke.`);
+        return message.reply(`❌ Bạn (Trưởng nhóm) cần có ít nhất **1 Chìa khóa Phó bản** <:key:1516398711712911461> để mở Dungeon. Có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (\`${config.prefix}cl\`).`);
       }
       progress = guild.chapterProgress || 0;
     }
