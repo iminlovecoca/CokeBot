@@ -462,13 +462,17 @@ class XautohuntCommand extends BaseCommand {
         let animalsDropped = [];
         let petsCaught = [];
         let totalDuplicatePetExp = 0;
-        let wcCount = 0;
-        const luckMult = 1 + (radInfo.stat || 0) * 5;
         for (let i = 0; i < huntsCount; i++) {
-          const caughtAnimal = rollAnimal(luckMult);
+          const caughtAnimal = rollAnimal(1.0, 1.0, {
+            isAutohunt: true,
+            radarStat: radInfo.stat || 0,
+          });
           animalsDropped.push(caughtAnimal);
           const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
           const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
+          if (caughtAnimal.rankName === "Bot") {
+            essenceGain += (caughtAnimal.essence || 10000);
+          }
           if (user.rpg.equippedPet) {
             const petHuntXp = getHuntXp(animalTier);
             addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
@@ -482,14 +486,6 @@ class XautohuntCommand extends BaseCommand {
               totalDuplicatePetExp += expBonus;
             }
           }
-          if (Math.random() < 0.12 + Math.min(0.18, (radInfo.stat || 0))) {
-            wcCount += 1;
-          }
-        }
-        if (wcCount > 0) {
-          if (!user.inventory) user.inventory = new Map();
-          user.inventory.set("wc", (user.inventory.get("wc") || 0) + wcCount);
-          user.markModified("inventory");
         }
         user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
         user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;
@@ -655,15 +651,18 @@ class XautohuntCommand extends BaseCommand {
       let animalsDropped = [];
       let petsCaught = [];
       let totalDuplicatePetExp = 0;
-      let wcCount = 0;
-      const luckMult = 1 + (radInfo.stat || 0) * 5;
-
-      // Process animal captures into user.zoo and pet XP per hunt
+      // Process animal captures into user.zoo and pet XP per hunt (Strict OwO Autohunt rates with Radar)
       for (let i = 0; i < huntsCount; i++) {
-        const caughtAnimal = rollAnimal(luckMult);
+        const caughtAnimal = rollAnimal(1.0, 1.0, {
+          isAutohunt: true,
+          radarStat: radInfo.stat || 0,
+        });
         animalsDropped.push(caughtAnimal);
         const { isNewSpecies, petObj } = addAnimalToUserZoo(user, caughtAnimal, 1);
         const animalTier = caughtAnimal.rankName || caughtAnimal.tier || "Common";
+        if (caughtAnimal.rankName === "Bot") {
+          essenceGain += (caughtAnimal.essence || 10000);
+        }
         if (user.rpg.equippedPet) {
           const petHuntXp = getHuntXp(animalTier);
           addPetXpUtil(user.rpg.equippedPet, petHuntXp, user);
@@ -677,14 +676,6 @@ class XautohuntCommand extends BaseCommand {
             totalDuplicatePetExp += expBonus;
           }
         }
-        if (Math.random() < 0.12 + Math.min(0.18, (radInfo.stat || 0))) {
-          wcCount += 1;
-        }
-      }
-      if (wcCount > 0) {
-        if (!user.inventory) user.inventory = new Map();
-        user.inventory.set("wc", (user.inventory.get("wc") || 0) + wcCount);
-        user.markModified("inventory");
       }
       user.rpg.autohunt.essence = (user.rpg.autohunt.essence || 0) + essenceGain;
       user.rpg.autohunt.totalEssence = (user.rpg.autohunt.totalEssence || 0) + essenceGain;

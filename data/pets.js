@@ -14,7 +14,7 @@ const PET_TIERS = {
   Common: {
     name: "Common",
     emoji: "<:common:1530878565489311826>",
-    catchRate: 0.15,
+    catchRate: 0.8893865, // ~88.94% (OwO Common + Uncommon)
     baseHp: 10,
     baseAtk: 2,
     baseDef: 2,
@@ -23,7 +23,7 @@ const PET_TIERS = {
   Rare: {
     name: "Rare",
     emoji: "<:rare:1530878574104547378>",
-    catchRate: 0.05,
+    catchRate: 0.10, // 10.0% (OwO Rare)
     baseHp: 25,
     baseAtk: 5,
     baseDef: 4,
@@ -32,7 +32,7 @@ const PET_TIERS = {
   Epic: {
     name: "Epic",
     emoji: "<:epic:1530878567955566642>",
-    catchRate: 0.01,
+    catchRate: 0.01, // 1.0% (OwO Epic)
     baseHp: 50,
     baseAtk: 10,
     baseDef: 8,
@@ -41,7 +41,7 @@ const PET_TIERS = {
   Generation: {
     name: "Generation",
     emoji: config.emoji?.ranks?.generation || "<a:Generation:1563835095541092352>",
-    catchRate: 0.002,
+    catchRate: 0.0005, // 0.05%
     baseHp: 75,
     baseAtk: 15,
     baseDef: 12,
@@ -50,7 +50,7 @@ const PET_TIERS = {
   Legendary: {
     name: "Legendary",
     emoji: "<:legendary:1530878570858287205>",
-    catchRate: 0.0005,
+    catchRate: 0.0005, // 0.05% (OwO Legendary)
     baseHp: 100,
     baseAtk: 20,
     baseDef: 15,
@@ -59,7 +59,7 @@ const PET_TIERS = {
   Mythic: {
     name: "Mythic",
     emoji: "<a:mythic:1530878614843686912>",
-    catchRate: 0.0001,
+    catchRate: 0.0001, // 0.01% (OwO Gem)
     baseHp: 180,
     baseAtk: 35,
     baseDef: 28,
@@ -68,7 +68,7 @@ const PET_TIERS = {
   Ancient: {
     name: "Ancient",
     emoji: "<a:ancient:1530878606656540814>",
-    catchRate: 0.00001,
+    catchRate: 0.00001, // 0.001% (OwO Fabled)
     baseHp: 300,
     baseAtk: 60,
     baseDef: 50,
@@ -77,7 +77,7 @@ const PET_TIERS = {
   Divine: {
     name: "Divine",
     emoji: "<a:divine:1530878610515165365>",
-    catchRate: 0.000001,
+    catchRate: 0.0000025, // 0.00025% (OwO Distorted)
     baseHp: 500,
     baseAtk: 100,
     baseDef: 80,
@@ -86,11 +86,20 @@ const PET_TIERS = {
   Secret: {
     name: "Secret",
     emoji: config.emoji?.ranks?.secret || "<a:Secret:1563835098355339285>",
-    catchRate: 0.0000002,
+    catchRate: 0.000001, // 0.0001% (OwO Hidden)
     baseHp: 800,
     baseAtk: 160,
     baseDef: 130,
     points: 2500,
+  },
+  Bot: {
+    name: "Bot",
+    emoji: "<:legendary:1530878570858287205>",
+    catchRate: 0, // Chuẩn OwO: 0% khi hunt thường, chỉ dò thấy bằng Radar khi Autohunt
+    baseHp: 600,
+    baseAtk: 120,
+    baseDef: 100,
+    points: 30000,
   },
 };
 
@@ -470,6 +479,78 @@ const PET_SPECIES = [
     description: "Rồng thần tối cao làm chủ cả sát thương vật lý lẫn pháp thuật tối thượng.",
   },
 
+  // --- Bot Rank (Chỉ có thể dò tìm bằng Radar khi Autohunt — chuẩn OwO Bot) ---
+  {
+    key: "cbot",
+    name: "Common Bot",
+    tier: "Bot",
+    emoji: "<:common:1530878565489311826>",
+    aliases: ["cbot", "bot1"],
+    role: "Robot Do Thám",
+    battleStats: { hp: 4, att: 4, pr: 3, wp: 3, mag: 2, mr: 2 },
+    description: "Người máy do thám thế hệ đầu, chỉ có thể phát hiện qua hệ thống Radar khi Autohunt.",
+  },
+  {
+    key: "rbot",
+    name: "Rare Bot",
+    tier: "Bot",
+    emoji: "<:rare:1530878574104547378>",
+    aliases: ["rbot", "bot2"],
+    role: "Robot Chiến Thuật",
+    battleStats: { hp: 5, att: 5, pr: 3, wp: 3, mag: 3, mr: 3 },
+    description: "Người máy tác chiến bọc giáp hợp kim, được HuntBot định vị từ xa.",
+  },
+  {
+    key: "ebot",
+    name: "Epic Bot",
+    tier: "Bot",
+    emoji: "<:epic:1530878567955566642>",
+    aliases: ["ebot", "bot3"],
+    role: "Robot Bọc Thép",
+    battleStats: { hp: 6, att: 6, pr: 4, wp: 4, mag: 3, mr: 3 },
+    description: "Cỗ máy sử thi với động cơ phản lực, quét được khi nâng cấp Radar tầm xa.",
+  },
+  {
+    key: "lbot",
+    name: "Legendary Bot",
+    tier: "Bot",
+    emoji: "<:legendary:1530878570858287205>",
+    aliases: ["lbot", "bot4"],
+    role: "Phi Thuyền Robot Huyền Thoại",
+    battleStats: { hp: 7, att: 7, pr: 4, wp: 5, mag: 5, mr: 4 },
+    description: "Chiến hạm robot huyền thoại của vũ trụ, chỉ có các HuntBot trang bị Radar tối tân mới có thể dò thấy.",
+  },
+  {
+    key: "mbot",
+    name: "Mythic Bot",
+    tier: "Bot",
+    emoji: "<a:mythic:1530878614843686912>",
+    aliases: ["mbot", "bot5"],
+    role: "Siêu Robot Năng Lượng",
+    battleStats: { hp: 8, att: 8, pr: 5, wp: 5, mag: 6, mr: 5 },
+    description: "Cỗ máy thần thoại tích hợp lõi hạt nhân vô tận, cực kì hiếm gặp trong autohunt.",
+  },
+  {
+    key: "abot",
+    name: "Ancient Bot",
+    tier: "Bot",
+    emoji: "<a:ancient:1530878606656540814>",
+    aliases: ["abot", "bot6"],
+    role: "Cổ Đại Robot Chiến Thần",
+    battleStats: { hp: 9, att: 9, pr: 5, wp: 6, mag: 6, mr: 5 },
+    description: "Người máy cổ đại mang sức mạnh hủy diệt từ nền văn minh đã mất.",
+  },
+  {
+    key: "dbot",
+    name: "Divine Bot",
+    tier: "Bot",
+    emoji: "<a:divine:1530878610515165365>",
+    aliases: ["dbot", "bot7"],
+    role: "Thần Máy Thượng Giới",
+    battleStats: { hp: 10, att: 10, pr: 6, wp: 6, mag: 7, mr: 6 },
+    description: "Thực thể cơ khí thần thánh tối cao, đỉnh cao của công nghệ HuntBot.",
+  },
+
   // --- Secret (Sẽ cập nhật thú sau — đứng sau bậc Divine) ---
 ];
 
@@ -577,23 +658,23 @@ function rollHuntPetDrop(isAutohunt = false) {
     return list[Math.floor(Math.random() * list.length)];
   };
 
-  if (Math.random() < 0.0000002 * mult) {
+  if (Math.random() < 0.000001 * mult) {
     const s = getRandomSpecies("Secret");
     if (s) return s;
   }
-  if (Math.random() < 0.000001 * mult) return getRandomSpecies("Divine");
+  if (Math.random() < 0.0000025 * mult) return getRandomSpecies("Divine");
   if (Math.random() < 0.00001 * mult)  return getRandomSpecies("Ancient");
   if (Math.random() < 0.0001 * mult)   return getRandomSpecies("Mythic");
   if (Math.random() < 0.0005 * mult)   return getRandomSpecies("Legendary");
-  if (Math.random() < 0.002 * mult) {
+  if (Math.random() < 0.0005 * mult) {
     const g = getRandomSpecies("Generation");
     if (g) return g;
   }
   if (Math.random() < 0.01 * mult)     return getRandomSpecies("Epic");
-  if (Math.random() < 0.05 * mult)     return getRandomSpecies("Rare");
-  if (Math.random() < 0.15 * mult)     return getRandomSpecies("Common");
+  if (Math.random() < 0.10 * mult)     return getRandomSpecies("Rare");
+  if (Math.random() < 0.8893865 * mult) return getRandomSpecies("Common");
 
-  return null;
+  return getRandomSpecies("Common");
 }
 
 module.exports = {

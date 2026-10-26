@@ -9,7 +9,7 @@ const {
   hasRpgCharacter,
   getEffectiveRpgStats,
 } = require("../../../utils/rpgUtil");
-const { rollAnimal, addAnimalToUserZoo } = require("../../../data/animals");
+const { rollAnimal, addAnimalToUserZoo, ZOO_RANKS } = require("../../../data/animals");
 const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
 const {
   consumeGemsOnHunt,
@@ -85,16 +85,27 @@ class HuntCommand extends BaseCommand {
     const luckMultiplier = baseLuck * (1 + luckyBonus);
     const specialMultiplier = specialGem ? (specialGem.specialMultiplier || 1) : 1;
 
-    // 2. Animal Catching Loop
+    // 2. Animal Catching Loop (Enforces OwO high-tier limits)
     const caughtAnimals = [];
     const caughtMap = new Map(); // key -> { animal, count }
     let totalRankXp = 0;
     const newSpeciesList = [];
+    let highTierCount = 0; // Tracks high-tier animals caught in this hunt (Legendary+)
 
     for (let i = 0; i < totalAnimalsToCatch; i++) {
-      const caught = rollAnimal(luckMultiplier, specialMultiplier);
+      const caught = rollAnimal(luckMultiplier, specialMultiplier, {
+        highTierCount,
+        maxHighTier: 2,
+        highTierPenalty: 0.01,
+        isAutohunt: false,
+      });
       caughtAnimals.push(caught);
       totalRankXp += (caught.xp || 15);
+
+      const caughtRank = ZOO_RANKS[caught.rankName || caught.tier];
+      if (caughtRank && caughtRank.order >= ZOO_RANKS.Legendary.order) {
+        highTierCount += 1;
+      }
 
       const existing = caughtMap.get(caught.key);
       if (existing) {

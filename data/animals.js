@@ -22,15 +22,31 @@ const toSmallNum = (count, digits = 1) => {
     .join("");
 };
 
-// Rank metadata calibrated to hunting probabilities and selling prices
-// Order: Common (1) -> Rare (2) -> Epic (3) -> Generation (4) -> Legendary (5) -> Mythic (6) -> Ancient (7) -> Divine (8) -> Secret (9)
+// Rank metadata calibrated strictly to OwO Bot hunting probabilities and selling prices
+// Order: Common (1) -> Rare (2) -> Epic (3) -> Generation (4) -> Legendary (5) -> Mythic (6) -> Ancient (7) -> Divine (8) -> Secret (9) -> Bot (10, Autohunt Radar)
+// OwO Bot standard rates:
+// Common + Uncommon: ~88.94% | Rare: 10% | Epic: 1% | Legendary: 0.05% | Mythic (Gem): 0.01% | Ancient (Fabled): 0.001% | Divine (Distorted): 0.00025% | Secret (Hidden): 0.0001%
 const ZOO_RANKS = {
+  Bot: {
+    id: "Bot",
+    name: "Bot",
+    letter: "B",
+    order: 10,
+    rarity: 0, // 0% by default, only detected by Radar during autohunt (OwO Bot standard)
+    price: 50000,
+    points: 30000,
+    xp: 100000,
+    essence: 10000,
+    emoji: "<:legendary:1530878570858287205>",
+    aliases: ["bot", "b", "cbot", "huntbot"],
+    conditional: true,
+  },
   Secret: {
     id: "Secret",
     name: "Secret",
     letter: "S",
     order: 9,
-    rarity: 0.01, // 0.01%
+    rarity: 0.0001, // 0.0001% (OwO Hidden = 0.0001% / 1 in 1,000,000)
     price: 2500000,
     points: 25000,
     xp: 60000,
@@ -43,7 +59,7 @@ const ZOO_RANKS = {
     name: "Divine",
     letter: "D",
     order: 8,
-    rarity: 0.05, // 0.05%
+    rarity: 0.00025, // 0.00025% (OwO Distorted = 0.00025% / 1 in 400,000)
     price: 1000000,
     points: 10000,
     xp: 25000,
@@ -56,7 +72,7 @@ const ZOO_RANKS = {
     name: "Ancient",
     letter: "A",
     order: 7,
-    rarity: 0.15, // 0.15%
+    rarity: 0.001, // 0.001% (OwO Fabled = 0.001% / 1 in 100,000)
     price: 180000,
     points: 2500,
     xp: 6000,
@@ -69,7 +85,7 @@ const ZOO_RANKS = {
     name: "Mythic",
     letter: "M",
     order: 6,
-    rarity: 0.6, // 0.6%
+    rarity: 0.01, // 0.01% (OwO Gem = 0.01% / 1 in 10,000)
     price: 35000,
     points: 500,
     xp: 1800,
@@ -82,7 +98,7 @@ const ZOO_RANKS = {
     name: "Legendary",
     letter: "L",
     order: 5,
-    rarity: 2.2, // 2.2%
+    rarity: 0.05, // 0.05% (OwO Legendary = 0.05% / 1 in 2,000)
     price: 6000,
     points: 100,
     xp: 500,
@@ -95,7 +111,7 @@ const ZOO_RANKS = {
     name: "Generation",
     letter: "G",
     order: 4,
-    rarity: 1.5, // 1.5% (placed right after Epic)
+    rarity: 0.05, // 0.05% (placed right after Epic, conditional if species defined)
     price: 3000,
     points: 50,
     xp: 300,
@@ -108,7 +124,7 @@ const ZOO_RANKS = {
     name: "Epic",
     letter: "E",
     order: 3,
-    rarity: 8.0, // 8.0%
+    rarity: 1.0, // 1.0% (OwO Epic = 1.0% / 1 in 100)
     price: 1200,
     points: 25,
     xp: 150,
@@ -121,7 +137,7 @@ const ZOO_RANKS = {
     name: "Rare",
     letter: "R",
     order: 2,
-    rarity: 25.0, // 25.0%
+    rarity: 10.0, // 10.0% (OwO Rare = 10.0% / 1 in 10)
     price: 300,
     points: 5,
     xp: 45,
@@ -134,7 +150,7 @@ const ZOO_RANKS = {
     name: "Common",
     letter: "C",
     order: 1,
-    rarity: 62.49,
+    rarity: 88.93865, // OwO Common (58.85%) + Uncommon (30%)
     price: 80,
     points: 1,
     xp: 15,
@@ -167,17 +183,52 @@ for (const species of PET_SPECIES) {
 }
 
 /**
- * Rolls an animal on every hunt according to CokeBot's tier rates.
- * Only rolls among tiers that currently have at least 1 species defined.
+ * Order threshold for high-tier pets (Legendary, Mythic, Ancient, Divine, Secret).
  */
+const HIGH_TIER_MIN_ORDER = ZOO_RANKS.Legendary.order;
+
 /**
- * Rolls an animal on every hunt according to CokeBot's tier rates and gem luck multipliers.
- * Only rolls among tiers that currently have at least 1 species defined.
- * Supports OwO-style Lucky Gem and Special Gem probability boosts.
+ * Rolls an animal on every hunt according to OwO-calibrated tier rates and gem luck multipliers.
+ * Enforces OwO hunt balance rules:
+ * - Base tier rates calibrated exactly to OwO:
+ *   Common: ~88.94% (Common + Uncommon) | Rare: 10% | Epic: 1% | Legendary: 0.05% | Mythic: 0.01% | Ancient: 0.001% | Divine: 0.00025% | Secret: 0.0001%
+ * - In 1 hunt (even with gems), only 1 high-tier pet (Legendary+) is normally expected.
+ * - If 1 high-tier pet has already dropped in this hunt session (highTierCount === 1),
+ *   subsequent high-tier drop chance is drastically penalized (highTierPenalty = 0.01, 100x lower).
+ * - Maximum 2 high-tier pets (Legendary+) can ever drop in a single hunt (highTierCount >= maxHighTier [2] -> weight = 0).
+ * - For autohunt (isAutohunt = true), drop rates are strictly set to base OwO rates without gem luck inflation.
+ *
+ * @param {number|object} [luckMultiplier=1] - Gem luck multiplier or options object
+ * @param {number} [specialMultiplier=1] - Special gem multiplier (boosts Divine / Secret)
+ * @param {object} [options={}] - Additional options { highTierCount, maxHighTier, highTierPenalty, isAutohunt }
  */
-function rollAnimal(luckMultiplier = 1, specialMultiplier = 1) {
-  const safeMult = Math.max(1, Number(luckMultiplier) || 1);
-  const safeSpec = Math.max(1, Number(specialMultiplier) || 1);
+function rollAnimal(luckMultiplier = 1, specialMultiplier = 1, options = {}) {
+  let opts = options;
+  let luckMult = luckMultiplier;
+  let specMult = specialMultiplier;
+
+  if (typeof luckMultiplier === "object" && luckMultiplier !== null) {
+    opts = luckMultiplier;
+    luckMult = opts.luckMultiplier ?? 1;
+    specMult = opts.specialMultiplier ?? 1;
+  }
+
+  const {
+    highTierCount = 0,
+    maxHighTier = 2,
+    highTierPenalty = 0.01, // 99% penalty for 2nd high-tier pet in the same hunt
+    isAutohunt = false,
+    radarStat = 0, // Radar detection rate (OwO huntbot)
+  } = opts;
+
+  let safeMult = Math.max(1, Number(luckMult) || 1);
+  let safeSpec = Math.max(1, Number(specMult) || 1);
+
+  // In OwO Bot, huntbot / autohunt strictly runs at base rates without gem luck boosts
+  if (isAutohunt) {
+    safeMult = 1.0;
+    safeSpec = 1.0;
+  }
 
   const activeRanks = Object.values(ZOO_RANKS)
     .filter((r) => PET_SPECIES.some((s) => s.tier === r.name));
@@ -185,15 +236,44 @@ function rollAnimal(luckMultiplier = 1, specialMultiplier = 1) {
   let totalWeight = 0;
   const weightedRanks = activeRanks.map((r) => {
     let weight = r.rarity;
-    if (r.name !== "Common") {
-      weight *= safeMult;
-      if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
-        weight *= safeSpec;
+    const isHighTier = r.order >= HIGH_TIER_MIN_ORDER;
+
+    if (r.name === "Bot") {
+      // In OwO Bot, Bot rank is only caught in autohunt when radar is upgraded
+      weight = (isAutohunt && radarStat > 0) ? radarStat : 0;
+    } else if (isHighTier) {
+      if (highTierCount >= maxHighTier) {
+        // Enforce hard cap: maximum 2 high-tier pets per hunt
+        weight = 0;
+      } else if (highTierCount === 1) {
+        // 1 high-tier already rolled: subsequent high-tier chance is extremely low
+        weight = weight * safeMult * highTierPenalty;
+        if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
+          weight *= safeSpec;
+        }
+      } else {
+        // Normal high-tier roll
+        weight = weight * safeMult;
+        if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
+          weight *= safeSpec;
+        }
       }
+    } else if (r.name === "Common") {
+      // Subtract bot detection rate from common if autohunt radar is active, exactly like OwO
+      const botReduction = (isAutohunt && radarStat > 0) ? radarStat : 0;
+      weight = Math.max(0, weight - botReduction);
+    } else {
+      // Non-high-tier (Rare, Epic, Generation) boosted by luck multiplier
+      weight *= safeMult;
     }
+
     totalWeight += weight;
     return { rank: r, weight };
   });
+
+  if (totalWeight <= 0) {
+    return ANIMAL_LOOKUP.get("bee");
+  }
 
   const roll = Math.random() * totalWeight;
   let cumulative = 0;
@@ -332,6 +412,7 @@ function formatZooScoreText(zoo = {}) {
     A: 0,
     M: 0,
     L: 0,
+    B: 0,
     G: 0,
     E: 0,
     R: 0,
@@ -349,7 +430,10 @@ function formatZooScoreText(zoo = {}) {
     }
   }
 
-  return `S-${counts.S}, D-${counts.D}, A-${counts.A}, M-${counts.M}, L-${counts.L}, G-${counts.G}, E-${counts.E}, R-${counts.R}, C-${counts.C}`;
+  let text = `S-${counts.S}, D-${counts.D}, A-${counts.A}, M-${counts.M}, L-${counts.L}`;
+  if (counts.B > 0) text += `, B-${counts.B}`;
+  text += `, G-${counts.G}, E-${counts.E}, R-${counts.R}, C-${counts.C}`;
+  return text;
 }
 
 module.exports = {

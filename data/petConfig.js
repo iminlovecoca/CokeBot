@@ -31,6 +31,8 @@ module.exports = {
     Mythic: 220,
     Ancient: 450,
     Divine: 900,
+    Secret: 1800,
+    Bot: 1500,
   },
 
   // Balanced Win Streak Bonus Milestones for PvP

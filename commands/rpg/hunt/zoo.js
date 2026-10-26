@@ -82,7 +82,7 @@ class ZooCommand extends BaseCommand {
     // Dynamic superscript digits (1 digit for 0-9, 2 digits for 10-99, 3 digits for 100-999, etc.)
     const digits = Math.trunc(Math.log10(biggest || 1) + 1);
 
-    // Tiers order: Common -> Rare -> Epic -> Generation (G) -> Legendary -> Mythic -> Ancient -> Divine -> Secret (S)
+    // Tiers order: Common -> Rare -> Epic -> Generation (G) -> Legendary -> Mythic -> Ancient -> Divine -> Secret (S) -> Bot (B)
     const tiersOrder = [
       "Common",
       "Rare",
@@ -93,6 +93,7 @@ class ZooCommand extends BaseCommand {
       "Ancient",
       "Divine",
       "Secret",
+      "Bot",
     ];
 
     const targetName = message.guild?.members?.cache?.get(targetUser.id)?.displayName || targetUser.username;
