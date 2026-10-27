@@ -7,6 +7,37 @@
 
 const { PET_TIERS, PET_SPECIES, generatePetStats, getPetBattleStats } = require("./pets");
 
+const speciesOrderMap = new Map();
+if (Array.isArray(PET_SPECIES)) {
+  PET_SPECIES.forEach((s, idx) => {
+    if (s.key) speciesOrderMap.set(s.key.toLowerCase(), idx);
+  });
+}
+
+/**
+ * Compare two animal objects for sorting:
+ * 1. From lowest rank to highest rank (Common -> Rare -> Epic -> ... -> Secret)
+ * 2. Within the same rank, group same species together in canonical PET_SPECIES order
+ */
+function compareAnimals(a, b) {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const rankOrderA = ZOO_RANKS[a.rankName || a.tier || a.rank]?.order || 0;
+  const rankOrderB = ZOO_RANKS[b.rankName || b.tier || b.rank]?.order || 0;
+  if (rankOrderA !== rankOrderB) {
+    return rankOrderA - rankOrderB;
+  }
+  const keyA = (a.key || a.name || "").toLowerCase();
+  const keyB = (b.key || b.name || "").toLowerCase();
+  const idxA = speciesOrderMap.get(keyA) ?? 999;
+  const idxB = speciesOrderMap.get(keyB) ?? 999;
+  if (idxA !== idxB) {
+    return idxA - idxB;
+  }
+  return keyA.localeCompare(keyB);
+}
+
 const SUPERSCRIPT_NUMBERS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
 
 const toSmallNum = (count, digits = 1) => {
@@ -452,4 +483,5 @@ module.exports = {
   calculateZooPoints,
   formatZooScoreText,
   toSmallNum,
+  compareAnimals,
 };

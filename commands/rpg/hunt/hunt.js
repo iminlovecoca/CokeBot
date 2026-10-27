@@ -9,7 +9,7 @@ const {
   hasRpgCharacter,
   getEffectiveRpgStats,
 } = require("../../../utils/rpgUtil");
-const { rollAnimal, addAnimalToUserZoo, ZOO_RANKS } = require("../../../data/animals");
+const { rollAnimal, addAnimalToUserZoo, ZOO_RANKS, compareAnimals } = require("../../../data/animals");
 const { getHuntXp, getDuplicatePetXp, addPetXp: addPetXpUtil } = require("../../../utils/petXpUtil");
 const {
   consumeGemsOnHunt,
@@ -227,7 +227,8 @@ class HuntCommand extends BaseCommand {
 
     const blank = config.emoji.blank;
 
-    // Line 2: Caught animal emojis (Image 2 style)
+    // Line 2: Caught animal emojis (Sorted: từ thấp đến cao rank, cùng rank cùng loại)
+    caughtAnimals.sort(compareAnimals);
     const animalsEmojiStr = caughtAnimals.map((a) => a.emoji).join(" ");
     lines.push(`${blank} **|** Bạn đã bắt được: ${animalsEmojiStr}`);
 
@@ -241,8 +242,9 @@ class HuntCommand extends BaseCommand {
       lines.push(`${blank} **|** Nhận được **${expGain.toLocaleString()}xp**!`);
     }
 
-    // New species unlocked
+    // New species unlocked (Sorted: từ thấp đến cao rank, cùng rank cùng loại)
     if (newSpeciesList.length > 0) {
+      newSpeciesList.sort(compareAnimals);
       const newAnimalsText = newSpeciesList
         .map((a) => `${a.rankEmoji} ${a.emoji} **${a.name}**`)
         .join(", ");

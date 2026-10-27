@@ -311,6 +311,8 @@ const renderHarvestReportLines = (
   if (petsCaught && petsCaught.length > 0) {
     const validPets = petsCaught.filter(Boolean);
     if (validPets.length > 0) {
+      const { compareAnimals } = require("../../../data/animals");
+      validPets.sort(compareAnimals);
       const chunkSize = 5;
       for (let i = 0; i < validPets.length; i += chunkSize) {
         const chunk = validPets.slice(i, i + chunkSize);
