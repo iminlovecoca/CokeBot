@@ -184,7 +184,7 @@ const renderAutohuntPanel = (user, memberName, rank, totalUsers, botInfo) => {
     .setDescription(
       `Tự động đi săn để tích lũy Essence, EXP và chiến lợi phẩm.\n` +
         `Bắt đầu: \`${config.prefix}autohunt <Coke | thời lượng>\`  •  Nâng cấp: \`${config.prefix}upgrade <trait>\`\n` +
-        `Đổi trang bị dư lấy Essence: \`${config.prefix}sacrifice <rarity> <số lượng>\`.\n\n`,
+        `Hiến tế thú trong Zoo lấy Essence: \`${config.prefix}sacrifice <rank | all | tên thú>\`.\n\n`,
     )
     .addFields(
       {
@@ -514,8 +514,8 @@ class XautohuntCommand extends BaseCommand {
           command: `${config.prefix}autohunt upgrade eff 5000`,
         },
         {
-          intent: "Hiến tế trang bị Common",
-          command: `${config.prefix}sacrifice common all`,
+          intent: "Hiến tế thú rank Common trong Zoo",
+          command: `${config.prefix}sacrifice common`,
         },
         {
           intent: "Nhận phần thưởng autohunt",
@@ -612,51 +612,8 @@ class XautohuntCommand extends BaseCommand {
     }
     const subCommand = args[0]?.toLowerCase();
     if (subCommand === "sacrifice" || subCommand === "sac") {
-      const targetRarityAbbr = args[1]?.toLowerCase();
-      const targetRarity = rarityMapping[targetRarityAbbr];
-      if (!targetRarity) {
-        return message.reply(
-          `${config.emoji.no} Cú pháp hiến tế không hợp lệ! Hãy dùng: \`${config.prefix}autohunt sacrifice {rarity} {count|all}\`\n` +
-            `Các độ hiếm hợp lệ: \`c\`, \`r\`, \`e\`, \`l\`, \`m\`, \`a\`, \`d\``,
-        );
-      }
-      const countArg = args[2]?.toLowerCase() || "1";
-      const isAll = countArg === "all";
-      const count = parseInt(countArg);
-      if (!isAll && (!Number.isInteger(count) || count <= 0)) {
-        return message.reply(
-          `${config.emoji.no} Số lượng trang bị hiến tế không hợp lệ.`,
-        );
-      }
-      const equippedIds = new Set(Object.values(user.rpg.equipped || {}));
-      const userItems = user.rpg.items || [];
-      const eligibleItems = userItems.filter(
-        (item) => item.rarity === targetRarity && !equippedIds.has(item.id) && !item.isGodset,
-      );
-      if (eligibleItems.length === 0) {
-        return message.reply(
-          `${config.emoji.warning} Không tìm thấy trang bị nào độ hiếm **${targetRarity}** chưa mặc trong rương đồ để hiến tế.`,
-        );
-      }
-      const sellCount = isAll
-        ? eligibleItems.length
-        : Math.min(count, eligibleItems.length);
-      const itemsToSacrifice = eligibleItems.slice(0, sellCount);
-      const essencePerItem = sacrificeEssenceYield[targetRarity] || 10;
-      const totalEssenceGain = itemsToSacrifice.length * essencePerItem;
-      const sacIds = new Set(itemsToSacrifice.map((it) => it.id));
-      user.rpg.items = userItems.filter((it) => !sacIds.has(it.id));
-      user.rpg.autohunt.essence =
-        (user.rpg.autohunt.essence || 0) + totalEssenceGain;
-      user.rpg.autohunt.totalEssence =
-        (user.rpg.autohunt.totalEssence || 0) + totalEssenceGain;
-      user.rpg.power = calculateRpgPower(user);
-      user.markModified("rpg");
-      await user.save();
-      return message.reply(
-        `🌌 **Tế Đàn Tinh Hoa RPG**\n` +
-          `Bạn đã hiến tế **${itemsToSacrifice.length}** trang bị ${getRarityEmoji(targetRarity)} **${targetRarity}** và nhận được **+${totalEssenceGain.toLocaleString()} Essence**!`,
-      );
+      const sacrificeCommand = require("../pet/sacrifice");
+      return sacrificeCommand.execute(message, args.slice(1));
     }
     if (subCommand === "upgrade" || subCommand === "up") {
       const inputTrait = args[1]?.toLowerCase();

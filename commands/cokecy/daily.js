@@ -85,13 +85,27 @@ class DailyCommand extends BaseCommand {
     if (!user.inventory) {
       user.inventory = new Map();
     }
-    const currentWc = user.inventory.get("wc") || 0;
-    user.inventory.set("wc", currentWc + 1);
+    const isLootbox = Math.random() < 0.5;
+    const rewardBoxKey = isLootbox ? "lootbox" : "wc";
+    const rewardBoxEmoji = isLootbox ? "<:lootbox:1563961108727992470>" : "<:crate:1512793698025603282>";
+    const rewardBoxName = isLootbox ? "Hộp Quà (Lootbox)" : "Hộp Vũ Khí (Weapon Crate)";
 
-    const currentSouls = user.inventory.get("souls") || 0;
+    if (user.inventory instanceof Map) {
+      user.inventory.set(rewardBoxKey, (user.inventory.get(rewardBoxKey) || 0) + 1);
+    } else {
+      user.inventory[rewardBoxKey] = (user.inventory[rewardBoxKey] || 0) + 1;
+    }
+
+    const currentSouls = user.inventory instanceof Map
+      ? (user.inventory.get("souls") || 0)
+      : (user.inventory.souls || 0);
     const isSunday = now.weekday === 7;
     const soulsGained = isSunday ? 4 : 2;
-    user.inventory.set("souls", currentSouls + soulsGained);
+    if (user.inventory instanceof Map) {
+      user.inventory.set("souls", currentSouls + soulsGained);
+    } else {
+      user.inventory.souls = currentSouls + soulsGained;
+    }
 
     user.markModified("inventory");
 
@@ -122,7 +136,7 @@ class DailyCommand extends BaseCommand {
       responseText += `<:blank:1403928807395819671>**|** Bạn đang có chuỗi điểm danh **${streak} ngày** liên tiếp! ${streakEmoji}\n`;
     }
 
-    responseText += `<:crate:1512793698025603282> **|** Bạn đã nhận được **1 Rương Vật Phẩm**!\n`;
+    responseText += `${rewardBoxEmoji} **|** Bạn đã nhận được **1 ${rewardBoxName}**!\n`;
     responseText += `<:souls:1518749776538243082> **|** Bạn đã nhận được **${soulsGained} Linh Hồn**!\n`;
     responseText += `⏱️ **|** Thời gian nhận điểm danh tiếp theo: **${h}Giờ ${m}Phút ${s}Giây**`;
 
