@@ -1,18 +1,23 @@
 /**
- * Date and Daily Reset Utility for CokeBot (OwO Bot standard countdown)
+ * Date and Daily Reset Utility for CokeBot
+ * Standardized to Asia/Ho_Chi_Minh timezone
  */
 
+const { DateTime } = require("luxon");
+
+const TIMEZONE = "Asia/Ho_Chi_Minh";
+
 /**
- * Calculate countdown to next midnight UTC reset (standard across OwO & CokeBot daily trackers)
+ * Calculate countdown to next midnight (00:00:00 Asia/Ho_Chi_Minh) reset
  * @returns {{ hours: number, minutes: number, seconds: number, formatted: string }}
  */
 function getDailyResetCountdown() {
-  const now = new Date();
-  const nextUtcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
-  const diffSec = Math.max(0, Math.floor((nextUtcMidnight.getTime() - now.getTime()) / 1000));
-  const seconds = diffSec % 60;
-  const minutes = Math.floor(diffSec / 60) % 60;
-  const hours = Math.floor(diffSec / 3600);
+  const now = DateTime.now().setZone(TIMEZONE);
+  const nextMidnight = now.plus({ days: 1 }).startOf("day");
+  const diff = nextMidnight.diff(now, ["hours", "minutes", "seconds"]).toObject();
+  const seconds = Math.floor(diff.seconds || 0);
+  const minutes = Math.floor(diff.minutes || 0);
+  const hours = Math.floor(diff.hours || 0);
   return {
     hours,
     minutes,
@@ -22,14 +27,14 @@ function getDailyResetCountdown() {
 }
 
 /**
- * Returns today's UTC date string (YYYY-MM-DD)
+ * Returns today's date string in Asia/Ho_Chi_Minh (YYYY-MM-DD)
  */
 function getTodayDateString() {
-  return new Date().toISOString().slice(0, 10);
+  return DateTime.now().setZone(TIMEZONE).toFormat("yyyy-MM-dd");
 }
 
 /**
- * Ensures user.rpg.dailyDrops is initialized and aligned with today's date (resets at 00:00 UTC)
+ * Ensures user.rpg.dailyDrops is initialized and aligned with today's date (resets at 00:00 Asia/Ho_Chi_Minh)
  * @param {object} user 
  * @returns {object} user.rpg.dailyDrops
  */
@@ -52,6 +57,7 @@ function getDailyDrops(user) {
 }
 
 module.exports = {
+  TIMEZONE,
   getDailyResetCountdown,
   getTodayDateString,
   getDailyDrops,

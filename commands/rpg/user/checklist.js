@@ -31,17 +31,31 @@ class ChecklistCommand extends BaseCommand {
     const box = "⬛";
     const tada = "🎉";
 
+    const { DateTime } = require("luxon");
+    const { checkAndResetDailyQuests } = require("../../../utils/questUtil");
+    await checkAndResetDailyQuests(user, { save: false });
+
     // 1. Nhận quà điểm danh hằng ngày 0/1 (daily)
-    const dailyDone = Boolean(
-      dailyDrops.dailyClaimed ||
-      (user.lastDaily && new Date(user.lastDaily).toISOString().slice(0, 10) === todayDate)
-    );
+    const lastDailyDate = user.lastDaily
+      ? DateTime.fromJSDate(user.lastDaily).setZone("Asia/Ho_Chi_Minh").toFormat("yyyy-MM-dd")
+      : null;
+    const dailyDone = Boolean(dailyDrops.dailyClaimed || lastDailyDate === todayDate);
+    if (dailyDone && !dailyDrops.dailyClaimed) {
+      dailyDrops.dailyClaimed = true;
+    }
 
     // 2. Tặng bánh / trà 0/1 (danisa / tea / cookie)
     const cookieDone = Boolean(dailyDrops.cookieSent);
 
     // 3. Hoàn thành 1 nhiệm vụ ngày 0/1 (quest)
-    const questCount = Math.min(1, Number(dailyDrops.questCompletedCount) || 0);
+    let questCount = Math.min(1, Number(dailyDrops.questCompletedCount) || 0);
+    if (questCount < 1 && Array.isArray(user.rpg?.quests?.active)) {
+      const anyCompleted = user.rpg.quests.active.some((q) => q.completed || (q.progress >= q.target && q.target > 0));
+      if (anyCompleted) {
+        questCount = 1;
+        dailyDrops.questCompletedCount = 1;
+      }
+    }
     const questDone = questCount >= 1;
 
     // 4. Tham gia đánh boss thế giới 3 lần 0/3 (boss)

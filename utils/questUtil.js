@@ -188,7 +188,15 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
   } else {
     user = await User.findOne({ userId: userIdOrUser }).exec();
   }
-  if (!user || !user.rpg || !user.rpg.quests) return;
+  if (!user) return;
+  if (!user.rpg) user.rpg = {};
+  if (!user.rpg.quests) {
+    user.rpg.quests = {
+      active: [],
+      lastDailyAt: null,
+      rerollsLeft: 1,
+    };
+  }
   
   const userId = user.userId;
   const resetChanged = await checkAndResetDailyQuests(user, { save: false });
