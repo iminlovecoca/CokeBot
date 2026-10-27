@@ -28,7 +28,7 @@ module.exports = {
     },
     // World Boss uses a separate durability guardrail so high-end builds
     // remain rewarding without allowing a single action to erase the boss.
-    // Lượt mua bằng Coke cố định 2.000 Coke mỗi lượt.
+    // Lượt mua bằng Coke cố định 5.500 Coke mỗi lượt.
     // Chi phí hồi sinh: 10.000 Coke cho 2 lượt đầu, các lượt sau tăng x2 mỗi lần.
     world_boss: {
       combat_profile_version: 6,
@@ -36,7 +36,7 @@ module.exports = {
       damage_hard_cap_pct: 0.042,
       action_hard_cap_pct: 0.050,
       overflow_efficiency: 0.15,
-      paid_attack_cost: 2000,
+      paid_attack_cost: 5500,
       paid_attack_cost_growth: 1.0,
       hp_multiplier_by_rank: {
         than: 0.80,

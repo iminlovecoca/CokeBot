@@ -8,7 +8,7 @@ module.exports = {
   lifetime_ms: 10 * 60 * 1000,
   attack_cooldown_ms: 15 * 1000,
   free_attacks_per_user: 3,
-  paid_attack_cost: 2000,
+  paid_attack_cost: 5500,
   reward_rarities: ["Epic"],
   last_hit_bonus_gear: 2,
   
