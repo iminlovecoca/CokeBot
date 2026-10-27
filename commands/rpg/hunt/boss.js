@@ -89,6 +89,11 @@ const sendRewardDm = async ({
   rankEmoji,
   rankColor,
   damage,
+  damagePct = 0,
+  baseCoke = 0,
+  damageBonusCoke = 0,
+  paidAttacks = 0,
+  paidAttackBonusCoke = 0,
   gears,
   expGain,
   cokeGain,
@@ -109,6 +114,17 @@ const sendRewardDm = async ({
   const stoneLines = stones && stones.length
     ? stones.map(s => `${s.emoji} **${s.name}** (x${s.quantity})`).join("\n")
     : null;
+  let contributionText = `Sát thương: **${damage.toLocaleString()}** (${(damagePct * 100).toFixed(1)}% tổng ST)\n`;
+  contributionText += `Coke nhận được: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n`;
+  if (paidAttacks > 0) {
+    contributionText += `• Hoàn phí & Thưởng mua lượt (x${paidAttacks}): **+${paidAttackBonusCoke.toLocaleString()}** Coke\n`;
+  }
+  if (damageBonusCoke > 0) {
+    contributionText += `• Thưởng đóng góp ST: **+${damageBonusCoke.toLocaleString()}** Coke\n`;
+  }
+  contributionText += `EXP RPG: **+${expGain.toLocaleString()}**\n`;
+  contributionText += `Hòm Vũ Khí: **+${(wcGain || 1).toLocaleString()}** <:crate:1512793698025603282>`;
+
   const embed = new EmbedBuilder()
     .setColor(topBonus ? topBonus.color : isLastHit ? getRpgColor("warning") : (rankColor || getRpgColor("success")))
     .setAuthor({
@@ -124,11 +140,7 @@ const sendRewardDm = async ({
     .addFields(
       {
         name: "Đóng góp & Phần thưởng",
-        value:
-          `Sát thương: **${damage.toLocaleString()}**\n` +
-          `Coke nhận được: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
-          `EXP RPG: **+${expGain.toLocaleString()}**\n` +
-          `Hòm Vũ Khí: **+${(wcGain || 1).toLocaleString()}** <:crate:1512793698025603282>`,
+        value: contributionText,
         inline: true,
       },
       {
@@ -224,33 +236,40 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
   const baseExp = activeBoss.boss.exp || 100;
   const sortedByDamage = [...activeBoss.participants.entries()]
     .sort(([, a], [, b]) => b.damage - a.damage);
+  const totalDamageDealt = [...activeBoss.participants.values()].reduce((sum, p) => sum + (p.damage || 0), 0) || 1;
+  const damagePool = rankReward.damageBonusPool || (bossRankKey === "thuongnhan" ? 120000 : bossRankKey === "rong" ? 50000 : 20000);
+  const paidRate = rankReward.paidAttackBonusPerHit || (bossRankKey === "thuongnhan" ? 9500 : bossRankKey === "rong" ? 8000 : 7000);
+  const freeAttacksLimit = (activeBoss.boss.key === "hexia" || activeBoss.boss.key === "godhexa")
+    ? 3
+    : (config.rpg.boss?.free_attacks_per_user ?? 3);
+
   const topDamageConfigs = rankReward.topDamageRewards || [
-    { rank: 1, cokeBonus: 3000, wcBonus: 0 },
-    { rank: 2, cokeBonus: 1500, wcBonus: 0 },
-    { rank: 3, cokeBonus: 800, wcBonus: 0 },
+    { rank: 1, cokeBonus: 25000, wcBonus: 1 },
+    { rank: 2, cokeBonus: 15000, wcBonus: 0 },
+    { rank: 3, cokeBonus: 8000, wcBonus: 0 },
   ];
   const TOP3_BONUS = [
     {
       rank: 1,
       label: "🥇 Top 1 Sát Thương",
       expBonus: Math.floor(baseExp * 0.5 * twoPhaseRewardMult),
-      cokeBonus: Math.floor((topDamageConfigs[0]?.cokeBonus ?? 3000) * twoPhaseRewardMult),
-      wcBonus: topDamageConfigs[0]?.wcBonus ?? 5,
+      cokeBonus: Math.floor((topDamageConfigs[0]?.cokeBonus ?? 25000) * twoPhaseRewardMult),
+      wcBonus: topDamageConfigs[0]?.wcBonus ?? 1,
       color: "#FFD700",
     },
     {
       rank: 2,
       label: "🥈 Top 2 Sát Thương",
       expBonus: Math.floor(baseExp * 0.25 * twoPhaseRewardMult),
-      cokeBonus: Math.floor((topDamageConfigs[1]?.cokeBonus ?? 1500) * twoPhaseRewardMult),
-      wcBonus: topDamageConfigs[1]?.wcBonus ?? 2,
+      cokeBonus: Math.floor((topDamageConfigs[1]?.cokeBonus ?? 15000) * twoPhaseRewardMult),
+      wcBonus: topDamageConfigs[1]?.wcBonus ?? 0,
       color: "#C0C0C0",
     },
     {
       rank: 3,
       label: "🥉 Top 3 Sát Thương",
       expBonus: Math.floor(baseExp * 0.1 * twoPhaseRewardMult),
-      cokeBonus: Math.floor((topDamageConfigs[2]?.cokeBonus ?? 800) * twoPhaseRewardMult),
+      cokeBonus: Math.floor((topDamageConfigs[2]?.cokeBonus ?? 8000) * twoPhaseRewardMult),
       wcBonus: topDamageConfigs[2]?.wcBonus ?? 0,
       color: "#CD7F32",
     },
@@ -281,6 +300,14 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
         let keyDropped = false;
         let expGain = 0;
         let cokeGain = 0;
+
+        const damagePct = Math.min(1, Math.max(0, (participant.damage || 0) / totalDamageDealt));
+        const damageBonusCoke = Math.floor(damagePool * damagePct * twoPhaseRewardMult);
+        const paidAttacks = participant.paidAttacks !== undefined
+          ? participant.paidAttacks
+          : Math.max(0, (participant.attacks || 0) - freeAttacksLimit);
+        const paidAttackBonusCoke = paidAttacks * paidRate;
+        let baseCoke = 0;
         if (isHexia) {
           const claimed = user.rpg.claimedEvents || [];
           if (!claimed.includes("hexia_first_clear")) {
@@ -302,8 +329,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             user.markModified("inventory");
             user.rpg.claimedEvents.push("hexia_first_clear");
             user.markModified("rpg");
-            expGain = 2150;
-            cokeGain = 5375;
+            expGain = 3500;
+            baseCoke = 20000;
+            cokeGain = baseCoke + damageBonusCoke + paidAttackBonusCoke;
             addRpgExp(user.rpg, expGain);
             user.coke += cokeGain;
             stonesDropped.push({
@@ -313,8 +341,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
               quantity: 80
             });
           } else {
-            expGain = 2000;
-            cokeGain = 5000;
+            expGain = 3500;
+            baseCoke = 20000;
+            cokeGain = baseCoke + damageBonusCoke + paidAttackBonusCoke;
             addRpgExp(user.rpg, expGain);
             user.coke += cokeGain;
           }
@@ -325,8 +354,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           const curPieces = user.inventory.get("hexpiece") || 0;
           user.inventory.set("hexpiece", curPieces + 1);
           user.markModified("inventory");
-          expGain = 5375;
-          cokeGain = 10750;
+          expGain = 8000;
+          baseCoke = 50000;
+          cokeGain = baseCoke + damageBonusCoke + paidAttackBonusCoke;
           addRpgExp(user.rpg, expGain);
           user.coke += cokeGain;
           stonesDropped.push(
@@ -395,12 +425,13 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
             addRpgExp(user.rpg, expGain);
           }
-          cokeGain = isLastHit
+          baseCoke = isLastHit
             ? rankReward.lastHitCokeMin + Math.floor(Math.random() * (rankReward.lastHitCokeMax - rankReward.lastHitCokeMin + 1))
             : rankReward.cokeMin + Math.floor(Math.random() * (rankReward.cokeMax - rankReward.cokeMin + 1));
           if (isTwoPhaseBoss) {
-            cokeGain = Math.floor(cokeGain * 1.2);
+            baseCoke = Math.floor(baseCoke * 1.2);
           }
+          cokeGain = baseCoke + damageBonusCoke + paidAttackBonusCoke;
           if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
             user.coke += cokeGain;
           }
@@ -486,6 +517,11 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             expGain,
             cokeGain,
             wcGain: baseWcGain,
+            damagePct,
+            baseCoke,
+            damageBonusCoke,
+            paidAttacks,
+            paidAttackBonusCoke,
             stonesDropped,
             keyDropped,
             topBonus
@@ -513,6 +549,11 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           rankEmoji: rankReward.emoji,
           rankColor: rankReward.color,
           damage: participant.damage,
+          damagePct,
+          baseCoke,
+          damageBonusCoke,
+          paidAttacks,
+          paidAttackBonusCoke,
           gears,
           expGain,
           cokeGain,
@@ -883,6 +924,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const participant = activeBoss.participants.get(userId) || {
     damage: 0,
     attacks: 0,
+    paidAttacks: 0,
+    cokeSpent: 0,
     lastAttackAt: 0,
     hp: null,
     koUntil: 0,
@@ -1109,6 +1152,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   }
   if (isPaidAttack) {
     user.coke -= paidAttackCost;
+    participant.paidAttacks = (participant.paidAttacks || 0) + 1;
+    participant.cokeSpent = (participant.cokeSpent || 0) + paidAttackCost;
   }
   let bossDamage = 0;
   let bossMissed = false;
@@ -2035,10 +2080,16 @@ const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
       rankLabel: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.label || "Cấp Thường",
       rankEmoji: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.emoji || "⚔️",
       rankColor: config.rpg.boss?.bossRankRewards?.[activeBoss.boss.rank]?.color || "#95A5A6",
-      damage: activeBoss.participants.get(userId)?.damage || 0,
+      damage: activeBoss.participants.get(userId)?.damage || escrow.damage || 0,
+      damagePct: escrow.damagePct || 0,
+      baseCoke: escrow.baseCoke || 0,
+      damageBonusCoke: escrow.damageBonusCoke || 0,
+      paidAttacks: escrow.paidAttacks || 0,
+      paidAttackBonusCoke: escrow.paidAttackBonusCoke || 0,
       gears: escrow.gears,
       expGain: escrow.expGain,
       cokeGain: escrow.cokeGain,
+      wcGain: escrow.wcGain || 1,
       isLastHit: true,
       stones: escrow.stonesDropped,
       keyDropped: escrow.keyDropped,
