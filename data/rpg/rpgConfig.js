@@ -31,7 +31,7 @@ module.exports = {
     // Lượt mua bằng Coke cố định 5.500 Coke mỗi lượt.
     // Chi phí hồi sinh: 10.000 Coke cho 2 lượt đầu, các lượt sau tăng x2 mỗi lần.
     world_boss: {
-      combat_profile_version: 4,
+      combat_profile_version: 5,
       damage_soft_cap_pct: 0.024,
       damage_hard_cap_pct: 0.042,
       action_hard_cap_pct: 0.050,
@@ -39,19 +39,19 @@ module.exports = {
       paid_attack_cost: 5500,
       paid_attack_cost_growth: 1.0,
       hp_multiplier_by_rank: {
-        than: 1.80,
-        rong: 2.00,
-        thuongnhan: 2.30,
+        than: 1.40,
+        rong: 1.55,
+        thuongnhan: 1.80,
       },
       attack_multiplier_by_rank: {
         than: 1.65,
         rong: 1.70,
         thuongnhan: 1.65,
       },
-      defense_multiplier: 1.25,
-      event_hp_multiplier: 1.60,
+      defense_multiplier: 0.95,
+      event_hp_multiplier: 1.30,
       event_attack_multiplier: 1.35,
-      event_defense_multiplier: 1.15,
+      event_defense_multiplier: 0.95,
       min_attack_power_by_rank: {
         than: 400,
         rong: 1300,

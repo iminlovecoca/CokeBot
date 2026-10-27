@@ -92,6 +92,7 @@ const sendRewardDm = async ({
   gears,
   expGain,
   cokeGain,
+  wcGain = 1,
   isLastHit,
   stones,
   keyDropped,
@@ -126,7 +127,8 @@ const sendRewardDm = async ({
         value:
           `Sát thương: **${damage.toLocaleString()}**\n` +
           `Coke nhận được: **+${cokeGain.toLocaleString()}** <:cokecy:1509951335016173662>\n` +
-          `EXP RPG: **+${expGain.toLocaleString()}**`,
+          `EXP RPG: **+${expGain.toLocaleString()}**\n` +
+          `Hòm Vũ Khí: **+${(wcGain || 1).toLocaleString()}** <:crate:1512793698025603282>`,
         inline: true,
       },
       {
@@ -188,9 +190,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
     label: "Cấp Thường", emoji: "⚔️", color: "#95A5A6",
     participantRarities: ["Epic"],
     lastHitRarities: ["Epic"],
-    cokeMin: 550, cokeMax: 1100,
-    lastHitCokeMin: 2200, lastHitCokeMax: 5500,
-    expMult: 1.05, lastHitExpMult: 1.55,
+    cokeMin: 591, cokeMax: 1183,
+    lastHitCokeMin: 2365, lastHitCokeMax: 5913,
+    expMult: 1.13, lastHitExpMult: 1.67,
   };
   const rollRarityForBoss = (rankKey, type) => {
     const r = Math.random() * 100;
@@ -300,8 +302,8 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             user.markModified("inventory");
             user.rpg.claimedEvents.push("hexia_first_clear");
             user.markModified("rpg");
-            expGain = 2000;
-            cokeGain = 5000;
+            expGain = 2150;
+            cokeGain = 5375;
             addRpgExp(user.rpg, expGain);
             user.coke += cokeGain;
             stonesDropped.push({
@@ -323,8 +325,8 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           const curPieces = user.inventory.get("hexpiece") || 0;
           user.inventory.set("hexpiece", curPieces + 1);
           user.markModified("inventory");
-          expGain = 5000;
-          cokeGain = 10000;
+          expGain = 5375;
+          cokeGain = 10750;
           addRpgExp(user.rpg, expGain);
           user.coke += cokeGain;
           stonesDropped.push(
@@ -345,6 +347,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           const rolledRarity1 = rollRarityForBoss(bossRankKey, "participant");
           const gear1 = await generateRpgGearDrop(user, {
             forceDrop: true,
+            excludeSlots: ["weapon"],
             rarity: rolledRarity1 || undefined,
             allowedRarities: rolledRarity1 ? undefined : rankReward.participantRarities,
           });
@@ -358,6 +361,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             const rolledRarity2 = rollRarityForBoss(bossRankKey, "lasthit");
             const gear2 = await generateRpgGearDrop(user, {
               forceDrop: true,
+              excludeSlots: ["weapon"],
               rarity: rolledRarity2 || undefined,
               allowedRarities: rolledRarity2 ? undefined : rankReward.lastHitRarities,
             });
@@ -370,6 +374,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             if (rankReward.lastHitBonusRarities) {
               const gear3 = await generateRpgGearDrop(user, {
                 forceDrop: true,
+                excludeSlots: ["weapon"],
                 allowedRarities: rankReward.lastHitBonusRarities,
               });
               if (gear3) {
@@ -432,6 +437,18 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           }
           // Dungeon key drop from world boss has been removed
         }
+        // Thưởng thêm +1 Hòm Vũ Khí (wc) cho mỗi boss bị hạ gục
+        const baseWcGain = 1;
+        if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+          if (!user.inventory) user.inventory = new Map();
+          const currentWc = (user.inventory instanceof Map ? user.inventory.get("wc") : user.inventory.wc) || 0;
+          if (user.inventory instanceof Map) {
+            user.inventory.set("wc", currentWc + baseWcGain);
+          } else {
+            user.inventory.wc = currentWc + baseWcGain;
+          }
+          user.markModified("inventory");
+        }
         let topBonus = null;
         if (topBonusMap.has(userId)) {
           topBonus = topBonusMap.get(userId);
@@ -468,6 +485,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             gears,
             expGain,
             cokeGain,
+            wcGain: baseWcGain,
             stonesDropped,
             keyDropped,
             topBonus
@@ -498,6 +516,7 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           gears,
           expGain,
           cokeGain,
+          wcGain: baseWcGain,
           isLastHit,
           stones: stonesDropped,
           keyDropped,
@@ -1198,6 +1217,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
+        activeBoss.aoeThresholds = [];
         killedPhase1 = true;
         await channel.send(`🎄🔥 **[PHASE 2 - TIẾN HÓA]** **Erdtree Avatar** gầm lên giận dữ, rũ bỏ lớp vỏ gỗ khô héo và tiến hóa sang **Phase 2: ${bossConfig.name}**! Sức mạnh của nó đã gia tăng vượt trội!`);
         await updateBossMessage(channel, activeBoss, true, interaction);
@@ -1210,6 +1230,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
+        activeBoss.aoeThresholds = [];
         killedPhase1 = true;
         await channel.send(`🦋🪷 **[PHASE 2 - HỒI SINH]** **Malenia** cởi bỏ lớp giáp sắt, rũ đôi cánh bướm mang theo làn gió hoa đỏ rực rỡ và hồi sinh dưới dạng **${bossConfig.name}**!`);
         await updateBossMessage(channel, activeBoss, true, interaction);
@@ -1222,6 +1243,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
+        activeBoss.aoeThresholds = [];
         killedPhase1 = true;
         await channel.send(`🐉🔥 **[PHASE 2 - TIẾN HÓA]** **Godzila** gầm vang chấn động trời đất, hấp thụ năng lượng hạt nhân **${bossConfig.name}**!`);
         await updateBossMessage(channel, activeBoss, true, interaction);
@@ -1234,9 +1256,80 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         activeBoss.hp = activeBoss.boss.hp;
         activeBoss.phase = 2;
         activeBoss.imageUrl = null; 
+        activeBoss.aoeThresholds = [];
         killedPhase1 = true;
         await channel.send(`😈🔥 **[PHASE 2 - TIẾN HÓA]** **Diablo** giải phóng xiềng xích của Địa Ngục, trỗi dậy với hình dạng chân thật **${bossConfig.name}**!`);
         await updateBossMessage(channel, activeBoss, true, interaction);
+      }
+    }
+  }
+
+  // Cơ chế phản công diện rộng (AOE Retaliation): Cứ sau khi chịu 25% sát thương từ toàn bộ người chơi (tại mốc 75%, 50%, 25% HP)
+  // Boss sẽ tung 1 đòn AOE bằng 75% sát thương cơ bản của boss lên toàn bộ người chơi đang tham chiến.
+  if (activeBoss.hp > 0) {
+    if (!activeBoss.aoeThresholds) {
+      activeBoss.aoeThresholds = activeBoss.effects?.aoeThresholds || [];
+    }
+    const worldBossCurrentMaxHp = activeBoss.maxHp || activeBoss.boss.hp || 1;
+    const hpRatio = activeBoss.hp / worldBossCurrentMaxHp;
+    const aoeMilestones = [
+      { step: 25, hpMaxThreshold: 0.75 },
+      { step: 50, hpMaxThreshold: 0.50 },
+      { step: 75, hpMaxThreshold: 0.25 },
+    ];
+
+    for (const milestone of aoeMilestones) {
+      if (hpRatio <= milestone.hpMaxThreshold && !activeBoss.aoeThresholds.includes(milestone.step)) {
+        activeBoss.aoeThresholds.push(milestone.step);
+        if (!activeBoss.effects) activeBoss.effects = {};
+        activeBoss.effects.aoeThresholds = activeBoss.aoeThresholds;
+
+        const aoeBaseDamage = Math.max(10, Math.floor((activeBoss.boss.attackPower || 50) * 0.75));
+        const knockedOutWarriors = [];
+
+        for (const [pUid, pData] of activeBoss.participants.entries()) {
+          const isParticipantKo = (pData.hp <= 0 && now < (pData.koUntil || 0));
+          if (!isParticipantKo) {
+            let pMitigation = 0;
+            try {
+              let pStats = (pUid === userId) ? effectiveStats : null;
+              if (!pStats) {
+                const pChar = await requireRpgCharacter(pUid).catch(() => null);
+                if (pChar?.user) pStats = getEffectiveRpgStats(pChar.user);
+              }
+              if (pStats) {
+                if (activeBoss.boss.damageType === "magical") {
+                  const pMR = pStats.mr * 12.0;
+                  pMitigation = pMR / (pMR + 150);
+                } else {
+                  const pArmor = pStats.pr * 12.0;
+                  pMitigation = pArmor / (pArmor + 150);
+                }
+              }
+            } catch (_) {}
+
+            const pDamage = Math.max(5, Math.floor(aoeBaseDamage * (1 - pMitigation)));
+            const currentParticipantHp = (pData.hp !== null && pData.hp !== undefined) ? pData.hp : maxHp;
+            pData.hp = Math.max(0, currentParticipantHp - pDamage);
+            if (pData.hp <= 0) {
+              pData.koUntil = now + 30 * 1000;
+              pData.diedAt = now;
+              const pDiscord = client.users.cache.get(pUid) || (await client.users.fetch(pUid).catch(() => null));
+              knockedOutWarriors.push(pDiscord?.displayName || pDiscord?.username || `<@${pUid}>`);
+            }
+          }
+        }
+
+        passiveTriggers.push(`⚡ **[AOE NỘ KÍCH]** Sau khi mất ${milestone.step}% máu, ${activeBoss.boss.name} quét đòn AOE diện rộng bằng 75% công gốc (**${aoeBaseDamage.toLocaleString()}**) lên toàn bộ người chơi tham chiến!`);
+
+        const aoeEmbed = new EmbedBuilder()
+          .setColor("#E74C3C")
+          .setTitle(`⚡ [BÙNG NỔ THỊNH NỘ] ${activeBoss.boss.name} phản công diện rộng!`)
+          .setDescription(
+            `Sau khi chịu **${milestone.step}%** sát thương từ toàn bộ chiến binh, **${activeBoss.boss.name}** đã giải phóng sóng xung kích **AOE** cực mạnh gây **${aoeBaseDamage.toLocaleString()}** sát thương (75% công cơ bản) lên **toàn bộ người chơi tham chiến**!` +
+            (knockedOutWarriors.length > 0 ? `\n💀 **Chiến binh bị hạ gục:** ${knockedOutWarriors.join(", ")}` : "")
+          );
+        await channel.send({ embeds: [aoeEmbed] }).catch(() => null);
       }
     }
   }
@@ -1909,18 +2002,22 @@ const giveNormalBossRewards = async (client, channel, activeBoss, escrow) => {
       user.markModified("inventory");
     }
     // Dungeon key drop from world boss has been removed
+    if (!user.inventory) user.inventory = new Map();
+    const currentWc = (user.inventory instanceof Map ? user.inventory.get("wc") : user.inventory.wc) || 0;
+    const baseWcGain = escrow.wcGain || 1;
+    const topWc = escrow.topBonus?.wcBonus || 0;
+    if (user.inventory instanceof Map) {
+      user.inventory.set("wc", currentWc + baseWcGain + topWc);
+    } else {
+      user.inventory.wc = currentWc + baseWcGain + topWc;
+    }
+    user.markModified("inventory");
     if (escrow.topBonus) {
       if (escrow.topBonus.expBonus > 0) {
         addRpgExp(user.rpg, escrow.topBonus.expBonus);
       }
       if (escrow.topBonus.cokeBonus > 0) {
         user.coke += escrow.topBonus.cokeBonus;
-      }
-      if (escrow.topBonus.wcBonus > 0) {
-        if (!user.inventory) user.inventory = new Map();
-        const currentWc = user.inventory.get("wc") || 0;
-        user.inventory.set("wc", currentWc + escrow.topBonus.wcBonus);
-        user.markModified("inventory");
       }
     }
     user.rpg.power = calculateRpgPower(user);

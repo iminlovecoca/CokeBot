@@ -511,6 +511,8 @@ const spawnRandomBoss = async (client, options = {}) => {
       poise: boss.poiseMax || 0,
       poiseMax: boss.poiseMax || 0,
       poiseBroken: false,
+      aoeThresholds: [],
+      effects: { armorReduced: 0, healReduced: false, aoeThresholds: [] },
     };
 
     const message = await channel.send({

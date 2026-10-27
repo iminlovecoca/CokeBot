@@ -1375,8 +1375,13 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   if (!options.forceDrop && Math.random() > dropRate) return null;
 
+  const availableSlots = Object.entries(config.rpg.gear_slots).filter(([s]) => {
+    if (options.allowedSlots && !options.allowedSlots.includes(s)) return false;
+    if (options.excludeSlots && options.excludeSlots.includes(s)) return false;
+    return true;
+  });
   const slot = options.slot || weightedPick(
-    Object.entries(config.rpg.gear_slots),
+    availableSlots.length > 0 ? availableSlots : Object.entries(config.rpg.gear_slots),
     ([, value]) => value.rate ?? value.weight ?? 0,
   )[0];
 
@@ -1439,18 +1444,18 @@ const generateRpgGearDrop = async (user, options = {}) => {
     const baseQuality = (Math.random() + Math.random() + Math.random() + Math.random()) / 4 * 100;
     quality = Math.min(105, Math.round((baseQuality + wear.bonus) * 10) / 10);
 
-    // 3. Map to Rarity Tier (OwO quality boundaries)
-    if (quality <= 20.0) {
+    // 3. Map to Rarity Tier (OwO quality boundaries calibrated to avoid over-dropping high tiers)
+    if (quality <= 52.0) {
       rarity = "Common";
-    } else if (quality <= 40.0) {
+    } else if (quality <= 68.0) {
       rarity = "Rare";
-    } else if (quality <= 60.0) {
+    } else if (quality <= 82.0) {
       rarity = "Epic";
-    } else if (quality <= 80.0) {
+    } else if (quality <= 92.0) {
       rarity = "Legendary";
-    } else if (quality <= 94.0) {
+    } else if (quality <= 97.0) {
       rarity = "Mythic";
-    } else if (quality <= 99.0) {
+    } else if (quality <= 99.5) {
       rarity = "Ancient";
     } else {
       rarity = "Divine";
