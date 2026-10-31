@@ -273,17 +273,6 @@ const PET_SPECIES = [
 
   // --- Generation (Special Event Pets - Sự kiện Halloween Tháng 10 - Chuẩn OwO Special: 19 points) ---
   {
-    key: "hellhound",
-    name: "Khuyển Hỏa Ngục",
-    tier: "Generation",
-    emoji: config.emoji?.pets?.hellhound || "<a:hellhound:1563835095541092352>",
-    asset: "assets/pets/emojis/pet_gen_hellhound.png",
-    aliases: ["hellhound", "chohiem", "hoanguc", "hound", "firehound", "choluah", "cerberus"],
-    role: "Đấu Sĩ Hỏa Ngục / Công Thủ Toàn Diện",
-    battleStats: { hp: 6, att: 6, pr: 3, wp: 2, mag: 0, mr: 2 },
-    description: "Chó săn hỏa ngục mang dòng máu dung nham cổ xưa, bùng cháy ngọn lửa ma quái và tàn tích tro than bảo vệ chủ nhân trong đêm Halloween.",
-  },
-  {
     key: "ghostie",
     name: "Ma Kẹo Ngọt",
     tier: "Generation",
