@@ -171,6 +171,7 @@ const MathService = require("./services/MathService");
 const TaixiuService = require("./services/TaixiuService");
 const BattleRankService = require("./services/battleRankService");
 const BattleSeasonService = require("./services/battleSeasonService");
+const MonthlyEventService = require("./services/monthlyEventService");
 
 const locator = new ServiceLocator();
 locator.register("gameRepository", new GameRepository());
@@ -182,6 +183,7 @@ locator.register("mathService", new MathService(locator));
 locator.register("taixiuService", new TaixiuService(locator));
 locator.register("battleRankService", new BattleRankService(locator));
 locator.register("battleSeasonService", new BattleSeasonService(locator));
+locator.register("monthlyEventService", new MonthlyEventService(locator));
 client.services = locator;
 
 const loadFiles = (dir, callback) => {
@@ -432,6 +434,9 @@ client.once(Events.ClientReady, async () => {
 
     await client.services.get("battleSeasonService").initialize().catch((error) => {
       console.error("❌ Battle season initialization error:", error);
+    });
+    await client.services.get("monthlyEventService").initialize(client).catch((error) => {
+      console.error("❌ Monthly event service initialization error:", error);
     });
 
 

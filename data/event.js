@@ -31,6 +31,94 @@ const MONTHLY_EVENT_PETS = {
   9: [],  // Tháng 9 - Tựu Trường
 };
 
+// Monthly Event Themes, Holidays and FAQ config
+const MONTHLY_EVENT_DETAILS = {
+  10: {
+    monthName: "October",
+    monthNameVi: "Tháng 10",
+    holidays: "Halloween & Đêm Hội Ma Quái (Halloween Holiday)",
+    emojiHeader: "👻",
+    emojiSection: "🎃",
+  },
+  11: {
+    monthName: "November",
+    monthNameVi: "Tháng 11",
+    holidays: "Halloween & Lễ Hội Mùa Thu (Halloween & Autumn Season)",
+    emojiHeader: "👻",
+    emojiSection: "🎃",
+  },
+  12: {
+    monthName: "December",
+    monthNameVi: "Tháng 12",
+    holidays: "Giáng Sinh & Lễ Hội Mùa Đông (Christmas & Winter Holiday)",
+    emojiHeader: "🎄",
+    emojiSection: "❄️",
+  },
+  1: {
+    monthName: "January",
+    monthNameVi: "Tháng 1",
+    holidays: "Tết Nguyên Đán & Năm Mới (Lunar New Year)",
+    emojiHeader: "🧨",
+    emojiSection: "🧧",
+  },
+  2: {
+    monthName: "February",
+    monthNameVi: "Tháng 2",
+    holidays: "Lễ Tình Nhân (Valentine's Day)",
+    emojiHeader: "💖",
+    emojiSection: "🍫",
+  },
+  3: {
+    monthName: "March",
+    monthNameVi: "Tháng 3",
+    holidays: "Lễ Hội Hoa Mùa Xuân (Spring Blossom Festival)",
+    emojiHeader: "🌸",
+    emojiSection: "🌱",
+  },
+  4: {
+    monthName: "April",
+    monthNameVi: "Tháng 4",
+    holidays: "Lễ Phục Sinh & Cá Tháng Tư (Easter & April Fools)",
+    emojiHeader: "🥚",
+    emojiSection: "🃏",
+  },
+  5: {
+    monthName: "May",
+    monthNameVi: "Tháng 5",
+    holidays: "Lễ Hội Đầu Hè (Early Summer Festival)",
+    emojiHeader: "☀️",
+    emojiSection: "🏖️",
+  },
+  6: {
+    monthName: "June",
+    monthNameVi: "Tháng 6",
+    holidays: "Lễ Hội Biển Nhiệt Đới (Tropical Sea Festival)",
+    emojiHeader: "🌊",
+    emojiSection: "🐬",
+  },
+  7: {
+    monthName: "July",
+    monthNameVi: "Tháng 7",
+    holidays: "Lễ Hội Kỷ Niệm Mùa Hè (Mid-Summer Jubilee)",
+    emojiHeader: "🎆",
+    emojiSection: "🍉",
+  },
+  8: {
+    monthName: "August",
+    monthNameVi: "Tháng 8",
+    holidays: "Lễ Hội Trăng Rằm & Trung Thu (Mid-Autumn Festival)",
+    emojiHeader: "🌕",
+    emojiSection: "🏮",
+  },
+  9: {
+    monthName: "September",
+    monthNameVi: "Tháng 9",
+    holidays: "Lễ Hội Tựu Trường (Back to School Season)",
+    emojiHeader: "🍁",
+    emojiSection: "🎒",
+  },
+};
+
 const EVENT_CONFIG = {
   enabled: true,
   name: "Sự Kiện Hàng Tháng",
@@ -126,9 +214,75 @@ function getActiveMonthlyEventPetKeys(month = null) {
   return MONTHLY_EVENT_PETS[m] || ["ghostie", "vampbat"];
 }
 
+/**
+ * Formats the exact OwO Event FAQ Announcement matching the official Discord format.
+ * @param {Date|DateTime} [date]
+ * @returns {string}
+ */
+function formatEventFaqAnnouncement(date = null) {
+  const dt = date ? (date instanceof DateTime ? date : DateTime.fromJSDate(date).setZone(TIMEZONE)) : DateTime.now().setZone(TIMEZONE);
+  const details = MONTHLY_EVENT_DETAILS[dt.month] || {
+    monthName: dt.toFormat("LLLL"),
+    holidays: `Lễ Hội ${dt.toFormat("LLLL")}`,
+    emojiHeader: "👻",
+    emojiSection: "🎃",
+  };
+
+  const endDt = dt.set({ day: EVENT_CONFIG.endDay, hour: 23, minute: 59, second: 59 });
+  const endFormatted = `${endDt.toFormat("HH:mm dd/MM/yy")}`;
+
+  const petKeys = getActiveMonthlyEventPetKeys(dt.month);
+  const { getAnimal } = require("./animals");
+  const petObjects = petKeys.map((k) => getAnimal(k)).filter(Boolean);
+
+  const petNamesStr = petObjects
+    .map((p) => `${p.emoji} \`${p.aliases?.find((a) => a.startsWith("nov_")) || p.key}\` (${p.name})`)
+    .join(", ");
+
+  const config = require("./config");
+  const genEmoji = config.emoji?.ranks?.generation || "<a:Generation:1563835095541092352>";
+  const moneyEmoji = config.emoji?.money || "<:cokecy:1509951335016173662>";
+  const lbEmoji = "<:lootbox:1563961108727992470>";
+  const crateEmoji = "<:crate:1512793698025603282>";
+  const cookieEmoji = "<:danisa:1404057793920635043>";
+  const keyEmoji = "<:key:1516398711712911461>";
+  const h = details.emojiHeader;
+  const s = details.emojiSection;
+
+  return `${h}${h} **${details.monthName} Event FAQ** ${h}${h}
+
+__**What are the holidays being celebrated?**__
+${details.holidays}
+
+__**How long is the event?**__
+• Event ending at \`${endFormatted}\`
+
+__**How many ${genEmoji} pets are available?**__
+• Pet Amount: ${petObjects.length} pets
+• Pet Names: ${petNamesStr}
+• Catch Rates: 0.005%–0.05%
+
+__**Can I use my 🔺 Special Gems for this event?**__
+Yes, you can use your special gems during the event!
+
+
+${s}${s} **${details.monthName} FAQ** ${s}${s}
+__**How to get event items?**__
+The various items celebrating ${details.monthName} holidays/events can be obtained via hunt and battle.
+
+__**How many can I get per day?**__
+You can find up to 10 per day!
+
+__**What does it do?**__
+The event items will not be added to your inventory. It will automatically turn into a reward. The rewards will be added to your inventory.
+• Possible rewards: ${moneyEmoji} 1,000–5,000, ${lbEmoji} 1–2, ${crateEmoji} 1–2, 🔺 Special Gem, ${cookieEmoji} 1, ${keyEmoji} 1, small chance for ${genEmoji} Event Pet!`;
+}
+
 module.exports = {
   EVENT_CONFIG,
   EVENT_REWARDS,
   MONTHLY_EVENT_PETS,
+  MONTHLY_EVENT_DETAILS,
   getActiveMonthlyEventPetKeys,
+  formatEventFaqAnnouncement,
 };
