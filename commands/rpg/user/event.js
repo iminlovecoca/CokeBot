@@ -114,7 +114,8 @@ class EventCommand extends BaseCommand {
       .map((k) => {
         const pet = getAnimal(k);
         if (!pet) return null;
-        return `• ${pet.emoji} ||**${pet.name}** (`${pet.aliases?.find((a) => a.startsWith("nov_")) || pet.key}`)|| (<a:Generation:1563835095541092352> Bậc Thế Hệ) - *${pet.role || "Chiến thú sự kiện"}*`;
+        const petCode = pet.aliases?.find((a) => a.startsWith("nov_")) || pet.key;
+        return `• ${pet.emoji} ||**${pet.name}** (${petCode})|| (<a:Generation:1563835095541092352> Bậc Thế Hệ) - *${pet.role || "Chiến thú sự kiện"}*`;
       })
       .filter(Boolean)
       .join("\n");
