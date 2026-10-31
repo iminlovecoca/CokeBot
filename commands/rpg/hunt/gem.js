@@ -60,6 +60,8 @@ class GemCommand extends BaseCommand {
           lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
         } else if (res.code === "NOT_OWNED") {
           lines.push(`❌ **| ${displayName}**, bạn không có viên ngọc này trong túi đồ!`);
+        } else if (res.code === "EVENT_INACTIVE") {
+          lines.push(`⏳ **| ${displayName}**, ${res.error}`);
         } else {
           lines.push(`❌ **| ${displayName}**, ${res.error}`);
         }
@@ -90,6 +92,18 @@ class GemCommand extends BaseCommand {
     let activeSlotsText = "";
     for (const slot of slots) {
       const active = dbUser.huntGems[slot.key];
+      if (slot.key === "special") {
+        const { isMonthlyEventActive } = require("../../../utils/eventUtil");
+        if (!isMonthlyEventActive()) {
+          if (active && active.durability > 0) {
+            activeSlotsText += `${slot.emoji} **${active.nameVi}** (\#${active.id}\ • **${active.tier}**)\n` +
+              `└ ⏳ *(Đang ẩn/ngủ yên - Tự động kích hoạt lại khi sự kiện mở)*\n`;
+          } else {
+            activeSlotsText += `${slot.emoji} **${slot.name}:** *(Chỉ mở trong Sự Kiện Hàng Tháng - 14 ngày/tháng)*\n`;
+          }
+          continue;
+        }
+      }
       if (active && active.durability > 0) {
         const pct = Math.max(0, Math.min(100, Math.round((active.durability / (active.maxDurability || active.durability)) * 100)));
         activeSlotsText += `${slot.emoji} **${active.nameVi}** (\`#${active.id}\` • **${active.tier}**)\n` +

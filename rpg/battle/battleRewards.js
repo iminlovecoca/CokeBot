@@ -111,6 +111,10 @@ class BattleRewards {
       user1.markModified("rpg");
     }
 
+    // 5b. Monthly Event Drop Tracking (OwO standard 0/10)
+    const { rollEventDrop } = require("../../utils/eventUtil");
+    const eventDrop = rollEventDrop(user1);
+
     // 6. Update Quest Progress
     if (channel) {
       const questPromises = [
@@ -137,6 +141,7 @@ class BattleRewards {
       petXp2,
       wcDropped,
       wcCount: user1.rpg.dailyDrops?.battleWcCount || 1,
+      eventDrop,
     };
   }
 }

@@ -62,12 +62,15 @@ class HuntCommand extends BaseCommand {
     const huntingGem = huntGems.hunting && huntGems.hunting.durability > 0 ? huntGems.hunting : null;
     const empoweringGem = huntGems.empowering && huntGems.empowering.durability > 0 ? huntGems.empowering : null;
     const luckyGem = huntGems.lucky && huntGems.lucky.durability > 0 ? huntGems.lucky : null;
-    const specialGem = huntGems.special && huntGems.special.durability > 0 ? huntGems.special : null;
+    const { isMonthlyEventActive, rollEventDrop } = require("../../../utils/eventUtil");
+    const isEvActive = isMonthlyEventActive();
+    const specialGem = isEvActive && huntGems.special && huntGems.special.durability > 0 ? huntGems.special : null;
 
     // Snapshot of active gems before hunt to show empowered status
     const activeGemsBefore = [];
     const checkOrder = ["hunting", "empowering", "lucky", "special"];
     for (const key of checkOrder) {
+      if (key === "special" && !isEvActive) continue;
       const g = huntGems[key];
       if (g && g.durability > 0) {
         activeGemsBefore.push({ ...g });
@@ -258,6 +261,12 @@ class HuntCommand extends BaseCommand {
       const lbEmoji = "<:lootbox:1563961108727992470>";
       const count = user.rpg.dailyDrops.huntLbCount || 1;
       lines.push(`${lbEmoji} **|** Bạn tìm thấy một **Hộp Quà (Lootbox)**! \`[${count}/3] RESETS IN: ${hours}H ${minutes}M ${seconds}S\``);
+    }
+
+    // Monthly Event Drop (OwO Bot standard [X/10] RESETS IN: XH YM ZS countdown)
+    const eventDrop = rollEventDrop(user);
+    if (eventDrop) {
+      lines.push(eventDrop.huntNotificationText);
     }
 
     // Level up

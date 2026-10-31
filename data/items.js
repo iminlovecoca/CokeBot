@@ -50,6 +50,15 @@ const FIXED_ITEMS = [
     order: 4,
   },
   {
+    id: "005",
+    key: "danisa",
+    aliases: ["cookie", "banh", "banhdanisa", "danisacookie"],
+    name: "Bánh Danisa",
+    emoji: "<:danisa:1404057793920635043>",
+    type: "consumable",
+    order: 5,
+  },
+  {
     id: "011",
     key: "catch-net",
     aliases: ["net", "catchnet", "11"],

@@ -62,6 +62,8 @@ class UseCommand extends BaseCommand {
           lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
         } else if (res.code === "NOT_OWNED") {
           lines.push(`❌ **| ${displayName}**, bạn không có viên ngọc này trong túi đồ!`);
+        } else if (res.code === "EVENT_INACTIVE") {
+          lines.push(`⏳ **| ${displayName}**, ${res.error}`);
         } else {
           lines.push(`❌ **| ${displayName}**, ${res.error}`);
         }

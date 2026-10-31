@@ -120,6 +120,7 @@ const userSchema = new mongoose.Schema({
       date: { type: String, default: "" },
       huntLbCount: { type: Number, default: 0 },
       battleWcCount: { type: Number, default: 0 },
+      eventDropCount: { type: Number, default: 0 },
       dailyClaimed: { type: Boolean, default: false },
       cookieSent: { type: Boolean, default: false },
       questCompletedCount: { type: Number, default: 0 },

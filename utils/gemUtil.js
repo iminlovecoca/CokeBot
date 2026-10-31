@@ -181,6 +181,17 @@ function equipGem(user, gemIdOrName) {
   }
 
   ensureUserGems(user);
+  if (gem.type === "special") {
+    const { isMonthlyEventActive } = require("./eventUtil");
+    if (!isMonthlyEventActive()) {
+      return {
+        success: false,
+        code: "EVENT_INACTIVE",
+        gem,
+        error: "sự kiện hàng tháng hiện chưa mở! Ngọc Đặc Biệt (hình tam giác) chỉ có thể kích hoạt khi sự kiện đang diễn ra.",
+      };
+    }
+  }
   const currentSlot = user.huntGems[gem.type];
   if (currentSlot && currentSlot.durability > 0) {
     return {
@@ -315,12 +326,15 @@ function consumeGemsOnHunt(user, totalAnimalsCaught, baseCatchCount) {
     }
   }
 
-  // 4. Special Gem
+  // 4. Special Gem (Only consumes during active monthly event)
   if (gems.special && gems.special.durability > 0) {
-    gems.special.durability -= totalAnimalsCaught;
-    if (gems.special.durability <= 0) {
-      brokenGems.push({ ...gems.special });
-      gems.special = null;
+    const { isMonthlyEventActive } = require("./eventUtil");
+    if (isMonthlyEventActive()) {
+      gems.special.durability -= totalAnimalsCaught;
+      if (gems.special.durability <= 0) {
+        brokenGems.push({ ...gems.special });
+        gems.special = null;
+      }
     }
   }
 
@@ -343,6 +357,10 @@ function formatActiveGemsBadges(user) {
   const order = ["hunting", "empowering", "lucky", "special"];
 
   for (const slot of order) {
+    if (slot === "special") {
+      const { isMonthlyEventActive } = require("./eventUtil");
+      if (!isMonthlyEventActive()) continue;
+    }
     const gem = user.huntGems[slot];
     if (gem && gem.durability !== undefined) {
       const remaining = Math.max(0, gem.durability);
@@ -363,6 +381,10 @@ function formatActiveGemsBeforeHunt(gems) {
   const order = ["hunting", "empowering", "lucky", "special"];
 
   for (const slot of order) {
+    if (slot === "special") {
+      const { isMonthlyEventActive } = require("./eventUtil");
+      if (!isMonthlyEventActive()) continue;
+    }
     const gem = gems[slot];
     if (gem && gem.durability > 0) {
       const remaining = Math.max(0, gem.durability);

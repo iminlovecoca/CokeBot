@@ -66,14 +66,19 @@ const runPvPBattle = async (message, promptMessage, user1OrId, user2OrId) => {
   let descText = `Trận đấu kết thúc sau **${result.turns} lượt**. ${result.isDraw ? "Hai bên giữ nguyên chuỗi thắng." : "Kết quả đã được ghi nhận vào mùa giải."}`;
 
   // Weapon crate drop text outside embed (OwO Bot standard [X/3] RESETS IN: XH YM ZS countdown)
-  let wcTextOutside = null;
+    // Weapon crate & Monthly Event drop text outside embed (OwO Bot standard [X/3] & [X/10] RESETS IN: XH YM ZS countdown)
+  const outsideNotificationLines = [];
   if (rewards.wcDropped) {
     const { getDailyResetCountdown } = require("../../../utils/dateUtil");
     const { hours, minutes, seconds } = getDailyResetCountdown();
     const count = rewards.wcCount || user1.rpg?.dailyDrops?.battleWcCount || 1;
     const crateEmoji = "<:crate:1512793698025603282>";
-    wcTextOutside = `**${crateEmoji} | ${p1Name}**, Bạn tìm thấy một **Hộp Vũ Khí (weapon crate)**! \`[${count}/3] RESETS IN: ${hours}H ${minutes}M ${seconds}S\``;
+    outsideNotificationLines.push(`**${crateEmoji} | ${p1Name}**, Bạn tìm thấy một **Hộp Vũ Khí (weapon crate)**! \`[${count}/3] RESETS IN: ${hours}H ${minutes}M ${seconds}S\``);
   }
+  if (rewards.eventDrop) {
+    outsideNotificationLines.push(rewards.eventDrop.battleNotificationText(p1Name));
+  }
+  const wcTextOutside = outsideNotificationLines.length > 0 ? outsideNotificationLines.join("\n") : null;
 
   const finalEmbed = new EmbedBuilder()
     .setColor(result.isDraw ? getRpgColor("warning") : isP1Winner ? getRpgColor("success") : getRpgColor("danger"))

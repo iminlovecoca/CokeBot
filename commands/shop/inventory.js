@@ -61,6 +61,13 @@ class InventoryCommand extends BaseCommand {
       }
     }
 
+    // Include user.cookie in inventory if not already aggregated
+    if (user.cookie && user.cookie > 0 && !aggregated.has("005")) {
+      const cookieItem = getItem("005");
+      if (cookieItem) {
+        aggregated.set("005", { item: cookieItem, quantity: user.cookie });
+      }
+    }
     if (aggregated.size === 0) {
       throw new UserFriendlyError(`${config.emoji.no} Túi đồ của bạn trống trơn!`);
     }

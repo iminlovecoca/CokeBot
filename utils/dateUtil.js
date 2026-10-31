@@ -46,12 +46,15 @@ function getDailyDrops(user) {
       date: today,
       huntLbCount: 0,
       battleWcCount: 0,
+      eventDropCount: 0,
       dailyClaimed: false,
       cookieSent: false,
       questCompletedCount: 0,
       bossAttacks: 0,
       checklistClaimed: false,
     };
+  } else if (user.rpg.dailyDrops.eventDropCount === undefined) {
+    user.rpg.dailyDrops.eventDropCount = 0;
   }
   return user.rpg.dailyDrops;
 }
