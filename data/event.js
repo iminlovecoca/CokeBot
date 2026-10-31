@@ -220,6 +220,7 @@ function formatEventFaqAnnouncement(date = null) {
   const dt = date ? (date instanceof DateTime ? date : DateTime.fromJSDate(date).setZone(TIMEZONE)) : DateTime.now().setZone(TIMEZONE);
   const details = MONTHLY_EVENT_DETAILS[dt.month] || {
     monthName: dt.toFormat("LLLL"),
+    monthNameVi: `Tháng ${dt.month}`,
     holidays: `Lễ Hội ${dt.toFormat("LLLL")}`,
     emojiHeader: "👻",
     emojiSection: "🎃",
@@ -246,33 +247,33 @@ function formatEventFaqAnnouncement(date = null) {
   const h = details.emojiHeader;
   const s = details.emojiSection;
 
-  return `${h}${h} **${details.monthName} Event FAQ** ${h}${h}
+  return `${h}${h} **FAQ Sự Kiện ${details.monthNameVi} (${details.monthName} Event FAQ)** ${h}${h}
 
-__**What are the holidays being celebrated?**__
-${details.holidays}
+__**Sự kiện lần này kỷ niệm những dịp lễ nào?**__
+||${details.holidays}||
 
-__**How long is the event?**__
-• Event ending at \`${endFormatted}\`
+__**Sự kiện diễn ra trong bao lâu?**__
+• Kết thúc vào lúc \`${endFormatted}\`
 
-__**How many ${genEmoji} pets are available?**__
-• Pet Amount: ${petObjects.length} pets
-• Pet Names: ${petNamesStr}
-• Catch Rates: 0.005%–0.05%
+__**Có bao nhiêu linh thú ${genEmoji} xuất hiện?**__
+• Số lượng (Pet Amount): ||${petObjects.length} linh thú||
+• Tên linh thú (Pet Names): ||${petNamesStr}||
+• Tỉ lệ bắt gặp (Catch Rates): 0.005%–0.05%
 
-__**Can I use my 🔺 Special Gems for this event?**__
-Yes, you can use your special gems during the event!
+__**Tôi có thể dùng 🔺 Special Gems cho sự kiện này không?**__
+Có, bạn có thể trang bị và sử dụng Ngọc Đặc Biệt (Special Gems) trong suốt thời gian diễn ra sự kiện!
 
 
-${s}${s} **${details.monthName} FAQ** ${s}${s}
-__**How to get event items?**__
-The various items celebrating ${details.monthName} holidays/events can be obtained via hunt and battle.
+${s}${s} **FAQ ${details.monthNameVi}** ${s}${s}
+__**Làm sao để nhận vật phẩm sự kiện?**__
+Các vật phẩm kỷ niệm sự kiện ${details.monthNameVi} có thể nhận được khi đi săn (\`hunt\`) và chiến đấu (\`battle\`).
 
-__**How many can I get per day?**__
-You can find up to 10 per day!
+__**Mỗi ngày tôi có thể nhận tối đa bao nhiêu?**__
+Bạn có thể tìm thấy tối đa 10 phần quà mỗi ngày! (Mốc 0/10 làm mới lúc 00:00).
 
-__**What does it do?**__
-The event items will not be added to your inventory. It will automatically turn into a reward. The rewards will be added to your inventory.
-• Possible rewards: ${moneyEmoji} 1,000–5,000, ${lbEmoji} 1–2, ${crateEmoji} 1–2, 🔺 Special Gem, ${cookieEmoji} 1, small chance for ${keyEmoji} 1`;
+__**Vật phẩm sự kiện có tác dụng gì?**__
+Vật phẩm sự kiện sẽ không nằm trong túi đồ. Chúng sẽ tự động chuyển thành phần thưởng và cộng trực tiếp vào túi đồ / tài khoản của bạn.
+• Phần thưởng có thể nhận: ${moneyEmoji} 1,000–5,000 Coke, ${lbEmoji} 1–2 Hộp Quà, ${crateEmoji} 1–2 Hộp Vũ Khí, 🔺 Special Gem, ${cookieEmoji} 1 Bánh Danisa, cơ hội nhỏ nhận ${keyEmoji} 1 Chìa Khóa Phó Bản`;
 }
 
 module.exports = {
