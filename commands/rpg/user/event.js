@@ -123,7 +123,7 @@ class EventCommand extends BaseCommand {
       embed.addFields({
         name: "🐾 Linh Thú Thế Hệ Giới Hạn Tháng Này",
         value: `${petLines}\n` +
-          `⚠️ *Chỉ xuất hiện khi đi săn (\`${config.prefix}hunt\`) hoặc rơi từ quà sự kiện trong 14 ngày diễn ra sự kiện. Nếu bỏ lỡ, bạn sẽ không còn cơ hội tìm thấy linh thú này nữa!*`,
+          `⚠️ *Chỉ xuất hiện khi đi săn (\`${config.prefix}hunt\`) trong 14 ngày sự kiện (KHÔNG bị giới hạn số lượng bắt). Trang bị 🔺 Ngọc Đặc Biệt (Special Gem) để tăng mạnh tỉ lệ bắt gặp! Nếu bỏ lỡ, bạn sẽ không còn cơ hội tìm thấy linh thú này nữa!*`,
         inline: false,
       });
     }
@@ -132,11 +132,11 @@ class EventCommand extends BaseCommand {
     const rewardsInfo =
       `• <:cokecy:1509951335016173662> **1,000 - 5,000 Coke:** Ngẫu nhiên mỗi lần rơi.\n` +
       `• <:danisa:1404057793920635043> **Bánh Danisa:** 1 hộp bánh thơm ngon dùng tặng bạn bè hoặc tự thưởng.\n` +
-      `• 🔺 **Ngọc Đặc Biệt (Special Gem):** Ngọc hình tam giác ngẫu nhiên (từ Common đến Divine) gia tăng tỉ lệ bắt thú Thần Thoại & Bí Mật.\n` +
+      `• 🔺 **Ngọc Đặc Biệt (Special Gem):** Ngọc hình tam giác ngẫu nhiên (từ Common đến Divine) tăng tỉ lệ bắt Linh Thú Sự Kiện (Generation).\n` +
       `• <:lootbox:1563961108727992470> **Hộp Quà (Lootbox):** 1 - 2 hộp mở thú và trang bị.\n` +
       `• <:crate:1512793698025603282> **Hộp Vũ Khí (Weapon Crate):** 1 - 2 hộp nâng cấp vũ khí.\n` +
-      `• <:key:1516398711712911461> **Chìa khóa Phó bản (Dungeon Key):** 1 chìa khóa khiêu chiến phó bản cùng tổ đội.\n` +
-      `• 🌟 **Jackpot Linh Thú Thế Hệ:** Cơ hội trực tiếp nhận 1 trong 2 linh thú sự kiện giới hạn tháng này!`;
+      `• <:key:1516398711712911461> **Chìa khóa Phó bản (Dungeon Key):** 1 chìa khóa khiêu chiến phó bản cùng tổ đội (tỉ lệ hiếm).`;
+      
 
     embed.addFields({
       name: "🎁 Danh Sách Phần Quà Rơi Ngẫu Nhiên",
@@ -148,8 +148,9 @@ class EventCommand extends BaseCommand {
     embed.addFields({
       name: "📜 Quy Tắc & Cơ Chế Đặc Biệt",
       value:
-        `• **Cách nhận:** Gõ \`${config.prefix}hunt\` hoặc \`${config.prefix}battle\` (tỉ lệ rơi ~${eventStatus.dropChancePct}% mỗi lượt, tối đa ${eventStatus.dailyCap} quà/ngày).\n` +
-        `• **Cơ chế Ngọc Đặc Biệt (🔺):** Chỉ có thể kích hoạt và phát huy sức mạnh khi sự kiện đang diễn ra. Khi hết 14 ngày sự kiện, ngọc trong túi đồ sẽ được giữ nguyên; ngọc đang gắn trên người sẽ **tự động ẩn đi & bảo lưu độ bền**, và sẽ **tự động kích hoạt trở lại** khi sự kiện tháng sau mở!`,
+        `• **Quà vật phẩm hàng ngày:** Gõ \`${config.prefix}hunt\` hoặc \`${config.prefix}battle\` (tỉ lệ rơi ~${eventStatus.dropChancePct}% mỗi lượt, giới hạn tối đa ${eventStatus.dailyCap} phần quà/ngày, reset lúc 00:00).\n` +
+        `• **Linh thú Generation:** Bắt bằng \`${config.prefix}hunt\` và **HOÀN TOÀN KHÔNG BỊ GIỚI HẠN** (không bị giới hạn bởi mốc 10 quà/ngày, có thể bắt không giới hạn số lượng).\n` +
+        `• **Ngọc Đặc Biệt (🔺 Special Gem):** Chỉ phát huy tác dụng tăng tỉ lệ bắt Linh Thú Generation trong thời gian sự kiện. Hết sự kiện, ngọc đang trang bị sẽ **tự động ẩn đi & đóng băng độ bền**, và **tự động kích hoạt lại** ở sự kiện tháng kế tiếp!`,
       inline: false,
     });
 

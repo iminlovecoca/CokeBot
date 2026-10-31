@@ -285,29 +285,28 @@ function rollAnimal(luckMultiplier = 1, specialMultiplier = 1, options = {}) {
       }
     }
 
-    if (isHighTier) {
+    if (r.name === "Generation") {
+      // Generation (Special Event Pets):
+      // - Exclusively boosted by Special Gems (Triangle: safeSpec).
+      // - In OwO: Triangle Gems ONLY boost Event Pets. They have NO catch limit (unlimited catches, never blocked by highTierCount or highTierPenalty).
+      weight = r.rarity * safeSpec;
+    } else if (isHighTier) {
       if (highTierCount >= maxHighTier) {
         // Enforce hard cap: maximum 2 high-tier pets per hunt
         weight = 0;
       } else if (highTierCount === 1) {
         // 1 high-tier already rolled: subsequent high-tier chance is extremely low
         weight = weight * safeMult * highTierPenalty;
-        if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
-          weight *= safeSpec;
-        }
       } else {
-        // Normal high-tier roll
+        // Normal high-tier roll (boosted ONLY by Lucky Gem / safeMult; Special Gems do NOT boost Divine/Secret)
         weight = weight * safeMult;
-        if ((r.name === "Divine" || r.name === "Secret") && safeSpec > 1) {
-          weight *= safeSpec;
-        }
       }
     } else if (r.name === "Common") {
       // Subtract bot detection rate from common if autohunt radar is active, exactly like OwO
       const botReduction = (isAutohunt && radarStat > 0) ? radarStat : 0;
       weight = Math.max(0, weight - botReduction);
     } else {
-      // Non-high-tier (Rare, Epic, Generation) boosted by luck multiplier
+      // Non-high-tier (Rare, Epic) boosted by luck multiplier
       weight *= safeMult;
     }
 

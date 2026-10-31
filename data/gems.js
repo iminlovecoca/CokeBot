@@ -57,7 +57,7 @@ const GEM_TYPES = {
     emoji: "<:special_common:1563960250242039839>",
     slot: "special",
     durabilityType: "animals",
-    desc: "Tăng đột biến tỉ lệ xuất hiện thú Thần Thoại & Bí Mật (Divine / Secret).",
+    desc: "Tăng mạnh tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation / Special Pets) khi đi săn trong thời gian diễn ra sự kiện.",
   },
 };
 
@@ -339,7 +339,7 @@ const GEMS_DATA = [
     emoji: "<:special_common:1563960250242039839>",
     specialMultiplier: 1.5,
     durability: 50,
-    description: "Tăng x1.5 tỉ lệ gặp thú Divine & Secret. Độ bền: 50 thú.",
+    description: "Tăng x1.5 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 50 thú.",
   },
   {
     id: "81",
@@ -351,7 +351,7 @@ const GEMS_DATA = [
     emoji: "<:special_rare:1563960252494254080>",
     specialMultiplier: 2.0,
     durability: 100,
-    description: "Tăng x2.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 100 thú.",
+    description: "Tăng x2.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 100 thú.",
   },
   {
     id: "82",
@@ -363,7 +363,7 @@ const GEMS_DATA = [
     emoji: "<:special_epic:1563960257280090193>",
     specialMultiplier: 3.0,
     durability: 250,
-    description: "Tăng x3.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 250 thú.",
+    description: "Tăng x3.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 250 thú.",
   },
   {
     id: "84",
@@ -375,7 +375,7 @@ const GEMS_DATA = [
     emoji: "<a:special_legendary:1563960264389558393>",
     specialMultiplier: 4.0,
     durability: 450,
-    description: "Tăng x4.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 450 thú.",
+    description: "Tăng x4.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 450 thú.",
   },
   {
     id: "83",
@@ -387,7 +387,7 @@ const GEMS_DATA = [
     emoji: "<a:special_mythic:1563960261067542528>",
     specialMultiplier: 5.0,
     durability: 525,
-    description: "Tăng x5.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 525 thú.",
+    description: "Tăng x5.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 525 thú.",
   },
   {
     id: "92",
@@ -399,7 +399,7 @@ const GEMS_DATA = [
     emoji: "<a:special_ancient:1563960291631300628>",
     specialMultiplier: 7.0,
     durability: 800,
-    description: "Tăng x7.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 800 thú.",
+    description: "Tăng x7.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 800 thú.",
   },
   {
     id: "93",
@@ -411,7 +411,7 @@ const GEMS_DATA = [
     emoji: "<a:special_divine:1563960294391283762>",
     specialMultiplier: 9.0,
     durability: 1000,
-    description: "Tăng x9.0 tỉ lệ gặp thú Divine & Secret. Độ bền: 1000 thú.",
+    description: "Tăng x9.0 tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation). Độ bền: 1000 thú.",
   },
 ];
 

@@ -8,7 +8,9 @@
  * - Maximum 10 event drops per day per player (0/10), resets at midnight (00:00:00 Asia/Ho_Chi_Minh).
  * - Special Gems (🔺) can only be used and active during event. Outside event, equipped gem goes dormant (hidden) and wakes up automatically next event.
  * - Generation (Special Event) Pets: Each monthly event has exclusive Generation pets (e.g. Month 10/11 has ghostie & vampbat).
- *   Outside the 14-day event window, Generation pets CANNOT be caught or dropped. If a player misses the month's event,
+ *   Generation pets are caught directly when hunting (`hunt` / `autohunt`) and have NO catch limits (no daily cap, no high-tier penalty).
+ *   Special Gems (🔺) exclusively multiply the catch rate of Generation pets!
+ *   Outside the 14-day event window, Generation pets CANNOT be caught. If a player misses the month's event,
  *   those pets become permanently unobtainable in future months!
  */
 
@@ -142,7 +144,7 @@ const EVENT_CONFIG = {
 const EVENT_REWARDS = [
   {
     type: "coke",
-    weight: 24,
+    weight: 25,
     name: "Coke",
     minCoke: 1000,
     maxCoke: 5000,
@@ -171,7 +173,7 @@ const EVENT_REWARDS = [
   },
   {
     type: "lootbox",
-    weight: 15,
+    weight: 16,
     name: "Hộp Quà (Lootbox)",
     emoji: "<:lootbox:1563961108727992470>",
     minCount: 1,
@@ -180,7 +182,7 @@ const EVENT_REWARDS = [
   },
   {
     type: "wc",
-    weight: 12,
+    weight: 14,
     name: "Hộp Vũ Khí (Weapon Crate)",
     emoji: "<:crate:1512793698025603282>",
     minCount: 1,
@@ -189,15 +191,10 @@ const EVENT_REWARDS = [
   },
   {
     type: "dungeonkey",
-    weight: 6,
+    weight: 5,
     name: "Chìa khóa Phó bản",
     emoji: "<:key:1516398711712911461>",
     count: 1,
-  },
-  {
-    type: "event_pet",
-    weight: 3, // 3% jackpot chance to get exclusive Generation Event Pet directly!
-    name: "Linh Thú Thế Hệ Sự Kiện",
   },
 ];
 
@@ -275,7 +272,7 @@ You can find up to 10 per day!
 
 __**What does it do?**__
 The event items will not be added to your inventory. It will automatically turn into a reward. The rewards will be added to your inventory.
-• Possible rewards: ${moneyEmoji} 1,000–5,000, ${lbEmoji} 1–2, ${crateEmoji} 1–2, 🔺 Special Gem, ${cookieEmoji} 1, ${keyEmoji} 1, small chance for ${genEmoji} Event Pet!`;
+• Possible rewards: ${moneyEmoji} 1,000–5,000, ${lbEmoji} 1–2, ${crateEmoji} 1–2, 🔺 Special Gem, ${cookieEmoji} 1, small chance for ${keyEmoji} 1`;
 }
 
 module.exports = {

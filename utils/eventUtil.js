@@ -248,35 +248,6 @@ function rollEventDrop(user) {
       break;
     }
 
-    case "event_pet": {
-      const { getAnimal, addAnimalToUserZoo } = require("../data/animals");
-      const activeKeys = getActiveMonthlyEventPetKeys();
-      const randomKey = activeKeys[Math.floor(Math.random() * activeKeys.length)] || "ghostie";
-      const petAnimal = getAnimal(randomKey);
-
-      if (petAnimal) {
-        addAnimalToUserZoo(user, petAnimal, 1);
-        dropDetails = {
-          type: "pet",
-          petKey: petAnimal.key,
-          displayName: `Linh Thú Thế Hệ **${petAnimal.name}**`,
-          quantityText: "một",
-          emoji: petAnimal.emoji,
-        };
-      } else {
-        user.coke = (user.coke || 0) + 5000;
-        const moneyEmoji = config.emoji?.money || "<:cokecy:1509951335016173662>";
-        dropDetails = {
-          type: "coke",
-          amount: 5000,
-          displayName: "5,000 coke",
-          quantityText: "**5,000**",
-          emoji: moneyEmoji,
-        };
-      }
-      break;
-    }
-
     default:
       break;
   }

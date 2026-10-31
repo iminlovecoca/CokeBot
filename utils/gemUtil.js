@@ -268,7 +268,7 @@ function getGemActivationDescription(gem) {
     case "lucky":
       return `${gem.durability} con thú tiếp theo sẽ được tăng tỉ lệ may mắn thêm +${gem.luckMultiplier}x`;
     case "special":
-      return `${gem.durability} con thú tiếp theo sẽ được tăng tỉ lệ thú Thần Thoại & Bí Mật thêm +${gem.specialMultiplier}x`;
+      return `${gem.durability} con thú tiếp theo sẽ được tăng tỉ lệ bắt gặp Linh Thú Sự Kiện (Generation) thêm x${gem.specialMultiplier}`;
     default:
       return `${gem.description}`;
   }
