@@ -271,7 +271,40 @@ const PET_SPECIES = [
     description: "Cá heo biển sâu tràn đầy trí tuệ và ma pháp hồi phục đồng đội.",
   },
 
-  // --- Generation (Sẽ cập nhật thú sau khi mở sự kiện hàng tháng) ---
+  // --- Generation (Special Event Pets - Chuẩn OwO Special: 19 points) ---
+  {
+    key: "kitsune",
+    name: "Linh Hồ Ánh Sao",
+    tier: "Generation",
+    emoji: config.emoji?.pets?.kitsune || "<a:kitsune:1563835095541092352>",
+    asset: "assets/pets/emojis/pet_gen_kitsune.png",
+    aliases: ["kitsune", "linhho", "fox", "astralfox", "caocuuvi"],
+    role: "Pháp Sư Ma Đạo / Năng Lượng",
+    battleStats: { hp: 2, att: 1, pr: 2, wp: 6, mag: 6, mr: 2 },
+    description: "Linh hồ cửu vĩ ánh sao giáng trần trong sự kiện đặc biệt, ngưng tụ ma lực tinh tú và nguồn năng lượng vũ khí dồi dào.",
+  },
+  {
+    key: "lunar_bunny",
+    name: "Nguyệt Thần Thỏ",
+    tier: "Generation",
+    emoji: config.emoji?.pets?.lunar_bunny || "<a:lunarbunny:1563835095541092352>",
+    asset: "assets/pets/emojis/pet_gen_lunar_bunny.png",
+    aliases: ["lunarbunny", "tho", "nguyettho", "bunny", "rabbit", "thongoc"],
+    role: "Hộ Trợ Hồi Phục / Kháng Phép",
+    battleStats: { hp: 7, att: 1, pr: 2, wp: 4, mag: 1, mr: 4 },
+    description: "Thỏ ngọc ánh trăng ôm vầng trăng khuyết, mang lại sự bảo hộ thánh khiết, lượng máu dày và khả năng kháng phép dẻo dai.",
+  },
+  {
+    key: "star_dragon",
+    name: "Tiểu Long Tinh Tú",
+    tier: "Generation",
+    emoji: config.emoji?.pets?.star_dragon || "<a:stardragon:1563835095541092352>",
+    asset: "assets/pets/emojis/pet_gen_star_dragon.png",
+    aliases: ["stardragon", "rongcon", "tieulong", "dragonpup", "stardragonpup"],
+    role: "Đấu Sĩ Tinh Tú / Công Thủ Toàn Diện",
+    battleStats: { hp: 4, att: 8, pr: 4, wp: 1, mag: 0, mr: 2 },
+    description: "Rồng con tinh tú ôm ngôi sao băng may mắn, sở hữu cú cắn vật lý dũng mãnh và lớp vảy giáp lấp lánh bền bỉ.",
+  },
 
   // --- Legendary (Total: 20 points - OwO Legendary Standard) ---
   {
