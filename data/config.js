@@ -24,6 +24,10 @@ module.exports = {
       generation: "<a:Generation:1563835095541092352>",
       secret: "<a:Secret:1563835098355339285>",
     },
+    pets: {
+      ghostie: "<:nov_ghostie_2026:1565936013514379354>",
+      vampbat: "<:nov_vampat_2026:1565936015518994473>",
+    },
     coinflip: "<a:coinflip:1394380327014891530>",
     heads: "<:heads:1405448328728285254>",
     tails: "<:tails:1405448342141403156>",

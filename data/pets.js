@@ -276,9 +276,9 @@ const PET_SPECIES = [
     key: "ghostie",
     name: "Ma Kẹo Ngọt",
     tier: "Generation",
-    emoji: config.emoji?.pets?.ghostie || "<a:ghostie:1563835095541092352>",
+    emoji: config.emoji?.pets?.ghostie || "<:nov_ghostie_2026:1565936013514379354>",
     asset: "assets/pets/emojis/pet_gen_ghostie.png",
-    aliases: ["ghostie", "conma", "ghost", "spooky", "spookyghost", "makeongot"],
+    aliases: ["ghostie", "conma", "ghost", "spooky", "spookyghost", "makeongot", "nov_ghostie_2026"],
     role: "Pháp Sư Linh Hồn / Hồi Phục WP",
     battleStats: { hp: 2, att: 0, pr: 1, wp: 7, mag: 6, mr: 3 },
     description: "Bóng ma nhỏ bé háu ăn luôn cầm theo kẹo Halloween, bay lượn hư ảo với nguồn năng lượng WP dồi dào và ma thuật kẹo ngọt.",
@@ -287,9 +287,9 @@ const PET_SPECIES = [
     key: "vampbat",
     name: "Dơi Cà Rồng",
     tier: "Generation",
-    emoji: config.emoji?.pets?.vampbat || "<a:vampbat:1563835095541092352>",
+    emoji: config.emoji?.pets?.vampbat || "<:nov_vampat_2026:1565936015518994473>",
     asset: "assets/pets/emojis/pet_gen_vampbat.png",
-    aliases: ["vampbat", "doicarong", "bat", "vampire", "vampirebat", "doi_carong"],
+    aliases: ["vampbat", "doicarong", "bat", "vampire", "vampirebat", "doi_carong", "nov_vampat_2026"],
     role: "Sát Thủ Hút Máu / Đột Kích Tốc Độ",
     battleStats: { hp: 3, att: 8, pr: 2, wp: 2, mag: 3, mr: 1 },
     description: "Chú dơi ma cà rồng tí hon khoác áo choàng đỏ kiêu hãnh, chuyên đột kích bóng đêm với những cú cắn vật lý hút máu chí mạng.",
@@ -609,6 +609,14 @@ function rollHuntPetDrop(isAutohunt = false) {
   const mult = isAutohunt ? 0.5 : 1.0;
 
   const getRandomSpecies = (tier) => {
+    if (tier === "Generation") {
+      const { isMonthlyEventActive, getActiveMonthlyEventPetKeys } = require("../utils/eventUtil");
+      if (!isMonthlyEventActive()) return null;
+      const activeKeys = getActiveMonthlyEventPetKeys();
+      const list = PET_SPECIES.filter((s) => s.tier === tier && activeKeys.includes(s.key));
+      if (!list.length) return null;
+      return list[Math.floor(Math.random() * list.length)];
+    }
     const list = PET_SPECIES.filter((s) => s.tier === tier);
     if (!list.length) return null;
     return list[Math.floor(Math.random() * list.length)];

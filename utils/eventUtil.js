@@ -5,7 +5,7 @@
 
 const { DateTime } = require("luxon");
 const { TIMEZONE, getDailyDrops, getDailyResetCountdown } = require("./dateUtil");
-const { EVENT_CONFIG, EVENT_REWARDS } = require("../data/event");
+const { EVENT_CONFIG, EVENT_REWARDS, getActiveMonthlyEventPetKeys } = require("../data/event");
 const { getGemById } = require("../data/gems");
 const config = require("../data/config");
 
@@ -69,6 +69,8 @@ function getEventStatus(date) {
     }
   }
 
+  const activePetKeys = getActiveMonthlyEventPetKeys(dt.month);
+
   return {
     isActive: active,
     name: EVENT_CONFIG.name,
@@ -81,6 +83,7 @@ function getEventStatus(date) {
     nextStartDateStr: nextStart ? nextStart.toFormat("dd/MM/yyyy") : null,
     dailyCap: EVENT_CONFIG.dailyCap,
     dropChancePct: Math.round(EVENT_CONFIG.dropChance * 100),
+    activePetKeys,
   };
 }
 
@@ -110,7 +113,7 @@ function addInventoryItem(user, key, count = 1) {
  * - Checks daily cap (0/10)
  * - Rolls 22% drop chance
  * - Rolls reward from weighted pool
- * - Updates user inventory / coke / dailyDrops
+ * - Updates user inventory / coke / dailyDrops / zoo & pets
  * - Returns formatted notification objects
  *
  * @param {object} user
@@ -245,6 +248,35 @@ function rollEventDrop(user) {
       break;
     }
 
+    case "event_pet": {
+      const { getAnimal, addAnimalToUserZoo } = require("../data/animals");
+      const activeKeys = getActiveMonthlyEventPetKeys();
+      const randomKey = activeKeys[Math.floor(Math.random() * activeKeys.length)] || "ghostie";
+      const petAnimal = getAnimal(randomKey);
+
+      if (petAnimal) {
+        addAnimalToUserZoo(user, petAnimal, 1);
+        dropDetails = {
+          type: "pet",
+          petKey: petAnimal.key,
+          displayName: `Linh Thú Thế Hệ **${petAnimal.name}**`,
+          quantityText: "một",
+          emoji: petAnimal.emoji,
+        };
+      } else {
+        user.coke = (user.coke || 0) + 5000;
+        const moneyEmoji = config.emoji?.money || "<:cokecy:1509951335016173662>";
+        dropDetails = {
+          type: "coke",
+          amount: 5000,
+          displayName: "5,000 coke",
+          quantityText: "**5,000**",
+          emoji: moneyEmoji,
+        };
+      }
+      break;
+    }
+
     default:
       break;
   }
@@ -252,6 +284,7 @@ function rollEventDrop(user) {
   if (typeof user.markModified === "function") {
     user.markModified("inventory");
     user.markModified("rpg");
+    user.markModified("zoo");
   }
 
   const { hours, minutes, seconds } = getDailyResetCountdown();
@@ -276,4 +309,5 @@ module.exports = {
   getEventStatus,
   addInventoryItem,
   rollEventDrop,
+  getActiveMonthlyEventPetKeys,
 };

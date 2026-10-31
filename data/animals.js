@@ -258,8 +258,17 @@ function rollAnimal(luckMultiplier = 1, specialMultiplier = 1, options = {}) {
     safeSpec = 1.0;
   }
 
+  const { isMonthlyEventActive, getActiveMonthlyEventPetKeys } = require("../utils/eventUtil");
+  const isEvActive = isMonthlyEventActive();
+  const activeEventPetKeys = isEvActive ? getActiveMonthlyEventPetKeys() : [];
+
   const activeRanks = Object.values(ZOO_RANKS)
-    .filter((r) => PET_SPECIES.some((s) => s.tier === r.name));
+    .filter((r) => {
+      if (r.name === "Generation") {
+        return isEvActive && activeEventPetKeys.length > 0;
+      }
+      return PET_SPECIES.some((s) => s.tier === r.name);
+    });
 
   let totalWeight = 0;
   const weightedRanks = activeRanks.map((r) => {
@@ -323,7 +332,10 @@ function rollAnimal(luckMultiplier = 1, specialMultiplier = 1, options = {}) {
     }
   }
 
-  const pool = PET_SPECIES.filter((s) => s.tier === selectedRank.name);
+  let pool = PET_SPECIES.filter((s) => s.tier === selectedRank.name);
+  if (selectedRank.name === "Generation") {
+    pool = pool.filter((s) => activeEventPetKeys.includes(s.key));
+  }
   if (!pool || pool.length === 0) {
     return ANIMAL_LOOKUP.get("bee");
   }

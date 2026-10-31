@@ -4,6 +4,7 @@ const config = require("../../../data/config");
 const { getUser } = require("../../../utils/userUtil");
 const { getDailyDrops, getDailyResetCountdown } = require("../../../utils/dateUtil");
 const { getEventStatus, isMonthlyEventActive } = require("../../../utils/eventUtil");
+const { getAnimal } = require("../../../data/animals");
 const { getRpgColor, formatRpgFooter, formatRpgTitle } = require("../../../utils/rpgUi");
 
 class EventCommand extends BaseCommand {
@@ -11,7 +12,7 @@ class EventCommand extends BaseCommand {
     super({
       name: "event",
       aliases: ["sukien", "events", "monthlyevent"],
-      description: "Xem thông tin Sự Kiện Hàng Tháng, tiến độ nhận quà và danh sách phần thưởng.",
+      description: "Xem thông tin Sự Kiện Hàng Tháng, tiến độ nhận quà, linh thú giới hạn và danh sách phần thưởng.",
       usage: `${config.prefix}event`,
       examples: [
         { intent: "Xem thông tin sự kiện", command: `${config.prefix}event` },
@@ -48,6 +49,25 @@ class EventCommand extends BaseCommand {
 
     embed.setDescription(desc);
 
+    // Active Generation Event Pets
+    const petLines = (eventStatus.activePetKeys || [])
+      .map((k) => {
+        const pet = getAnimal(k);
+        if (!pet) return null;
+        return `• ${pet.emoji} **${pet.name}** (<a:Generation:1563835095541092352> Bậc Thế Hệ) - *${pet.role || "Chiến thú sự kiện"}*`;
+      })
+      .filter(Boolean)
+      .join("\n");
+
+    if (petLines) {
+      embed.addFields({
+        name: "🐾 Linh Thú Thế Hệ Giới Hạn Tháng Này",
+        value: `${petLines}\n` +
+          `⚠️ *Chỉ xuất hiện khi đi săn (\`${config.prefix}hunt\`) hoặc rơi từ quà sự kiện trong 14 ngày diễn ra sự kiện. Nếu bỏ lỡ, bạn sẽ không còn cơ hội tìm thấy linh thú này nữa!*`,
+        inline: false,
+      });
+    }
+
     // Rewards Pool Info
     const rewardsInfo =
       `• <:cokecy:1509951335016173662> **1,000 - 5,000 Coke:** Ngẫu nhiên mỗi lần rơi.\n` +
@@ -55,10 +75,11 @@ class EventCommand extends BaseCommand {
       `• 🔺 **Ngọc Đặc Biệt (Special Gem):** Ngọc hình tam giác ngẫu nhiên (từ Common đến Divine) gia tăng tỉ lệ bắt thú Thần Thoại & Bí Mật.\n` +
       `• <:lootbox:1563961108727992470> **Hộp Quà (Lootbox):** 1 - 2 hộp mở thú và trang bị.\n` +
       `• <:crate:1512793698025603282> **Hộp Vũ Khí (Weapon Crate):** 1 - 2 hộp nâng cấp vũ khí.\n` +
-      `• <:key:1516398711712911461> **Chìa khóa Phó bản (Dungeon Key):** 1 chìa khóa khiêu chiến phó bản cùng tổ đội.`;
+      `• <:key:1516398711712911461> **Chìa khóa Phó bản (Dungeon Key):** 1 chìa khóa khiêu chiến phó bản cùng tổ đội.\n` +
+      `• 🌟 **Jackpot Linh Thú Thế Hệ:** Cơ hội trực tiếp nhận 1 trong 2 linh thú sự kiện giới hạn tháng này!`;
 
     embed.addFields({
-      name: "🎁 Danh Sách 6 Phần Quà Rơi Ngẫu Nhiên",
+      name: "🎁 Danh Sách Phần Quà Rơi Ngẫu Nhiên",
       value: rewardsInfo,
       inline: false,
     });
