@@ -25,6 +25,7 @@ const {
   getWeaponScaling,
   getDungeonWeaponKey,
   getLegacyMapping,
+  normalizeWeaponItem,
   WEAPON_SETS,
 } = require("../../../utils/rpgUtil");
 const {
@@ -88,7 +89,10 @@ const resolveItemDisplayMeta = (item) => {
 
 const getGearStatBadges = (item) => {
   if (item.slot === "weapon") {
-    return getWeaponPassiveEmojis(item.subType || item.subtype || item.name);
+    normalizeWeaponItem(item);
+    const fixedEmojis = getWeaponPassiveEmojis(item.subType || item.subtype || item.name);
+    const randEmoji = item.randomPassive?.emoji || "";
+    return `${fixedEmojis}${randEmoji}`;
   }
   return "";
 };
@@ -195,6 +199,9 @@ class GearCommand extends BaseCommand {
     const st = getStatusEmojis();
 
     const getDetailEmbedAndComponents = (freshItem, freshOwner) => {
+      if (freshItem.slot === "weapon") {
+        normalizeWeaponItem(freshItem);
+      }
       const equippedEntry = Object.values(getEquippedItems(freshOwner)).find(
         (equippedItem) => String(equippedItem.id) === String(freshItem.id),
       );
@@ -202,7 +209,9 @@ class GearCommand extends BaseCommand {
       const upgradeStr = freshItem.upgradeLevel && freshItem.upgradeLevel > 0 ? ` [+${freshItem.upgradeLevel}]` : "";
       const ownerName = freshOwner.rpg?.name || message.member?.displayName || message.author.username;
       const quality = getItemQuality(freshItem);
-      const wearLabel = getWearTier(quality);
+      const wearLabel = freshItem.wear?.name
+        ? `${freshItem.wear.name.toUpperCase()} (+${freshItem.wear.bonus || 0}%)`
+        : getWearTier(quality);
       const itemIdCode = `G${String(freshItem.id).padStart(4, "0")}`;
 
       const titleText = `${ownerName}'s ${subTypeName}${upgradeStr}`;
@@ -234,7 +243,7 @@ class GearCommand extends BaseCommand {
           `**Weapon Power:** ${finalPower.toLocaleString()} *(Base: ${freshItem.power.toLocaleString()} • +${bonusPower.toLocaleString()})*`,
           `**Scaling:** ${scalingBadges.length ? scalingBadges.join("  •  ") : "None"}`,
           "",
-          `__**Description**__`
+          `__**Nội Tại Vũ Khí (Fixed Passive)**__`
         );
 
         const freshWeaponSubtype = freshItem.subType || freshItem.subtype || subTypeName;
@@ -244,6 +253,14 @@ class GearCommand extends BaseCommand {
         const setInfo = WEAPON_SETS[freshWeaponKey] || WEAPON_SETS[getDungeonWeaponKey(freshWeaponSubtype)] || null;
 
         infoLines.push(formatWeaponRichDescription(freshWeaponSubtype, setInfo));
+
+        if (freshItem.randomPassive && freshItem.randomPassive.description) {
+          infoLines.push(
+            "",
+            `__**Nội Tại Ngẫu Nhiên (Random Passive)**__`,
+            `> ${freshItem.randomPassive.description}`
+          );
+        }
       } else {
         infoLines.push(
           `**Gear Power:** +${freshItem.power.toLocaleString()}`,

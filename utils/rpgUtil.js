@@ -60,6 +60,97 @@ const normalizeRpgSlot = (slot) => {
   return aliases[cleanSlot] || null;
 };
 
+const normalizeWeaponItem = (item, options = {}) => {
+  if (!item || item.slot !== "weapon") return false;
+  let changed = false;
+
+  if (item.level !== 1) {
+    item.level = 1;
+    changed = true;
+  }
+
+  const subTypeRaw = item.subType || item.subtype || item.name || "";
+  const isDungeon = isDungeonWeaponHelper(item.slot, subTypeRaw);
+  const rarityConfig = config.rpg.gear_rarities[item.rarity] || config.rpg.gear_rarities.Common;
+  let powerRarityConfig = rarityConfig;
+  if (isDungeon) {
+    const getNextRarity = (rar) => {
+      const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+      const idx = rarities.indexOf(rar);
+      if (idx === -1) return rar;
+      return rarities[Math.min(rarities.length - 1, idx + 1)];
+    };
+    powerRarityConfig = config.rpg.gear_rarities[getNextRarity(item.rarity)] || rarityConfig;
+  }
+
+  const { resolveWearInfo, normalizeRandomWeaponPassive } = require("./rpgPassiveUtil");
+  const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
+
+  const qualityVal = typeof item.quality === "number" && Number.isFinite(item.quality) ? item.quality : 50;
+  const clampedQuality = Math.max(10, Math.min(105, Math.round(qualityVal * 10) / 10));
+  if (item.quality !== clampedQuality) {
+    item.quality = clampedQuality;
+    changed = true;
+  }
+
+  const wearInfo = resolveWearInfo(item.wear, clampedQuality);
+  if (!item.wear || item.wear.name !== wearInfo.name || item.wear.bonus !== wearInfo.bonus) {
+    item.wear = { id: wearInfo.id, name: wearInfo.name, bonus: wearInfo.bonus };
+    changed = true;
+  }
+
+  const levelBonus = 4;
+  const variance = 0.9 + 0.2 * ((Math.min(100, clampedQuality) - 10) / 90);
+  const correctedPower = Math.floor((powerRarityConfig.power + levelBonus) * variance);
+  if (item.power !== correctedPower) {
+    item.power = correctedPower;
+    changed = true;
+  }
+
+  const baseP = getWeaponPassive(subTypeRaw);
+  if (baseP) {
+    const fixedEmojis = getWeaponPassiveEmojis(subTypeRaw);
+    const desiredFixed = {
+      name: baseP.name,
+      type: baseP.type,
+      emoji: fixedEmojis,
+      description: baseP.description || "",
+    };
+    if (
+      !item.fixedPassive ||
+      item.fixedPassive.name !== desiredFixed.name ||
+      item.fixedPassive.type !== desiredFixed.type ||
+      item.fixedPassive.emoji !== desiredFixed.emoji
+    ) {
+      item.fixedPassive = desiredFixed;
+      changed = true;
+    }
+  } else if (item.fixedPassive !== null) {
+    item.fixedPassive = null;
+    changed = true;
+  }
+
+  const normalizedRand = normalizeRandomWeaponPassive(
+    item.randomPassive,
+    item.rarity || "Common",
+    clampedQuality,
+    item.wear,
+    options.forceRandomRoll ? null : item.id
+  );
+  if (
+    !item.randomPassive ||
+    item.randomPassive.type !== normalizedRand.type ||
+    item.randomPassive.value !== normalizedRand.value ||
+    item.randomPassive.emoji !== normalizedRand.emoji ||
+    item.randomPassive.description !== normalizedRand.description
+  ) {
+    item.randomPassive = normalizedRand;
+    changed = true;
+  }
+
+  return changed;
+};
+
 const getRpgItems = (user) => {
   const items = user.rpg?.items || [];
   const isBattleBot = Boolean(user?.isBattleBot || String(user?.userId || "").startsWith("bot_pvp_"));
@@ -70,32 +161,7 @@ const getRpgItems = (user) => {
       modified = true;
     }
     if (item.slot === "weapon" && !isBattleBot) {
-      // Force level = 1 to completely remove hidden level of weapons
-      if (item.level !== 1) {
-        item.level = 1;
-        modified = true;
-      }
-      
-      const rarityConfig = config.rpg.gear_rarities[item.rarity] || config.rpg.gear_rarities.Common;
-      const isDungeon = isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
-      let powerRarityConfig = rarityConfig;
-      if (isDungeon) {
-        const getNextRarity = (rar) => {
-          const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
-          const idx = rarities.indexOf(rar);
-          if (idx === -1) return rar;
-          return rarities[Math.min(rarities.length - 1, idx + 1)];
-        };
-        powerRarityConfig = config.rpg.gear_rarities[getNextRarity(item.rarity)] || rarityConfig;
-      }
-      
-      const levelBonus = 4; // level = 1, so levelBonus = 1 * 4.5 = 4
-      const qualityVal = typeof item.quality === "number" ? item.quality : 50;
-      const variance = 0.9 + 0.2 * ((qualityVal - 10) / 90);
-      const correctedPower = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-      
-      if (item.power !== correctedPower) {
-        item.power = correctedPower;
+      if (normalizeWeaponItem(item)) {
         modified = true;
       }
     }
@@ -636,7 +702,7 @@ const getWeaponScaling = (item) => {
 
   // Các vũ khí Boss / Sự kiện (không phải Gacha) — tối đa 2 chỉ số scaling
   if (weaponKey.includes("axesnake")) {
-    return { str: "S", dex: "-", int: "-", arc: "-" };
+    return { str: "S", dex: "A", int: "-", arc: "-" };
   }
   if (weaponKey.includes("clawhex")) {
     return { str: "S", dex: "S", int: "-", arc: "-" };
@@ -718,7 +784,9 @@ const getWeaponPower = (item, effectiveStats) => {
   const valPr = effectiveStats.pr || 0;
   const valMr = effectiveStats.mr || 0;
   
-  const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
+  const activeScaleCount = [multStr, multDex, multInt, multArc, multPr, multMr].filter((m) => m > 0).length;
+  const rawBonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
+  const bonusPercent = activeScaleCount >= 3 ? rawBonusPercent * 0.86 : rawBonusPercent;
   const isDungeon = isDungeonWeapon(item);
   const balance = config.rpg?.balance || {};
   const subTypeClean = String(item.subType || item.subtype || "").toLowerCase().replace(/\s+/g, "");
@@ -1495,11 +1563,25 @@ const generateRpgGearDrop = async (user, options = {}) => {
   }
 
   const levelBonus = Math.floor(level * 4.5);
-  const variance = 0.9 + Math.random() * 0.2;
-  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  if (!options.fromWc) {
-    quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  let variance = 0.9 + Math.random() * 0.2;
+  if (!wear) {
+    const wearRoll = Math.random() * 100;
+    if (wearRoll < 2.0) {
+      wear = { id: "pristine", name: "Pristine", bonus: 5 };
+    } else if (wearRoll < 10.0) {
+      wear = { id: "fine", name: "Fine", bonus: 3 };
+    } else if (wearRoll < 28.0) {
+      wear = { id: "decent", name: "Decent", bonus: 1 };
+    } else {
+      wear = { id: "worn", name: "Worn", bonus: 0 };
+    }
   }
+  if (!options.fromWc) {
+    const baseQ = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+    quality = Math.min(105, Math.round((baseQ + (wear.bonus || 0)) * 10) / 10);
+  }
+  variance = 0.9 + 0.2 * ((Math.min(100, quality) - 10) / 90);
+  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
   const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name);
   const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 
@@ -1509,17 +1591,18 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   if (slot === "weapon") {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
-    const { getWeaponPassive } = require("../data/rpg/weaponPassives");
+    const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
     const { rollRandomWeaponPassive } = require("./rpgPassiveUtil");
     const baseP = getWeaponPassive(chosenSubtype.name);
     if (baseP) {
       fixedPassive = {
         name: baseP.name,
         type: baseP.type,
-        description: baseP.description,
+        emoji: getWeaponPassiveEmojis(chosenSubtype.name),
+        description: baseP.description || "",
       };
     }
-    randomPassive = rollRandomWeaponPassive(rarity, quality);
+    randomPassive = rollRandomWeaponPassive(rarity, quality, wear);
   }
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
@@ -1822,6 +1905,7 @@ module.exports = {
   getClassAssetPath,
   getRpgXpNeeded,
   getRpgRank,
+  normalizeWeaponItem,
   getRpgItems,
   getEquippedItems,
   getEffectiveRpgStats,

@@ -420,6 +420,8 @@ class BattleEngine {
 
         // Resolve weapon passive for this attack
         const passivePlayer = {
+          name: attacker.name,
+          level: defender.level || attacker.level || 60,
           weapon: attacker.weapon,
           stats: attacker.effectiveStats,
           power: attacker.gearPower,
@@ -427,14 +429,18 @@ class BattleEngine {
           maxHp: attacker.maxHp,
           _clawhexHits: attacker._clawhexHits || 0,
           _holyswordHits: attacker.holySwordHits || 0,
+          _odinhammerHits: attacker.odinHammerHits || 0,
         };
         const baseArmor = (defender.effectiveStats.pr || 10) * 10 + defender.defensePower * 1.5;
         const baseMagicResist = (defender.effectiveStats.mr || 10) * 10 + defender.defensePower * 1.5;
         const passiveEnemy = {
+          hp: defender.hp,
+          maxHp: defender.maxHp,
           armor: baseArmor * (1 - (defender.effects.armorReduced || 0)),
-          magicResist: baseMagicResist,
+          magicResist: baseMagicResist * (1 - (defender.effects.mrReduced || 0)),
           name: defender.name,
           _armorReduced: defender.effects.armorReduced || 0,
+          _mrReduced: defender.effects.mrReduced || 0,
         };
         for (const field of STATUS_FIELDS) passiveEnemy[field] = defender[field] || 0;
         for (const field of STATUS_VALUE_FIELDS) passiveEnemy[field] = defender[field] || 0;
@@ -449,12 +455,26 @@ class BattleEngine {
         rawDamage = passiveResult.damage;
 
         defender.effects.armorReduced = passiveEnemy._armorReduced || defender.effects.armorReduced || 0;
+        defender.effects.mrReduced = passiveEnemy._mrReduced || defender.effects.mrReduced || 0;
+        if (passiveEnemy.atkDown) {
+          defender.effects.damageReduced = Math.max(
+            defender.effects.damageReduced || 0,
+            passiveEnemy.weakenPct || 0.16
+          );
+        }
+        if (passiveResult.selfDamageReduce > 0) {
+          defender.effects.damageReduced = Math.max(
+            defender.effects.damageReduced || 0,
+            passiveResult.selfDamageReduce
+          );
+        }
         for (const field of STATUS_FIELDS) defender[field] = passiveEnemy[field] || 0;
         for (const field of STATUS_VALUE_FIELDS) defender[field] = passiveEnemy[field] || 0;
 
         // Sync hit counters back
         if (passivePlayer._clawhexHits !== undefined) attacker._clawhexHits = passivePlayer._clawhexHits;
         if (passivePlayer._holyswordHits !== undefined) attacker.holySwordHits = passivePlayer._holyswordHits;
+        if (passivePlayer._odinhammerHits !== undefined) attacker.odinHammerHits = passivePlayer._odinhammerHits;
 
         // Apply next attack mult from passive
         if (passiveResult.nextAttackMult > 1.0) {
