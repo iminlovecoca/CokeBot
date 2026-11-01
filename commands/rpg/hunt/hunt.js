@@ -223,7 +223,7 @@ class HuntCommand extends BaseCommand {
           return `${bg.emoji} [${remaining}/${maxD}]`;
         })
         .join(" ");
-      lines.push(`🌱 **| ${characterName}**, chuyến đi săn được cường hóa bởi ${gemBadges} !`);
+      lines.push(`🌱 **| ${characterName}**, chuyến đi săn được cường hóa bởi ${gemBadges}!`);
     } else {
       lines.push(`🌱 **| ${characterName}** đi săn thú...`);
     }
@@ -278,7 +278,7 @@ class HuntCommand extends BaseCommand {
     if (brokenGems && brokenGems.length > 0) {
       for (const broken of brokenGems) {
         lines.push(
-          `${blank} **|** 💥 Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`,
+          `💥 **|** Viên ${broken.emoji} **${broken.nameVi || broken.name}** (\`#${broken.id}\`) của bạn đã cạn độ bền và vỡ vụn!`,
         );
       }
     }
