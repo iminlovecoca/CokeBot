@@ -188,7 +188,7 @@ class HuntCommand extends BaseCommand {
     user.rpg.lastHuntAt = new Date();
 
     const { updateQuestProgress } = require("../../../utils/questUtil");
-    await updateQuestProgress(user, "exp_gain", expGain, message.channel);
+    await updateQuestProgress(user, "exp_gain", expGain, message.channel, { save: false });
     const hasRareAnimal = caughtAnimals.some((a) => {
       const rName = a.rankName || a.tier || "Common";
       return rName === "Rare";
@@ -199,13 +199,13 @@ class HuntCommand extends BaseCommand {
       return rOrder >= (ZOO_RANKS.Epic?.order || 3);
     });
     if (hasRareAnimal || lbDropped) {
-      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Rare" });
+      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Rare", save: false });
     }
     if (hasEpicPlusAnimal || lbDropped) {
-      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Epic" });
+      await updateQuestProgress(user, "hunt_loot", 1, message.channel, { rarity: "Epic", save: false });
     }
     if (user.rpg.equippedPet) {
-      await updateQuestProgress(user, "pet_level", user.rpg.equippedPet.level || 1, message.channel);
+      await updateQuestProgress(user, "pet_level", user.rpg.equippedPet.level || 1, message.channel, { save: false });
     }
 
     const characterName = user.rpg.name || message.member?.displayName || message.author.username;
@@ -283,6 +283,8 @@ class HuntCommand extends BaseCommand {
       }
     }
 
+    user.markModified("huntGems");
+    user.markModified("rpg");
     await user.save();
     return message.reply({ content: lines.join("\n") });
   }

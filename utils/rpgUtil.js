@@ -1009,18 +1009,30 @@ const getEquippedPet = (user) => {
 
 const getEquippedPetBonuses = (user) => {
   const pet = getEquippedPet(user);
-  if (!pet) return { hpPct: 0, atkPct: 0, defPct: 0, baseHp: 0, baseAtk: 0, baseDef: 0, pet: null };
+  const { PET_TIERS, computePetStatEffects } = require("../data/pets");
+  if (!pet) {
+    const emptyFx = computePetStatEffects(null);
+    return {
+      ...emptyFx,
+      atkPct: 0,
+      defPct: 0,
+      baseHp: 0,
+      baseAtk: 0,
+      baseDef: 0,
+      pet: null,
+    };
+  }
   const lvl = pet.level || 1;
-  const { PET_TIERS } = require("../data/pets");
   const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
-  const baseHp = pet.stats?.baseHp || tierConfig.baseHp;
-  const baseAtk = pet.stats?.baseAtk || tierConfig.baseAtk;
-  const baseDef = pet.stats?.baseDef || tierConfig.baseDef;
+  const fx = computePetStatEffects(pet, lvl);
+  const baseHp = pet.stats?.baseHp || (tierConfig.baseHp + fx.points.hp * 6);
+  const baseAtk = pet.stats?.baseAtk || (tierConfig.baseAtk + Math.max(fx.points.att, fx.points.mag) * 2);
+  const baseDef = pet.stats?.baseDef || (tierConfig.baseDef + (fx.points.pr + fx.points.mr) * 2);
 
   return {
-    hpPct: lvl * 0.005,   // +0.5% per level
-    atkPct: lvl * 0.004,  // +0.4% per level
-    defPct: lvl * 0.0035, // +0.35% per level
+    ...fx,
+    atkPct: Number(Math.max(fx.patkPct, fx.matkPct).toFixed(4)),
+    defPct: Number((fx.physDmgReducePct + fx.dotReducePct * 0.5).toFixed(4)),
     baseHp,
     baseAtk,
     baseDef,
@@ -1057,18 +1069,20 @@ const addPetExp = (user, amount) => {
   return { leveledUp, level, pet };
 };
 
-// --- Pet combat (pet tham chiến: gây sát thương độc lập theo level + tier) ---
+// --- Pet combat (pet tham chiến: gây sát thương + hồi phục + nạp nộ theo 6 chỉ số) ---
 const DEFAULT_PET_TIER_ATK_MULT = {
   Common: 1.0,
   Rare: 1.6,
   Epic: 2.5,
+  Generation: 3.2,
   Legendary: 4.0,
   Mythic: 6.5,
   Ancient: 10.0,
   Divine: 16.0,
+  Secret: 20.0,
 };
 
-// Heuristic: pet cowsaát thương theo baseAtk/level/tier. PvP dùng hệ số nhỏ hơn
+// Heuristic: pet gây sát thương theo 6 chỉ số (ATT/MAG) + level + tier. PvP dùng hệ số nhỏ hơn
 // vì HP người chơi thấp hơn nhiều so với boss dungeon.
 const PET_MODE_SCALE = {
   dungeon: 1.0,
@@ -1078,16 +1092,25 @@ const PET_MODE_SCALE = {
 
 const getPetCombatStats = (pet) => {
   if (!pet) return null;
-  const { PET_TIERS } = require("../data/pets");
+  const { PET_TIERS, computePetStatEffects } = require("../data/pets");
   const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
-  const baseAtk = pet.stats?.baseAtk || pet.baseAtk || tierConfig.baseAtk;
-  const baseDef = pet.stats?.baseDef || pet.baseDef || tierConfig.baseDef;
   const level = pet.level || 1;
-  return { tier: pet.tier, level, baseAtk, baseDef };
+  const fx = computePetStatEffects(pet, level);
+  const baseAtk = pet.stats?.baseAtk || pet.baseAtk || (tierConfig.baseAtk + Math.max(fx.points.att, fx.points.mag) * 2);
+  const baseDef = pet.stats?.baseDef || pet.baseDef || (tierConfig.baseDef + (fx.points.pr + fx.points.mr) * 2);
+  return {
+    tier: pet.tier,
+    level,
+    baseAtk,
+    baseDef,
+    points: fx.points,
+    scaled: fx.scaled,
+    effects: fx,
+  };
 };
 
-// Sát thương pet (độc lập) cho 1 đòn, theo mode.
-const petAttackDamage = (pet, mode = "dungeon") => {
+// Sát thương pet (độc lập) cho 1 đòn, theo mode và chỉ số ATT/MAG của pet.
+const petAttackDamage = (pet, mode = "dungeon", targetDefense = null) => {
   const cs = getPetCombatStats(pet);
   if (!cs) return 0;
   const configuredPetMultipliers = config.rpg?.balance?.pet_tier_attack_multiplier || {};
@@ -1096,18 +1119,108 @@ const petAttackDamage = (pet, mode = "dungeon") => {
     ? Math.max(0, atkMult)
     : (DEFAULT_PET_TIER_ATK_MULT[cs.tier] || DEFAULT_PET_TIER_ATK_MULT.Common);
   const modeScale = PET_MODE_SCALE[mode] ?? 1.0;
-  // (baseAtk + level*2) * tierMult * modeScale
-  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2) * safeAtkMult * modeScale));
+
+  const { att = 3, mag = 3 } = cs.points || {};
+  const primaryStat = Math.max(att, mag);
+  const secondaryStat = Math.min(att, mag);
+  const statOffenseBonus = primaryStat * (1.8 + cs.level * 0.16) + secondaryStat * 0.5;
+
+  let rawDmg = (cs.baseAtk + cs.level * 2 + statOffenseBonus) * safeAtkMult * modeScale;
+
+  if (targetDefense && typeof targetDefense === "object") {
+    const isMagicPet = mag > att;
+    const defVal = isMagicPet
+      ? Number(targetDefense.magicResist || 0)
+      : Number(targetDefense.armor || 0);
+    const defLvl = Number(targetDefense.level || 1);
+    if (defVal > 0) {
+      const mitigation = Math.min(0.75, defVal / (defVal + 240 + defLvl * 3));
+      rawDmg *= 1 - mitigation;
+    }
+  }
+
+  return Math.max(1, Math.floor(rawDmg));
 };
 
-const getPetAttackLog = (pet, mode = "dungeon", damage) => {
+const getPetAttackLog = (pet, mode = "dungeon", damage, extraInfo = null) => {
   if (!pet) return "";
   const emoji = pet.emoji || "🐾";
   const name = pet.nickname || pet.name || "Thú cưng";
   const dmg = damage !== undefined ? damage : petAttackDamage(pet, mode);
   const dmgStr = dmg.toLocaleString();
-  if (mode === "pvp") return `${emoji} **[${name}]** lao vào tấn công! Gây **${dmgStr}** sát thương.`;
-  return `${emoji} **[${name}]** tấn công! Gây **${dmgStr}** sát thương.`;
+  const cs = getPetCombatStats(pet);
+  const isMagic = (cs?.points?.mag || 0) > (cs?.points?.att || 0);
+  const dmgTypeLabel = isMagic ? "sát thương phép" : "sát thương vật lý";
+
+  const extraParts = [];
+  if (extraInfo?.healAmount > 0) {
+    extraParts.push(`hồi **+${extraInfo.healAmount.toLocaleString()} HP**`);
+  }
+  if (extraInfo?.rageGained > 0) {
+    extraParts.push(`nạp **+${extraInfo.rageGained} ${extraInfo.resourceLabel || "Nộ"}**`);
+  }
+  const suffix = extraParts.length > 0 ? ` *(Hỗ trợ chủ nhân: ${extraParts.join(", ")})*` : "";
+
+  if (mode === "pvp") {
+    return `${emoji} **[${name}]** lao vào tấn công gây **${dmgStr}** ${dmgTypeLabel}!${suffix}`;
+  }
+  return `${emoji} **[${name}]** tấn công gây **${dmgStr}** ${dmgTypeLabel}!${suffix}`;
+};
+
+/**
+ * Resolves the pet's full turn action (Attack + HP Regen from HP/WP + Rage/MP gain from WP).
+ */
+const resolvePetTurnAction = (pet, owner, target = null, mode = "pvp") => {
+  if (!pet) return { damage: 0, healAmount: 0, rageGained: 0, log: "" };
+  const cs = getPetCombatStats(pet);
+  const fx = cs?.effects;
+  const damage = petAttackDamage(pet, mode, target);
+
+  let healAmount = 0;
+  if (owner && owner.hp > 0 && owner.maxHp > 0 && owner.hp < owner.maxHp && fx?.regenHpPct > 0) {
+    const rawHeal = Math.max(1, Math.floor(owner.maxHp * fx.regenHpPct));
+    const healBanPenalty = (owner.healBanRounds || 0) > 0 ? 0.30 : 0;
+    const healReduced = Math.min(
+      0.55,
+      Math.max(healBanPenalty, Number(owner.effects?.healReduced || 0))
+    );
+    healAmount = Math.max(0, Math.floor(rawHeal * (1 - healReduced)));
+    if (healAmount > 0) {
+      const missing = Math.max(0, owner.maxHp - owner.hp);
+      healAmount = Math.min(missing, healAmount);
+      owner.hp = Math.min(owner.maxHp, owner.hp + healAmount);
+    }
+  }
+
+  let rageGained = 0;
+  let resourceLabel = "Nộ";
+  if (owner && owner.hp > 0 && fx?.ragePerTurn > 0) {
+    if (mode === "dungeon" && owner.classKey === "mage" && typeof owner.mana === "number") {
+      const before = owner.mana;
+      owner.mana = Math.min(100, owner.mana + fx.ragePerTurn);
+      rageGained = Math.max(0, owner.mana - before);
+      resourceLabel = "MP";
+    } else if (typeof owner.rage === "number") {
+      const before = owner.rage;
+      owner.rage = Math.min(100, owner.rage + fx.ragePerTurn);
+      rageGained = Math.max(0, owner.rage - before);
+      resourceLabel = "Nộ";
+    }
+  }
+
+  const log = getPetAttackLog(pet, mode, damage, {
+    healAmount,
+    rageGained,
+    resourceLabel,
+  });
+
+  return {
+    damage,
+    healAmount,
+    rageGained,
+    attackType: fx?.attackType || "physical",
+    log,
+  };
 };
 
 const getEffectiveRpgStats = (user) => {
@@ -1134,6 +1247,12 @@ const getEffectiveRpgStats = (user) => {
         stats[targetStat] = (stats[targetStat] || 0) + value;
       }
     }
+  }
+
+  const petBonuses = getEquippedPetBonuses(user);
+  if (petBonuses?.pet) {
+    stats.pr = (stats.pr || 0) + (petBonuses.bonusPr || 0);
+    stats.mr = (stats.mr || 0) + (petBonuses.bonusMr || 0);
   }
 
   const isBot = Boolean(user?.isBattleBot || user?.userId?.startsWith?.("bot_pvp_"));
@@ -1900,6 +2019,7 @@ module.exports = {
   getPetCombatStats,
   petAttackDamage,
   getPetAttackLog,
+  resolvePetTurnAction,
   classEntries,
   getRpgClass,
   getClassAssetPath,

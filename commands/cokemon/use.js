@@ -55,13 +55,13 @@ class UseCommand extends BaseCommand {
       for (const res of results) {
         if (res.success) {
           lines.push(
-            `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}**!`,
+            `${res.gem.emoji} **| ${displayName}**, bạn đã kích hoạt một viên **${res.gem.nameVi || res.gem.name}** (\`#${res.gem.id}\`)!`,
           );
           lines.push(`${config.emoji.blank} **|** ${getGemActivationDescription(res.gem)}`);
         } else if (res.code === "ALREADY_ACTIVE") {
-          lines.push(`⚠️ **| ${displayName}**, bạn đã gắn loại ngọc này rồi!`);
+          lines.push(`⚠️ **| ${displayName}**, ${res.error || "bạn đã gắn loại ngọc này rồi!"}`);
         } else if (res.code === "NOT_OWNED") {
-          lines.push(`❌ **| ${displayName}**, bạn không có viên ngọc này trong túi đồ!`);
+          lines.push(`❌ **| ${displayName}**, bạn không có viên ${res.gem ? `${res.gem.emoji} **${res.gem.nameVi}** (\`#${res.gem.id}\`)` : "ngọc này"} trong túi đồ!`);
         } else if (res.code === "EVENT_INACTIVE") {
           lines.push(`⏳ **| ${displayName}**, ${res.error}`);
         } else {

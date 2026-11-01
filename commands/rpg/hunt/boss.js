@@ -33,6 +33,7 @@ const {
   getGearDisplayName,
   getEquippedItems,
   getEquippedPet,
+  getEquippedPetBonuses,
   petAttackDamage,
   getWeaponPower,
   dungeonKeys,
@@ -899,7 +900,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     koUntil: 0,
   };
   const effectiveStats = getEffectiveRpgStats(user);
-  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const petBonuses = getEquippedPetBonuses(user);
+  const baseMaxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const maxHp = Math.floor(baseMaxHp * (1 + (petBonuses?.hpPct || 0)));
   if (participant.hp === null) {
     participant.hp = maxHp;
   }
@@ -1019,6 +1022,8 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
   const gearPower = user.rpg?.power || 0;
   let rawDamage = baseAttack + gearPower;
+  const petBossAtkBonus = isMagical ? (petBonuses?.matkPct || 0) : (petBonuses?.patkPct || 0);
+  if (petBossAtkBonus > 0) rawDamage *= 1 + petBossAtkBonus;
   if (clawhexTriggered) {
     rawDamage *= 1.15;
   }
@@ -1161,7 +1166,19 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         const { absorbPct } = getWorldBossShieldhexConfig();
         bossDamage = Math.floor(bossDamage * (1 - absorbPct));
       }
+      if (activeBoss.boss.damageType === "magical" && (petBonuses?.dotReducePct || 0) > 0) {
+        bossDamage = Math.max(5, Math.floor(bossDamage * (1 - Math.min(0.10, petBonuses.dotReducePct * 0.45))));
+      } else if (activeBoss.boss.damageType !== "magical" && (petBonuses?.physDmgReducePct || 0) > 0) {
+        bossDamage = Math.max(5, Math.floor(bossDamage * (1 - petBonuses.physDmgReducePct)));
+      }
       participant.hp = Math.max(0, participant.hp - bossDamage);
+      if (participant.hp > 0 && participant.hp < maxHp && (petBonuses?.regenHpPct || 0) > 0) {
+        const petHeal = Math.min(maxHp - participant.hp, Math.max(1, Math.floor(maxHp * petBonuses.regenHpPct)));
+        if (petHeal > 0) {
+          participant.hp = Math.min(maxHp, participant.hp + petHeal);
+          passiveTriggers.push(`${petBonuses.pet?.emoji || "🐾"} **[${petBonuses.pet?.name || "Linh Thú"}]** Hồi phục **+${petHeal.toLocaleString()} HP** cho chủ nhân.`);
+        }
+      }
       if (shieldhexTriggered && bossDamage > 0) {
         const { reflectPct } = getWorldBossShieldhexConfig();
         shieldhexReflectDamage = Math.floor(bossDamage * reflectPct);
@@ -1522,7 +1539,9 @@ const handleReviveInteraction = async (interaction) => {
   user.coke -= reviveCost;
   participant.revives = revivesUsed + 1;
   const effectiveStats = getEffectiveRpgStats(user);
-  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const petBonuses = getEquippedPetBonuses(user);
+  const baseMaxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const maxHp = Math.floor(baseMaxHp * (1 + (petBonuses?.hpPct || 0)));
   participant.hp = maxHp;
   participant.koUntil = 0;
   activeBoss.participants.set(interaction.user.id, participant);
@@ -1739,7 +1758,9 @@ const startSoulRealmBattle = async (client, channel, userId) => {
   const { user, rpgClass } = await requireRpgCharacter(userId);
   const effectiveStats = getEffectiveRpgStats(user);
   const classKey = user.rpg.classKey;
-  const maxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const petBonuses = getEquippedPetBonuses(user);
+  const baseMaxHp = 150 + effectiveStats.vigor * 20 + user.rpg.level * 20;
+  const maxHp = Math.floor(baseMaxHp * (1 + (petBonuses?.hpPct || 0)));
   const playerState = {
     id: userId,
     name: user.rpg.nickname || rpgClass.name,

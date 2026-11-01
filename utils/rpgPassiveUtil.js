@@ -79,10 +79,32 @@ const getActiveStatusString = (target) => {
   return parts.length > 0 ? parts.join(" ") : "";
 };
 
+const DEBUFF_TYPES = new Set([
+  "poison",
+  "bleed",
+  "burn",
+  "freeze",
+  "frostbite",
+  "stun",
+  "break",
+  "heal_ban",
+  "atkdown",
+]);
+
 const applyStatusEffect = (target, effectType, rounds, options = {}) => {
-  if (!target) return;
+  if (!target) return false;
   const maxHp = Number(target.maxHp) || 0;
   const isBoss = Boolean(target.isBoss);
+
+  // Pet MR / WP Status Effect Resistance check
+  if (DEBUFF_TYPES.has(effectType) && Number(target.statusResistPct) > 0 && !options.ignoreResist) {
+    const resistChance = Math.min(0.30, Number(target.statusResistPct) || 0);
+    if (Math.random() < resistChance) {
+      target._lastResistedEffect = effectType;
+      return false;
+    }
+  }
+
   const clampDotDmg = (dmg) => {
     const raw = Math.max(1, Math.floor(Number(dmg) || 0));
     if (maxHp > 0) {
@@ -139,6 +161,7 @@ const applyStatusEffect = (target, effectType, rounds, options = {}) => {
       }
       break;
   }
+  return true;
 };
 
 const tickStatusEffects = (target, activeDungeon) => {
@@ -184,23 +207,24 @@ const tickStatusEffects = (target, activeDungeon) => {
     ? Math.max(40, Math.floor(maxHp * (isBoss ? 0.040 : 0.120)))
     : Infinity;
 
+  const dotReduceFactor = 1 - Math.min(0.25, Math.max(0, Number(target.dotReducePct) || 0));
   let totalDotDmg = 0;
   if (target.poisonRounds && target.poisonRounds > 0) {
-    const rawDmg = target.poisonDamage || Math.floor(maxHp * 0.04);
+    const rawDmg = (target.poisonDamage || Math.floor(maxHp * 0.04)) * dotReduceFactor;
     const dmg = Math.min(singleTickCap, Math.max(1, Math.floor(rawDmg)));
     target.poisonRounds -= 1;
     totalDotDmg += dmg;
     logs.push(`${EMOJIS.poisonous} **${target.name}** mất **${dmg.toLocaleString()}** HP do Độc (Còn ${target.poisonRounds} lượt).`);
   }
   if (target.bleedRounds && target.bleedRounds > 0) {
-    const rawDmg = target.bleedDamage || Math.floor(maxHp * 0.045);
+    const rawDmg = (target.bleedDamage || Math.floor(maxHp * 0.045)) * dotReduceFactor;
     const dmg = Math.min(singleTickCap, Math.max(1, Math.floor(rawDmg)));
     target.bleedRounds -= 1;
     totalDotDmg += dmg;
     logs.push(`${EMOJIS.bleed} **${target.name}** mất **${dmg.toLocaleString()}** HP do Chảy Máu (Còn ${target.bleedRounds} lượt).`);
   }
   if (target.burnRounds && target.burnRounds > 0) {
-    let rawDmg = target.burnDamage || Math.floor(maxHp * 0.04);
+    let rawDmg = (target.burnDamage || Math.floor(maxHp * 0.04)) * dotReduceFactor;
     if (target.freezeRounds && target.freezeRounds > 0) rawDmg = Math.floor(rawDmg * 1.35);
     const dmg = Math.min(singleTickCap, Math.max(1, Math.floor(rawDmg)));
     target.burnRounds -= 1;
@@ -208,7 +232,7 @@ const tickStatusEffects = (target, activeDungeon) => {
     logs.push(`${EMOJIS.burn} **${target.name}** mất **${dmg.toLocaleString()}** HP do Thiêu Đốt (Còn ${target.burnRounds} lượt).`);
   }
   if (target.frostbiteRounds && target.frostbiteRounds > 0) {
-    const rawDmg = target.frostbiteDamage || Math.floor(maxHp * 0.04);
+    const rawDmg = (target.frostbiteDamage || Math.floor(maxHp * 0.04)) * dotReduceFactor;
     const dmg = Math.min(singleTickCap, Math.max(1, Math.floor(rawDmg)));
     target.frostbiteRounds -= 1;
     totalDotDmg += dmg;

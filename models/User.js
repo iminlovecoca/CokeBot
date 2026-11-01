@@ -40,12 +40,12 @@ const userSchema = new mongoose.Schema({
   zoo: { type: Object, default: {} },
   huntGems: {
     type: Object,
-    default: {
+    default: () => ({
       hunting: null,
       empowering: null,
       lucky: null,
       special: null,
-    },
+    }),
   },
   zooPoints: { type: Number, default: 0 },
   huntStones: {

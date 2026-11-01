@@ -277,7 +277,7 @@ const updateQuestProgress = async (userIdOrUser, type, amount, channel, extraDat
     if (user.inventory) user.markModified("inventory");
   }
 
-  if (modified || resetChanged) {
+  if ((modified || resetChanged) && extraData.save !== false) {
     await user.save();
   }
 };

@@ -4,8 +4,10 @@ const {
   getEquippedItems,
   getRpgClass,
   getWeaponSetBonus,
+  getEquippedPetBonuses,
   petAttackDamage,
   getPetAttackLog,
+  resolvePetTurnAction,
   calculateRpgPower,
 } = require("../../utils/rpgUtil");
 const config = require("../../data/config");
@@ -100,12 +102,11 @@ class BattleEngine {
         maxHp += Math.floor(baseHp * setBonus.bonus.maxHp);
       }
 
-      // Pet bonuses
-      const pet = user.rpg.equippedPet;
+      // Pet bonuses (all 6 stats realized)
+      const petBonuses = getEquippedPetBonuses(user);
+      const pet = petBonuses.pet || user.rpg.equippedPet || null;
       if (pet) {
-        const petLvl = pet.level || 1;
-        const hpBonusPct = petLvl * 0.005;
-        maxHp += Math.floor(baseHp * hpBonusPct);
+        maxHp += Math.floor(baseHp * (petBonuses.hpPct || 0));
       }
 
       const classKey = (user.rpg.classKey || "warrior").toLowerCase();
@@ -137,6 +138,9 @@ class BattleEngine {
         equipped,
         weapon,
         pet,
+        petBonuses,
+        statusResistPct: petBonuses.statusResistPct || 0,
+        dotReducePct: petBonuses.dotReducePct || 0,
         gearPower,
         defensePower,
         setBonus,
@@ -207,7 +211,7 @@ class BattleEngine {
         maxHp += Math.floor(baseHp * botC.setBonus.bonus.maxHp);
       }
       if (botC.pet) {
-        maxHp += Math.floor(baseHp * ((botC.pet.level || 1) * 0.005));
+        maxHp += Math.floor(baseHp * (botC.petBonuses?.hpPct || (botC.pet.level || 1) * 0.005));
       }
       botC.maxHp = Math.floor(maxHp);
       botC.hp = Math.floor(maxHp);
@@ -414,8 +418,15 @@ class BattleEngine {
           : (attacker.effectiveStats.str || 10) * 12 + (attacker.effectiveStats.dex || 10) * 6 + attacker.gearPower * 2.5 + attacker.level * 5;
 
         let rawDamage = baseAtk;
+        // Pet ATT / MAG / Skill Damage Bonuses
+        const petAtkBonus = isMagical
+          ? (attacker.petBonuses?.matkPct || 0)
+          : (attacker.petBonuses?.patkPct || 0);
+        if (petAtkBonus > 0) rawDamage *= 1 + petAtkBonus;
         rawDamage *= 0.88 + Math.random() * 0.24;
-        if (isCastingSkill) rawDamage *= skillMult;
+        if (isCastingSkill) {
+          rawDamage *= skillMult * (1 + (attacker.petBonuses?.skillDmgPct || 0));
+        }
         if (isCrit) rawDamage *= critMult;
 
         // Resolve weapon passive for this attack
@@ -439,6 +450,8 @@ class BattleEngine {
           armor: baseArmor * (1 - (defender.effects.armorReduced || 0)),
           magicResist: baseMagicResist * (1 - (defender.effects.mrReduced || 0)),
           name: defender.name,
+          statusResistPct: defender.statusResistPct || 0,
+          dotReducePct: defender.dotReducePct || 0,
           _armorReduced: defender.effects.armorReduced || 0,
           _mrReduced: defender.effects.mrReduced || 0,
         };
@@ -502,6 +515,11 @@ class BattleEngine {
             if (logMsg) logs.push(logMsg);
           }
         }
+        if (passiveEnemy._lastResistedEffect) {
+          const petIcon = defender.pet?.emoji || "🛡️";
+          logs.push(`${petIcon} **[Kháng Hiệu Ứng]** Linh thú của **${defender.name}** hóa giải hiệu ứng bất lợi (**${passiveEnemy._lastResistedEffect.toUpperCase()}**)!`);
+          delete passiveEnemy._lastResistedEffect;
+        }
 
         // Defense Mitigation Calculation
         let defenderMitigation = 0;
@@ -535,6 +553,12 @@ class BattleEngine {
 
         let finalMult = (1 - defenderMitigation) * counterMult;
         finalMult *= 1 - (defender.pvpDefense || 0);
+        // Pet PR / MR damage reduction
+        if (!isMagical && (defender.petBonuses?.physDmgReducePct || 0) > 0) {
+          finalMult *= 1 - defender.petBonuses.physDmgReducePct;
+        } else if (isMagical && (defender.petBonuses?.dotReducePct || 0) > 0) {
+          finalMult *= 1 - Math.min(0.10, defender.petBonuses.dotReducePct * 0.45);
+        }
         if (poisonMult > 1.0) finalMult *= poisonMult;
         if (attacker.setBonus?.bonus?.pvpDamage) finalMult *= 1 + attacker.setBonus.bonus.pvpDamage;
 
@@ -592,16 +616,23 @@ class BattleEngine {
         attacker.rage = Math.min(100, attacker.rage + 35);
       }
 
-      saveState(turn);
-
-      // Pet tham chiến: pet của attacker tấn công defender mỗi lượt
+      // Pet tham chiến: gây sát thương (ATT/MAG) + hồi máu chủ nhân (HP/WP) + nạp Nộ (WP)
       if (attacker.pet && defender.hp > 0) {
-        const petDmg = petAttackDamage(attacker.pet, "pvp");
-        if (petDmg > 0) {
-          defender.hp = Math.max(0, defender.hp - petDmg);
-          logs.push(getPetAttackLog(attacker.pet, "pvp", petDmg));
+        const defenderArmor = (defender.effectiveStats.pr || 10) * 10 + defender.defensePower * 1.5;
+        const defenderMr = (defender.effectiveStats.mr || 10) * 10 + defender.defensePower * 1.5;
+        const petTurn = resolvePetTurnAction(
+          attacker.pet,
+          attacker,
+          { armor: defenderArmor, magicResist: defenderMr, level: defender.level || 1 },
+          "pvp"
+        );
+        if (petTurn.damage > 0) {
+          defender.hp = Math.max(0, defender.hp - petTurn.damage);
+          logs.push(petTurn.log);
         }
       }
+
+      saveState(turn);
 
       if (defender.hp <= 0) {
         break;
