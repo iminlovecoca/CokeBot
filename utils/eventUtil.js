@@ -176,8 +176,8 @@ function rollEventDrop(user) {
         type: "cookie",
         amount: 1,
         displayName: "Bánh Danisa",
-        quantityText: "một cái",
-        formattedReward: `một hộp **Bánh Danisa** ${cookieEmoji}`,
+        quantityText: "1 hộp",
+        formattedReward: `1 hộp **Bánh Danisa** ${cookieEmoji}`,
         emoji: cookieEmoji,
       };
       break;
@@ -205,8 +205,8 @@ function rollEventDrop(user) {
         gemId: gem.id,
         gemTier: gem.tier,
         displayName: `${gem.nameVi} (\`#${gem.id}\`)`,
-        quantityText: "viên",
-        formattedReward: `viên ${gem.emoji} **${gem.nameVi}** (\`#${gem.id}\`)`,
+        quantityText: "1 viên",
+        formattedReward: `1 viên ${gem.emoji} **${gem.nameVi}** (\`#${gem.id}\`)`,
         emoji: gem.emoji,
       };
       break;
@@ -221,8 +221,8 @@ function rollEventDrop(user) {
         type: "lootbox",
         amount: count,
         displayName: "Hộp Quà (Lootbox)",
-        quantityText: count > 1 ? `**${count}**` : "một",
-        formattedReward: count > 1 ? `**${count} Hộp Quà (Lootbox)** ${lbEmoji}` : `một **Hộp Quà (Lootbox)** ${lbEmoji}`,
+        quantityText: `${count}`,
+        formattedReward: count > 1 ? `**${count} Hộp Quà (Lootbox)** ${lbEmoji}` : `1 **Hộp Quà (Lootbox)** ${lbEmoji}`,
         emoji: lbEmoji,
       };
       break;
@@ -237,8 +237,8 @@ function rollEventDrop(user) {
         type: "wc",
         amount: count,
         displayName: "Hộp Vũ Khí (Weapon Crate)",
-        quantityText: count > 1 ? `**${count}**` : "một",
-        formattedReward: count > 1 ? `**${count} Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}` : `một **Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}`,
+        quantityText: `${count}`,
+        formattedReward: count > 1 ? `**${count} Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}` : `1 **Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}`,
         emoji: crateEmoji,
       };
       break;
@@ -251,8 +251,8 @@ function rollEventDrop(user) {
         type: "dungeonkey",
         amount: 1,
         displayName: "Chìa khóa Phó bản",
-        quantityText: "một",
-        formattedReward: `một **Chìa khóa Phó bản** ${keyEmoji}`,
+        quantityText: "1",
+        formattedReward: `1 **Chìa khóa Phó bản** ${keyEmoji}`,
         emoji: keyEmoji,
       };
       break;
