@@ -146,30 +146,38 @@ async function syncNoituData() {
   ensureFile(wordPlayedPath, "0");
   ensureFile(roundPlayedPath, "0");
 
-  console.log("[Noitu Sync] Downloading base words from GitHub...");
+  console.log("[Noitu Sync] Synchronizing base words with GitHub...");
+  let existingLocal = [];
+  if (fs.existsSync(wordDatabasePath)) {
+    existingLocal = fs
+      .readFileSync(wordDatabasePath, "utf8")
+      .split(/\r?\n/)
+      .map(normalizeWord)
+      .filter(Boolean);
+  }
+
+  let remoteBase = [];
   try {
     const response = await fetchWithRetry(`${wordDataUrl}?t=${Date.now()}`);
-    const baseLines = response.data.toLowerCase().trim().split(/\r?\n/);
-    fs.writeFileSync(wordDatabasePath, baseLines.join("\n"));
-    console.log(
-      `[Noitu Sync] Saved ${baseLines.length} base words to words.txt`,
-    );
+    remoteBase = response.data
+      .toLowerCase()
+      .trim()
+      .split(/\r?\n/)
+      .map(normalizeWord)
+      .filter(Boolean);
   } catch (error) {
     console.warn(
       "[Noitu Sync] Base word download failed, using local fallback:",
       error.message,
     );
-    if (fs.existsSync(gwDataPath)) {
-      const localWords = JSON.parse(fs.readFileSync(gwDataPath, "utf8"));
-      fs.writeFileSync(wordDatabasePath, localWords.join("\n"));
-    } else if (fs.existsSync(officialWordsPath)) {
-      fs.writeFileSync(
-        wordDatabasePath,
-        fs.readFileSync(officialWordsPath, "utf8"),
-      );
-    } else {
-      console.error("[Noitu Sync] Critical: No local words database fallback exists!");
-    }
+  }
+
+  const mergedAllBase = Array.from(new Set([...existingLocal, ...remoteBase]));
+  if (mergedAllBase.length > 0) {
+    fs.writeFileSync(wordDatabasePath, mergedAllBase.join("\n") + "\n");
+    console.log(
+      `[Noitu Sync] Preserved & merged ${mergedAllBase.length} base words in words.txt`,
+    );
   }
 
   console.log("[Noitu Sync] Downloading contribute words from GitHub...");

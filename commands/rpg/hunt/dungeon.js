@@ -437,6 +437,7 @@ const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false 
         power: gearPower,
         weapon: weapon,
         setBonus: setBonus,
+        classSetBonus: getClassSuffixSetBonus(user),
         petBonuses: petBonuses,
         statusResistPct: petBonuses?.statusResistPct || 0,
         dotReducePct: petBonuses?.dotReducePct || 0,

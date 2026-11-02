@@ -1018,6 +1018,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   }
   const isMagical = CLASS_ATTACK_TYPES[user.rpg.classKey] === "magical";
   const setBonus = getWeaponSetBonus(user);
+  const classSetBonus = getClassSuffixSetBonus(user);
   const baseAttack = isMagical
     ? (effectiveStats.int * 3.5 + effectiveStats.arc * 1.5)
     : (effectiveStats.str * 2.5 + effectiveStats.dex * 1.5);
@@ -1081,10 +1082,20 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   if (poisonMult > 1.0) {
     finalMult *= poisonMult;
   }
+  if (classSetBonus?.active) {
+    if (classSetBonus.suffix === "knight" && !isMagical) {
+      finalMult *= 1 + classSetBonus.multiplier;
+    } else if (classSetBonus.suffix === "mage" && isMagical) {
+      finalMult *= 1 + classSetBonus.multiplier;
+    }
+  }
   let damage = Math.max(
     10,
     Math.floor(rawDamage * (1 - mitigation) * finalMult),
   );
+  if (classSetBonus?.active && classSetBonus.suffix === "archer") {
+    damage += Math.max(1, Math.floor(rawDamage * classSetBonus.multiplier));
+  }
   if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
     damage = Math.max(10, Math.floor(damage * 0.85));
   }
@@ -1489,6 +1500,11 @@ const handleFightInteraction = async (interaction) => {
         await safeInteractionFollowUp(interaction, {
           content: result.content,
           components: result.components || [],
+          flags: 64,
+        });
+      } else if (result.embeds && result.embeds.length > 0) {
+        await safeInteractionFollowUp(interaction, {
+          embeds: result.embeds,
           flags: 64,
         });
       }

@@ -145,6 +145,7 @@ class BattleEngine {
         gearPower,
         defensePower,
         setBonus,
+        classSetBonus: getClassSuffixSetBonus(user),
         maxHp: Math.floor(maxHp),
         hp: Math.floor(maxHp),
         rage: 0,
