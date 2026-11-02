@@ -30,10 +30,26 @@ function getPm2Command() {
     }
   }
 
-  // 2. Check NVM versions directory
-  const home = process.env.HOME || (process.env.HOMEDRIVE && process.env.HOMEPATH ? `${process.env.HOMEDRIVE}${process.env.HOMEPATH}` : null);
-  if (home) {
-    const nvmDir = path.join(home, '.nvm', 'versions', 'node');
+  // 2. Check NVM versions directory for current user, root, and any /home/* user
+  const homes = [
+    process.env.HOME,
+    '/root',
+    '/home/ubuntu',
+    '/home/node',
+    process.env.HOMEDRIVE && process.env.HOMEPATH ? `${process.env.HOMEDRIVE}${process.env.HOMEPATH}` : null
+  ].filter(Boolean);
+
+  try {
+    if (fs.existsSync('/home')) {
+      const users = fs.readdirSync('/home');
+      for (const u of users) {
+        homes.push(path.join('/home', u));
+      }
+    }
+  } catch {}
+
+  for (const h of homes) {
+    const nvmDir = path.join(h, '.nvm', 'versions', 'node');
     if (fs.existsSync(nvmDir)) {
       try {
         const versions = fs.readdirSync(nvmDir);
@@ -46,7 +62,7 @@ function getPm2Command() {
       } catch {}
     }
 
-    const npmGlobal = path.join(home, '.npm-global', 'bin', 'pm2');
+    const npmGlobal = path.join(h, '.npm-global', 'bin', 'pm2');
     if (fs.existsSync(npmGlobal)) {
       return `"${npmGlobal}"`;
     }
@@ -105,7 +121,11 @@ class Pm2RestartCommand extends BaseCommand {
 
     const sentMessage = await message.reply(`⏳ Đang khởi động lại ứng dụng **${appName}** bằng PM2...`).catch(() => null);
 
-    exec(`${pm2Bin} restart ${appName}`, { env }, (error, stdout, stderr) => {
+    const runCmd = process.platform === 'win32'
+      ? `${pm2Bin} restart ${appName}`
+      : `bash -l -c '${pm2Bin} restart ${appName} || npx --yes pm2 restart ${appName}'`;
+
+    exec(runCmd, { env }, (error, stdout, stderr) => {
       let output = '';
       if (error) {
         output += `❌ **Lỗi:**\n\`\`\`bash\n${error.message}\n\`\`\``;
