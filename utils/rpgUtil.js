@@ -361,29 +361,39 @@ const subTypes = {
     { name: "Dagger", emoji: "<:dagger:1514231934191009853>" }
   ],
   armor: [
-    { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
     { name: "Heavy Armor", emoji: "<:heavyarmor:1514232237724401716>" },
-    { name: "Mage Robe", emoji: "<:magerobe:1514232240052375712>" }
+    { name: "Mage Robe", emoji: "<:magerobe:1514232240052375712>" },
+    { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
+    { name: "Archer Armor", emoji: "🏹" },
+    { name: "Paladin Armor", emoji: "🛡️" }
   ],
   helmet: [
     { name: "Warrior Helmet", emoji: "<:warriorhelmet:1514232262793629836>" },
+    { name: "Wizard Hat", emoji: "<:wizardhat:1514232268246482985>" },
     { name: "Assassin Hood", emoji: "<:assassinhood:1514232265247559802>" },
-    { name: "Wizard Hat", emoji: "<:wizardhat:1514232268246482985>" }
+    { name: "Archer Hood", emoji: "🏹" },
+    { name: "Paladin Helm", emoji: "🛡️" }
   ],
   boots: [
-    { name: "Assassin Boot", emoji: "<:assassinboot:1514232291617149070>" },
+    { name: "Knight Boot", emoji: "<:knightboot:1514232296000192582>" },
     { name: "Mage Boot", emoji: "<:mageboot:1514232293634609182>" },
-    { name: "Knight Boot", emoji: "<:knightboot:1514232296000192582>" }
+    { name: "Assassin Boot", emoji: "<:assassinboot:1514232291617149070>" },
+    { name: "Archer Boot", emoji: "🏹" },
+    { name: "Paladin Boot", emoji: "🛡️" }
   ],
   ring: [
     { name: "Ring", emoji: "<:ring:1514236487707791391>" },
     { name: "Mage Ring", emoji: "<:magering:1514236485556113559>" },
-    { name: "Dragon Ring", emoji: "<:dragonring:1514236496868151426>" }
+    { name: "Dragon Ring", emoji: "<:dragonring:1514236496868151426>" },
+    { name: "Archer Ring", emoji: "🏹" },
+    { name: "Paladin Ring", emoji: "🛡️" }
   ],
   necklace: [
     { name: "Necklace", emoji: "<:necklace:1514236494859206729>" },
     { name: "Ember Necklace", emoji: "<:emberneck:1514236492891820062>" },
-    { name: "Mage Necklace", emoji: "<:mageneck:1517491429478367252>" }
+    { name: "Mage Necklace", emoji: "<:mageneck:1517491429478367252>" },
+    { name: "Archer Necklace", emoji: "🏹" },
+    { name: "Paladin Necklace", emoji: "🛡️" }
   ]
 };
 
@@ -496,13 +506,17 @@ const getItemImageFile = (item) => {
     return "Weapon/longsword.png";
   }
 
+  const suffix = String(item.classSuffix || "").toLowerCase();
+
   if (slot === "armor") {
     const matched = findImageInDir("Armor", subType, item.name);
     if (matched) return matched;
     const lowerSub = subType.toLowerCase();
-    if (lowerSub.includes("assassin")) return "Armor/assassinarmor.png";
-    if (lowerSub.includes("mage") || lowerSub.includes("robe")) return "Armor/magerobe.png";
-    if (lowerSub.includes("heavy") || lowerSub.includes("armor")) return "Armor/heavyarmor.png";
+    if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("ranger")) return "Armor/archerarmor.png";
+    if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("holy")) return "Armor/paladinarmor.png";
+    if (suffix === "assassin" || lowerSub.includes("assassin")) return "Armor/assassinarmor.png";
+    if (suffix === "mage" || lowerSub.includes("mage") || lowerSub.includes("robe")) return "Armor/magerobe.png";
+    if (lowerSub.includes("heavy") || lowerSub.includes("armor") || lowerSub.includes("knight")) return "Armor/heavyarmor.png";
     return "Armor/heavyarmor.png";
   }
 
@@ -510,9 +524,11 @@ const getItemImageFile = (item) => {
     const matched = findImageInDir("Helmet", subType, item.name);
     if (matched) return matched;
     const lowerSub = subType.toLowerCase();
-    if (lowerSub.includes("assassin") || lowerSub.includes("hood")) return "Helmet/assassinhood.png";
-    if (lowerSub.includes("wizard") || lowerSub.includes("hat")) return "Helmet/wizardhat.png";
-    if (lowerSub.includes("warrior") || lowerSub.includes("helm") || lowerSub.includes("helmet")) return "Helmet/warriorhelm.png";
+    if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("hood")) return "Helmet/archerhood.png";
+    if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("helm")) return "Helmet/paladinhelm.png";
+    if (suffix === "assassin" || lowerSub.includes("assassin")) return "Helmet/assassinhood.png";
+    if (suffix === "mage" || lowerSub.includes("wizard") || lowerSub.includes("hat") || lowerSub.includes("mage")) return "Helmet/wizardhat.png";
+    if (lowerSub.includes("warrior") || lowerSub.includes("helm") || lowerSub.includes("helmet") || lowerSub.includes("knight")) return "Helmet/warriorhelm.png";
     return "Helmet/warriorhelm.png";
   }
 
@@ -520,8 +536,10 @@ const getItemImageFile = (item) => {
     const matched = findImageInDir("Boot", subType, item.name);
     if (matched) return matched;
     const lowerSub = subType.toLowerCase();
-    if (lowerSub.includes("assassin")) return "Boot/assassinboot.png";
-    if (lowerSub.includes("mage")) return "Boot/mageboot.png";
+    if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("ranger")) return "Boot/archerboot.png";
+    if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("holy")) return "Boot/paladinboot.png";
+    if (suffix === "assassin" || lowerSub.includes("assassin")) return "Boot/assassinboot.png";
+    if (suffix === "mage" || lowerSub.includes("mage")) return "Boot/mageboot.png";
     if (lowerSub.includes("knight") || lowerSub.includes("boot")) return "Boot/knightboot.png";
     return "Boot/knightboot.png";
   }
@@ -530,15 +548,19 @@ const getItemImageFile = (item) => {
     const matched = findImageInDir("Ring", subType, item.name);
     if (matched) return matched;
     const lowerSub = subType.toLowerCase();
-    if (lowerSub.includes("mage")) return "Ring/magering.png";
+    if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("ranger")) return "Ring/archerring.png";
+    if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("holy")) return "Ring/paladinring.png";
+    if (suffix === "mage" || lowerSub.includes("mage")) return "Ring/magering.png";
     if (lowerSub.includes("dragon")) return "Ring/dragonring.png";
     return "Ring/ring.png";
   }
 
   if (slot === "necklace") {
+    const lowerSub = subType.toLowerCase();
+    if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("ranger")) return "Necklace/archerneck.png";
+    if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("holy")) return "Necklace/paladinneck.png";
     const matched = findImageInDir("Necklace", subType, item.name);
     if (matched) return matched;
-    const lowerSub = subType.toLowerCase();
     if (lowerSub.includes("ember")) return "Necklace/emberneck.png";
     if (lowerSub.includes("crystal") || lowerSub.includes("cristal") || lowerSub.includes("mage")) return "Necklace/mageneck.png";
     return "Necklace/necklace.png";
