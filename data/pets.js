@@ -563,6 +563,103 @@ function getPetBattleStats(speciesOrPet, levelInput = 1) {
 }
 
 /**
+ * Computes the realized combat bonuses & passive effects of all 6 Pet stats (HP, ATT, PR, WP, MAG, MR)
+ * for the owner across PvP, Dungeon, and World Boss.
+ *
+ * 6 Stat Roles:
+ * - HP  (Sinh Lực):       +Max HP% (tối đa +28%) & +Hồi máu mỗi lượt khi bị thương ( kết hợp cùng WP, tối đa +3.2% Max HP/lượt)
+ * - ATT (Công Vật Lý):    +Sát thương Vật Lý cho chủ nhân (tối đa +14%) & sát thương đòn đánh Vật Lý của Linh Thú
+ * - PR  (Giáp Vật Lý):    +Chỉ số Giáp (PR) & Giảm sát thương Vật Lý nhận vào (tối đa -10%)
+ * - WP  (Ý Chí / Nội Năng): +Nộ/MP mỗi lượt (tối đa +12 Nộ/lượt), tăng Hồi máu mỗi lượt & Khuếch đại Kỹ năng
+ * - MAG (Ma Lực):         +Sát thương Phép cho chủ nhân (tối đa +14%), +Sát thương Kỹ Năng/Nộ (tối đa +10%) & đòn Phép của Linh Thú
+ * - MR  (Kháng Phép):     +Chỉ số Kháng Phép (MR), +Kháng Hiệu Ứng Xấu CC/DoT (tối đa 30%) & Giảm sát thương Phép/DoT (tối đa -25%)
+ */
+function computePetStatEffects(speciesOrPet, levelInput = null) {
+  if (!speciesOrPet) {
+    return {
+      level: 1,
+      points: { hp: 0, att: 0, pr: 0, wp: 0, mag: 0, mr: 0 },
+      role: "",
+      scaled: { maxHp: 500, maxWp: 500, physAtk: 100, magAtk: 100, physResPct: 16, magResPct: 16 },
+      hpPct: 0,
+      regenHpPct: 0,
+      patkPct: 0,
+      matkPct: 0,
+      skillDmgPct: 0,
+      bonusPr: 0,
+      physDmgReducePct: 0,
+      bonusMr: 0,
+      statusResistPct: 0,
+      dotReducePct: 0,
+      ragePerTurn: 0,
+      attackType: "physical",
+    };
+  }
+
+  const lvl = Math.max(1, Math.min(101, Number(levelInput || speciesOrPet?.level || 1)));
+  const { points, role, scaled } = getPetBattleStats(speciesOrPet, lvl);
+  const levelFactor = 0.45 + 0.55 * (lvl / 100);
+
+  // 1. HP: Max HP % + HP Regen per turn (synergizes with WP/MAG)
+  const hpPct = Math.min(0.28, Number((0.02 + lvl * 0.0012 + points.hp * 0.011 * levelFactor).toFixed(4)));
+  const regenHpPct = Math.min(
+    0.032,
+    Number(((points.hp * 0.0012 + points.wp * 0.0018 + (points.wp >= 4 ? points.mag * 0.0005 : 0)) * levelFactor).toFixed(4))
+  );
+
+  // 2. ATT: Physical damage %
+  const patkPct = Math.min(0.14, Number((points.att * 0.0068 * levelFactor).toFixed(4)));
+
+  // 3. PR: Bonus flat PR & Physical damage reduction %
+  const bonusPr = Math.min(25, Math.round(points.pr * (0.45 + lvl * 0.012)));
+  const physDmgReducePct = Math.min(0.10, Number((points.pr * 0.0065 * levelFactor).toFixed(4)));
+
+  // 4. WP: Extra Rage/MP per turn
+  const ragePerTurn = Math.min(12, Math.max(0, Math.round(points.wp * 0.85 * levelFactor)));
+
+  // 5. MAG: Magical damage % + Skill/Ultimate damage %
+  const matkPct = Math.min(0.14, Number((points.mag * 0.0068 * levelFactor).toFixed(4)));
+  const skillDmgPct = Math.min(
+    0.10,
+    Number(((points.mag * 0.0035 + points.wp * 0.0022) * levelFactor).toFixed(4))
+  );
+
+  // 6. MR: Bonus flat MR, Status Effect Resistance %, and DoT/Magic damage reduction %
+  const bonusMr = Math.min(25, Math.round(points.mr * (0.45 + lvl * 0.012)));
+  const statusResistPct = Math.min(
+    0.30,
+    Number(((points.mr * 0.022 + points.wp * 0.004) * levelFactor).toFixed(4))
+  );
+  const dotReducePct = Math.min(0.25, Number((points.mr * 0.020 * levelFactor).toFixed(4)));
+
+  const attackType =
+    points.mag > points.att
+      ? "magical"
+      : points.mag === points.att && points.mag > 0
+      ? "hybrid"
+      : "physical";
+
+  return {
+    level: lvl,
+    points,
+    role,
+    scaled,
+    hpPct,
+    regenHpPct,
+    patkPct,
+    matkPct,
+    skillDmgPct,
+    bonusPr,
+    physDmgReducePct,
+    bonusMr,
+    statusResistPct,
+    dotReducePct,
+    ragePerTurn,
+    attackType,
+  };
+}
+
+/**
  * Generate pet stats for both 3v3 Pet Battle (6 stats 0-19) and RPG companion bonuses
  */
 function generatePetStats(species) {
@@ -646,6 +743,7 @@ module.exports = {
   PET_TIERS,
   PET_SPECIES,
   getPetBattleStats,
+  computePetStatEffects,
   generatePetStats,
   getPetXpNeeded,
   findPetSpecies,

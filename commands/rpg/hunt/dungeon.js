@@ -22,9 +22,16 @@ const {
   addRpgExp,
   getDungeonWeaponKey,
   getGearDisplayName,
+<<<<<<< HEAD
   getWeaponSetBonus,
   getClassSuffixSetBonus,
   getEquippedPet,
+=======
+  getWeaponSetBonus,
+  getEquippedPet,
+  getEquippedPetBonuses,
+  resolvePetTurnAction,
+>>>>>>> origin/main
   petAttackDamage,
   getPetAttackLog,
 } = require("../../../utils/rpgUtil");
@@ -407,8 +414,12 @@ const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false 
       const weapon = getEquippedItems(user).weapon;
       let maxHp = 280 + stats.vigor * 28 + user.rpg.level * 26 + Math.floor(gearPower * 0.12);
       const setBonus = getWeaponSetBonus(user);
+      const petBonuses = getEquippedPetBonuses(user);
       if (setBonus?.bonus?.maxHp) {
         maxHp += Math.floor(maxHp * setBonus.bonus.maxHp);
+      }
+      if (petBonuses?.hpPct > 0) {
+        maxHp += Math.floor(maxHp * petBonuses.hpPct);
       }
       maxHp = Math.floor(maxHp * playerBuff.maxHpMultiplier);
       if (blessing === "active") {
@@ -431,6 +442,9 @@ const startDungeon = async ({ message, guild, chapter, blessing, isSolo = false 
         power: gearPower,
         weapon: weapon,
         setBonus: setBonus,
+        petBonuses: petBonuses,
+        statusResistPct: petBonuses?.statusResistPct || 0,
+        dotReducePct: petBonuses?.dotReducePct || 0,
         rpgClass: rpgClass,
         userRef: user, 
         rage: 0,
@@ -1458,6 +1472,14 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const playerBuff = getDungeonPlayerBuff();
   const effectivePowerAtk = Math.floor((player.power || 0) * 0.65 + Math.sqrt(Math.max(0, player.power || 0)) * 18);
   let rawDamage = (baseAttack + effectivePowerAtk) * multiplier * playerBuff.damageMultiplier;
+  // Pet ATT / MAG / Skill Damage Bonuses
+  const petAtkBonus = isMagical
+    ? (player.petBonuses?.matkPct || 0)
+    : (player.petBonuses?.patkPct || 0);
+  if (petAtkBonus > 0) rawDamage *= 1 + petAtkBonus;
+  if (isSkill && (player.petBonuses?.skillDmgPct || 0) > 0) {
+    rawDamage *= 1 + player.petBonuses.skillDmgPct;
+  }
   if (!getDungeonWeaponKey(player.weapon?.subType)) {
     rawDamage *= Number(config.dungeon?.player_buff?.normal_weapon_damage_multiplier) || 1;
   }
@@ -1639,9 +1661,10 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
       const petUser = player.userRef;
       const pet = petUser ? getEquippedPet(petUser) : null;
       if (pet) {
-        const petDmg = petAttackDamage(pet, "dungeon");
+        const petTurn = resolvePetTurnAction(pet, player, null, "dungeon");
+        const petDmg = petTurn.damage;
         enemy.hp = Math.max(0, enemy.hp - petDmg);
-        activeDungeon.logs.push(getPetAttackLog(pet, "dungeon", petDmg));
+        activeDungeon.logs.push(petTurn.log);
       }
     }
     activeDungeon.actionInProgress = false;
@@ -1826,6 +1849,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
         ?? 0.55;
       const rawDmg = enemy.atk * mult * aoeDamageMultiplier * (0.85 + Math.random() * 0.3);
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
+      if ((p.petBonuses?.physDmgReducePct || 0) > 0) {
+        damage = Math.max(10, Math.floor(damage * (1 - p.petBonuses.physDmgReducePct)));
+      }
       if (mitCfg && mitCfg.classes?.includes(p.classKey)) {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }
@@ -1993,6 +2019,9 @@ const runEnemyTurn = async (channel, activeDungeon) => {
         : 1;
       const rawDmg = enemy.atk * (0.85 + Math.random() * 0.3) * damageMult * phase2SingleTargetMultiplier;
       let damage = Math.max(10, Math.floor(rawDmg * (1 - mitigation)));
+      if ((target.petBonuses?.physDmgReducePct || 0) > 0) {
+        damage = Math.max(10, Math.floor(damage * (1 - target.petBonuses.physDmgReducePct)));
+      }
       if (mitCfg && mitCfg.classes?.includes(target.classKey)) {
         damage = Math.floor(damage * (mitCfg.multiplier ?? 0.6));
       }

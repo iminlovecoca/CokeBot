@@ -160,8 +160,9 @@ function rollEventDrop(user) {
       dropDetails = {
         type: "coke",
         amount,
-        displayName: `${amount.toLocaleString()} coke`,
+        displayName: "Coke",
         quantityText: `**${amount.toLocaleString()}**`,
+        formattedReward: `**${amount.toLocaleString()} Coke** ${moneyEmoji}`,
         emoji: moneyEmoji,
       };
       break;
@@ -170,12 +171,14 @@ function rollEventDrop(user) {
     case "cookie": {
       user.cookie = (user.cookie || 0) + 1;
       addInventoryItem(user, "danisa", 1);
+      const cookieEmoji = selectedReward.emoji || "<:danisa:1404057793920635043>";
       dropDetails = {
         type: "cookie",
         amount: 1,
         displayName: "Bánh Danisa",
-        quantityText: "một cái",
-        emoji: selectedReward.emoji,
+        quantityText: "1 hộp",
+        formattedReward: `1 hộp **Bánh Danisa** ${cookieEmoji}`,
+        emoji: cookieEmoji,
       };
       break;
     }
@@ -202,7 +205,8 @@ function rollEventDrop(user) {
         gemId: gem.id,
         gemTier: gem.tier,
         displayName: `${gem.nameVi} (\`#${gem.id}\`)`,
-        quantityText: "viên",
+        quantityText: "1 viên",
+        formattedReward: `1 viên ${gem.emoji} **${gem.nameVi}** (\`#${gem.id}\`)`,
         emoji: gem.emoji,
       };
       break;
@@ -212,12 +216,14 @@ function rollEventDrop(user) {
       const isDouble = Math.random() < (selectedReward.doubleChance || 0.3);
       const count = isDouble ? 2 : 1;
       addInventoryItem(user, "lootbox", count);
+      const lbEmoji = selectedReward.emoji || "<:lootbox:1563961108727992470>";
       dropDetails = {
         type: "lootbox",
         amount: count,
-        displayName: count > 1 ? `${count} Hộp Quà (Lootbox)` : "Hộp Quà (Lootbox)",
-        quantityText: count > 1 ? `**${count}**` : "một",
-        emoji: selectedReward.emoji,
+        displayName: "Hộp Quà (Lootbox)",
+        quantityText: `${count}`,
+        formattedReward: count > 1 ? `**${count} Hộp Quà (Lootbox)** ${lbEmoji}` : `1 **Hộp Quà (Lootbox)** ${lbEmoji}`,
+        emoji: lbEmoji,
       };
       break;
     }
@@ -226,24 +232,28 @@ function rollEventDrop(user) {
       const isDouble = Math.random() < (selectedReward.doubleChance || 0.3);
       const count = isDouble ? 2 : 1;
       addInventoryItem(user, "wc", count);
+      const crateEmoji = selectedReward.emoji || "<:crate:1512793698025603282>";
       dropDetails = {
         type: "wc",
         amount: count,
-        displayName: count > 1 ? `${count} Hộp Vũ Khí (Weapon Crate)` : "Hộp Vũ Khí (Weapon Crate)",
-        quantityText: count > 1 ? `**${count}**` : "một",
-        emoji: selectedReward.emoji,
+        displayName: "Hộp Vũ Khí (Weapon Crate)",
+        quantityText: `${count}`,
+        formattedReward: count > 1 ? `**${count} Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}` : `1 **Hộp Vũ Khí (Weapon Crate)** ${crateEmoji}`,
+        emoji: crateEmoji,
       };
       break;
     }
 
     case "dungeonkey": {
       addInventoryItem(user, "dungeonkey", 1);
+      const keyEmoji = selectedReward.emoji || "<:key:1516398711712911461>";
       dropDetails = {
         type: "dungeonkey",
         amount: 1,
         displayName: "Chìa khóa Phó bản",
-        quantityText: "một",
-        emoji: selectedReward.emoji,
+        quantityText: "1",
+        formattedReward: `1 **Chìa khóa Phó bản** ${keyEmoji}`,
+        emoji: keyEmoji,
       };
       break;
     }
@@ -261,9 +271,9 @@ function rollEventDrop(user) {
   const { hours, minutes, seconds } = getDailyResetCountdown();
   const resetStr = `[${newCount}/${EVENT_CONFIG.dailyCap}] RESETS IN: ${hours}H ${minutes}M ${seconds}S`;
 
-  const huntNotificationText = `${EVENT_CONFIG.emoji} **|** ${dropDetails.emoji} Bạn tìm thấy ${dropDetails.quantityText} **${dropDetails.displayName}**! \`${resetStr}\``;
+  const huntNotificationText = `${EVENT_CONFIG.emoji} **|** Bạn tìm thấy ${dropDetails.formattedReward}! \`${resetStr}\``;
   const battleNotificationText = (characterName) =>
-    `**${EVENT_CONFIG.emoji} | ${characterName}**, Bạn tìm thấy ${dropDetails.quantityText} **${dropDetails.displayName}**! \`${resetStr}\``;
+    `**${EVENT_CONFIG.emoji} | ${characterName}**, Bạn tìm thấy ${dropDetails.formattedReward}! \`${resetStr}\``;
 
   return {
     ...dropDetails,

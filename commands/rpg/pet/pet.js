@@ -8,6 +8,7 @@ const {
   PET_STAT_ICONS,
   PET_TIERS,
   getPetBattleStats,
+  computePetStatEffects,
   generatePetStats,
   findPetSpecies,
 } = require("../../../data/pets");
@@ -141,8 +142,9 @@ class PetCommand extends BaseCommand {
       ? (zooEntry.totalCount ?? currentCount)
       : currentCount;
 
-    // 6 Battle Stats (0 - 19 points) & scaled combat stats
+    // 6 Battle Stats (0 - 19 points) & scaled combat stats + realized combat effects
     const { points: bStats, role, scaled } = getPetBattleStats(targetSpecies || petData, level);
+    const fx = computePetStatEffects(targetSpecies || petData, level);
 
     const aliasesStr = (targetSpecies?.aliases || [petData.key]).join(", ");
     const desc = targetSpecies?.description || "Linh thú huyền bí mang sức mạnh bổ trợ.";
@@ -170,10 +172,20 @@ class PetCommand extends BaseCommand {
       `${statIcons.wp} \`${bStats.wp}\` ${statIcons.mag} \`${bStats.mag}\` ${statIcons.mr} \`${bStats.mr}\``,
     ];
 
+    const effectLines = [
+      `${statIcons.hp} **HP (\`${bStats.hp}\`):** **+${(fx.hpPct * 100).toFixed(1)}%** Máu tối đa & Hồi **+${(fx.regenHpPct * 100).toFixed(2)}% HP/lượt** khi bị thương`,
+      `${statIcons.att} **ATT (\`${bStats.att}\`):** **+${(fx.patkPct * 100).toFixed(1)}%** ST Vật lý chủ nhân & Đòn đánh Vật lý của Pet`,
+      `${statIcons.pr} **PR (\`${bStats.pr}\`):** **+${fx.bonusPr} Giáp (PR)** & Giảm **-${(fx.physDmgReducePct * 100).toFixed(1)}%** ST Vật lý nhận vào`,
+      `${statIcons.wp} **WP (\`${bStats.wp}\`):** Nạp **+${fx.ragePerTurn} Nộ/MP mỗi lượt**, hỗ trợ hồi phục & khuếch đại kỹ năng`,
+      `${statIcons.mag} **MAG (\`${bStats.mag}\`):** **+${(fx.matkPct * 100).toFixed(1)}%** ST Phép, **+${(fx.skillDmgPct * 100).toFixed(1)}%** ST Kỹ năng/Nộ & Đòn Phép của Pet`,
+      `${statIcons.mr} **MR (\`${bStats.mr}\`):** **+${fx.bonusMr} Kháng Phép (MR)**, **+${(fx.statusResistPct * 100).toFixed(1)}%** Kháng hiệu ứng xấu (CC/DoT) & **-${(fx.dotReducePct * 100).toFixed(1)}%** ST DoT`,
+    ];
+
     const embed = new EmbedBuilder()
       .setColor(isEquipped ? getRpgColor("accent") : 0x3b82f6)
       .setTitle(`${petData.emoji} ${petData.name}${isEquipped ? " • Đang trang bị" : ""}`)
       .setDescription(dexLines.join("\n"))
+<<<<<<< HEAD
       .addFields({
         name: `Chỉ số thực chiến (Lv.${level})`,
         value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
@@ -195,6 +207,21 @@ class PetCommand extends BaseCommand {
     }
 
     embed.setFooter(formatRpgFooter("Dex Linh Thú • xaddpet <tên> xuất trận • xequip pet <tên> <ID> đổi vũ khí"));
+=======
+      .addFields(
+        {
+          name: `Chỉ số Linh Thú (Lv.${level})`,
+          value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
+          inline: false,
+        },
+        {
+          name: `✨ Hiệu quả thực chiến 6 chỉ số lên Chủ Nhân (Lv.${level})`,
+          value: effectLines.join("\n"),
+          inline: false,
+        }
+      )
+      .setFooter(formatRpgFooter("Dex Linh Thú • Dùng xaddpet <tên> để trang bị"));
+>>>>>>> origin/main
 
     // Resolve and attach pet image as top-right thumbnail (matching Dex card layout)
     let petImageAttachment = null;

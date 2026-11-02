@@ -75,7 +75,7 @@ async function seedGems(client) {
 }
 
 /**
- * Ensures user.huntGems object is properly structured.
+ * Ensures user.huntGems object is properly structured and sanitizes any broken/expired/invalid gem slots.
  */
 function ensureUserGems(user) {
   if (!user.huntGems || typeof user.huntGems !== "object") {
@@ -85,6 +85,74 @@ function ensureUserGems(user) {
       lucky: null,
       special: null,
     };
+    if (typeof user.markModified === "function") {
+      user.markModified("huntGems");
+    }
+    return user.huntGems;
+  }
+
+  const slotKeys = ["hunting", "empowering", "lucky", "special"];
+  let modified = false;
+
+  for (const slotKey of slotKeys) {
+    if (!(slotKey in user.huntGems)) {
+      user.huntGems[slotKey] = null;
+      modified = true;
+      continue;
+    }
+
+    const slot = user.huntGems[slotKey];
+    if (!slot) continue;
+
+    const dur = Number(slot.durability);
+    if (!Number.isFinite(dur) || dur <= 0) {
+      user.huntGems[slotKey] = null;
+      modified = true;
+      continue;
+    }
+
+    // Validate canonical gem definition in GEMS_DATA
+    let canonical = slot.id ? getGemById(slot.id) : null;
+    if (!canonical && slot.tier && GEMS_DATA[slotKey]) {
+      canonical = GEMS_DATA[slotKey].find(
+        (g) => String(g.tier).toLowerCase() === String(slot.tier).toLowerCase(),
+      );
+    }
+
+    if (!canonical || canonical.type !== slotKey) {
+      // Invalid or mismatched slot gem
+      user.huntGems[slotKey] = null;
+      modified = true;
+      continue;
+    }
+
+    // Sync canonical metadata so emoji/type/maxDurability are always valid
+    if (
+      slot.id !== canonical.id ||
+      slot.type !== slotKey ||
+      slot.emoji !== canonical.emoji ||
+      slot.nameVi !== canonical.nameVi ||
+      !slot.maxDurability
+    ) {
+      slot.id = canonical.id;
+      slot.name = canonical.name;
+      slot.nameVi = canonical.nameVi;
+      slot.type = slotKey;
+      slot.tier = canonical.tier;
+      slot.rankLetter = canonical.rankLetter;
+      slot.emoji = canonical.emoji;
+      slot.bonusAnimals = canonical.bonusAnimals || 0;
+      slot.multiplier = canonical.multiplier || 1;
+      slot.luckMultiplier = canonical.luckMultiplier || 0;
+      slot.specialMultiplier = canonical.specialMultiplier || 1;
+      slot.maxDurability = canonical.durability;
+      slot.durability = Math.min(dur, canonical.durability);
+      modified = true;
+    }
+  }
+
+  if (modified && typeof user.markModified === "function") {
+    user.markModified("huntGems");
   }
   return user.huntGems;
 }
@@ -193,13 +261,16 @@ function equipGem(user, gemIdOrName) {
     }
   }
   const currentSlot = user.huntGems[gem.type];
-  if (currentSlot && currentSlot.durability > 0) {
+  if (currentSlot && Number(currentSlot.durability) > 0) {
+    const typeInfo = GEM_TYPES[gem.type] || { nameVi: gem.type };
+    const maxDur = currentSlot.maxDurability || currentSlot.durability || 100;
     return {
       success: false,
       code: "ALREADY_ACTIVE",
       type: gem.type,
       gem,
-      error: `bạn đã gắn loại ngọc này rồi!`,
+      activeGem: currentSlot,
+      error: `ô **${typeInfo.nameVi}** đang có sẵn ${currentSlot.emoji} **${currentSlot.nameVi || currentSlot.name}** (\`#${currentSlot.id}\`) **[${currentSlot.durability}/${maxDur}]** chưa vỡ! (Không thể gắn đè ${gem.emoji} **${gem.nameVi}** \`#${gem.id}\`)`,
     };
   }
 
@@ -288,12 +359,15 @@ function consumeGemsOnHunt(user, totalAnimalsCaught, baseCatchCount) {
   const gems = user.huntGems;
   const brokenGems = [];
 
-  const hasHunting = gems.hunting && gems.hunting.durability > 0;
-  const hasEmpowering = gems.empowering && gems.empowering.durability > 0;
-  const hasLucky = gems.lucky && gems.lucky.durability > 0;
-  const isAllThreeActive = hasHunting && hasEmpowering && hasLucky;
+  const hasHunting = Boolean(gems.hunting && Number(gems.hunting.durability) > 0);
+  const hasEmpowering = Boolean(gems.empowering && Number(gems.empowering.durability) > 0);
+  const hasLucky = Boolean(gems.lucky && Number(gems.lucky.durability) > 0);
 
   const doubledAnimals = Math.max(0, totalAnimalsCaught - baseCatchCount);
+  // Synchronize animal durability cost across Empowering, Lucky, and Special gems so same-tier gems break together when Empowering is active
+  const effectiveAnimalCost = hasEmpowering
+    ? Math.max(1, doubledAnimals || baseCatchCount)
+    : Math.max(1, totalAnimalsCaught);
 
   // 1. Hunting Gem (-1 hunt)
   if (hasHunting) {
@@ -306,31 +380,27 @@ function consumeGemsOnHunt(user, totalAnimalsCaught, baseCatchCount) {
 
   // 2. Empowering Gem (-doubled animals)
   if (hasEmpowering) {
-    gems.empowering.durability -= doubledAnimals;
+    gems.empowering.durability -= effectiveAnimalCost;
     if (gems.empowering.durability <= 0) {
       brokenGems.push({ ...gems.empowering });
       gems.empowering = null;
     }
   }
 
-  // 3. Lucky Gem
+  // 3. Lucky Gem (-effectiveAnimalCost, synchronized with Empowering)
   if (hasLucky) {
-    if (isAllThreeActive) {
-      gems.lucky.durability -= doubledAnimals;
-    } else {
-      gems.lucky.durability -= totalAnimalsCaught;
-    }
+    gems.lucky.durability -= effectiveAnimalCost;
     if (gems.lucky.durability <= 0) {
       brokenGems.push({ ...gems.lucky });
       gems.lucky = null;
     }
   }
 
-  // 4. Special Gem (Only consumes during active monthly event)
-  if (gems.special && gems.special.durability > 0) {
+  // 4. Special Gem (Only consumes during active monthly event, synchronized with Empowering)
+  if (gems.special && Number(gems.special.durability) > 0) {
     const { isMonthlyEventActive } = require("./eventUtil");
     if (isMonthlyEventActive()) {
-      gems.special.durability -= totalAnimalsCaught;
+      gems.special.durability -= effectiveAnimalCost;
       if (gems.special.durability <= 0) {
         brokenGems.push({ ...gems.special });
         gems.special = null;

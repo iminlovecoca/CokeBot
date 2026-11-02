@@ -5,7 +5,12 @@ const {
   requireRpgCharacter,
   calculateRpgPower,
 } = require("../../../utils/rpgUtil");
-const { findPetSpecies, generatePetStats } = require("../../../data/pets");
+const {
+  findPetSpecies,
+  generatePetStats,
+  computePetStatEffects,
+  PET_STAT_ICONS,
+} = require("../../../data/pets");
 class AddPetCommand extends BaseCommand {
   constructor() {
     super({
@@ -82,13 +87,21 @@ class AddPetCommand extends BaseCommand {
     user.markModified("rpg");
     await user.save();
     const lvl = targetPet.level || 1;
-    const hpPct = (lvl * 0.5).toFixed(1);
-    const atkPct = (lvl * 0.4).toFixed(1);
-    const defPct = (lvl * 0.35).toFixed(2);
+    const fx = computePetStatEffects(targetPet, lvl);
+    const icons = {
+      hp: config.emoji?.petStats?.hp || PET_STAT_ICONS.hp,
+      att: config.emoji?.petStats?.att || PET_STAT_ICONS.att,
+      pr: config.emoji?.petStats?.pr || PET_STAT_ICONS.pr,
+      wp: config.emoji?.petStats?.wp || PET_STAT_ICONS.wp,
+      mag: config.emoji?.petStats?.mag || PET_STAT_ICONS.mag,
+      mr: config.emoji?.petStats?.mr || PET_STAT_ICONS.mr,
+    };
     return message.channel.send(
-      `✨ **Thành Công!** Bạn đã trang bị Linh Thú ${targetPet.emoji} **${targetPet.name}** (Lvl **${lvl}**)!\n` +
+      `✨ **Thành Công!** Bạn đã trang bị Linh Thú ${targetPet.emoji} **${targetPet.name}** (Lv.**${lvl}** • *${fx.role}*)!\n` +
         `⚡ Lực chiến nhân vật: **${user.rpg.power.toLocaleString()}** Power\n` +
-        `❤️ **+${hpPct}% HP** | ⚔️ **+${atkPct}% ATK** | 🛡️ **+${defPct}% DEF**`
+        `${icons.hp} **+${(fx.hpPct * 100).toFixed(1)}% HP** (+${(fx.regenHpPct * 100).toFixed(2)}% Hồi HP/lượt) | ${icons.wp} **+${fx.ragePerTurn} Nộ/MP mỗi lượt**\n` +
+        `${icons.att} **+${(fx.patkPct * 100).toFixed(1)}% ST Vật lý** | ${icons.mag} **+${(fx.matkPct * 100).toFixed(1)}% ST Phép** (+${(fx.skillDmgPct * 100).toFixed(1)}% ST Kỹ năng)\n` +
+        `${icons.pr} **+${fx.bonusPr} PR** (-${(fx.physDmgReducePct * 100).toFixed(1)}% ST Vật lý) | ${icons.mr} **+${fx.bonusMr} MR** (+${(fx.statusResistPct * 100).toFixed(1)}% Kháng hiệu ứng & -${(fx.dotReducePct * 100).toFixed(1)}% ST DoT)`
     );
   }
 }
