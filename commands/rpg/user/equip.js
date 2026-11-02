@@ -101,7 +101,7 @@ module.exports = {
       // Must be Common rarity
       if (weapon.rarity !== "Common") {
         return message.reply(
-          `${config.emoji.no} Chỉ có thể trang bị **Vũ khí phẩm chất Thường (Common)** cho Linh Thú theo chuẩn hệ thống OwO!\n` +
+          `${config.emoji.no} Chỉ có thể trang bị **Vũ khí phẩm chất Thường (Common)** cho Linh Thú!\n` +
             `Các vũ khí từ Rare trở lên dùng riêng cho nhân vật chính để chiến đấu và vượt phó bản.`
         );
       }
@@ -165,7 +165,7 @@ module.exports = {
     const targetItem = (user.rpg.items || []).find((it) => it.id === itemId);
     if (targetItem && targetItem.slot === "weapon" && targetItem.rarity === "Common") {
       return message.reply(
-        `${config.emoji.warning} **Vũ khí phẩm chất Thường (Common)** được dành riêng để trang bị cho Linh Thú theo chuẩn hệ thống OwO!\n` +
+        `${config.emoji.warning} **Vũ khí phẩm chất Thường (Common)** được dành riêng để trang bị cho Linh Thú!\n` +
           `Hãy sử dụng lệnh: \`${config.prefix}equip pet <tên_pet> ${itemId}\` để trang bị cho linh thú của bạn.`
       );
     }

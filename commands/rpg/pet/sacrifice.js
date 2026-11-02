@@ -38,7 +38,7 @@ class SacrificeCommand extends BaseCommand {
           `• Hiến tế theo rank: \`${config.prefix}sc common\`, \`${config.prefix}sc c\`, \`${config.prefix}sc c r e\`\n` +
           `• Hiến tế tất cả thú: \`${config.prefix}sc all\`\n` +
           `• Hiến tế theo loài: \`${config.prefix}sc bee 5\`, \`${config.prefix}sc bee all\`\n\n` +
-          `**Bảng tỉ lệ Essence chuẩn OwO:**\n` +
+          `**Bảng tỉ lệ Essence:**\n` +
           `• Common: **1** | Rare: **20** | Epic: **250**\n` +
           `• Generation: **5.000** | Legendary: **10.000** | Mythic: **20.000**\n` +
           `• Ancient: **100.000** | Divine: **200.000** | Secret: **500.000**`,
@@ -50,7 +50,7 @@ class SacrificeCommand extends BaseCommand {
     const isExplicitWeaponId = /^[wg]\d+$/i.test(firstArgLower);
     if (WEAPON_KEYWORDS.has(firstArgLower) || isExplicitWeaponId) {
       return message.reply(
-        `💡 **| ${displayName}**, tính năng hiến tế vũ khí đã được loại bỏ. Giờ đây bạn có thể dùng lệnh \`${config.prefix}sell ${args.join(" ")}\` để bán vũ khí lấy Coke!\nLệnh \`${config.prefix}sacrifice\` hiện tại dành riêng cho việc hiến tế thú trong Zoo đổi lấy Essence theo chuẩn OwO.`,
+        `💡 **| ${displayName}**, tính năng hiến tế vũ khí đã được loại bỏ. Giờ đây bạn có thể dùng lệnh \`${config.prefix}sell ${args.join(" ")}\` để bán vũ khí lấy Coke!\nLệnh \`${config.prefix}sacrifice\` hiện tại dành riêng cho việc hiến tế thú trong Zoo đổi lấy Essence.`,
       );
     }
 
