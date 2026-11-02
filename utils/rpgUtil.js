@@ -1238,7 +1238,16 @@ const calculateRpgPower = (user) => {
     petPower = Math.floor(rawPetPower * petContribution);
   }
 
-  return gearPower + petPower;
+  const level = Math.max(1, Number(user?.rpg?.level) || 1);
+  const totalStats =
+    (effectiveStats.str || 0) +
+    (effectiveStats.dex || 0) +
+    (effectiveStats.int || 0) +
+    (effectiveStats.arc || 0) +
+    (effectiveStats.vigor || 0);
+  const basePower = level * 25 + totalStats * 4;
+
+  return basePower + gearPower + petPower;
 };
 
 const calculateStarterPower = () => 0;

@@ -2,6 +2,7 @@ const BaseCommand = require("../../core/BaseCommand");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 const { FIXED_ITEMS, getItem, toSmallNum3Digits } = require("../../data/items");
+const { ensureUserGems, formatActiveGemsBadges } = require("../../utils/gemUtil");
 
 class InventoryCommand extends BaseCommand {
   constructor() {
@@ -23,7 +24,14 @@ class InventoryCommand extends BaseCommand {
     const userRepository = message.client.services.get("userRepository");
     const user = await userRepository.getOrCreate(message.author.id);
 
-    if (!user.inventory || (user.inventory instanceof Map ? user.inventory.size === 0 : Object.keys(user.inventory).length === 0)) {
+    ensureUserGems(user);
+    if (typeof user.isModified === "function" && user.isModified("huntGems")) {
+      await user.save();
+    }
+    const activeGemsText = formatActiveGemsBadges(user);
+
+    const hasInventoryItems = user.inventory && (user.inventory instanceof Map ? user.inventory.size > 0 : Object.keys(user.inventory).length > 0);
+    if (!hasInventoryItems && !activeGemsText) {
       throw new UserFriendlyError(`${config.emoji.no} Túi đồ của bạn trống trơn!`);
     }
 
@@ -68,7 +76,7 @@ class InventoryCommand extends BaseCommand {
         aggregated.set("005", { item: cookieItem, quantity: user.cookie });
       }
     }
-    if (aggregated.size === 0) {
+    if (aggregated.size === 0 && !activeGemsText) {
       throw new UserFriendlyError(`${config.emoji.no} Túi đồ của bạn trống trơn!`);
     }
 
@@ -77,7 +85,7 @@ class InventoryCommand extends BaseCommand {
     let itemList = Array.from(aggregated.values());
     if (isGemsFilter) {
       itemList = itemList.filter((entry) => entry.item.type === "gem");
-      if (itemList.length === 0) {
+      if (itemList.length === 0 && !activeGemsText) {
         throw new UserFriendlyError(`${config.emoji.no} Bạn không có viên ngọc nào trong túi đồ!`);
       }
     }
@@ -99,7 +107,17 @@ class InventoryCommand extends BaseCommand {
 
     const displayName = message.member?.displayName || message.author.username;
     const header = `====== ${displayName}'s Inventory ======`;
-    const fullText = `${header}\n${rows.join("\n")}`;
+    const lines = [header];
+    if (rows.length > 0) {
+      lines.push(rows.join("\n"));
+    } else if (isGemsFilter && activeGemsText) {
+      lines.push("(Túi đồ không có ngọc dự trữ)");
+    }
+    if (activeGemsText) {
+      lines.push("");
+      lines.push(`Active Gems: ${activeGemsText}`);
+    }
+    const fullText = lines.join("\n");
 
     return message.reply({ content: fullText });
   }

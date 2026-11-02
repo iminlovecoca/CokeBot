@@ -432,8 +432,8 @@ function formatActiveGemsBadges(user) {
       if (!isMonthlyEventActive()) continue;
     }
     const gem = user.huntGems[slot];
-    if (gem && gem.durability !== undefined) {
-      const remaining = Math.max(0, gem.durability);
+    if (gem && Number(gem.durability) > 0) {
+      const remaining = Math.max(0, Number(gem.durability));
       const maxD = gem.maxDurability || gem.durability || 100;
       badges.push(`${gem.emoji} [${remaining}/${maxD}]`);
     }
