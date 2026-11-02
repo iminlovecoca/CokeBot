@@ -185,13 +185,19 @@ class PetCommand extends BaseCommand {
       .setColor(isEquipped ? getRpgColor("accent") : 0x3b82f6)
       .setTitle(`${petData.emoji} ${petData.name}${isEquipped ? " • Đang trang bị" : ""}`)
       .setDescription(dexLines.join("\n"))
-<<<<<<< HEAD
-      .addFields({
-        name: `Chỉ số thực chiến (Lv.${level})`,
-        value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
-        inline: false,
-      })
-      
+      .addFields(
+        {
+          name: `Chỉ số Linh Thú (Lv.${level})`,
+          value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
+          inline: false,
+        },
+        {
+          name: `✨ Hiệu quả thực chiến 6 chỉ số lên Chủ Nhân (Lv.${level})`,
+          value: effectLines.join("\n"),
+          inline: false,
+        }
+      );
+
     if (petData.equippedWeapon) {
       const eqW = petData.equippedWeapon;
       const eff = Math.round((eqW.efficiency || 1.0) * 100);
@@ -207,21 +213,6 @@ class PetCommand extends BaseCommand {
     }
 
     embed.setFooter(formatRpgFooter("Dex Linh Thú • xaddpet <tên> xuất trận • xequip pet <tên> <ID> đổi vũ khí"));
-=======
-      .addFields(
-        {
-          name: `Chỉ số Linh Thú (Lv.${level})`,
-          value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
-          inline: false,
-        },
-        {
-          name: `✨ Hiệu quả thực chiến 6 chỉ số lên Chủ Nhân (Lv.${level})`,
-          value: effectLines.join("\n"),
-          inline: false,
-        }
-      )
-      .setFooter(formatRpgFooter("Dex Linh Thú • Dùng xaddpet <tên> để trang bị"));
->>>>>>> origin/main
 
     // Resolve and attach pet image as top-right thumbnail (matching Dex card layout)
     let petImageAttachment = null;

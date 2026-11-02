@@ -4,11 +4,8 @@ const {
   getEquippedItems,
   getRpgClass,
   getWeaponSetBonus,
-<<<<<<< HEAD
   getClassSuffixSetBonus,
-=======
   getEquippedPetBonuses,
->>>>>>> origin/main
   petAttackDamage,
   getPetAttackLog,
   resolvePetTurnAction,

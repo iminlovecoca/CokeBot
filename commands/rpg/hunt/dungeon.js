@@ -22,16 +22,11 @@ const {
   addRpgExp,
   getDungeonWeaponKey,
   getGearDisplayName,
-<<<<<<< HEAD
   getWeaponSetBonus,
   getClassSuffixSetBonus,
   getEquippedPet,
-=======
-  getWeaponSetBonus,
-  getEquippedPet,
   getEquippedPetBonuses,
   resolvePetTurnAction,
->>>>>>> origin/main
   petAttackDamage,
   getPetAttackLog,
 } = require("../../../utils/rpgUtil");

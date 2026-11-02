@@ -493,10 +493,6 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
     pierceFlags: { blueStaff: false, crimsonDagger: false, sunbow: false, spearhex: false },
   };
 
-  if (isLockedWeapon(pWeaponSubType)) return result;
-
-  if (String(pWeaponRarity).toLowerCase() === "common") return result;
-
   const stats = player.stats || {};
   const power = player.power || 0;
   const calcScaling = (scalingFn) => {
@@ -510,8 +506,8 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
   const pendingMaxHpHeals = []; // { pct, logFn, passiveType }
   const pendingHitDots = []; // { effectType, rounds, pct, logText }
 
-  const passiveDef = player.weapon?.fixedPassive || getWeaponPassive(pWeaponSubType);
-  const passive = (player.weapon?.fixedPassive?.mode && player.weapon.fixedPassive.mode[mode]) || (passiveDef ? passiveDef.mode[mode] : null);
+  const passiveDef = getWeaponPassive(pWeaponSubType);
+  const passive = passiveDef ? passiveDef.mode[mode] : null;
 
   if (passiveDef && passive) {
     const addPassiveLog = (message, passiveType = passive.type) => {
@@ -1092,108 +1088,6 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
   return result;
 };
 
-function generateScaledFixedPassive(subType, rarity = "Common", quality = 50) {
-  const baseP = getWeaponPassive(subType);
-  if (!baseP) return null;
-
-  const rarityMultipliers = {
-    Common: 1.0,
-    Rare: 1.15,
-    Epic: 1.35,
-    Legendary: 1.65,
-    Mythic: 2.0,
-    Ancient: 2.4,
-    Divine: 2.8,
-  };
-  const mult = rarityMultipliers[rarity] || 1.0;
-  const qualityFactor = 0.85 + (Math.max(0, Math.min(105, quality || 50)) / 100) * 0.3;
-  const jitter = 0.95 + Math.random() * 0.10;
-  const scale = mult * qualityFactor * jitter;
-
-  const scaledMode = {};
-  if (baseP.mode) {
-    for (const [mKey, mVal] of Object.entries(baseP.mode)) {
-      scaledMode[mKey] = { ...mVal };
-      if (typeof mVal.amount === "number") {
-        scaledMode[mKey].amount = Math.round(mVal.amount * scale * 1000) / 1000;
-      }
-      if (typeof mVal.cap === "number") {
-        scaledMode[mKey].cap = Math.round(mVal.cap * scale * 1000) / 1000;
-      }
-      if (typeof mVal.damageMult === "number") {
-        scaledMode[mKey].damageMult = Math.round((1 + (mVal.damageMult - 1) * scale) * 1000) / 1000;
-      }
-      if (typeof mVal.healPctMaxHp === "number") {
-        scaledMode[mKey].healPctMaxHp = Math.round(mVal.healPctMaxHp * scale * 1000) / 1000;
-      }
-      if (Array.isArray(mVal.extraEffects)) {
-        scaledMode[mKey].extraEffects = mVal.extraEffects.map((eff) => {
-          const clonedEff = { ...eff };
-          if (typeof eff.amount === "number") {
-            clonedEff.amount = Math.round(eff.amount * scale * 1000) / 1000;
-          }
-          if (typeof eff.cap === "number") {
-            clonedEff.cap = Math.round(eff.cap * scale * 1000) / 1000;
-          }
-          return clonedEff;
-        });
-      }
-    }
-  }
-
-  const primaryAmount = scaledMode.dungeon?.amount || scaledMode.pvp?.amount || scaledMode.boss?.amount;
-  let dynamicDesc = baseP.description;
-  if (primaryAmount) {
-    dynamicDesc = `${baseP.description} *(Hiệu ứng thực tế: ${Math.round(primaryAmount * 100)}%)*`;
-  }
-
-  return {
-    name: baseP.name,
-    type: baseP.type,
-    description: dynamicDesc,
-    scale: Math.round(scale * 100) / 100,
-    mode: scaledMode,
-  };
-}
-
-function rollRandomWeaponPassive(rarity = "Common", quality = 50) {
-  const PASSIVE_POOL = [
-    { type: "lifesteal", name: "Hút Máu", emoji: "<:LifeSteal:1563844557026893924>", baseMin: 0.04, baseMax: 0.08 },
-    { type: "armor_pierce", name: "Xuyên Giáp", emoji: "<:ArmorPierce:1563844554728276018>", baseMin: 0.06, baseMax: 0.12 },
-    { type: "mr_pierce", name: "Xuyên Kháng Phép", emoji: "🔮", baseMin: 0.06, baseMax: 0.12 },
-    { type: "bleed", name: "Chảy Máu", emoji: "<:bleed:1521938497642958889>", baseMin: 0.05, baseMax: 0.10 },
-    { type: "burn", name: "Thiêu Đốt", emoji: "<:burn:1521938494094835774>", baseMin: 0.05, baseMax: 0.10 },
-    { type: "crit", name: "Bạo Kích", emoji: "💥", baseMin: 0.08, baseMax: 0.15 },
-    { type: "double_hit", name: "Đòn Kép", emoji: "⚡", baseMin: 0.05, baseMax: 0.10 },
-    { type: "stun", name: "Làm Choáng", emoji: "<:stun:1521938490605178910>", baseMin: 0.03, baseMax: 0.06 },
-  ];
-
-  const picked = PASSIVE_POOL[Math.floor(Math.random() * PASSIVE_POOL.length)];
-  const rarityMultipliers = {
-    Common: 1.0,
-    Rare: 1.25,
-    Epic: 1.6,
-    Legendary: 2.1,
-    Mythic: 2.7,
-    Ancient: 3.4,
-    Divine: 4.2,
-  };
-  const mult = rarityMultipliers[rarity] || 1.0;
-  const qualityFactor = 0.85 + (Math.max(0, Math.min(105, quality)) / 100) * 0.3;
-  const jitter = 0.95 + Math.random() * 0.10;
-  const baseVal = picked.baseMin + Math.random() * (picked.baseMax - picked.baseMin);
-  const finalValue = Math.round(baseVal * mult * qualityFactor * jitter * 1000) / 1000;
-  const percentText = `${Math.round(finalValue * 100)}%`;
-
-  return {
-    type: picked.type,
-    name: picked.name,
-    emoji: picked.emoji,
-    value: finalValue,
-    description: `${picked.emoji} **${picked.name}**: +${percentText}`,
-  };
-}
-
 const resolveShieldhexDefense = (target, damage, activeDungeon) => {
   const playerSubType = target.weapon?.subType
     ? target.weapon.subType.toLowerCase().replace(/\s+/g, "")
@@ -1298,6 +1192,5 @@ module.exports = {
   resolveWearInfo,
   computeRandomPassiveSpec,
   rollRandomWeaponPassive,
-  generateScaledFixedPassive,
   normalizeRandomWeaponPassive,
 };

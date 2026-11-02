@@ -60,6 +60,97 @@ const normalizeRpgSlot = (slot) => {
   return aliases[cleanSlot] || null;
 };
 
+const normalizeWeaponItem = (item, options = {}) => {
+  if (!item || item.slot !== "weapon") return false;
+  let changed = false;
+
+  if (item.level !== 1) {
+    item.level = 1;
+    changed = true;
+  }
+
+  const subTypeRaw = item.subType || item.subtype || item.name || "";
+  const isDungeon = isDungeonWeaponHelper(item.slot, subTypeRaw);
+  const rarityConfig = config.rpg.gear_rarities[item.rarity] || config.rpg.gear_rarities.Common;
+  let powerRarityConfig = rarityConfig;
+  if (isDungeon) {
+    const getNextRarity = (rar) => {
+      const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
+      const idx = rarities.indexOf(rar);
+      if (idx === -1) return rar;
+      return rarities[Math.min(rarities.length - 1, idx + 1)];
+    };
+    powerRarityConfig = config.rpg.gear_rarities[getNextRarity(item.rarity)] || rarityConfig;
+  }
+
+  const { resolveWearInfo, normalizeRandomWeaponPassive } = require("./rpgPassiveUtil");
+  const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
+
+  const qualityVal = typeof item.quality === "number" && Number.isFinite(item.quality) ? item.quality : 50;
+  const clampedQuality = Math.max(10, Math.min(105, Math.round(qualityVal * 10) / 10));
+  if (item.quality !== clampedQuality) {
+    item.quality = clampedQuality;
+    changed = true;
+  }
+
+  const wearInfo = resolveWearInfo(item.wear, clampedQuality);
+  if (!item.wear || item.wear.name !== wearInfo.name || item.wear.bonus !== wearInfo.bonus) {
+    item.wear = { id: wearInfo.id, name: wearInfo.name, bonus: wearInfo.bonus };
+    changed = true;
+  }
+
+  const levelBonus = 4;
+  const variance = 0.9 + 0.2 * ((Math.min(100, clampedQuality) - 10) / 90);
+  const correctedPower = Math.floor((powerRarityConfig.power + levelBonus) * variance);
+  if (item.power !== correctedPower) {
+    item.power = correctedPower;
+    changed = true;
+  }
+
+  const baseP = getWeaponPassive(subTypeRaw);
+  if (baseP) {
+    const fixedEmojis = getWeaponPassiveEmojis(subTypeRaw);
+    const desiredFixed = {
+      name: baseP.name,
+      type: baseP.type,
+      emoji: fixedEmojis,
+      description: baseP.description || "",
+    };
+    if (
+      !item.fixedPassive ||
+      item.fixedPassive.name !== desiredFixed.name ||
+      item.fixedPassive.type !== desiredFixed.type ||
+      item.fixedPassive.emoji !== desiredFixed.emoji
+    ) {
+      item.fixedPassive = desiredFixed;
+      changed = true;
+    }
+  } else if (item.fixedPassive !== null) {
+    item.fixedPassive = null;
+    changed = true;
+  }
+
+  const normalizedRand = normalizeRandomWeaponPassive(
+    item.randomPassive,
+    item.rarity || "Common",
+    clampedQuality,
+    item.wear,
+    options.forceRandomRoll ? null : item.id
+  );
+  if (
+    !item.randomPassive ||
+    item.randomPassive.type !== normalizedRand.type ||
+    item.randomPassive.value !== normalizedRand.value ||
+    item.randomPassive.emoji !== normalizedRand.emoji ||
+    item.randomPassive.description !== normalizedRand.description
+  ) {
+    item.randomPassive = normalizedRand;
+    changed = true;
+  }
+
+  return changed;
+};
+
 const getRpgItems = (user) => {
   const items = user.rpg?.items || [];
   const isBattleBot = Boolean(user?.isBattleBot || String(user?.userId || "").startsWith("bot_pvp_"));
@@ -70,32 +161,7 @@ const getRpgItems = (user) => {
       modified = true;
     }
     if (item.slot === "weapon" && !isBattleBot) {
-      // Force level = 1 to completely remove hidden level of weapons
-      if (item.level !== 1) {
-        item.level = 1;
-        modified = true;
-      }
-      
-      const rarityConfig = config.rpg.gear_rarities[item.rarity] || config.rpg.gear_rarities.Common;
-      const isDungeon = isDungeonWeaponHelper(item.slot, item.subType || item.subtype);
-      let powerRarityConfig = rarityConfig;
-      if (isDungeon) {
-        const getNextRarity = (rar) => {
-          const rarities = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancient", "Divine"];
-          const idx = rarities.indexOf(rar);
-          if (idx === -1) return rar;
-          return rarities[Math.min(rarities.length - 1, idx + 1)];
-        };
-        powerRarityConfig = config.rpg.gear_rarities[getNextRarity(item.rarity)] || rarityConfig;
-      }
-      
-      const levelBonus = 4; // level = 1, so levelBonus = 1 * 4.5 = 4
-      const qualityVal = typeof item.quality === "number" ? item.quality : 50;
-      const variance = 0.9 + 0.2 * ((qualityVal - 10) / 90);
-      const correctedPower = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-      
-      if (item.power !== correctedPower) {
-        item.power = correctedPower;
+      if (normalizeWeaponItem(item)) {
         modified = true;
       }
     }
@@ -550,7 +616,7 @@ const getItemImageFile = (item) => {
     const lowerSub = subType.toLowerCase();
     if (suffix === "archer" || lowerSub.includes("archer") || lowerSub.includes("ranger")) return "Ring/archerring.png";
     if (suffix === "paladin" || lowerSub.includes("paladin") || lowerSub.includes("holy")) return "Ring/paladinring.png";
-    if (suffix === "mage" || lowerSub.includes("mage")) return "Ring/magering.png";
+    if (lowerSub.includes("mage")) return "Ring/magering.png";
     if (lowerSub.includes("dragon")) return "Ring/dragonring.png";
     return "Ring/ring.png";
   }
@@ -658,7 +724,7 @@ const getWeaponScaling = (item) => {
 
   // Các vũ khí Boss / Sự kiện (không phải Gacha) — tối đa 2 chỉ số scaling
   if (weaponKey.includes("axesnake")) {
-    return { str: "S", dex: "-", int: "-", arc: "-" };
+    return { str: "S", dex: "A", int: "-", arc: "-" };
   }
   if (weaponKey.includes("clawhex")) {
     return { str: "S", dex: "S", int: "-", arc: "-" };
@@ -740,7 +806,9 @@ const getWeaponPower = (item, effectiveStats) => {
   const valPr = effectiveStats.pr || 0;
   const valMr = effectiveStats.mr || 0;
   
-  const bonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
+  const activeScaleCount = [multStr, multDex, multInt, multArc, multPr, multMr].filter((m) => m > 0).length;
+  const rawBonusPercent = (multStr * valStr + multDex * valDex + multInt * valInt + multArc * valArc + multPr * valPr + multMr * valMr) / 99;
+  const bonusPercent = activeScaleCount >= 3 ? rawBonusPercent * 0.86 : rawBonusPercent;
   const isDungeon = isDungeonWeapon(item);
   const balance = config.rpg?.balance || {};
   const subTypeClean = String(item.subType || item.subtype || "").toLowerCase().replace(/\s+/g, "");
@@ -824,106 +892,6 @@ const WEAPON_SETS = {
   demonbook: { name: "Quỷ Chú", color: "#7c2d12", bonus: { mrPierce: 0.08, bossDamage: 0.04 } },
 };
 
-const GEAR_CLASS_SUFFIXES = {
-  knight: { key: "knight", name: "Hiệp Sĩ", statName: "Sát thương vật lý", statType: "physical_dmg", icon: "⚔️" },
-  mage: { key: "mage", name: "Phù Thủy", statName: "Sát thương phép", statType: "magic_dmg", icon: "🔮" },
-  assassin: { key: "assassin", name: "Sát Thủ", statName: "Tỉ lệ chí mạng", statType: "crit_rate", icon: "🗡️" },
-  archer: { key: "archer", name: "Xạ Thủ", statName: "Sát thương chuẩn", statType: "true_dmg", icon: "🏹" },
-  paladin: { key: "paladin", name: "Paladin", statName: "Máu tối đa", statType: "max_hp", icon: "🛡️" },
-};
-
-const getClassSuffixSetBonus = (user) => {
-  if (!user?.rpg?.equipped) return null;
-  const equipped = getEquippedItems(user);
-  const NON_WEAPON_SLOTS = ["armor", "helmet", "boots", "ring", "necklace"];
-  const counts = {};
-
-  for (const slotKey of NON_WEAPON_SLOTS) {
-    const item = equipped[slotKey];
-    if (item && item.classSuffix && GEAR_CLASS_SUFFIXES[item.classSuffix]) {
-      counts[item.classSuffix] = (counts[item.classSuffix] || 0) + 1;
-    }
-  }
-
-  let topSuffix = null;
-  let maxCount = 0;
-  for (const [sKey, count] of Object.entries(counts)) {
-    if (count > maxCount) {
-      maxCount = count;
-      topSuffix = sKey;
-    }
-  }
-
-  if (maxCount < 3 || !topSuffix) {
-    return {
-      active: false,
-      suffix: topSuffix,
-      count: maxCount,
-      percent: 0,
-      multiplier: 0,
-      name: topSuffix ? GEAR_CLASS_SUFFIXES[topSuffix]?.name : null,
-      description: null,
-    };
-  }
-
-  const isFullSet = maxCount >= 5;
-  const percent = isFullSet ? 3.0 : 1.5;
-  const multiplier = isFullSet ? 0.03 : 0.015;
-  const meta = GEAR_CLASS_SUFFIXES[topSuffix];
-
-  return {
-    active: true,
-    suffix: topSuffix,
-    count: maxCount,
-    tier: isFullSet ? 5 : 3,
-    percent,
-    multiplier,
-    name: meta.name,
-    statName: meta.statName,
-    statType: meta.statType,
-    icon: meta.icon,
-    description: `Bộ ${meta.icon} **[${meta.name}]** (${maxCount}/5 món): +${percent}% ${meta.statName}`,
-  };
-};
-
-const getPetWeaponCompatibility = (pet, weapon) => {
-  if (!pet || !weapon) return { isMatch: false, efficiency: 0.35, reason: "Thiếu thông tin" };
-  const { getPetBattleStats, findPetSpecies } = require("../data/pets");
-  const species = findPetSpecies(pet.key) || pet;
-  const bStats = getPetBattleStats(species, pet.level || 1).points || {};
-
-  const att = bStats.att || 0;
-  const mag = bStats.mag || 0;
-  const wp = bStats.wp || 0;
-  const hp = bStats.hp || 0;
-  const pr = bStats.pr || 0;
-
-  let petRole = "physical";
-  if ((mag >= att && mag >= hp) || (wp >= att && wp >= hp)) {
-    petRole = "magical";
-  } else if ((hp >= att && hp >= mag) || (pr >= att && pr >= mag)) {
-    petRole = "tank";
-  }
-
-  const sub = String(weapon.subType || weapon.name || "").toLowerCase();
-  let weaponRole = "physical";
-  if (sub.includes("staff") || sub.includes("wand") || sub.includes("book") || sub.includes("grimoire") || sub.includes("orb")) {
-    weaponRole = "magical";
-  } else if (sub.includes("shield") || sub.includes("hammer") || sub.includes("warhammer") || sub.includes("armor")) {
-    weaponRole = "tank";
-  } else {
-    weaponRole = "physical";
-  }
-
-  const isMatch = petRole === weaponRole;
-  const efficiency = isMatch ? 1.0 : 0.35;
-  const reason = isMatch
-    ? `✅ Tương thích hoàn hảo (${petRole === "physical" ? "Vật lý" : petRole === "magical" ? "Phép thuật" : "Hộ vệ"}): Phát huy 100% sức mạnh vũ khí!`
-    : `⚠️ Trái hệ (Linh thú hệ ${petRole === "physical" ? "Vật lý" : petRole === "magical" ? "Phép" : "Hộ vệ"} nhưng dùng vũ khí ${weaponRole === "physical" ? "Vật lý" : weaponRole === "magical" ? "Phép" : "Hộ vệ"}): Hiệu quả giảm còn 35%!`;
-
-  return { isMatch, efficiency, reason, petRole, weaponRole };
-};
-
 const getWeaponSetBonus = (user) => {
   if (!user?.rpg) return null;
   const equipped = getEquippedItems(user);
@@ -951,8 +919,6 @@ const computeCombatStats = (user, effectiveStats) => {
   const set = getWeaponSetBonus(user);
   let maxHpBonus = 0;
   if (set?.bonus?.maxHp) maxHpBonus = set.bonus.maxHp;
-  const classSet = getClassSuffixSetBonus(user);
-  if (classSet?.active && classSet.suffix === "paladin") maxHpBonus += classSet.multiplier;
 
   let power = calculateRpgPower(user);
   if (set?.bonus?.maxHp) power += 0;
@@ -961,7 +927,6 @@ const computeCombatStats = (user, effectiveStats) => {
     stats,
     level,
     set,
-    classSet,
     physicalDef,
     magicalDef,
     maxHpBonus,
@@ -1066,18 +1031,30 @@ const getEquippedPet = (user) => {
 
 const getEquippedPetBonuses = (user) => {
   const pet = getEquippedPet(user);
-  if (!pet) return { hpPct: 0, atkPct: 0, defPct: 0, baseHp: 0, baseAtk: 0, baseDef: 0, pet: null };
+  const { PET_TIERS, computePetStatEffects } = require("../data/pets");
+  if (!pet) {
+    const emptyFx = computePetStatEffects(null);
+    return {
+      ...emptyFx,
+      atkPct: 0,
+      defPct: 0,
+      baseHp: 0,
+      baseAtk: 0,
+      baseDef: 0,
+      pet: null,
+    };
+  }
   const lvl = pet.level || 1;
-  const { PET_TIERS } = require("../data/pets");
   const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
-  const baseHp = pet.stats?.baseHp || tierConfig.baseHp;
-  const baseAtk = pet.stats?.baseAtk || tierConfig.baseAtk;
-  const baseDef = pet.stats?.baseDef || tierConfig.baseDef;
+  const fx = computePetStatEffects(pet, lvl);
+  const baseHp = pet.stats?.baseHp || (tierConfig.baseHp + fx.points.hp * 6);
+  const baseAtk = pet.stats?.baseAtk || (tierConfig.baseAtk + Math.max(fx.points.att, fx.points.mag) * 2);
+  const baseDef = pet.stats?.baseDef || (tierConfig.baseDef + (fx.points.pr + fx.points.mr) * 2);
 
   return {
-    hpPct: lvl * 0.005,   // +0.5% per level
-    atkPct: lvl * 0.004,  // +0.4% per level
-    defPct: lvl * 0.0035, // +0.35% per level
+    ...fx,
+    atkPct: Number(Math.max(fx.patkPct, fx.matkPct).toFixed(4)),
+    defPct: Number((fx.physDmgReducePct + fx.dotReducePct * 0.5).toFixed(4)),
     baseHp,
     baseAtk,
     baseDef,
@@ -1114,18 +1091,20 @@ const addPetExp = (user, amount) => {
   return { leveledUp, level, pet };
 };
 
-// --- Pet combat (pet tham chiến: gây sát thương độc lập theo level + tier) ---
+// --- Pet combat (pet tham chiến: gây sát thương + hồi phục + nạp nộ theo 6 chỉ số) ---
 const DEFAULT_PET_TIER_ATK_MULT = {
   Common: 1.0,
   Rare: 1.6,
   Epic: 2.5,
+  Generation: 3.2,
   Legendary: 4.0,
   Mythic: 6.5,
   Ancient: 10.0,
   Divine: 16.0,
+  Secret: 20.0,
 };
 
-// Heuristic: pet cowsaát thương theo baseAtk/level/tier. PvP dùng hệ số nhỏ hơn
+// Heuristic: pet gây sát thương theo 6 chỉ số (ATT/MAG) + level + tier. PvP dùng hệ số nhỏ hơn
 // vì HP người chơi thấp hơn nhiều so với boss dungeon.
 const PET_MODE_SCALE = {
   dungeon: 1.0,
@@ -1135,16 +1114,25 @@ const PET_MODE_SCALE = {
 
 const getPetCombatStats = (pet) => {
   if (!pet) return null;
-  const { PET_TIERS } = require("../data/pets");
+  const { PET_TIERS, computePetStatEffects } = require("../data/pets");
   const tierConfig = PET_TIERS[pet.tier] || PET_TIERS.Common;
-  const baseAtk = pet.stats?.baseAtk || pet.baseAtk || tierConfig.baseAtk;
-  const baseDef = pet.stats?.baseDef || pet.baseDef || tierConfig.baseDef;
   const level = pet.level || 1;
-  return { tier: pet.tier, level, baseAtk, baseDef };
+  const fx = computePetStatEffects(pet, level);
+  const baseAtk = pet.stats?.baseAtk || pet.baseAtk || (tierConfig.baseAtk + Math.max(fx.points.att, fx.points.mag) * 2);
+  const baseDef = pet.stats?.baseDef || pet.baseDef || (tierConfig.baseDef + (fx.points.pr + fx.points.mr) * 2);
+  return {
+    tier: pet.tier,
+    level,
+    baseAtk,
+    baseDef,
+    points: fx.points,
+    scaled: fx.scaled,
+    effects: fx,
+  };
 };
 
-// Sát thương pet (độc lập) cho 1 đòn, theo mode.
-const petAttackDamage = (pet, mode = "dungeon") => {
+// Sát thương pet (độc lập) cho 1 đòn, theo mode và chỉ số ATT/MAG của pet.
+const petAttackDamage = (pet, mode = "dungeon", targetDefense = null) => {
   const cs = getPetCombatStats(pet);
   if (!cs) return 0;
   const configuredPetMultipliers = config.rpg?.balance?.pet_tier_attack_multiplier || {};
@@ -1153,23 +1141,108 @@ const petAttackDamage = (pet, mode = "dungeon") => {
     ? Math.max(0, atkMult)
     : (DEFAULT_PET_TIER_ATK_MULT[cs.tier] || DEFAULT_PET_TIER_ATK_MULT.Common);
   const modeScale = PET_MODE_SCALE[mode] ?? 1.0;
-  // (baseAtk + level*2) * tierMult * modeScale
-  let weaponBonus = 0;
-  if (pet.equippedWeapon) {
-    const eff = pet.equippedWeapon.efficiency || 1.0;
-    weaponBonus = Math.floor((pet.equippedWeapon.power || 0) * eff * 0.2);
+
+  const { att = 3, mag = 3 } = cs.points || {};
+  const primaryStat = Math.max(att, mag);
+  const secondaryStat = Math.min(att, mag);
+  const statOffenseBonus = primaryStat * (1.8 + cs.level * 0.16) + secondaryStat * 0.5;
+
+  let rawDmg = (cs.baseAtk + cs.level * 2 + statOffenseBonus) * safeAtkMult * modeScale;
+
+  if (targetDefense && typeof targetDefense === "object") {
+    const isMagicPet = mag > att;
+    const defVal = isMagicPet
+      ? Number(targetDefense.magicResist || 0)
+      : Number(targetDefense.armor || 0);
+    const defLvl = Number(targetDefense.level || 1);
+    if (defVal > 0) {
+      const mitigation = Math.min(0.75, defVal / (defVal + 240 + defLvl * 3));
+      rawDmg *= 1 - mitigation;
+    }
   }
-  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2 + weaponBonus) * safeAtkMult * modeScale));
+
+  return Math.max(1, Math.floor(rawDmg));
 };
 
-const getPetAttackLog = (pet, mode = "dungeon", damage) => {
+const getPetAttackLog = (pet, mode = "dungeon", damage, extraInfo = null) => {
   if (!pet) return "";
   const emoji = pet.emoji || "🐾";
   const name = pet.nickname || pet.name || "Thú cưng";
   const dmg = damage !== undefined ? damage : petAttackDamage(pet, mode);
   const dmgStr = dmg.toLocaleString();
-  if (mode === "pvp") return `${emoji} **[${name}]** lao vào tấn công! Gây **${dmgStr}** sát thương.`;
-  return `${emoji} **[${name}]** tấn công! Gây **${dmgStr}** sát thương.`;
+  const cs = getPetCombatStats(pet);
+  const isMagic = (cs?.points?.mag || 0) > (cs?.points?.att || 0);
+  const dmgTypeLabel = isMagic ? "sát thương phép" : "sát thương vật lý";
+
+  const extraParts = [];
+  if (extraInfo?.healAmount > 0) {
+    extraParts.push(`hồi **+${extraInfo.healAmount.toLocaleString()} HP**`);
+  }
+  if (extraInfo?.rageGained > 0) {
+    extraParts.push(`nạp **+${extraInfo.rageGained} ${extraInfo.resourceLabel || "Nộ"}**`);
+  }
+  const suffix = extraParts.length > 0 ? ` *(Hỗ trợ chủ nhân: ${extraParts.join(", ")})*` : "";
+
+  if (mode === "pvp") {
+    return `${emoji} **[${name}]** lao vào tấn công gây **${dmgStr}** ${dmgTypeLabel}!${suffix}`;
+  }
+  return `${emoji} **[${name}]** tấn công gây **${dmgStr}** ${dmgTypeLabel}!${suffix}`;
+};
+
+/**
+ * Resolves the pet's full turn action (Attack + HP Regen from HP/WP + Rage/MP gain from WP).
+ */
+const resolvePetTurnAction = (pet, owner, target = null, mode = "pvp") => {
+  if (!pet) return { damage: 0, healAmount: 0, rageGained: 0, log: "" };
+  const cs = getPetCombatStats(pet);
+  const fx = cs?.effects;
+  const damage = petAttackDamage(pet, mode, target);
+
+  let healAmount = 0;
+  if (owner && owner.hp > 0 && owner.maxHp > 0 && owner.hp < owner.maxHp && fx?.regenHpPct > 0) {
+    const rawHeal = Math.max(1, Math.floor(owner.maxHp * fx.regenHpPct));
+    const healBanPenalty = (owner.healBanRounds || 0) > 0 ? 0.30 : 0;
+    const healReduced = Math.min(
+      0.55,
+      Math.max(healBanPenalty, Number(owner.effects?.healReduced || 0))
+    );
+    healAmount = Math.max(0, Math.floor(rawHeal * (1 - healReduced)));
+    if (healAmount > 0) {
+      const missing = Math.max(0, owner.maxHp - owner.hp);
+      healAmount = Math.min(missing, healAmount);
+      owner.hp = Math.min(owner.maxHp, owner.hp + healAmount);
+    }
+  }
+
+  let rageGained = 0;
+  let resourceLabel = "Nộ";
+  if (owner && owner.hp > 0 && fx?.ragePerTurn > 0) {
+    if (mode === "dungeon" && owner.classKey === "mage" && typeof owner.mana === "number") {
+      const before = owner.mana;
+      owner.mana = Math.min(100, owner.mana + fx.ragePerTurn);
+      rageGained = Math.max(0, owner.mana - before);
+      resourceLabel = "MP";
+    } else if (typeof owner.rage === "number") {
+      const before = owner.rage;
+      owner.rage = Math.min(100, owner.rage + fx.ragePerTurn);
+      rageGained = Math.max(0, owner.rage - before);
+      resourceLabel = "Nộ";
+    }
+  }
+
+  const log = getPetAttackLog(pet, mode, damage, {
+    healAmount,
+    rageGained,
+    resourceLabel,
+  });
+
+  return {
+    damage,
+    healAmount,
+    rageGained,
+    attackType: fx?.attackType || "physical",
+    log,
+  };
 };
 
 const getEffectiveRpgStats = (user) => {
@@ -1196,6 +1269,12 @@ const getEffectiveRpgStats = (user) => {
         stats[targetStat] = (stats[targetStat] || 0) + value;
       }
     }
+  }
+
+  const petBonuses = getEquippedPetBonuses(user);
+  if (petBonuses?.pet) {
+    stats.pr = (stats.pr || 0) + (petBonuses.bonusPr || 0);
+    stats.mr = (stats.mr || 0) + (petBonuses.bonusMr || 0);
   }
 
   const isBot = Boolean(user?.isBattleBot || user?.userId?.startsWith?.("bot_pvp_"));
@@ -1501,17 +1580,9 @@ const getGearDisplayName = (item) => {
   
   emoji = emoji || slotEmoji[item.slot] || "🛡️";
   subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "");
-  const CLASS_SUFFIX_TAGS = {
-    knight: "[Hiệp Sĩ]",
-    mage: "[Phù Thủy]",
-    assassin: "[Sát Thủ]",
-    archer: "[Xạ Thủ]",
-    paladin: "[Paladin]",
-  };
-  const suffixTag = item.classSuffix && CLASS_SUFFIX_TAGS[item.classSuffix] ? ` ${CLASS_SUFFIX_TAGS[item.classSuffix]}` : "";
   const upgradeStr = item.upgradeLevel && item.upgradeLevel > 0 ? ` +${item.upgradeLevel}` : "";
   const favoriteStr = item.isFavorite ? " ⭐" : "";
-  return `${rank}${emoji} ${subTypeName}${suffixTag}${upgradeStr}${favoriteStr}`;
+  return `${rank}${emoji} ${subTypeName}${upgradeStr}${favoriteStr}`;
 };
 
 let globalLastItemId = null;
@@ -1651,11 +1722,25 @@ const generateRpgGearDrop = async (user, options = {}) => {
   }
 
   const levelBonus = Math.floor(level * 4.5);
-  const variance = 0.9 + Math.random() * 0.2;
-  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  if (!options.fromWc) {
-    quality = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+  let variance = 0.9 + Math.random() * 0.2;
+  if (!wear) {
+    const wearRoll = Math.random() * 100;
+    if (wearRoll < 2.0) {
+      wear = { id: "pristine", name: "Pristine", bonus: 5 };
+    } else if (wearRoll < 10.0) {
+      wear = { id: "fine", name: "Fine", bonus: 3 };
+    } else if (wearRoll < 28.0) {
+      wear = { id: "decent", name: "Decent", bonus: 1 };
+    } else {
+      wear = { id: "worn", name: "Worn", bonus: 0 };
+    }
   }
+  if (!options.fromWc) {
+    const baseQ = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
+    quality = Math.min(105, Math.round((baseQ + (wear.bonus || 0)) * 10) / 10);
+  }
+  variance = 0.9 + 0.2 * ((Math.min(100, quality) - 10) / 90);
+  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
   const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name);
   const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
 
@@ -1663,21 +1748,23 @@ const generateRpgGearDrop = async (user, options = {}) => {
   let fixedPassive = null;
   let randomPassive = null;
 
-  let classSuffix = null;
   if (slot === "weapon") {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
-    const { generateScaledFixedPassive, rollRandomWeaponPassive } = require("./rpgPassiveUtil");
-    fixedPassive = generateScaledFixedPassive(chosenSubtype.name, rarity, quality);
-    randomPassive = rollRandomWeaponPassive(rarity, quality);
-  } else {
-    const NON_WEAPON_SLOTS = ["armor", "helmet", "boots", "ring", "necklace"];
-    if (NON_WEAPON_SLOTS.includes(slot)) {
-      const suffixKeys = ["knight", "mage", "assassin", "archer", "paladin"];
-      classSuffix = options.classSuffix || suffixKeys[Math.floor(Math.random() * suffixKeys.length)];
+    const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
+    const { rollRandomWeaponPassive } = require("./rpgPassiveUtil");
+    const baseP = getWeaponPassive(chosenSubtype.name);
+    if (baseP) {
+      fixedPassive = {
+        name: baseP.name,
+        type: baseP.type,
+        emoji: getWeaponPassiveEmojis(chosenSubtype.name),
+        description: baseP.description || "",
+      };
     }
+    randomPassive = rollRandomWeaponPassive(rarity, quality, wear);
   }
 
-  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel, classSuffix });
+  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
 
   if (globalLastItemId === null) {
     let dbLastId = 0;
@@ -1710,7 +1797,6 @@ const generateRpgGearDrop = async (user, options = {}) => {
     stats,
     quality,
     wear: wear || { name: "Worn", bonus: 0 },
-    classSuffix,
     fixedPassive,
     randomPassive,
     sellPrice,
@@ -1973,11 +2059,13 @@ module.exports = {
   getPetCombatStats,
   petAttackDamage,
   getPetAttackLog,
+  resolvePetTurnAction,
   classEntries,
   getRpgClass,
   getClassAssetPath,
   getRpgXpNeeded,
   getRpgRank,
+  normalizeWeaponItem,
   getRpgItems,
   getEquippedItems,
   getEffectiveRpgStats,
@@ -2005,9 +2093,6 @@ module.exports = {
   getWeaponPower,
   WEAPON_SETS,
   getWeaponSetBonus,
-  GEAR_CLASS_SUFFIXES,
-  getClassSuffixSetBonus,
-  getPetWeaponCompatibility,
   computeCombatStats,
   getPhysicalMitigation,
   getMagicalMitigation,
