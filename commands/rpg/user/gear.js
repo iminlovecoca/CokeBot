@@ -66,20 +66,29 @@ const resolveItemDisplayMeta = (item) => {
     ring: "<:ring:1514236487707791391>",
     necklace: "<:necklace:1514236494859206729>",
   };
-  const defaultUnicodeSet = new Set(["🗡️", "🛡️", "🪖", "🥾", "💍", "📿", "📖", "🔨", "🦉", "⚡"]);
+  const defaultUnicodeSet = new Set(["🗡️", "🛡️", "🏹", "🪖", "🥾", "💍", "📿", "📖", "🔨", "🦉", "⚡"]);
   let subTypeName = item.subType || item.subtype || "";
   let emoji = item.emoji || "";
 
-  const { dungeonWeapons } = require("../../../utils/rpgUtil");
+  const { dungeonWeapons, subTypes } = require("../../../utils/rpgUtil");
   const dungKey = getDungeonWeaponKey(subTypeName);
   const dungWeapon = dungKey ? dungeonWeapons.find((dw) => dw.key === dungKey) : null;
   if (dungWeapon) {
     subTypeName = dungWeapon.name;
     emoji = dungWeapon.emoji;
-  } else if (!subTypeName || !emoji || defaultUnicodeSet.has(emoji)) {
-    const mapping = getLegacyMapping(item.slot);
-    if (mapping.subType && !subTypeName) subTypeName = mapping.subType;
-    if (mapping.emoji && (!emoji || defaultUnicodeSet.has(emoji))) emoji = mapping.emoji;
+  } else {
+    if (subTypeName && item.slot && subTypes[item.slot]) {
+      const cleanSub = subTypeName.toLowerCase().replace(/\s+/g, "");
+      const foundSub = subTypes[item.slot].find((st) => st.name.toLowerCase().replace(/\s+/g, "") === cleanSub);
+      if (foundSub && (!emoji || defaultUnicodeSet.has(emoji) || emoji === slotEmoji[item.slot])) {
+        emoji = foundSub.emoji;
+      }
+    }
+    if (!subTypeName || !emoji || defaultUnicodeSet.has(emoji)) {
+      const mapping = getLegacyMapping(item.slot);
+      if (mapping.subType && !subTypeName) subTypeName = mapping.subType;
+      if (mapping.emoji && (!emoji || defaultUnicodeSet.has(emoji))) emoji = mapping.emoji;
+    }
   }
 
   subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "ITEM");

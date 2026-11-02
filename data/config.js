@@ -20,6 +20,18 @@ module.exports = {
       odinhammer: "<:bluestaff:1514232160897339442>",
       warhammer: "<:longsword:1514231939865903104>",
     },
+    gear: {
+      archerarmor: "<:archerarmor:1566687279634710669>",
+      paladinarmor: "<:paladinarmor:1566687281799237703>",
+      archerhood: "<:archerhood:1566687365294981261>",
+      paladinhelm: "<:paladinhelm:1566687367606050886>",
+      archerboot: "<:archerboot:1566687317781909574>",
+      paladinboot: "<:paladinboot:1566687319908421682>",
+      archerring: "<:archerring:1566687436103225415>",
+      paladinring: "<:paladinring:1566687438171021422>",
+      archerneck: "<:archerneck:1566687401525387334>",
+      paladinneck: "<:paladinneck:1566687403757011034>",
+    },
     ranks: {
       generation: "<a:Generation:1563835095541092352>",
       secret: "<a:Secret:1563835098355339285>",

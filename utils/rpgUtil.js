@@ -364,36 +364,36 @@ const subTypes = {
     { name: "Heavy Armor", emoji: "<:heavyarmor:1514232237724401716>" },
     { name: "Mage Robe", emoji: "<:magerobe:1514232240052375712>" },
     { name: "Assassin Armor", emoji: "<:assassinarmor:1514232235480453201>" },
-    { name: "Archer Armor", emoji: "🏹" },
-    { name: "Paladin Armor", emoji: "🛡️" }
+    { name: "Archer Armor", emoji: "<:archerarmor:1566687279634710669>" },
+    { name: "Paladin Armor", emoji: "<:paladinarmor:1566687281799237703>" }
   ],
   helmet: [
     { name: "Warrior Helmet", emoji: "<:warriorhelmet:1514232262793629836>" },
     { name: "Wizard Hat", emoji: "<:wizardhat:1514232268246482985>" },
     { name: "Assassin Hood", emoji: "<:assassinhood:1514232265247559802>" },
-    { name: "Archer Hood", emoji: "🏹" },
-    { name: "Paladin Helm", emoji: "🛡️" }
+    { name: "Archer Hood", emoji: "<:archerhood:1566687365294981261>" },
+    { name: "Paladin Helm", emoji: "<:paladinhelm:1566687367606050886>" }
   ],
   boots: [
     { name: "Knight Boot", emoji: "<:knightboot:1514232296000192582>" },
     { name: "Mage Boot", emoji: "<:mageboot:1514232293634609182>" },
     { name: "Assassin Boot", emoji: "<:assassinboot:1514232291617149070>" },
-    { name: "Archer Boot", emoji: "🏹" },
-    { name: "Paladin Boot", emoji: "🛡️" }
+    { name: "Archer Boot", emoji: "<:archerboot:1566687317781909574>" },
+    { name: "Paladin Boot", emoji: "<:paladinboot:1566687319908421682>" }
   ],
   ring: [
     { name: "Ring", emoji: "<:ring:1514236487707791391>" },
     { name: "Mage Ring", emoji: "<:magering:1514236485556113559>" },
     { name: "Dragon Ring", emoji: "<:dragonring:1514236496868151426>" },
-    { name: "Archer Ring", emoji: "🏹" },
-    { name: "Paladin Ring", emoji: "🛡️" }
+    { name: "Archer Ring", emoji: "<:archerring:1566687436103225415>" },
+    { name: "Paladin Ring", emoji: "<:paladinring:1566687438171021422>" }
   ],
   necklace: [
     { name: "Necklace", emoji: "<:necklace:1514236494859206729>" },
     { name: "Ember Necklace", emoji: "<:emberneck:1514236492891820062>" },
     { name: "Mage Necklace", emoji: "<:mageneck:1517491429478367252>" },
-    { name: "Archer Necklace", emoji: "🏹" },
-    { name: "Paladin Necklace", emoji: "🛡️" }
+    { name: "Archer Necklace", emoji: "<:archerneck:1566687401525387334>" },
+    { name: "Paladin Necklace", emoji: "<:paladinneck:1566687403757011034>" }
   ]
 };
 
@@ -1473,11 +1473,20 @@ const getGearDisplayName = (item) => {
   if (dungWeapon) {
     emoji = dungWeapon.emoji;
     subTypeName = dungWeapon.name;
-  } else if (!subTypeName || emoji === slotEmoji[item.slot]) {
-    const mapping = getLegacyMapping(item.slot);
-    if (mapping.subType) {
-      subTypeName = mapping.subType;
-      emoji = mapping.emoji;
+  } else {
+    if (subTypeName && item.slot && subTypes[item.slot]) {
+      const cleanSub = subTypeName.toLowerCase().replace(/\s+/g, "");
+      const foundSub = subTypes[item.slot].find(st => st.name.toLowerCase().replace(/\s+/g, "") === cleanSub);
+      if (foundSub && (!emoji || emoji === "🏹" || emoji === "🛡️" || emoji === slotEmoji[item.slot])) {
+        emoji = foundSub.emoji;
+      }
+    }
+    if (!subTypeName || emoji === slotEmoji[item.slot]) {
+      const mapping = getLegacyMapping(item.slot);
+      if (mapping.subType) {
+        subTypeName = mapping.subType;
+        emoji = mapping.emoji;
+      }
     }
   }
   
