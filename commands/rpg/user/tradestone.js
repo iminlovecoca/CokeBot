@@ -14,7 +14,7 @@ class TradestoneCommand extends BaseCommand {
     super({
       name: "tradestone",
       aliases: ["ts", "trade-stone"],
-      description: "Giao dịch đá cường hóa (Somber / Cristal) của bạn với người chơi khác.",
+      description: "Giao dịch đá cường hóa Cristal (1-8) của bạn với người chơi khác.",
       usage: `${config.prefix}tradestone @mention <loại_đá> [số_lượng]`,
       examples: [
         { intent: "Tặng 5 viên Somber Smithing Stone [1] cho người khác", command: `${config.prefix}tradestone @Khang somber-1 5` },

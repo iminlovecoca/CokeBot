@@ -802,6 +802,106 @@ const WEAPON_SETS = {
   demonbook: { name: "Quỷ Chú", color: "#7c2d12", bonus: { mrPierce: 0.08, bossDamage: 0.04 } },
 };
 
+const GEAR_CLASS_SUFFIXES = {
+  knight: { key: "knight", name: "Hiệp Sĩ", statName: "Sát thương vật lý", statType: "physical_dmg", icon: "⚔️" },
+  mage: { key: "mage", name: "Phù Thủy", statName: "Sát thương phép", statType: "magic_dmg", icon: "🔮" },
+  assassin: { key: "assassin", name: "Sát Thủ", statName: "Tỉ lệ chí mạng", statType: "crit_rate", icon: "🗡️" },
+  archer: { key: "archer", name: "Xạ Thủ", statName: "Sát thương chuẩn", statType: "true_dmg", icon: "🏹" },
+  paladin: { key: "paladin", name: "Paladin", statName: "Máu tối đa", statType: "max_hp", icon: "🛡️" },
+};
+
+const getClassSuffixSetBonus = (user) => {
+  if (!user?.rpg?.equipped) return null;
+  const equipped = getEquippedItems(user);
+  const NON_WEAPON_SLOTS = ["armor", "helmet", "boots", "ring", "necklace"];
+  const counts = {};
+
+  for (const slotKey of NON_WEAPON_SLOTS) {
+    const item = equipped[slotKey];
+    if (item && item.classSuffix && GEAR_CLASS_SUFFIXES[item.classSuffix]) {
+      counts[item.classSuffix] = (counts[item.classSuffix] || 0) + 1;
+    }
+  }
+
+  let topSuffix = null;
+  let maxCount = 0;
+  for (const [sKey, count] of Object.entries(counts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      topSuffix = sKey;
+    }
+  }
+
+  if (maxCount < 3 || !topSuffix) {
+    return {
+      active: false,
+      suffix: topSuffix,
+      count: maxCount,
+      percent: 0,
+      multiplier: 0,
+      name: topSuffix ? GEAR_CLASS_SUFFIXES[topSuffix]?.name : null,
+      description: null,
+    };
+  }
+
+  const isFullSet = maxCount >= 5;
+  const percent = isFullSet ? 3.0 : 1.5;
+  const multiplier = isFullSet ? 0.03 : 0.015;
+  const meta = GEAR_CLASS_SUFFIXES[topSuffix];
+
+  return {
+    active: true,
+    suffix: topSuffix,
+    count: maxCount,
+    tier: isFullSet ? 5 : 3,
+    percent,
+    multiplier,
+    name: meta.name,
+    statName: meta.statName,
+    statType: meta.statType,
+    icon: meta.icon,
+    description: `Bộ ${meta.icon} **[${meta.name}]** (${maxCount}/5 món): +${percent}% ${meta.statName}`,
+  };
+};
+
+const getPetWeaponCompatibility = (pet, weapon) => {
+  if (!pet || !weapon) return { isMatch: false, efficiency: 0.35, reason: "Thiếu thông tin" };
+  const { getPetBattleStats, findPetSpecies } = require("../data/pets");
+  const species = findPetSpecies(pet.key) || pet;
+  const bStats = getPetBattleStats(species, pet.level || 1).points || {};
+
+  const att = bStats.att || 0;
+  const mag = bStats.mag || 0;
+  const wp = bStats.wp || 0;
+  const hp = bStats.hp || 0;
+  const pr = bStats.pr || 0;
+
+  let petRole = "physical";
+  if ((mag >= att && mag >= hp) || (wp >= att && wp >= hp)) {
+    petRole = "magical";
+  } else if ((hp >= att && hp >= mag) || (pr >= att && pr >= mag)) {
+    petRole = "tank";
+  }
+
+  const sub = String(weapon.subType || weapon.name || "").toLowerCase();
+  let weaponRole = "physical";
+  if (sub.includes("staff") || sub.includes("wand") || sub.includes("book") || sub.includes("grimoire") || sub.includes("orb")) {
+    weaponRole = "magical";
+  } else if (sub.includes("shield") || sub.includes("hammer") || sub.includes("warhammer") || sub.includes("armor")) {
+    weaponRole = "tank";
+  } else {
+    weaponRole = "physical";
+  }
+
+  const isMatch = petRole === weaponRole;
+  const efficiency = isMatch ? 1.0 : 0.35;
+  const reason = isMatch
+    ? `✅ Tương thích hoàn hảo (${petRole === "physical" ? "Vật lý" : petRole === "magical" ? "Phép thuật" : "Hộ vệ"}): Phát huy 100% sức mạnh vũ khí!`
+    : `⚠️ Trái hệ (Linh thú hệ ${petRole === "physical" ? "Vật lý" : petRole === "magical" ? "Phép" : "Hộ vệ"} nhưng dùng vũ khí ${weaponRole === "physical" ? "Vật lý" : weaponRole === "magical" ? "Phép" : "Hộ vệ"}): Hiệu quả giảm còn 35%!`;
+
+  return { isMatch, efficiency, reason, petRole, weaponRole };
+};
+
 const getWeaponSetBonus = (user) => {
   if (!user?.rpg) return null;
   const equipped = getEquippedItems(user);
@@ -829,6 +929,8 @@ const computeCombatStats = (user, effectiveStats) => {
   const set = getWeaponSetBonus(user);
   let maxHpBonus = 0;
   if (set?.bonus?.maxHp) maxHpBonus = set.bonus.maxHp;
+  const classSet = getClassSuffixSetBonus(user);
+  if (classSet?.active && classSet.suffix === "paladin") maxHpBonus += classSet.multiplier;
 
   let power = calculateRpgPower(user);
   if (set?.bonus?.maxHp) power += 0;
@@ -837,6 +939,7 @@ const computeCombatStats = (user, effectiveStats) => {
     stats,
     level,
     set,
+    classSet,
     physicalDef,
     magicalDef,
     maxHpBonus,
@@ -1029,7 +1132,12 @@ const petAttackDamage = (pet, mode = "dungeon") => {
     : (DEFAULT_PET_TIER_ATK_MULT[cs.tier] || DEFAULT_PET_TIER_ATK_MULT.Common);
   const modeScale = PET_MODE_SCALE[mode] ?? 1.0;
   // (baseAtk + level*2) * tierMult * modeScale
-  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2) * safeAtkMult * modeScale));
+  let weaponBonus = 0;
+  if (pet.equippedWeapon) {
+    const eff = pet.equippedWeapon.efficiency || 1.0;
+    weaponBonus = Math.floor((pet.equippedWeapon.power || 0) * eff * 0.2);
+  }
+  return Math.max(1, Math.floor((cs.baseAtk + cs.level * 2 + weaponBonus) * safeAtkMult * modeScale));
 };
 
 const getPetAttackLog = (pet, mode = "dungeon", damage) => {
@@ -1353,9 +1461,17 @@ const getGearDisplayName = (item) => {
   
   emoji = emoji || slotEmoji[item.slot] || "🛡️";
   subTypeName = subTypeName || (item.slot ? item.slot.toUpperCase() : "");
+  const CLASS_SUFFIX_TAGS = {
+    knight: "[Hiệp Sĩ]",
+    mage: "[Phù Thủy]",
+    assassin: "[Sát Thủ]",
+    archer: "[Xạ Thủ]",
+    paladin: "[Paladin]",
+  };
+  const suffixTag = item.classSuffix && CLASS_SUFFIX_TAGS[item.classSuffix] ? ` ${CLASS_SUFFIX_TAGS[item.classSuffix]}` : "";
   const upgradeStr = item.upgradeLevel && item.upgradeLevel > 0 ? ` +${item.upgradeLevel}` : "";
   const favoriteStr = item.isFavorite ? " ⭐" : "";
-  return `${rank}${emoji} ${subTypeName}${upgradeStr}${favoriteStr}`;
+  return `${rank}${emoji} ${subTypeName}${suffixTag}${upgradeStr}${favoriteStr}`;
 };
 
 let globalLastItemId = null;
@@ -1507,22 +1623,21 @@ const generateRpgGearDrop = async (user, options = {}) => {
   let fixedPassive = null;
   let randomPassive = null;
 
+  let classSuffix = null;
   if (slot === "weapon") {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
-    const { getWeaponPassive } = require("../data/rpg/weaponPassives");
-    const { rollRandomWeaponPassive } = require("./rpgPassiveUtil");
-    const baseP = getWeaponPassive(chosenSubtype.name);
-    if (baseP) {
-      fixedPassive = {
-        name: baseP.name,
-        type: baseP.type,
-        description: baseP.description,
-      };
-    }
+    const { generateScaledFixedPassive, rollRandomWeaponPassive } = require("./rpgPassiveUtil");
+    fixedPassive = generateScaledFixedPassive(chosenSubtype.name, rarity, quality);
     randomPassive = rollRandomWeaponPassive(rarity, quality);
+  } else {
+    const NON_WEAPON_SLOTS = ["armor", "helmet", "boots", "ring", "necklace"];
+    if (NON_WEAPON_SLOTS.includes(slot)) {
+      const suffixKeys = ["knight", "mage", "assassin", "archer", "paladin"];
+      classSuffix = options.classSuffix || suffixKeys[Math.floor(Math.random() * suffixKeys.length)];
+    }
   }
 
-  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
+  const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel, classSuffix });
 
   if (globalLastItemId === null) {
     let dbLastId = 0;
@@ -1555,6 +1670,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     stats,
     quality,
     wear: wear || { name: "Worn", bonus: 0 },
+    classSuffix,
     fixedPassive,
     randomPassive,
     sellPrice,
@@ -1849,6 +1965,9 @@ module.exports = {
   getWeaponPower,
   WEAPON_SETS,
   getWeaponSetBonus,
+  GEAR_CLASS_SUFFIXES,
+  getClassSuffixSetBonus,
+  getPetWeaponCompatibility,
   computeCombatStats,
   getPhysicalMitigation,
   getMagicalMitigation,

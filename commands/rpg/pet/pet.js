@@ -179,7 +179,22 @@ class PetCommand extends BaseCommand {
         value: `\`HP: ${scaled.maxHp}\` • \`WP: ${scaled.maxWp}\` • \`ATT: ${scaled.physAtk}\` • \`MAG: ${scaled.magAtk}\` • \`PR: ${scaled.physResPct}%\` • \`MR: ${scaled.magResPct}%\``,
         inline: false,
       })
-      .setFooter(formatRpgFooter("Dex Linh Thú • Dùng xaddpet <tên> để trang bị"));
+      
+    if (petData.equippedWeapon) {
+      const eqW = petData.equippedWeapon;
+      const eff = Math.round((eqW.efficiency || 1.0) * 100);
+      const matchTag = eqW.isMatch ? "✅ Chuẩn hệ" : "⚠️ Trái hệ";
+      const bonusAtk = Math.floor((eqW.power || 0) * (eqW.efficiency || 1.0) * 0.2);
+      embed.addFields({
+        name: `🗡️ Vũ khí trang bị (${matchTag})`,
+        value: `${eqW.emoji || "🗡️"} **${eqW.name || eqW.subType}** (ID: \`G${String(eqW.id).padStart(3, "0")}\`)\n` +
+          `• Hiệu quả: **${eff}%**\n` +
+          `• Sát thương chiến đấu cộng thêm: **+${bonusAtk}** (Lực chiến: +${Math.floor((eqW.power || 0) * (eqW.efficiency || 1.0))})`,
+        inline: false,
+      });
+    }
+
+    embed.setFooter(formatRpgFooter("Dex Linh Thú • xaddpet <tên> xuất trận • xequip pet <tên> <ID> đổi vũ khí"));
 
     // Resolve and attach pet image as top-right thumbnail (matching Dex card layout)
     let petImageAttachment = null;

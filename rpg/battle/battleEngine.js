@@ -4,6 +4,7 @@ const {
   getEquippedItems,
   getRpgClass,
   getWeaponSetBonus,
+  getClassSuffixSetBonus,
   petAttackDamage,
   getPetAttackLog,
   calculateRpgPower,
@@ -401,7 +402,7 @@ class BattleEngine {
         } else {
           const attackerCritRate = Math.min(
             0.65,
-            0.05 + ((attacker.effectiveStats.arc || 0) * 0.15 + (attacker.effectiveStats.dex || 0) * 0.1) / 100 + attacker.critRateBonus + (attacker.setBonus?.bonus?.critRate || 0)
+            0.05 + ((attacker.effectiveStats.arc || 0) * 0.15 + (attacker.effectiveStats.dex || 0) * 0.1) / 100 + attacker.critRateBonus + (attacker.setBonus?.bonus?.critRate || 0) + (attacker.classSetBonus?.active && attacker.classSetBonus.suffix === "assassin" ? attacker.classSetBonus.multiplier : 0)
           );
           isCrit = Math.random() < attackerCritRate;
         }
@@ -517,6 +518,13 @@ class BattleEngine {
         finalMult *= 1 - (defender.pvpDefense || 0);
         if (poisonMult > 1.0) finalMult *= poisonMult;
         if (attacker.setBonus?.bonus?.pvpDamage) finalMult *= 1 + attacker.setBonus.bonus.pvpDamage;
+        if (attacker.classSetBonus?.active) {
+          if (attacker.classSetBonus.suffix === "knight" && !isMagical) {
+            finalMult *= 1 + attacker.classSetBonus.multiplier;
+          } else if (attacker.classSetBonus.suffix === "mage" && isMagical) {
+            finalMult *= 1 + attacker.classSetBonus.multiplier;
+          }
+        }
 
         if (attacker.effects.damageReduced) {
           finalMult *= 1 - attacker.effects.damageReduced;
@@ -524,6 +532,9 @@ class BattleEngine {
         }
 
         let damage = Math.max(25, Math.floor(rawDamage * finalMult));
+        if (attacker.classSetBonus?.active && attacker.classSetBonus.suffix === "archer") {
+          damage += Math.max(1, Math.floor(rawDamage * attacker.classSetBonus.multiplier));
+        }
 
         // Shieldhex Absorption (defense side)
         const shieldResult = resolveShieldhexDefense(defender, damage);

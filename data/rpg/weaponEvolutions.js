@@ -13,7 +13,7 @@ const WEAPON_EVOLUTIONS = {
     aliases: ["warhammer", "búa rèn"],
     requiredUpgradeLevel: 10,
     cokeCost: 250000,
-    stoneId: "somber-9",
+    stoneId: "cristal-8",
     stoneQuantity: 1,
     branches: {
       thorshammer: {

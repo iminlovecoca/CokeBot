@@ -23,6 +23,7 @@ const {
   getDungeonWeaponKey,
   getGearDisplayName,
   getWeaponSetBonus,
+  getClassSuffixSetBonus,
   getEquippedPet,
   petAttackDamage,
   getPetAttackLog,
@@ -1482,7 +1483,7 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const setCritBonus = player.setBonus?.bonus?.critRate || 0;
   const critRate = Math.min(
     0.85,
-    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus + setCritBonus + playerBuff.critRateBonus
+    (player.stats.arc * 0.2 + player.stats.dex * 0.1) / 100 + classCritBonus + setCritBonus + playerBuff.critRateBonus + (player.classSetBonus?.active && player.classSetBonus.suffix === "assassin" ? player.classSetBonus.multiplier : 0)
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + player.stats.dex * 0.002;
@@ -1493,6 +1494,15 @@ const executePlayerAttack = async (channel, activeDungeon, player, multiplier, i
   const mrOrArmor = passiveResult.mrOrArmor;
   const mitigation = mrOrArmor / (mrOrArmor + 150 + (player.level || 1) * 2);
   let damage = Math.max(10, Math.floor(finalCalculatedDamage * (1 - mitigation)));
+  if (player.classSetBonus?.active) {
+    if (player.classSetBonus.suffix === "knight" && !isMagical) {
+      damage = Math.floor(damage * (1 + player.classSetBonus.multiplier));
+    } else if (player.classSetBonus.suffix === "mage" && isMagical) {
+      damage = Math.floor(damage * (1 + player.classSetBonus.multiplier));
+    } else if (player.classSetBonus.suffix === "archer") {
+      damage += Math.max(1, Math.floor(finalRawDamage * player.classSetBonus.multiplier));
+    }
+  }
   if (player.nextAtkBuff && player.nextAtkBuff > 1.0) {
     damage = Math.floor(damage * player.nextAtkBuff);
     activeDungeon.logs.push(`🔥 **[Thuốc Tăng ST]** Kích hoạt: Sát thương được cường hóa **x${player.nextAtkBuff}**!`);
@@ -2229,7 +2239,8 @@ const handleVictory = async (channel, activeDungeon) => {
         await addRpgGearToUser(freshUser, specialGear);
       }
     }
-    const cristalStoneId = `cristal-${activeDungeon.chapter}`;
+    const stoneTier = Math.min(8, Math.max(1, activeDungeon.chapter));
+    const cristalStoneId = `cristal-${stoneTier}`;
     if (!freshUser.inventory) {
       freshUser.inventory = new Map();
     }

@@ -38,6 +38,7 @@ const {
   dungeonKeys,
   getDungeonWeaponKey,
   getWeaponSetBonus,
+  getClassSuffixSetBonus,
 } = require("../../../utils/rpgUtil");
 const { triggerWorldBossPassive, isLockedWeapon } = require("../../../utils/rpgPassiveUtil");
 const { addPetXp, getBossXp } = require("../../../utils/petXpUtil");
@@ -413,8 +414,8 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
           if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
             const dropCount = Math.floor(Math.random() * 2) + 1;
             const stoneOptions = bossRankKey === "rong"
-              ? ["somber-4", "somber-5", "somber-6"]
-              : ["somber-7", "somber-8", "somber-9"];
+              ? ["cristal-4", "cristal-5", "cristal-6"]
+              : ["cristal-6", "cristal-7", "cristal-8"];
             if (!user.inventory) {
               user.inventory = new Map();
             }
@@ -1031,7 +1032,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   const setCritBonus = setBonus?.bonus?.critRate || 0;
   const critRate = Math.min(
     0.85,
-    (effectiveStats.arc * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus + setCritBonus,
+    (effectiveStats.arc * 0.2 + effectiveStats.dex * 0.1) / 100 + classCritBonus + setCritBonus + (classSetBonus?.active && classSetBonus.suffix === "assassin" ? classSetBonus.multiplier : 0),
   );
   const isCrit = Math.random() < critRate;
   const critMult = 1.5 + effectiveStats.dex * 0.002;

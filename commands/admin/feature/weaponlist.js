@@ -93,7 +93,7 @@ class WeaponlistCommand extends BaseCommand {
             `  \`${config.prefix}addgear @user weapon epic 50 1 0 shadowdagger\`\n` +
             `• Cấp Holy Sword Thần Thánh (+10 cường hóa):\n` +
             `  \`${config.prefix}addgear @user weapon divine 50 1 10 holysword\`\n\n` +
-            `**Tiến hóa Búa Rèn:** \`${config.prefix}evolveweapon [ID búa]\` (cần +10, Coke và Somber 9).`,
+            `**Tiến hóa Búa Rèn:** \`${config.prefix}evolveweapon [ID búa]\` (cần +10, Coke và Cristal 8).`,
           inline: false,
         }
       )

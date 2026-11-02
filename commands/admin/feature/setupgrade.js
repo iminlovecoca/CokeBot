@@ -28,7 +28,7 @@ class SetupgradeCommand extends BaseCommand {
       return message.reply("❌ Không tìm thấy người dùng.");
     }
     const levelInput = parseInt(args[1]);
-    if (isNaN(levelInput) || levelInput < 0 || levelInput > 10) {
+    if (isNaN(levelInput) || levelInput < 0 || levelInput > 11) {
       return message.reply("❌ Cấp cường hóa phải từ 0 đến 10.");
     }
     const dbUser = await User.findOne({ userId: mention.id });
@@ -40,7 +40,10 @@ class SetupgradeCommand extends BaseCommand {
     if (gearIdArg) {
       const gearId = Number(gearIdArg.replace(/^[gG]/, ""));
       targetGear = dbUser.rpg.items.find(item => item.id === gearId);
-      if (!targetGear) {
+      if (targetGear && targetGear.rarity === "Common") {
+      return message.reply("❌ Vũ khí thường (Common) mặc định là cấp 0 và không thể cường hóa (dùng riêng cho Pet).");
+    }
+    if (!targetGear) {
         return message.reply(`❌ Không tìm thấy trang bị ID \`G${String(gearId).padStart(3, "0")}\` của <@${mention.id}>.`);
       }
     } else {
