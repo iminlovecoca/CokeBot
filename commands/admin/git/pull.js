@@ -34,21 +34,27 @@ class PullCommand extends BaseCommand {
       name: 'pull',
       aliases: ['gitpull', 'gpull'],
       description: 'Cập nhật (pull) code mới nhất từ kho lưu trữ Git trên VPS',
-      usage: `${config.prefix}pull`,
+      usage: `${config.prefix}pull [force|stash]`,
       category: 'admin',
       cooldown: 0
     });
   }
 
-  async execute(message) {
+  async execute(message, args = []) {
     if (!isDev(message.author.id)) {
       throw new UserFriendlyError(`${config.emoji.no} Bạn không có quyền dùng lệnh này!`);
     }
 
-    const sentMessage = await message.reply('⏳ Đang tiến hành `git pull`...').catch(() => null);
+    const mode = (args[0] || '').toLowerCase();
+    let gitCommand = 'git stash && git pull';
+    if (mode === 'force' || mode === 'reset' || mode === 'f') {
+      gitCommand = 'git fetch origin main && git reset --hard origin/main';
+    }
+
+    const sentMessage = await message.reply(`⏳ Đang tiến hành \`${gitCommand}\`...`).catch(() => null);
     const env = getExecutionEnv();
 
-    exec('git pull', { env }, (error, stdout, stderr) => {
+    exec(gitCommand, { env }, (error, stdout, stderr) => {
       let output = '';
       if (error) {
         output += `❌ **Lỗi:**\n\`\`\`bash\n${error.message}\n\`\`\``;
@@ -60,7 +66,7 @@ class PullCommand extends BaseCommand {
         output += `📋 **Kết quả (stdout):**\n\`\`\`bash\n${stdout}\n\`\`\``;
       }
       if (!output) {
-        output = '✅ Tiến hành `git pull` hoàn tất (không có phản hồi).';
+        output = `✅ Tiến hành \`${gitCommand}\` hoàn tất (không có phản hồi).`;
       }
       if (output.length > 2000) {
         output = output.substring(0, 1900) + '\n... (Đầu ra bị cắt bớt vì quá dài)';
