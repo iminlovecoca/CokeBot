@@ -613,23 +613,68 @@ async function processNoituMessage(message, client) {
   const currentWord = normalizeWord(state.currentWord);
   const normalizedContent = normalizeWord(content);
 
+  const targetTail = getLastToken(currentWord);
+  const userFirstToken = getFirstToken(normalizedContent);
+
   // Strict Turn-Based Rule: Người vừa nối đúng từ trước đó KHÔNG được nối liên tiếp 2 từ.
   // Nhưng ngay khi có NGƯỜI KHÁC nối đúng, người trước đó sẽ được mở khóa ngay lập tức!
   if (state.currentPlayerId && String(message.author.id) === String(state.currentPlayerId)) {
     await message.react("⛔").catch(() => {});
-    await message.channel.send("✋ Từ từ đi má mới trả lời rồi mà.").catch(() => {});
+    const spamRoasts = [
+      "✋ Từ từ đi má, mới trả lời rồi mà để người khác chơi với chứ!",
+      "Gấp gáp cái gì? Mới vừa nối xong, để người khác thở nữa chứ! 🙄",
+      "Ăn tham thế má, nhường lượt cho người khác đi! ✋",
+      "Nín nín giùm cái, chờ người khác nối xong rồi hãy gõ tiếp! 🤫"
+    ];
+    await message.channel.send(spamRoasts[Math.floor(Math.random() * spamRoasts.length)]).catch(() => {});
     return true;
   }
 
   const usedWordsNormalized = (state.words || []).map(normalizeWord);
   if (usedWordsNormalized.includes(normalizedContent)) {
     await message.react("⛔").catch(() => {});
-    await message.channel.send("Từ này dùng rồi mà có đọc không vậy!").catch(() => {});
+    const duplicateRoasts = [
+      `Từ "**${normalizedContent}**" dùng rồi mà má, có chịu đọc tin nhắn ở trên không vậy?! 🤦`,
+      `Mắt để quên ở nhà à? Từ "**${normalizedContent}**" vừa nối xong mà má! 🙄`,
+      `Alooo, từ "**${normalizedContent}**" xài rồi nhé, kéo lên trên mà xem giùm cái! 🥱`,
+      `Nhớ dai dữ vậy má, từ "**${normalizedContent}**" có người nói rồi! 😒`
+    ];
+    await message.channel.send(duplicateRoasts[Math.floor(Math.random() * duplicateRoasts.length)]).catch(() => {});
     return true;
   }
 
-  if (!isValidNextWord(currentWord, normalizedContent, state.words)) {
+  // 1. Sai chữ cái đầu nối tiếp (không bắt đầu bằng đuôi từ trước)
+  if (targetTail && userFirstToken !== targetTail) {
     await message.react("⛔").catch(() => {});
+    const wrongTailRoasts = [
+      `Đang là chữ "**${targetTail}**" mà mẹ, có biết nhìn không vậy?! 🤦`,
+      `Mắt để đi đâu đấy? Chữ tiếp theo phải bắt đầu bằng "**${targetTail}**" cơ mà! 🙄`,
+      `Mắt mờ hay không biết đọc thế? Đang nối chữ "**${targetTail}**" nha má! 😒`,
+      `Ủa alo? Đang là "**${targetTail}**" mà nhảy đi đâu thế hả trời?! 🤨`,
+      `Tập trung chuyên môn giùm cái, chữ "**${targetTail}**" to lù lù ra đấy! 👀`
+    ];
+    await message.channel.send(wrongTailRoasts[Math.floor(Math.random() * wrongTailRoasts.length)]).catch(() => {});
+    User.updateOne(
+      { userId: message.author.id },
+      { $inc: { noituAttempts: 1 }, $set: { noituLastPlayedAt: new Date() } },
+      { upsert: true },
+    ).catch(() => {});
+    upsertNoituStats(message.author.id, message.guild.id, { total: 1 }).catch(() => {});
+    return true;
+  }
+
+  // 2. Bắt đầu bằng đúng từ nối nhưng KHÔNG CÓ TRONG TỪ ĐIỂN (bịa từ / chế từ)
+  getWordBank();
+  if (!wordSetCache.has(normalizedContent)) {
+    await message.react("⛔").catch(() => {});
+    const invalidWordRoasts = [
+      `Từ "**${normalizedContent}**" này ở hành tinh nào rơi xuống vậy má? Từ điển Trái Đất làm gì có! 👽`,
+      `Bịa từ vừa thôi con lạy mẹ! Tiếng Việt làm gì có từ "**${normalizedContent}**"?! 🤡`,
+      `Học lại Tiếng Việt đi bạn ơi, tra nát từ điển cũng không có từ "**${normalizedContent}**" đâu! 📖`,
+      `Chế từ đẳng cấp đấy nhưng từ điển bot từ chối hiểu từ "**${normalizedContent}**" nhé! 🥱`,
+      `Ngôn ngữ của người ngoài hành tinh hả? Từ "**${normalizedContent}**" vô nghĩa vãi chưởng! 🛸`
+    ];
+    await message.channel.send(invalidWordRoasts[Math.floor(Math.random() * invalidWordRoasts.length)]).catch(() => {});
     User.updateOne(
       { userId: message.author.id },
       { $inc: { noituAttempts: 1 }, $set: { noituLastPlayedAt: new Date() } },
