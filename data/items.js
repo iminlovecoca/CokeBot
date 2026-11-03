@@ -395,7 +395,7 @@ function getItem(idOrAlias) {
   if (ITEM_BY_ALIAS.has(stripped)) return ITEM_BY_ALIAS.get(stripped);
 
   // 5. Special fallbacks for stones: e.g. cristal-8+, cr8+, somber-8+ -> cristal-8
-  if (/^(cristal|somber)[-_]?(8|9|10|11|12)$/.test(raw) || /^(cr|sm)(8|9|10|11|12)$/.test(raw)) {
+  if (/^(cristal|somber)[-_]?([8-9]|[1-9]\d+)$/i.test(raw) || /^(cr|sm)([8-9]|[1-9]\d+)$/i.test(raw)) {
     return ITEM_BY_ALIAS.get("cristal-8");
   }
 

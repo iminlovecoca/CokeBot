@@ -562,8 +562,9 @@ module.exports = {
       reduced_reward_clears_per_day: 6,
       reduced_reward_multiplier: 0.50,
       exhausted_reward_multiplier: 0.25,
-      reduced_stone_drop_rate: 0.45,
-      exhausted_stone_drop_rate: 0.15,
+      full_stone_drop_rate: 0.35,
+      reduced_stone_drop_rate: 0.15,
+      exhausted_stone_drop_rate: 0.03,
     },
     default_boss: {
       key: "tf",

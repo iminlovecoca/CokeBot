@@ -49,7 +49,7 @@ class GuessWordCommand extends BaseCommand {
       if (m.content.toLowerCase() === game.answer.toLowerCase()) {
         game.ended = true;
 
-        const reward = 550;
+        const reward = 1000;
         
         let targetUser = await userRepository.getOrCreate(m.author.id);
         targetUser.coke += reward;

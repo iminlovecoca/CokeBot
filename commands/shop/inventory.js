@@ -43,11 +43,28 @@ class InventoryCommand extends BaseCommand {
         ? Array.from(user.inventory.entries())
         : Object.entries(user.inventory);
 
+    let needsDbInventorySave = false;
     for (const [key, qty] of rawEntries) {
       const quantity = Number(qty);
       if (!quantity || quantity <= 0) continue;
 
-      let item = getItem(key);
+      let effectiveKey = key;
+      const stoneMatch = String(key).match(/^(cristal|somber)[-_]?([8-9]|[1-9]\d+)$/i);
+      if (stoneMatch && Number(stoneMatch[2]) > 8) {
+        effectiveKey = "cristal-8";
+        if (user.inventory instanceof Map) {
+          const prevTarget = user.inventory.get(effectiveKey) || 0;
+          user.inventory.set(effectiveKey, prevTarget + quantity);
+          user.inventory.delete(key);
+        } else if (user.inventory && typeof user.inventory === "object") {
+          const prevTarget = user.inventory[effectiveKey] || 0;
+          user.inventory[effectiveKey] = prevTarget + quantity;
+          delete user.inventory[key];
+        }
+        needsDbInventorySave = true;
+      }
+
+      let item = getItem(effectiveKey);
       if (!item) {
         // Fallback: check client.allItems cached from MongoDB
         const dbItem = message.client.allItems?.find((i) => i.item_id === key);
@@ -67,6 +84,11 @@ class InventoryCommand extends BaseCommand {
       } else {
         aggregated.set(item.id, { item, quantity });
       }
+    }
+
+    if (needsDbInventorySave) {
+      user.markModified("inventory");
+      await user.save().catch(() => null);
     }
 
     // Include user.cookie in inventory if not already aggregated

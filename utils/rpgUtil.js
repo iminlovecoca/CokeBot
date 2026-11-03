@@ -892,6 +892,17 @@ const WEAPON_SETS = {
   demonbook: { name: "Quỷ Chú", color: "#7c2d12", bonus: { mrPierce: 0.08, bossDamage: 0.04 } },
 };
 
+const getSubtypeClassSuffix = (subType) => {
+  if (!subType) return null;
+  const s = String(subType).toLowerCase();
+  if (s.includes("archer") || s.includes("ranger")) return "archer";
+  if (s.includes("paladin") || s.includes("holy")) return "paladin";
+  if (s.includes("knight") || s.includes("heavy") || s.includes("warrior")) return "knight";
+  if (s.includes("mage") || s.includes("wizard") || s.includes("robe")) return "mage";
+  if (s.includes("assassin")) return "assassin";
+  return null;
+};
+
 const GEAR_CLASS_SUFFIXES = {
   knight: { key: "knight", name: "Hiệp Sĩ", statName: "Sát thương vật lý", statType: "physical_dmg", icon: "⚔️" },
   mage: { key: "mage", name: "Phù Thủy", statName: "Sát thương phép", statType: "magic_dmg", icon: "🔮" },
@@ -908,8 +919,11 @@ const getClassSuffixSetBonus = (user) => {
 
   for (const slotKey of NON_WEAPON_SLOTS) {
     const item = equipped[slotKey];
-    if (item && item.classSuffix && GEAR_CLASS_SUFFIXES[item.classSuffix]) {
-      counts[item.classSuffix] = (counts[item.classSuffix] || 0) + 1;
+    if (item) {
+      const sKey = item.classSuffix || getSubtypeClassSuffix(item.subType);
+      if (sKey && GEAR_CLASS_SUFFIXES[sKey]) {
+        counts[sKey] = (counts[sKey] || 0) + 1;
+      }
     }
   }
 
@@ -1669,11 +1683,11 @@ const getGearDisplayName = (item) => {
         emoji = foundSub.emoji;
       }
     }
-    if (!subTypeName || emoji === slotEmoji[item.slot]) {
+    if (!subTypeName) {
       const mapping = getLegacyMapping(item.slot);
       if (mapping.subType) {
         subTypeName = mapping.subType;
-        emoji = mapping.emoji;
+        if (!emoji || emoji === "🛡️") emoji = mapping.emoji;
       }
     }
   }
@@ -1872,19 +1886,35 @@ const generateRpgGearDrop = async (user, options = {}) => {
       const mongoose = require("mongoose");
       if (mongoose.connection && mongoose.connection.readyState === 1) {
         const User = require("../models/User");
-        const topUser = await User.findOne().sort({ "rpg.lastItemId": -1 }).exec();
-        dbLastId = topUser?.rpg?.lastItemId || 0;
+        const aggResult = await User.aggregate([
+          { $unwind: "$rpg.items" },
+          { $group: { _id: null, maxId: { $max: "$rpg.items.id" } } }
+        ]).exec().catch(() => []);
+        const maxAggId = (aggResult && aggResult[0]?.maxId) || 0;
+
+        const topUser = await User.findOne({ "rpg.lastItemId": { $exists: true, $ne: null } })
+          .sort({ "rpg.lastItemId": -1 })
+          .select("rpg.lastItemId")
+          .lean()
+          .exec()
+          .catch(() => null);
+        const topLastItemId = topUser?.rpg?.lastItemId || 0;
+
+        dbLastId = Math.max(Number(maxAggId) || 0, Number(topLastItemId) || 0);
       }
     } catch {
       dbLastId = 0;
     }
-    const memoryLastId = user?.rpg?.lastItemId || 0;
-    globalLastItemId = Math.max(dbLastId, memoryLastId);
+    const memoryLastId = Number(user?.rpg?.lastItemId) || 0;
+    const userMaxItemId = (user?.rpg?.items || []).reduce((max, it) => Math.max(max, Number(it.id) || 0), 0);
+    globalLastItemId = Math.max(dbLastId, memoryLastId, userMaxItemId);
   }
   globalLastItemId += 1;
   const itemId = globalLastItemId;
 
   user.rpg.lastItemId = itemId;
+
+  const classSuffix = options.classSuffix || getSubtypeClassSuffix(chosenSubtype.name);
 
   return {
     id: itemId,
@@ -1900,8 +1930,9 @@ const generateRpgGearDrop = async (user, options = {}) => {
     fixedPassive,
     randomPassive,
     sellPrice,
-    imageKey: options.imageKey || getItemImageFile({ slot, rarity, subType: chosenSubtype.name }),
+    imageKey: options.imageKey || getItemImageFile({ slot, rarity, subType: chosenSubtype.name, classSuffix }),
     subType: chosenSubtype.name,
+    classSuffix,
     emoji: chosenSubtype.emoji,
     scaling,
     upgradeLevel: options.upgradeLevel || 0,

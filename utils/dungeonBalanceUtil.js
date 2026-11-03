@@ -154,17 +154,21 @@ const getDungeonRewardFatigue = (dailyClearCount = 0) => {
   const count = Math.max(0, Math.floor(Number(dailyClearCount) || 0));
   const fullLimit = Math.max(0, Math.floor(Number(rewards.full_reward_clears_per_day) || 3));
   const reducedLimit = Math.max(fullLimit, Math.floor(Number(rewards.reduced_reward_clears_per_day) || 6));
-  if (count < fullLimit) return { multiplier: 1, stoneDropRate: 1, tier: "full" };
+  const fullStoneDropRate = Number(rewards.full_stone_drop_rate) || 0.35;
+  const reducedStoneDropRate = Number(rewards.reduced_stone_drop_rate) || 0.15;
+  const exhaustedStoneDropRate = Number(rewards.exhausted_stone_drop_rate) || 0.03;
+
+  if (count < fullLimit) return { multiplier: 1, stoneDropRate: fullStoneDropRate, tier: "full" };
   if (count < reducedLimit) {
     return {
       multiplier: Number(rewards.reduced_reward_multiplier) || 0.5,
-      stoneDropRate: Number(rewards.reduced_stone_drop_rate) || 0.35,
+      stoneDropRate: reducedStoneDropRate,
       tier: "reduced",
     };
   }
   return {
     multiplier: Number(rewards.exhausted_reward_multiplier) || 0.2,
-    stoneDropRate: Number(rewards.exhausted_stone_drop_rate) || 0.1,
+    stoneDropRate: exhaustedStoneDropRate,
     tier: "exhausted",
   };
 };

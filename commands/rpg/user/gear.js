@@ -335,15 +335,38 @@ class GearCommand extends BaseCommand {
     };
 
     const cleanArg = args[0] ? args[0].trim().replace(/^[gG]/, "") : "";
-    const itemId = Number(cleanArg);
-    if (Number.isInteger(itemId) && itemId > 0) {
-      const result = await findRpgItemGlobal(itemId);
-      if (!result) {
+    if (cleanArg) {
+      let item = null;
+      let owner = user;
+      if (cleanArg.startsWith("w-")) {
+        item = (user.rpg?.items || []).find((it) => it.uid === cleanArg);
+        if (!item) {
+          const User = require("../../../models/User");
+          const foundOwner = await User.findOne({ "rpg.items.uid": cleanArg }).exec();
+          if (foundOwner) {
+            owner = foundOwner;
+            item = (foundOwner.rpg?.items || []).find((it) => it.uid === cleanArg);
+          }
+        }
+      } else {
+        const itemId = Number(cleanArg);
+        if (Number.isInteger(itemId) && itemId > 0) {
+          item = (user.rpg?.items || []).find((it) => Number(it.id) === itemId);
+          if (!item) {
+            const result = await findRpgItemGlobal(itemId);
+            if (result) {
+              item = result.item;
+              owner = result.owner;
+            }
+          }
+        }
+      }
+
+      if (!item) {
         return message.reply(
-          `${config.emoji.no} Không tìm thấy vũ khí / trang bị RPG ID \`G${String(itemId).padStart(4, "0")}\`.`
+          `${config.emoji.no} Không tìm thấy vũ khí / trang bị RPG với ID hoặc UID \`${cleanArg}\`.`
         );
       }
-      const { item, owner } = result;
       const { embed, row } = getDetailEmbedAndComponents(item, owner);
       const imageFile = getItemImageFile(item);
       let attachment = null;

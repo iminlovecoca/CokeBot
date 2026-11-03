@@ -413,14 +413,14 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
             user.coke += cokeGain;
           }
           if (bossRankKey === "rong" || bossRankKey === "thuongnhan") {
-            const dropCount = Math.floor(Math.random() * 2) + 1;
-            const stoneOptions = bossRankKey === "rong"
-              ? ["cristal-4", "cristal-5", "cristal-6"]
-              : ["cristal-6", "cristal-7", "cristal-8"];
-            if (!user.inventory) {
-              user.inventory = new Map();
-            }
-            for (let i = 0; i < dropCount; i++) {
+            const stoneChance = isLastHit ? 1.0 : (bossRankKey === "rong" ? 0.25 : 0.35);
+            if (Math.random() < stoneChance) {
+              const stoneOptions = bossRankKey === "rong"
+                ? ["cristal-4", "cristal-5", "cristal-6"]
+                : ["cristal-6", "cristal-7", "cristal-8"];
+              if (!user.inventory) {
+                user.inventory = new Map();
+              }
               const stoneId = stoneOptions[Math.floor(Math.random() * stoneOptions.length)];
               if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
                 const currentQty = user.inventory.get(stoneId) || 0;
@@ -438,9 +438,9 @@ const finishBoss = async ({ client, channel, activeBoss, interaction = null }) =
                   quantity: 1
                 });
               }
-            }
-            if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
-              user.markModified("inventory");
+              if (!(activeBoss.boss.key === "boss_XI" && activeBoss.allowSoulRealm === true && isLastHit)) {
+                user.markModified("inventory");
+              }
             }
           }
           // Dungeon key drop from world boss has been removed
