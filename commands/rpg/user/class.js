@@ -330,14 +330,14 @@ class ClassCommand extends BaseCommand {
               const owned = isSkinOwned(user, file);
               if (!owned) {
                 isLocked = true;
-                suffix = honorInfo ? " (🔒 Mùa giải)" : (isUX ? " (🔒 Hữu hạn)" : " (🔒 Chưa mua)");
+                suffix = " (🔒 Chưa sở hữu)";
               }
             }
             options.push({
               label: label + suffix,
               value: file,
               description: isLocked
-                ? (honorInfo ? `Nhận khi chốt mùa ở rank ${honorInfo.rank}` : (isUX ? "Chỉ sở hữu qua Gacha (Hữu hạn)" : "Mua tại cửa hàng skin (skin)"))
+                ? "Mua tại cửa hàng skin bằng lệnh skin"
                 : "Sẵn sàng sử dụng",
             });
           }

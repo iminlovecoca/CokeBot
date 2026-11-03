@@ -63,10 +63,6 @@ class SkinCommand extends BaseCommand {
             let statusStr = "";
             if (isOwned) {
               statusStr = "✅ *Đã sở hữu*";
-            } else if (honorInfo) {
-              statusStr = `🏆 *Phần thưởng cuối mùa • ${honorInfo.rank}*`;
-            } else if (isUX) {
-              statusStr = "⭐ *Hữu hạn*";
             } else if (typeof price === "object" && price !== null) {
               statusStr = `💰 **${price.coke.toLocaleString()} Coke** + **${price.souls} L.Hồn**`;
             } else {
@@ -74,9 +70,9 @@ class SkinCommand extends BaseCommand {
             }
             return `• **${skinName}**: ${statusStr}`;
           }).join("\n") +
-          `\n\n*Skin vinh danh Legendary+ chỉ được trao khi chốt mùa.*`
+          `\n\n*Toàn bộ skin có thể mua tại cửa hàng và trang bị qua lệnh class.*`
         )
-        .setFooter(formatRpgFooter("Skin hữu hạn chỉ nhận từ Gacha"));
+        .setFooter(formatRpgFooter("Dùng lệnh class -> Skin để thay đổi diện mạo"));
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("skin_shop_select")
         .setPlaceholder("Chọn một skin để xem chi tiết...");
@@ -89,17 +85,13 @@ class SkinCommand extends BaseCommand {
         let desc = "";
         if (isOwned) {
           desc = "Đã sở hữu skin này";
-        } else if (honorInfo) {
-          desc = `Phần thưởng cuối mùa ở rank ${honorInfo.rank}`;
-        } else if (isUX) {
-          desc = "Skin Hữu hạn - Chỉ có từ Gacha";
         } else if (typeof price === "object" && price !== null) {
           desc = `Giá: ${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Linh Hồn`;
         } else {
           desc = `Giá: ${price.toLocaleString()} Coke`;
         }
         return {
-          label: skinName + (isOwned ? " (Đã sở hữu)" : (isUX ? " (Hữu hạn)" : "")),
+          label: skinName + (isOwned ? " (Đã sở hữu)" : ""),
           value: file,
           description: desc,
         };
@@ -153,7 +145,7 @@ class SkinCommand extends BaseCommand {
           .setTitle(formatRpgTitle(`Chi tiết skin • ${skinName}`, "✨"))
           .setDescription(
             `• Class: **${className}**\n` +
-            `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : (honorInfo ? "🏆 Vinh danh" : (isUX ? "⭐ Hữu hạn" : "🛒 Đang bán"))}\n` +
+            `• Trạng thái: ${isOwned ? "✅ Đã sở hữu" : "🛒 Đang mở bán"}\n` +
             priceText +
             `• Số Coke bạn có: **${u.coke.toLocaleString()} Coke**\n` +
             `• Số Linh Hồn bạn có: **${currentSouls}** <:souls:1518749776538243082>`
@@ -166,7 +158,7 @@ class SkinCommand extends BaseCommand {
           .setCustomId("skin_shop_buy")
           .setLabel(isOwned ? "Đã sở hữu" : btnLabel)
           .setStyle(ButtonStyle.Success)
-          .setDisabled(isOwned || isUX || Boolean(honorInfo) || !hasEnoughFunds);
+          .setDisabled(isOwned || !hasEnoughFunds);
         const backBtn = new ButtonBuilder()
           .setCustomId("skin_shop_back")
           .setLabel("Quay lại")
@@ -191,12 +183,7 @@ class SkinCommand extends BaseCommand {
         if (isOwned) {
           return safeInteractionReply(interaction, { content: "❌ Bạn đã sở hữu skin này rồi!", flags: 64 });
         }
-        if (honorInfo) {
-          return safeInteractionReply(interaction, { content: `❌ Skin ${honorInfo.rank} là phần thưởng vinh danh cuối mùa, không thể mua.`, flags: 64 });
-        }
-        if (isUX) {
-          return safeInteractionReply(interaction, { content: "❌ Skin này là skin Hữu hạn, chỉ có thể sở hữu từ Gacha!", flags: 64 });
-        }
+
         const currentSouls = u.inventory.get("souls") || 0;
         const isAuthorDev = isDev(message.author.id);
         let deductedText = "";

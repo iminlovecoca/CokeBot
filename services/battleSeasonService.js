@@ -84,39 +84,7 @@ class BattleSeasonService {
   }
 
   async repairLegacyHonorRewards() {
-    let repaired = 0;
-    const cursor = User.find({
-      isBattleBot: { $ne: true },
-      "rpg.classKey": { $ne: null },
-      "rpg.lastBattleSeasonRank": { $in: ["Legendary", "Mythic", "Ancient", "Divine"] },
-    }).cursor();
-
-    for await (const user of cursor) {
-      const rpg = user.rpg;
-      const reward = rpg.lastBattleSeasonReward;
-      if (!reward || reward.honorSkin) continue;
-
-      const honorSkin = getHonorSkinFile(
-        rpg.classKey,
-        rpg.lastBattleSeasonRank,
-        getGenderFromCharacterAsset(rpg.characterAsset),
-      );
-      if (!honorSkin) continue;
-
-      if (!Array.isArray(rpg.ownedSkins)) rpg.ownedSkins = [];
-      if (!rpg.ownedSkins.includes(honorSkin)) rpg.ownedSkins.push(honorSkin);
-      reward.honorSkin = honorSkin;
-      reward.honorSkins = [honorSkin];
-      rpg.lastHonorSkin = honorSkin;
-      user.markModified("rpg");
-      await user.save();
-      repaired += 1;
-    }
-
-    if (repaired) {
-      console.log(`[BATTLE_SEASON] Repaired ${repaired} legacy honor skin rewards.`);
-    }
-    return repaired;
+    return 0;
   }
 
   async resetIfDue(now = new Date()) {
@@ -174,13 +142,6 @@ class BattleSeasonService {
 
           if (!alreadySettled) {
             const reward = this.rankService.getSeasonRewards(finalRank);
-            const honorSkin = reward.honorSkin
-              ? getHonorSkinFile(
-                rpg.classKey,
-                finalRank,
-                getGenderFromCharacterAsset(rpg.characterAsset),
-              )
-              : null;
 
             user.coke = (Number(user.coke) || 0) + reward.coke;
             if (reward.wc > 0) {
@@ -190,11 +151,6 @@ class BattleSeasonService {
               user.inventory.set("wc", (user.inventory.get("wc") || 0) + reward.wc);
               user.markModified("inventory");
             }
-            if (honorSkin) {
-              if (!Array.isArray(rpg.ownedSkins)) rpg.ownedSkins = [];
-              if (!rpg.ownedSkins.includes(honorSkin)) rpg.ownedSkins.push(honorSkin);
-              honorSkinCount += 1;
-            }
 
             rpg.lastBattleSeasonId = currentSeasonId;
             rpg.lastBattleSeasonRank = finalRank;
@@ -202,11 +158,11 @@ class BattleSeasonService {
             rpg.lastBattleSeasonReward = {
               coke: reward.coke,
               wc: reward.wc,
-              honorSkin,
-              honorSkins: honorSkin ? [honorSkin] : [],
+              honorSkin: null,
+              honorSkins: [],
             };
             rpg.lastBattleSeasonEndedAt = season.endsAt;
-            rpg.lastHonorSkin = honorSkin;
+            rpg.lastHonorSkin = null;
             rewarded += 1;
           }
 

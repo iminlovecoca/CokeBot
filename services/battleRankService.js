@@ -16,13 +16,13 @@ const PROMOTION_LP_NEED = 100; // 100 LP per tier for promotion
 
 const SEASON_REWARDS = {
   Unranked: { coke: 0, wc: 0, honorSkin: false },
-  Common: { coke: 100000, wc: 0, honorSkin: false },
-  Rare: { coke: 300000, wc: 1, honorSkin: false },
-  Epic: { coke: 700000, wc: 2, honorSkin: false },
-  Legendary: { coke: 1000000, wc: 3, honorSkin: true },
-  Mythic: { coke: 2500000, wc: 5, honorSkin: true },
-  Ancient: { coke: 3500000, wc: 8, honorSkin: true },
-  Divine: { coke: 4500000, wc: 12, honorSkin: true }
+  Common: { coke: 50000, wc: 0, honorSkin: false },
+  Rare: { coke: 150000, wc: 1, honorSkin: false },
+  Epic: { coke: 400000, wc: 2, honorSkin: false },
+  Legendary: { coke: 800000, wc: 3, honorSkin: false },
+  Mythic: { coke: 1500000, wc: 5, honorSkin: false },
+  Ancient: { coke: 2500000, wc: 8, honorSkin: false },
+  Divine: { coke: 3500000, wc: 12, honorSkin: false }
 };
 
 class BattleRankService extends BaseService {

@@ -742,17 +742,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
                   edited = await msg.edit(editPayload).catch(() => null);
                 }
               } else {
-                await msg.delete().catch(() => null);
-                const newMsg = await channel.send({
-                  content: "",
-                  embeds: [],
-                  components: payload.components,
-                  flags: MessageFlags.IsComponentsV2,
-                  files: [getAttachment(activeBoss.boss)],
-                }).catch(() => null);
-                if (newMsg) {
-                  edited = newMsg;
-                }
+                edited = await msg.edit(editPayload).catch(() => null);
               }
               if (edited) {
                 updatedIds.push(edited.id);
@@ -781,7 +771,7 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
   };
   const isDefeated = activeBoss.hp <= 0 || activeBoss.defeated;
   const now = Date.now();
-  const throttleDuration = 2000; 
+  const throttleDuration = 1200; 
   if (forceNewMessage) {
     if (activeBoss.editTimeout) {
       clearTimeout(activeBoss.editTimeout);
@@ -1156,8 +1146,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       bossMissed = Math.random() < playerEvasion;
     }
     if (!bossMissed) {
+      const bossMultiplier = 1.6;
       const bossRaw =
-        (activeBoss.boss.attackPower || 50) * (0.85 + Math.random() * 0.3);
+        (activeBoss.boss.attackPower || 50) * bossMultiplier * (0.85 + Math.random() * 0.3);
       let playerMitigation = 0;
       if (activeBoss.boss.damageType === "magical") {
         const playerMR = effectiveStats.mr * 12.0;
@@ -1166,8 +1157,9 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         const playerArmor = effectiveStats.pr * 12.0;
         playerMitigation = playerArmor / (playerArmor + 150);
       }
+      playerMitigation = Math.min(0.70, playerMitigation);
       bossDamage = Math.max(
-        5,
+        Math.floor(maxHp * 0.12),
         Math.floor(bossRaw * (1 - playerMitigation)),
       );
       if (participant.bossDamageReduced) {
@@ -1326,7 +1318,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
         if (!activeBoss.effects) activeBoss.effects = {};
         activeBoss.effects.aoeThresholds = activeBoss.aoeThresholds;
 
-        const aoeBaseDamage = Math.max(10, Math.floor((activeBoss.boss.attackPower || 50) * 0.75));
+        const aoeBaseDamage = Math.max(250, Math.floor((activeBoss.boss.attackPower || 50) * 2.2));
         const knockedOutWarriors = [];
 
         for (const [pUid, pData] of activeBoss.participants.entries()) {
@@ -1350,7 +1342,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
               }
             } catch (_) {}
 
-            const pDamage = Math.max(5, Math.floor(aoeBaseDamage * (1 - pMitigation)));
+            const pDamage = Math.max(Math.floor(maxHp * 0.25), Math.floor(aoeBaseDamage * (1 - Math.min(0.70, pMitigation))));
             const currentParticipantHp = (pData.hp !== null && pData.hp !== undefined) ? pData.hp : maxHp;
             pData.hp = Math.max(0, currentParticipantHp - pDamage);
             if (pData.hp <= 0) {
@@ -1362,16 +1354,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
           }
         }
 
-        passiveTriggers.push(`⚡ **[AOE NỘ KÍCH]** Sau khi mất ${milestone.step}% máu, ${activeBoss.boss.name} quét đòn AOE diện rộng bằng 75% công gốc (**${aoeBaseDamage.toLocaleString()}**) lên toàn bộ người chơi tham chiến!`);
-
-        const aoeEmbed = new EmbedBuilder()
-          .setColor("#E74C3C")
-          .setTitle(`⚡ [BÙNG NỔ THỊNH NỘ] ${activeBoss.boss.name} phản công diện rộng!`)
-          .setDescription(
-            `Sau khi chịu **${milestone.step}%** sát thương từ toàn bộ chiến binh, **${activeBoss.boss.name}** đã giải phóng sóng xung kích **AOE** cực mạnh gây **${aoeBaseDamage.toLocaleString()}** sát thương (75% công cơ bản) lên **toàn bộ người chơi tham chiến**!` +
-            (knockedOutWarriors.length > 0 ? `\n💀 **Chiến binh bị hạ gục:** ${knockedOutWarriors.join(", ")}` : "")
-          );
-        await channel.send({ embeds: [aoeEmbed] }).catch(() => null);
+        passiveTriggers.push(`⚡ **[AOE NỘ KÍCH]** Sau khi mất ${milestone.step}% máu, ${activeBoss.boss.name} quét đòn AOE diện rộng nộ kích gây **${aoeBaseDamage.toLocaleString()}** sát thương lên toàn bộ người chơi tham chiến!`);
       }
     }
   }
@@ -1546,11 +1529,6 @@ const handleFightInteraction = async (interaction) => {
         await safeInteractionFollowUp(interaction, {
           content: result.content,
           components: result.components || [],
-          flags: 64,
-        });
-      } else if (result.embeds && result.embeds.length > 0) {
-        await safeInteractionFollowUp(interaction, {
-          embeds: result.embeds,
           flags: 64,
         });
       }

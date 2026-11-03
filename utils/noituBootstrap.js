@@ -200,13 +200,22 @@ async function syncNoituData() {
     }
   }
 
+  let existingOfficial = [];
+  if (fs.existsSync(officialWordsPath)) {
+    existingOfficial = fs
+      .readFileSync(officialWordsPath, "utf8")
+      .split(/\r?\n/)
+      .map(normalizeWord)
+      .filter((w) => w.split(/\s+/).length === 2);
+  }
+
   const baseWordsRaw = fs
     .readFileSync(wordDatabasePath, "utf8")
     .toLowerCase()
     .split(/\r?\n/);
   const baseWords = parseOfficialLines(baseWordsRaw);
   const merged = Array.from(
-    new Set([...baseWords, ...contributeLines.map(normalizeWord)]),
+    new Set([...baseWords, ...existingOfficial, ...contributeLines.map(normalizeWord)]),
   ).filter((word) => word.split(/\s+/).length === 2);
 
   fs.writeFileSync(officialWordsPath, merged.join("\n"));

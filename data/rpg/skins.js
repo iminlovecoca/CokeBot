@@ -71,11 +71,22 @@ const getHonorSkinOwnershipKeys = (skinFileName) => {
   return [skinFileName, `${honorInfo.className}Honor${honorInfo.rank}.png`];
 };
 
+const HONOR_SKIN_PRICES = {
+  Legendary: 800000,
+  Mythic: 1200000,
+  Ancient: 1800000,
+  Divine: 2500000,
+};
+
 const getSkinPrice = (skinFileName) => {
   const name = skinFileName.toLowerCase();
 
-  if (isHonorSkin(skinFileName) || name.includes("ux")) {
-    return null; 
+  const honorInfo = getHonorSkinInfo(skinFileName);
+  if (honorInfo) {
+    return HONOR_SKIN_PRICES[honorInfo.rank] || 1000000;
+  }
+  if (name.includes("ux")) {
+    return 1500000;
   }
   if (SKIN_PRICES[skinFileName]) {
     return SKIN_PRICES[skinFileName];
