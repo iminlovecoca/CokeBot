@@ -1,16 +1,21 @@
 /**
  * Script to expand CokeBot Vietnamese Word Chain (Nối Từ) Dictionary
  * Aggregates authentic, standard Vietnamese dictionaries from authoritative NLP,
- * Wiktionary, and linguistic sources without hallucinating or making up non-words.
+ * Wiktionary, specialized dictionaries (technical, medical, business, Buddhism),
+ * administrative divisions (GSO), and linguistic corpora without hallucinating or making up non-words.
  */
 
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
+const zlib = require("zlib");
 const readline = require("readline");
+const bz2 = require("unbzip2-stream");
 
 // Valid Vietnamese alphabet regex (NFC lowercase + spaces)
 const VIETNAMESE_REGEX = /^[a-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ\s]+$/;
+
+let sylSet = new Set();
 
 function normalizeVietnameseWord(raw) {
   if (!raw || typeof raw !== "string") return null;
@@ -25,10 +30,11 @@ function normalizeVietnameseWord(raw) {
   if (!w || w.length < 2) return null;
   if (!VIETNAMESE_REGEX.test(w)) return null;
 
-  // Validate syllable lengths (Vietnamese syllables are 1 to 7 chars)
+  // Validate syllable lengths and phonetics
   const syllables = w.split(" ");
   for (const s of syllables) {
     if (s.length < 1 || s.length > 7) return null;
+    if (sylSet.size > 0 && !sylSet.has(s)) return null;
   }
 
   return w;
@@ -36,7 +42,12 @@ function normalizeVietnameseWord(raw) {
 
 function fetchStream(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const options = {
+      headers: {
+        "User-Agent": "CokeBot/2.0 (Vietnamese NLP Dictionary Sync; github.com/iminlovecoca/CokeBot)",
+      },
+    };
+    https.get(url, options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return resolve(fetchStream(res.headers.location));
       }
@@ -57,7 +68,7 @@ async function processLineByLine(stream, onLine) {
 
 async function main() {
   console.log("==================================================================");
-  console.log("📚  COKEBOT VIETNAMESE COMPREHENSIVE DICTIONARY EXPANDER");
+  console.log("📚  COKEBOT VIETNAMESE MASSIVE DICTIONARY EXPANDER (TARGET >100K+)");
   console.log("==================================================================");
 
   const allWordsSet = new Set();
@@ -73,6 +84,21 @@ async function main() {
     }
   }
 
+  // 0. Load authoritative Vietnamese phonotactic syllable list
+  console.log("0️⃣  Đang tải bộ âm tiết chuẩn tiếng Việt (Vietnamese Syllabary)...");
+  try {
+    const sylUrl =
+      "https://gist.githubusercontent.com/xnohat/a0e818b05e5ab1a5ca01bbc63b6237b3/raw/44208e6f008b8fcd697aa804cad3221fb0c94d4c/all-vietnamese-syllables.txt(G%C3%B5%20d%E1%BA%A5u%20ki%E1%BB%83u%20c%C5%A9)";
+    const sylStream = await fetchStream(sylUrl);
+    await processLineByLine(sylStream, (line) => {
+      const s = String(line || "").normalize("NFC").trim().toLowerCase();
+      if (s && VIETNAMESE_REGEX.test(s)) sylSet.add(s);
+    });
+    console.log(`   ✅ Đã nạp ${sylSet.size.toLocaleString()} âm tiết chuẩn tiếng Việt.`);
+  } catch (err) {
+    console.warn(`   ⚠️ Không thể nạp danh sách âm tiết: ${err.message}. Sẽ dùng regex cơ bản.`);
+  }
+
   // 1. Read local existing files
   const dataDir = path.resolve(__dirname, "../data");
   const wordsPath = path.join(dataDir, "words.txt");
@@ -80,7 +106,7 @@ async function main() {
   const gwdataPath = path.join(dataDir, "gwdata.json");
   const contributePath = path.join(dataDir, "contribute-words.txt");
 
-  console.log("1️⃣  Đang nạp từ điển hiện có trong dự án...");
+  console.log("\n1️⃣  Đang nạp từ điển hiện có trong dự án...");
   if (fs.existsSync(wordsPath)) {
     const lines = fs.readFileSync(wordsPath, "utf-8").split(/\r?\n/);
     lines.forEach(addWord);
@@ -106,10 +132,11 @@ async function main() {
 
   console.log(`   => Đã nạp ban đầu: ${allWordsSet.size.toLocaleString()} từ tổng | ${twoWordSet.size.toLocaleString()} từ ghép 2 tiếng.`);
 
-  // 2. Remote open-source authoritative dictionaries
+  // 2. Remote open-source authoritative dictionaries & specialized lexicons
   const remoteSources = [
+    // --- Phase 1: Core NLP & Lexical Databases ---
     {
-      name: "iminlovecoca/DataWord",
+      name: "iminlovecoca/DataWord (User Base)",
       url: "https://raw.githubusercontent.com/iminlovecoca/DataWord/main/words.txt",
       type: "lines",
     },
@@ -178,47 +205,203 @@ async function main() {
       url: "https://kaikki.org/dictionary/Vietnamese/kaikki.org-dictionary-Vietnamese.jsonl",
       type: "kaikki_jsonl",
     },
+
+    // --- Phase 2: Comprehensive Multi-lingual & Specialized Tab Dictionaries ---
+    {
+      name: "catusf star_vietanh (Từ điển Việt - Anh)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_vietanh.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf star_vietviet (Từ điển Việt - Việt Hồ Ngọc Đức)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_vietviet.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf star_vietnga (Từ điển Việt - Nga)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_vietnga.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf star_vietphap (Từ điển Việt - Pháp)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_vietphap.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf star_viethan (Từ điển Việt - Hàn)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_viethan.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf star_vietnhat (Từ điển Việt - Nhật)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/star_vietnhat.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf Viet-Trung (Từ điển Việt - Trung / Hán Nôm)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Viet-Trung.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf Tu-dien-Dao-Uyen",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Tu-dien-Dao-Uyen.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf Tu-dien-Phat-hoc-Viet-Anh-Thien-Phuc",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Tu-dien-Phat-hoc-Viet-Anh-Thien-Phuc.tab",
+      type: "tab",
+    },
+    {
+      name: "catusf Tu-dien-Phat-hoc-Tinh-tuyen",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Tu-dien-Phat-hoc-Tinh-tuyen.tab",
+      type: "tab",
+    },
+
+    // --- Phase 3: Prodict & SPDict Technical/Business BZ2 Archives ---
+    {
+      name: "catusf Prodict_VE_Tech (Kỹ thuật Công nghệ)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Prodict_VE_Tech.tab.bz2",
+      type: "bz2_tab",
+    },
+    {
+      name: "catusf Prodict_VE_business (Kinh tế Thương mại)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Prodict_VE_business.tab.bz2",
+      type: "bz2_tab",
+    },
+    {
+      name: "catusf SPDict-Viet-Anh (Đại từ điển)",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/SPDict-Viet-Anh.tab.bz2",
+      type: "bz2_tab",
+    },
+    {
+      name: "catusf Bach_khoa_toan_thu",
+      url: "https://raw.githubusercontent.com/catusf/tudien/master/dict/Bach_khoa_toan_thu.tab.bz2",
+      type: "bz2_tab",
+    },
+
+    // --- Phase 4: Administrative Divisions (Tổng cục Thống kê GSO) ---
+    {
+      name: "GSO Địa danh Tỉnh / Thành phố",
+      url: "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json",
+      type: "json_hanhchinh",
+    },
+    {
+      name: "GSO Địa danh Quận / Huyện / Thị xã",
+      url: "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/quan_huyen.json",
+      type: "json_hanhchinh",
+    },
+    {
+      name: "GSO Địa danh Xã / Phường / Thị trấn",
+      url: "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/xa_phuong.json",
+      type: "json_hanhchinh",
+    },
+
+    // --- Phase 5: NLP Models & Lexicons ---
+    {
+      name: "tsdocode/vietnamese-dictionary (HuggingFace)",
+      url: "https://huggingface.co/datasets/tsdocode/vietnamese-dictionary/raw/main/vi_dictionary.csv",
+      type: "csv_dictionary",
+    },
+    {
+      name: "vinai/phobert-base vocab (VinAI)",
+      url: "https://huggingface.co/vinai/phobert-base/raw/main/vocab.txt",
+      type: "phobert_vocab",
+    },
+
+    // --- Phase 6: Wikipedia Vietnamese Official Article Titles ---
+    {
+      name: "Wikipedia Tiếng Việt (All Namespace 0 Titles)",
+      url: "https://dumps.wikimedia.org/viwiki/latest/viwiki-latest-all-titles-in-ns0.gz",
+      type: "gz_lines",
+    },
   ];
 
   console.log("\n2️⃣  Đang tải và hợp nhất các nguồn từ điển tiếng Việt chuẩn...");
   for (const src of remoteSources) {
+    const beforeTwo = twoWordSet.size;
     process.stdout.write(`   • Tải ${src.name}... `);
     try {
-      const stream = await fetchStream(src.url);
+      let stream = await fetchStream(src.url);
+
+      if (src.type === "bz2_tab") {
+        stream = stream.pipe(bz2());
+      } else if (src.type === "gz_lines") {
+        stream = stream.pipe(zlib.createGunzip());
+      }
+
       let count = 0;
-      await processLineByLine(stream, (line) => {
-        if (!line) return;
-        if (src.type === "lines") {
-          addWord(line);
-          count++;
-        } else if (src.type === "jsonl_text") {
-          try {
-            const obj = JSON.parse(line);
-            if (obj && obj.text) addWord(obj.text);
+      if (src.type === "json_hanhchinh") {
+        let rawBody = "";
+        stream.on("data", (chunk) => (rawBody += chunk));
+        await new Promise((resolve) => stream.on("end", resolve));
+        try {
+          const dataObj = JSON.parse(rawBody);
+          for (const item of Object.values(dataObj)) {
+            if (item && item.name) {
+              addWord(item.name);
+              count++;
+            }
+          }
+        } catch (e) {}
+      } else {
+        await processLineByLine(stream, (line) => {
+          if (!line) return;
+          if (line.startsWith("#")) return;
+
+          if (src.type === "lines" || src.type === "gz_lines") {
+            addWord(line);
             count++;
-          } catch (e) {}
-        } else if (src.type === "kaikki_jsonl") {
-          try {
-            const obj = JSON.parse(line);
-            if (obj && obj.word) addWord(obj.word);
+          } else if (src.type === "tab" || src.type === "bz2_tab") {
+            const tabIdx = line.indexOf("\t");
+            const head = tabIdx >= 0 ? line.slice(0, tabIdx) : line;
+            addWord(head);
             count++;
-          } catch (e) {}
-        }
-      });
-      console.log(`Xong (${count.toLocaleString()} mục).`);
+          } else if (src.type === "csv_dictionary") {
+            const comma = line.indexOf(",");
+            if (comma > 0) {
+              const head = line.slice(0, comma);
+              addWord(head);
+              count++;
+            }
+          } else if (src.type === "phobert_vocab") {
+            const spaceIdx = line.indexOf(" ");
+            const token = spaceIdx >= 0 ? line.slice(0, spaceIdx) : line;
+            if (token.includes("_")) {
+              addWord(token.replace(/_/g, " "));
+              count++;
+            }
+          } else if (src.type === "jsonl_text") {
+            try {
+              const obj = JSON.parse(line);
+              if (obj && obj.text) addWord(obj.text);
+              count++;
+            } catch (e) {}
+          } else if (src.type === "kaikki_jsonl") {
+            try {
+              const obj = JSON.parse(line);
+              if (obj && obj.word) addWord(obj.word);
+              count++;
+            } catch (e) {}
+          }
+        });
+      }
+
+      const addedTwo = twoWordSet.size - beforeTwo;
+      console.log(`Xong (+${addedTwo.toLocaleString()} từ 2 tiếng mới | Tổng: ${twoWordSet.size.toLocaleString()}).`);
     } catch (err) {
       console.log(`Lỗi tải: ${err.message}`);
     }
   }
 
-  console.log("\n3️⃣  Thống kê sau khi hợp nhất và lọc chuẩn tiếng Việt:");
-  console.log(`   • Tổng số từ ngữ chuẩn tiếng Việt (tất cả độ dài) : ${allWordsSet.size.toLocaleString()} từ`);
-  console.log(`   • Tổng số từ ghép 2 tiếng (phục vụ trò chơi Nối Từ) : ${twoWordSet.size.toLocaleString()} từ`);
+  console.log("\n3️⃣  Thống kê sau khi hợp nhất và thanh lọc chuẩn ngữ âm tiếng Việt:");
+  console.log(`   • Tổng số từ ngữ chuẩn tiếng Việt (tất cả các độ dài) : ${allWordsSet.size.toLocaleString()} từ`);
+  console.log(`   • Tổng số TỪ GHÉP 2 TIẾNG PHỤC VỤ NỐI TỪ             : ${twoWordSet.size.toLocaleString()} từ`);
 
   // Sort alphabetically using Vietnamese locale
-  console.log("\n4️⃣  Sắp xếp và ghi file dữ liệu...");
+  console.log("\n4️⃣  Sắp xếp từ điển theo bảng chữ cái tiếng Việt...");
   const collator = new Intl.Collator("vi", { sensitivity: "base" });
-  
+
   const sortedAllWords = Array.from(allWordsSet).sort((a, b) => collator.compare(a, b));
   const sortedTwoWords = Array.from(twoWordSet).sort((a, b) => collator.compare(a, b));
 
@@ -231,7 +414,9 @@ async function main() {
   fs.writeFileSync(gwdataPath, JSON.stringify(sortedTwoWords, null, 2), "utf-8");
   console.log(`   ✅ Ghi thành công data/gwdata.json (${sortedTwoWords.length.toLocaleString()} từ).`);
 
-  console.log("\n🎉 HOÀN TẤT MỞ RỘNG TỪ ĐIỂN TIẾNG VIỆT CHUẨN!");
+  console.log("\n==================================================================");
+  console.log(`🎉 HOÀN TẤT! NGÂN HÀNG TỪ ĐÃ ĐẠT: ${twoWordSet.size.toLocaleString()} TỪ GHÉP 2 TIẾNG CHUẨN!`);
+  console.log("==================================================================");
 }
 
 main().catch((err) => {
