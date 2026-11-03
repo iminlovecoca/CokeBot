@@ -8165,6 +8165,7 @@ bãi đỗ xe nhiều tầng
 bãi đỗ xe ô tô
 bãi đỗ xe tạm thời
 bãi đỗ xe tư nhân
+bài độc
 bãi đồi mồi
 bài đồng ca
 bãi đồng cam
@@ -17717,6 +17718,7 @@ bấm ra sữa
 bẩm sinh
 bấm số
 bấm tay
+bấm thích
 bẩm thiếp
 bẩm thụ
 bầm tím
@@ -42403,6 +42405,7 @@ cảnh cơ cực
 cảnh cơ hàn
 cành cơi
 cảnh cú
+canh cua
 cạnh của chữ thập
 cánh cung
 cảnh cung
@@ -42700,6 +42703,7 @@ canh nậu
 cạnh nậu
 cảnh nên thơ
 cánh ngang
+canh ngao
 cảnh nghèo
 cảnh nghèo khó xác xơ
 cảnh nghèo khổ
@@ -51178,6 +51182,7 @@ chăm chú vào
 chăm chúi
 chắm chúi
 chăm chút
+chăm da
 chăm học
 chăm làm
 chăm lo
@@ -83897,6 +83902,7 @@ cơm chiên
 cơm chiên cá mặn
 cơm chiên dương châu
 cơm chiên kiểu thái
+cơm chiều
 cơm chim
 cơm chín
 cơm chín tới
@@ -84038,6 +84044,7 @@ cơm thừa canh cặn
 cơm thừa gạo thiếu
 cơm tiệm
 cơm toi
+cơm tối
 cơm trắng cá ngon
 cơm trắng chả chim
 cơm treo mèo nhịn đói
@@ -105711,6 +105718,7 @@ dương anh đào
 dương anh điền
 dương anh đức
 dương âm
+dưỡng ẩm
 dương âm dương
 dường ấy
 dương bá bành
@@ -105800,6 +105808,7 @@ dương cực lạnh
 dương cực lỗ và rãnh
 dương cực tách
 dương cưu
+dưỡng da
 dương dài
 dương danh
 dương danh dy
@@ -114721,6 +114730,7 @@ dữu văn quân
 đắp kín
 đắp lên
 đắp lũy
+đắp mặt
 đắp mồ
 đắp nền
 đắp nền xây móng
@@ -117819,6 +117829,7 @@ dữu văn quân
 đèn dừng
 đèn dưới mui xe
 đèn đá
+đen đá
 đèn đa cực
 đèn đa dạng
 đèn đa dụng
@@ -128534,6 +128545,7 @@ dữu văn quân
 đọc to và quá nhanh
 đọc tồi
 đọc trơn tru
+đọc truyện
 đọc tụng
 đọc từ đầu cuối
 đọc từ đầu đến cuối
@@ -142601,6 +142613,7 @@ gấp bốn lần
 gập bụng
 gấp chín
 gấp chín lần
+gấp đồ
 gấp đôi
 gấp được
 gập gà gập ghềnh
@@ -147663,6 +147676,7 @@ giảm bạch cầu
 giảm bạch cầu hạt
 giảm bạch cầu trung tính
 giảm bằng nửa cung
+giảm béo
 giảm bẹp
 giảm biên
 giám biên
@@ -147918,6 +147932,7 @@ giảm miễn luật pháp hữu hiệu
 giảm miễn thuế
 giảm miễn thuế đầu tư
 giảm một nửa
+giảm mỡ
 giám mục
 giám mục chính tòa
 giám mục đoàn công giáo trung quốc
@@ -174122,6 +174137,7 @@ hóp đá
 họp đảng
 họp đầy
 hóp gai
+họp giao
 họp hành
 họp hội nghị
 họp kín
@@ -204748,6 +204764,7 @@ lạ quá
 la quán trung
 lã quang
 lã quân
+là quần
 là quần áo
 la quý an
 lã quý tùng
@@ -209310,6 +209327,7 @@ lau mình
 lau mỡ
 lau mũi
 lau người bằng bọt biển
+lau nhà
 làu nhà làu nhàu
 lau nhau
 làu nhàu
@@ -225360,6 +225378,7 @@ lướt đi
 lượt giao bóng
 lướt khướt
 lượt là
+lướt mạng
 lướt mắt qua
 lướt mướt
 lượt mượt
@@ -250427,6 +250446,7 @@ năn lùn
 nằn lưng
 nắn lưng
 nặn mủ
+nặn mụn
 nằn nèo
 năn ngọt
 năn nỉ
@@ -251244,6 +251264,7 @@ nấu chưa chín
 nấu chưa chin tới
 nấu chưa kỹ
 nấu cơm
+nâu đá
 nấu đặc lại
 nâu đậm
 nâu đen
@@ -290374,6 +290395,7 @@ nước quyền
 nước rác
 nước rãnh
 nước rặc
+nước râu
 nước rỉ ra
 nước ròng
 nước rông
@@ -294397,6 +294419,7 @@ phá bom nổ chậm
 phá bóng cứu nguy
 phà bộ binh
 phá bồ đề
+pha cà
 pha cà phê
 phá cách
 phà cái vồn
@@ -322242,6 +322265,7 @@ rửa trôi
 rửa trôi được
 rửa vết thương
 rửa vội
+rửa xe
 rửa xói
 rửa xong
 rức
@@ -354043,6 +354067,7 @@ sứa phèn muối
 sửa phim
 sửa qua
 sửa ra
+sữa rửa
 sữa rửa mặt
 sửa sai
 sửa sai đơn
@@ -361231,6 +361256,7 @@ tăng bo
 tăng bố
 tăng bội
 tăng bồi viêm
+tăng ca
 tặng cách
 tăng cách lâm thấm
 tăng cảm đau
@@ -361266,6 +361292,7 @@ tăng có áo nước lạnh
 tăng con
 tăng cổn
 tăng công suất
+tăng cơ
 tăng cơ bắp
 tăng củng
 tăng cứng
@@ -364785,6 +364812,7 @@ tập giới hạn
 tập giới thiệu lịch sử sản phẩm
 tập giới thiệu sản phẩm
 tập gốc
+tập gym
 tập hát
 tập hấp thụ
 tập hậu
@@ -367736,6 +367764,7 @@ thái độ vụng về
 thái độ xã hội đối với đồng tính luyến ái
 thái độ xấu
 thái độ xử trí
+thải độc
 thai đôi
 thai đơn
 thái đức
@@ -394010,6 +394039,7 @@ thử vai
 thứ vị
 thử vị
 thứ vĩ
+thử việc
 thư viện
 thư viện ảnh
 thư viện anh
@@ -395688,6 +395718,7 @@ thượng tầng kiến thiết
 thượng tầng kiến trúc
 thương tật
 thượng tế
+thưởng tết
 thường thái
 thượng thái
 thượng thái cửu
@@ -412305,6 +412336,7 @@ trả dần một món nợ
 trả dần số nợ còn thiếu
 trả dần tiền vốn gốc
 tra dầu
+trà dâu
 tra dầu bằng vòng
 tra dầu hình kim
 tra dầu mỡ
@@ -412326,6 +412358,7 @@ trả dứt toàn bộ
 trà đa
 trà đá
 trà đạo
+trà đào
 trà đạo nhật bản
 trà đạo triều tiên
 trà đậu biếc
@@ -412473,6 +412506,7 @@ trà lý
 trà mã cổ đạo
 trà ma nữ
 trà mai
+trà mạn
 tra mắm muối
 trà mi
 trả miếng
@@ -412554,6 +412588,7 @@ trà sữa trân châu đài loan
 trà sữa trân châu tại việt nam
 trà táo đỏ
 trà tàu
+trà tắc
 tra tấn
 trà tân
 tra tấn âm hộ
@@ -412686,6 +412721,7 @@ trả từng đợt
 trà tươi
 trà tỳ
 trà và
+trà vải
 trá vàng
 tra vào
 tra vào vỏ
@@ -419203,6 +419239,7 @@ tri môn
 trí môn quang tộ
 trí môn quang tộ thiền sư
 trĩ mũi
+trị mụn
 trí mưu
 trí na
 trí na bộc để
@@ -426373,6 +426410,7 @@ trưng nữ vương
 trứng nước
 trứng ốc
 trứng ốc sên
+trứng ốp
 trứng ốp la
 trứng ốp lếp
 trứng ốp lết
@@ -457210,6 +457248,7 @@ xem nhiều
 xem như
 xem nốt
 xem phân cấp
+xem phim
 xem qua
 xem quanh
 xem ra

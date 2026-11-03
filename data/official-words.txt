@@ -3293,6 +3293,7 @@ bái đính
 bài đọc
 bãi đỗ
 bái đô
+bài độc
 bãi đờm
 bãi đua
 bãi đúc
@@ -5964,6 +5965,7 @@ bấm quẻ
 bẩm sinh
 bấm số
 bấm tay
+bấm thích
 bẩm thiếp
 bẩm thụ
 bầm tím
@@ -12780,6 +12782,7 @@ cảnh công
 cánh cờ
 cành cơi
 cảnh cú
+canh cua
 cánh cung
 cảnh cung
 cánh cụt
@@ -12924,6 +12927,7 @@ cánh nâng
 canh nậu
 cạnh nậu
 cánh ngang
+canh ngao
 cảnh nghèo
 cảnh nghi
 cảnh nghị
@@ -16083,6 +16087,7 @@ chăm chú
 chăm chúi
 chắm chúi
 chăm chút
+chăm da
 chăm học
 chăm làm
 chăm lo
@@ -24346,6 +24351,7 @@ cơm cháo
 cơm chay
 cơm cháy
 cơm chiên
+cơm chiều
 cơm chim
 cơm chín
 cơm cúng
@@ -24408,6 +24414,7 @@ cơm thiu
 cơm thổi
 cơm tiệm
 cơm toi
+cơm tối
 cơm trọ
 cơm trưa
 cơm vắt
@@ -30423,6 +30430,7 @@ dưới vùng
 dướn hơi
 dương ác
 dương âm
+dưỡng ẩm
 dường ấy
 dương bản
 dường bao
@@ -30455,6 +30463,7 @@ dương cơ
 dương cuồng
 dương cực
 dương cưu
+dưỡng da
 dương dài
 dương danh
 dương di
@@ -33093,6 +33102,7 @@ dữu lượng
 đắp kín
 đắp lên
 đắp lũy
+đắp mặt
 đắp mồ
 đắp nền
 đắp nổi
@@ -34051,6 +34061,7 @@ dữu lượng
 đèn dù
 đèn dừng
 đèn đá
+đen đá
 đèn đáp
 đèn đất
 đèn đầu
@@ -36677,6 +36688,7 @@ dữu lượng
 đọc tiếp
 đọc to
 đọc tồi
+đọc truyện
 đọc tụng
 đọc xong
 đói ăn
@@ -40944,6 +40956,7 @@ gấp bội
 gấp bốn
 gập bụng
 gấp chín
+gấp đồ
 gấp đôi
 gấp được
 gấp gáp
@@ -42151,6 +42164,7 @@ giải y
 giảm án
 giảm áp
 giảm âm
+giảm béo
 giảm bẹp
 giảm biên
 giám biên
@@ -42201,6 +42215,7 @@ giám lý
 giám mã
 giám má
 giảm miễn
+giảm mỡ
 giám mục
 giảm mức
 giảm nghèo
@@ -49909,6 +49924,7 @@ hóp đá
 họp đảng
 họp đầy
 hóp gai
+họp giao
 họp hành
 họp kín
 hóp lại
@@ -58844,6 +58860,7 @@ la quả
 lạ quá
 lã quang
 lã quân
+là quần
 la rày
 la rầy
 la réo
@@ -60391,6 +60408,7 @@ lau mặt
 lau mình
 lau mỡ
 lau mũi
+lau nhà
 lau nhau
 làu nhàu
 lảu nhảu
@@ -65876,6 +65894,7 @@ lượt đi
 lướt đi
 lướt khướt
 lượt là
+lướt mạng
 lướt mướt
 lượt mượt
 lượt ngồi
@@ -73405,6 +73424,7 @@ năn lùn
 nằn lưng
 nắn lưng
 nặn mủ
+nặn mụn
 nằn nèo
 năn ngọt
 năn nỉ
@@ -73775,6 +73795,7 @@ nấu chảy
 nấu chín
 nấu chuội
 nấu cơm
+nâu đá
 nâu đậm
 nâu đen
 nâu đỏ
@@ -83439,6 +83460,7 @@ nước quyền
 nước rác
 nước rãnh
 nước rặc
+nước râu
 nước ròng
 nước rông
 nước rơi
@@ -84836,6 +84858,7 @@ phá bĩnh
 phá bỉnh
 phá bỏ
 phá bom
+pha cà
 phá cách
 phá càn
 phả cao
@@ -93188,6 +93211,7 @@ rửa tiếng
 rửa tội
 rửa trôi
 rửa vội
+rửa xe
 rửa xói
 rửa xong
 rực cháy
@@ -97884,6 +97908,7 @@ sứa ống
 sửa phim
 sửa qua
 sửa ra
+sữa rửa
 sửa sai
 sửa sang
 sứa sen
@@ -100006,6 +100031,7 @@ tăng binh
 tăng bo
 tăng bố
 tăng bội
+tăng ca
 tặng cách
 tăng cang
 tăng cao
@@ -100022,6 +100048,7 @@ tăng chúng
 tăng chuyển
 tăng con
 tăng cổn
+tăng cơ
 tăng củng
 tăng cứng
 tăng cường
@@ -100989,6 +101016,7 @@ tập đồ
 tập được
 tập giấy
 tập gốc
+tập gym
 tập hát
 tập hậu
 tập hiền
@@ -102026,6 +102054,7 @@ thái đinh
 thái đỏ
 thái đô
 thái độ
+thải độc
 thai đôi
 thai đơn
 thái đức
@@ -109301,6 +109330,7 @@ thử vai
 thứ vị
 thử vị
 thứ vĩ
+thử việc
 thư viện
 thư vũ
 thư xã
@@ -109913,6 +109943,7 @@ thượng tân
 thượng tầng
 thương tật
 thượng tế
+thưởng tết
 thường thái
 thượng thái
 thương thảm
@@ -113979,6 +114010,7 @@ tra cứu
 trá danh
 trả dần
 tra dầu
+trà dâu
 trà diệp
 trà don
 trà dơn
@@ -113990,6 +114022,7 @@ trả dứt
 trà đa
 trà đá
 trà đạo
+trà đào
 trà đen
 tra điện
 tra đỏ
@@ -114045,6 +114078,7 @@ trà lũ
 trả lương
 trà lý
 trà mai
+trà mạn
 trà mi
 trả miếng
 tra mỡ
@@ -114084,6 +114118,7 @@ trà sơn
 trà sủng
 trà sữa
 trà tàu
+trà tắc
 tra tấn
 trà tân
 trà tập
@@ -114118,6 +114153,7 @@ trả trước
 trà tươi
 trà tỳ
 trà và
+trà vải
 trá vàng
 tra vào
 tra vấn
@@ -115834,6 +115870,7 @@ trì minh
 trí môn
 tri môn
 trĩ mũi
+trị mụn
 trí mưu
 trí na
 trí nang
@@ -118140,6 +118177,7 @@ trứng nhện
 trưng nhị
 trứng nước
 trứng ốc
+trứng ốp
 trừng phạt
 trừng quán
 trứng quốc
@@ -127594,6 +127632,7 @@ xem nhẹ
 xem nhiều
 xem như
 xem nốt
+xem phim
 xem qua
 xem quanh
 xem ra

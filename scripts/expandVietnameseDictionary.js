@@ -394,6 +394,31 @@ async function main() {
     }
   }
 
+  // --- Phase 7: Curated High-Frequency Modern Daily Vietnamese Words ---
+  const modernEverydayWords = [
+    'thải độc', 'vụn vỡ', 'vụt tắt', 'sông nước', 'giải độc', 'tiêu độc', 'khử độc', 'độc tố', 'bài độc',
+    'nhiễm độc', 'trúng độc', 'giảm cân', 'tăng cân', 'tăng cơ', 'giảm mỡ', 'giảm béo', 'dưỡng da',
+    'chăm da', 'nặn mụn', 'trị mụn', 'chống nắng', 'tẩy trang', 'sữa rửa', 'đắp mặt', 'dưỡng ẩm',
+    'son môi', 'kem nền', 'phấn phủ', 'tập gym', 'tập tạ', 'chạy bộ', 'bơi lội', 'nhảy dây', 'thể dục',
+    'trà sữa', 'trà đào', 'trà chanh', 'trà tắc', 'trà vải', 'trà dâu', 'trà sen', 'trà mạn', 'bạc xỉu',
+    'cà phê', 'đen đá', 'nâu đá', 'sữa chua', 'sữa tươi', 'sữa đậu', 'nước mía', 'nước ép', 'nước ngọt',
+    'nước suối', 'nước khoáng', 'nước lọc', 'nước râu', 'nước dừa', 'bánh mì', 'bánh tráng', 'bánh ngọt',
+    'bánh kem', 'bánh chuối', 'bánh bao', 'bánh tiêu', 'bánh xèo', 'bánh cuốn', 'bánh bèo', 'bánh canh',
+    'bánh hỏi', 'bánh đa', 'bánh cốm', 'cơm tấm', 'cơm sườn', 'cơm gà', 'cơm chiên', 'cơm rang', 'cơm lam',
+    'cơm cháy', 'cơm sáng', 'cơm trưa', 'cơm chiều', 'cơm tối', 'cơm hộp', 'cơm suất', 'phở bò', 'phở gà',
+    'bún bò', 'bún chả', 'bún riêu', 'bún cá', 'bún đậu', 'bún ốc', 'bò kho', 'cá kho', 'thịt kho',
+    'thịt nướng', 'gà rán', 'chả giò', 'nem rán', 'nem chua', 'canh chua', 'canh rau', 'canh ngao',
+    'canh cua', 'rau muống', 'rau cải', 'rau ngót', 'trứng rán', 'trứng luộc', 'trứng ốp', 'trứng muối',
+    'lạp xưởng', 'xúc xích', 'lau nhà', 'quét nhà', 'dọn nhà', 'rửa bát', 'rửa chén', 'nấu cơm', 'nấu ăn',
+    'pha trà', 'pha cà', 'giặt đồ', 'phơi đồ', 'gấp đồ', 'ủi đồ', 'là quần', 'dọn dẹp', 'rửa xe',
+    'xem phim', 'nghe nhạc', 'đọc báo', 'đọc truyện', 'lướt mạng', 'chụp hình', 'chụp ảnh', 'tăng ca',
+    'làm thêm', 'nghỉ việc', 'nhận lương', 'thưởng tết', 'ứng lương', 'lương tháng', 'họp giao', 'giao ban',
+    'họp nhóm', 'chấm công', 'báo công', 'phỏng vấn', 'thử việc', 'sống ảo', 'tương tác', 'bình luận',
+    'chia sẻ', 'bấm thích', 'thả tim', 'đầu tư', 'góp vốn', 'khởi nghiệp', 'gọi vốn', 'chứng khoán',
+    'tiền ảo', 'cổ phiếu'
+  ];
+  modernEverydayWords.forEach(addWord);
+
   console.log("\n3️⃣  Thống kê sau khi hợp nhất và thanh lọc chuẩn ngữ âm tiếng Việt:");
   console.log(`   • Tổng số từ ngữ chuẩn tiếng Việt (tất cả các độ dài) : ${allWordsSet.size.toLocaleString()} từ`);
   console.log(`   • Tổng số TỪ GHÉP 2 TIẾNG PHỤC VỤ NỐI TỪ             : ${twoWordSet.size.toLocaleString()} từ`);
