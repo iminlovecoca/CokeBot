@@ -1435,8 +1435,54 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   }
   return { ok: true, embeds: [embed] };
 };
+const getActiveBossState = async (client, channelId) => {
+  let activeBoss = client.rpgBosses?.get(channelId);
+  if (!activeBoss) {
+    try {
+      const SpawnedBoss = require("../../../models/SpawnedBoss");
+      const dbBoss = await SpawnedBoss.findOne({ channelId, defeated: false, expired: false, rewarded: false }).exec();
+      if (dbBoss && dbBoss.expiresAt > Date.now()) {
+        const { bossTiers, expireBoss } = require("../../../features/rpgBossSpawner");
+        const storedBoss = dbBoss.boss;
+        activeBoss = {
+          dbId: dbBoss._id,
+          id: dbBoss.bossId,
+          channelId: dbBoss.channelId,
+          boss: storedBoss,
+          hp: dbBoss.hp,
+          maxHp: dbBoss.maxHp,
+          participants: new Map(Object.entries(dbBoss.participants || {})),
+          lastHitUserId: dbBoss.lastHitUserId,
+          defeated: dbBoss.defeated,
+          expired: dbBoss.expired,
+          spawnedAt: dbBoss.spawnedAt,
+          expiresAt: dbBoss.expiresAt,
+          messageId: dbBoss.messageId,
+          messageIds: dbBoss.messageIds || [dbBoss.messageId],
+          imageUrl: dbBoss.imageUrl,
+          phase: dbBoss.phase || 1,
+          effects: dbBoss.effects || { armorReduced: 0, healReduced: false },
+          allowSoulRealm: dbBoss.allowSoulRealm || false,
+          triggerEventBoss: dbBoss.triggerEventBoss || null,
+          poise: dbBoss.poise || 0,
+          poiseMax: dbBoss.poiseMax || 0,
+          poiseBroken: dbBoss.poiseBroken || false
+        };
+        const msLeft = dbBoss.expiresAt - Date.now();
+        activeBoss.expireTimer = setTimeout(() => expireBoss(client, dbBoss.channelId), msLeft);
+        if (!client.rpgBosses) client.rpgBosses = new Map();
+        client.rpgBosses.set(channelId, activeBoss);
+        console.log(`[RPG_BOSS] Seamlessly restored active boss ${dbBoss.bossId} from DB for channel ${channelId}`);
+      }
+    } catch (err) {
+      console.error("[RPG_BOSS] Error in getActiveBossState fallback:", err);
+    }
+  }
+  return activeBoss;
+};
+
 const showBossPanel = async (message) => {
-  const activeBoss = message.client.rpgBosses?.get(message.channel.id);
+  const activeBoss = await getActiveBossState(message.client, message.channel.id);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
     return message.reply("**Không có boss nào đang kích hoạt trong kênh này!**");
   }
@@ -1467,7 +1513,7 @@ const showBossPanel = async (message) => {
 const handleFightInteraction = async (interaction) => {
   const [, channelId] = interaction.customId.split(":");
   const finalChannelId = channelId || interaction.channelId;
-  const activeBoss = interaction.client.rpgBosses?.get(finalChannelId);
+  const activeBoss = await getActiveBossState(interaction.client, finalChannelId);
   if (!activeBoss || activeBoss.defeated || activeBoss.expired) {
     return safeInteractionReply(interaction, {
       content: "Boss đã bị tiêu diệt hoặc đã rời đi.",

@@ -460350,6 +460350,7 @@ xuống dưới
 xuống dưới vị trí tích cực
 xuống đất
 xuồng đệm khí
+xuống đò
 xuồng đổ bộ
 xuống đường
 xuống ga
@@ -460389,9 +460390,12 @@ xuống ngựa
 xuống nhanh
 xuồng nhẹ
 xuồng nhỏ
+xuống núi
 xuống nước
 xuồng phao
+xuống phố
 xuống quân
+xuống ruộng
 xuống số
 xuống sút
 xuống sức
@@ -460412,6 +460416,7 @@ xuồng trên công trường
 xuồng trên tàu
 xuồng tuần tra
 xuồng vận lương
+xuống xác
 xuống xe
 xuống xe lửa
 xuống yên

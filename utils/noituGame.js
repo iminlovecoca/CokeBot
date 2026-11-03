@@ -418,6 +418,7 @@ function setGameState(client, guildId, state) {
     { guildId },
     {
       $set: {
+        channelId: state.channelId,
         gameState: {
           running: state.running,
           channelId: state.channelId,
@@ -527,12 +528,32 @@ async function processNoituMessage(message, client) {
     return false;
   }
 
-  const guildConfig = await getGuildConfig(message.guild.id);
-  if (!guildConfig?.channelId || guildConfig.channelId !== message.channel.id) {
-    return false;
+  let state = getGameState(client, message.guild.id);
+  if (!state) {
+    try {
+      const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
+      if (guildDoc?.gameState?.running) {
+        state = {
+          running: guildDoc.gameState.running,
+          channelId: guildDoc.gameState.channelId || guildDoc.channelId,
+          currentWord: guildDoc.gameState.currentWord,
+          currentPlayerId: guildDoc.gameState.currentPlayerId,
+          words: guildDoc.gameState.words || [],
+          lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
+        };
+        if (!client.noituGames) client.noituGames = new Map();
+        client.noituGames.set(message.guild.id, state);
+      }
+    } catch (dbErr) {
+      console.error("[Noitu] Error loading fallback game state from DB:", dbErr?.message);
+    }
   }
 
-  let state = getGameState(client, message.guild.id);
+  const guildConfig = await getGuildConfig(message.guild.id);
+  const activeChannelId = guildConfig?.channelId || state?.channelId;
+  if (!activeChannelId || activeChannelId !== message.channel.id) {
+    return false;
+  }
   if (!state) {
     try {
       const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();

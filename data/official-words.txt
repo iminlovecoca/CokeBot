@@ -129053,6 +129053,7 @@ xuống dòng
 xuống dốc
 xuống dưới
 xuống đất
+xuống đò
 xuống đường
 xuống ga
 xuống gấu
@@ -129081,9 +129082,12 @@ xuống ngựa
 xuống nhanh
 xuồng nhẹ
 xuồng nhỏ
+xuống núi
 xuống nước
 xuồng phao
+xuống phố
 xuống quân
+xuống ruộng
 xuống số
 xuống sút
 xuống sức
@@ -129098,6 +129102,7 @@ xuống thuyền
 xuống tóc
 xuống trần
 xuống trật
+xuống xác
 xuống xe
 xuống yên
 xúp cải
