@@ -48,23 +48,19 @@ class InventoryCommand extends BaseCommand {
       const quantity = Number(qty);
       if (!quantity || quantity <= 0) continue;
 
-      let effectiveKey = key;
-      const stoneMatch = String(key).match(/^(cristal|somber)[-_]?([8-9]|[1-9]\d+)$/i);
-      if (stoneMatch && Number(stoneMatch[2]) > 8) {
-        effectiveKey = "cristal-8";
+      // Loại bỏ hoàn toàn các loại đá ảo/dư thừa (> 8), KHÔNG cộng dồn vào cristal-8
+      const stoneMatch = String(key).match(/^(cristal|somber)[-_]?([9]|[1-9]\d+)$/i);
+      if (stoneMatch) {
         if (user.inventory instanceof Map) {
-          const prevTarget = user.inventory.get(effectiveKey) || 0;
-          user.inventory.set(effectiveKey, prevTarget + quantity);
           user.inventory.delete(key);
         } else if (user.inventory && typeof user.inventory === "object") {
-          const prevTarget = user.inventory[effectiveKey] || 0;
-          user.inventory[effectiveKey] = prevTarget + quantity;
           delete user.inventory[key];
         }
         needsDbInventorySave = true;
+        continue;
       }
 
-      let item = getItem(effectiveKey);
+      let item = getItem(key);
       if (!item) {
         // Fallback: check client.allItems cached from MongoDB
         const dbItem = message.client.allItems?.find((i) => i.item_id === key);

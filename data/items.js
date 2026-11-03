@@ -306,7 +306,7 @@ const FIXED_ITEMS = [
   {
     id: "048",
     key: "cristal-8",
-    aliases: ["cristal8", "cr8", "somber-8", "somber8", "sm8", "sb8", "038", "cristal-9", "cristal9", "cr9", "039", "049", "somber-9", "somber9", "sm9", "sb9", "cristal-dragon", "somber-dragon", "cristal-10", "cristal10", "cr10", "crystal"],
+    aliases: ["cristal8", "cr8", "somber-8", "somber8", "sm8", "sb8", "038", "crystal"],
     name: "Cristal Smithing Stone [8]",
     emoji: "<:Cristal8:1516030462970302555>",
     type: "stone",
@@ -395,7 +395,7 @@ function getItem(idOrAlias) {
   if (ITEM_BY_ALIAS.has(stripped)) return ITEM_BY_ALIAS.get(stripped);
 
   // 5. Special fallbacks for stones: e.g. cristal-8+, cr8+, somber-8+ -> cristal-8
-  if (/^(cristal|somber)[-_]?([8-9]|[1-9]\d+)$/i.test(raw) || /^(cr|sm)([8-9]|[1-9]\d+)$/i.test(raw)) {
+  if (/^(cristal|somber)[-_]?8$/i.test(raw) || /^(cr|sm)8$/i.test(raw)) {
     return ITEM_BY_ALIAS.get("cristal-8");
   }
 
