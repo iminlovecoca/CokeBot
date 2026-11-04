@@ -107,7 +107,8 @@ const normalizeWeaponItem = (item, options = {}) => {
     changed = true;
   }
 
-  const baseP = getWeaponPassive(subTypeRaw);
+  const isNormal = getWeaponCategory(subTypeRaw) === "normal";
+  const baseP = isNormal ? null : getWeaponPassive(subTypeRaw);
   if (baseP) {
     const fixedEmojis = getWeaponPassiveEmojis(subTypeRaw);
     const desiredFixed = {
@@ -251,8 +252,8 @@ const dungeonWeapons = [
   { name: "Bladesorrow", key: "bladesorrow", emoji: "<:Bladesorrow:1523374302685298848>" },
   { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
   { name: "Quỷ Thư", key: "demonbook", emoji: config.emoji?.weapons?.demonbook || "<:darkhold:1544258394695934002>" },
-  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: config.emoji?.weapons?.thorshammer || "<:Holysword:1523379675076755556>" },
-  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: config.emoji?.weapons?.odinhammer || "<:bluestaff:1514232160897339442>" },
+  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: config.emoji?.weapons?.thorshammer || "<:ligthammer:1544258402434293810>" },
+  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: config.emoji?.weapons?.odinhammer || "<:lawhammer:1544258399649271909>" },
   { name: "Darkhold", key: "darkhold", emoji: "<:darkhold:1544258394695934002>" },
 ];
 const dungeonKeys = dungeonWeapons.map(dw => dw.key);
@@ -424,7 +425,8 @@ const subTypes = {
   weapon: [
     { name: "Longsword", emoji: "<:longsword:1514231939865903104>" },
     { name: "Staff", emoji: "<:staff:1514231936581898240>" },
-    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" }
+    { name: "Dagger", emoji: "<:dagger:1514231934191009853>" },
+    { name: "Warhammer", emoji: "<:warhammer:1544258404812460082>" }
   ],
   armor: [
     { name: "Heavy Armor", emoji: "<:heavyarmor:1514232237724401716>" },
@@ -568,6 +570,9 @@ const getItemImageFile = (item) => {
     }
     if (lowerSub.includes("dagger") || lowerSub.includes("dangger")) {
       return "Weapon/dagger.png";
+    }
+    if (lowerSub.includes("warhammer") || lowerSub.includes("hammer")) {
+      return "Weapon/warhammer.png";
     }
     return "Weapon/longsword.png";
   }

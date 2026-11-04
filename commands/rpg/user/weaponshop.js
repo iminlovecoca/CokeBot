@@ -34,6 +34,7 @@ const NORMAL_SUBTYPES = [
   { name: "Longsword", key: "longsword", emoji: "<:longsword:1514231939865903104>" },
   { name: "Dagger", key: "dagger", emoji: "<:dagger:1514231934191009853>" },
   { name: "Staff", key: "staff", emoji: "<:staff:1514231936581898240>" },
+  { name: "Warhammer", key: "warhammer", emoji: "<:warhammer:1544258404812460082>" },
 ];
 
 const SPECIAL_SUBTYPES = [
@@ -65,8 +66,8 @@ const SPECIAL_SUBTYPES = [
   { name: "Satan", key: "satan", emoji: "<:Satan:1523380709476274176>" },
   { name: "Găng Tay Băng Giá", key: "frostgauntlet", emoji: "<:frostgauntlet:1544258397564567602>" },
   { name: "Quỷ Thư", key: "demonbook", emoji: "<:darkhold:1544258394695934002>" },
-  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: "<:Holysword:1523379675076755556>" },
-  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: "<:bluestaff:1514232160897339442>" },
+  { name: "Búa Lôi Thần Thor", key: "thorshammer", emoji: "<:ligthammer:1544258402434293810>" },
+  { name: "Búa Toàn Tri Odin", key: "odinhammer", emoji: "<:lawhammer:1544258399649271909>" },
   { name: "Darkhold", key: "darkhold", emoji: "<:darkhold:1544258394695934002>" },
 ];
 

@@ -127,7 +127,7 @@ const entries = [
   {
     type: "weapon",
     name: "Búa Rèn",
-    emoji: "🔨",
+    emoji: "<:warhammer:1544258404812460082>",
     image: "warhammer.png",
     origin: "Chiếc búa thép được rèn tại lò búa của những thợ rèn đầu tiên, không mang phép thuật nhưng đủ bền để tiếp nhận sức mạnh cổ đại.",
     power: "📈 **Tỷ lệ Scale:** STR/DEX theo độ hiếm của vũ khí\n🔨 **Đặc tính:** Vũ khí thường, có thể rèn tiến hóa thành Búa Lôi Thần Thor hoặc Búa Toàn Tri Odin.",

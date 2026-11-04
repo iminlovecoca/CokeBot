@@ -66,7 +66,7 @@ class WeaponlistCommand extends BaseCommand {
             `• **Longsword** (Mã: \`longsword\` hoặc \`w\`) - <:longsword:1514231939865903104>\n` +
             `• **Staff** (Mã: \`staff\`) - <:staff:1514231936581898240>\n` +
             `• **Dagger** (Mã: \`dagger\`) - <:dagger:1514231934191009853>\n` +
-            `• **Búa Rèn** (Mã: \`warhammer\`) - 🔨 (Tiến hóa ở +10)`,
+            `• **Búa Rèn** (Mã: \`warhammer\`) - <:warhammer:1544258404812460082> (Tiến hóa ở +10)`,
           inline: false,
         },
         {

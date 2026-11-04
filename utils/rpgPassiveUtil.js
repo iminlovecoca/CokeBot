@@ -409,7 +409,7 @@ function getWeaponQualityFactor(rarity = "Common", quality = 50, wear = null) {
   const wearScore = wearInfo.score;
 
   // Composite factor: 45% Quality + 30% Wear + 25% Rarity
-  const compositeFactor = Math.max(0.1, Math.min(1.2, qualityScore * 0.45 + wearScore * 0.30 + rarityScore * 0.25));
+  const compositeFactor = Math.max(0.1, Math.min(1.0, qualityScore * 0.45 + wearScore * 0.30 + rarityScore * 0.25));
   // Multiplier directly proportional to Rarity, Wear, Quality (from ~0.75 to ~1.40)
   const powerStatMultiplier = Math.round((0.75 + 0.55 * compositeFactor) * 1000) / 1000;
 

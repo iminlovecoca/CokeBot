@@ -16,9 +16,12 @@ module.exports = {
     },
     weapons: {
       demonbook: "<:darkhold:1544258394695934002>",
-      thorshammer: "<:Holysword:1523379675076755556>",
-      odinhammer: "<:bluestaff:1514232160897339442>",
-      warhammer: "<:longsword:1514231939865903104>",
+      thorshammer: "<:ligthammer:1544258402434293810>",
+      odinhammer: "<:lawhammer:1544258399649271909>",
+      warhammer: "<:warhammer:1544258404812460082>",
+      ligthammer: "<:ligthammer:1544258402434293810>",
+      lighthammer: "<:ligthammer:1544258402434293810>",
+      lawhammer: "<:lawhammer:1544258399649271909>",
     },
     gear: {
       archerarmor: "<:archerarmor:1566687279634710669>",
