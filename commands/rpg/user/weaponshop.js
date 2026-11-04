@@ -28,6 +28,7 @@ const {
 } = require("../../../utils/rpgUi");
 
 const TIMEZONE = config.rpg?.boss?.spawn_timezone || "Asia/Ho_Chi_Minh";
+const SOUL_EMOJI = "<:souls:1518749776538243082>";
 
 const NORMAL_SUBTYPES = [
   { name: "Longsword", key: "longsword", emoji: "<:longsword:1514231939865903104>" },
@@ -100,6 +101,17 @@ const RARITY_BRACKETS = {
   Divine: "<a:divine:1530878610515165365>",
 };
 
+// Base Soul prices matching OwO markup (shardPrice * 2.5)
+const BASE_SOUL_PRICES = {
+  Common: 3,
+  Rare: 13,
+  Epic: 63,
+  Mythic: 750,
+  Legendary: 2500,
+  Ancient: 12500,
+  Divine: 25000,
+};
+
 function createSeededRng(seedStr) {
   let h = 1779033703 ^ seedStr.length;
   for (let i = 0; i < seedStr.length; i++) {
@@ -128,13 +140,13 @@ function getDailyShopDateInfo() {
 function generateDailyWeapons(dateKey) {
   const items = [];
 
-  // Item 100: Weapon Crate
+  // Item 100: Weapon Crate (40 Souls matching OwO's 40 Weapon Shards)
   items.push({
     slotIndex: 100,
     isCrate: true,
     name: "Weapon Crate",
     emoji: "<:crate:1512793698025603282>",
-    price: 40000,
+    price: 40,
   });
 
   // Items 101 to 110: 10 Daily Weapons
@@ -144,7 +156,7 @@ function generateDailyWeapons(dateKey) {
 
     let subTypeObj;
     let rarity;
-    let basePrice;
+    let baseSoulPrice;
 
     if (isSpecial) {
       const idx = Math.floor(rng() * SPECIAL_SUBTYPES.length);
@@ -152,16 +164,16 @@ function generateDailyWeapons(dateKey) {
       const rRoll = rng();
       if (rRoll < 0.50) {
         rarity = "Epic";
-        basePrice = 1500000;
+        baseSoulPrice = BASE_SOUL_PRICES.Epic;
       } else if (rRoll < 0.85) {
         rarity = "Legendary";
-        basePrice = 2500000;
+        baseSoulPrice = BASE_SOUL_PRICES.Legendary;
       } else if (rRoll < 0.96) {
         rarity = "Mythic";
-        basePrice = 4000000;
+        baseSoulPrice = BASE_SOUL_PRICES.Mythic;
       } else {
         rarity = "Ancient";
-        basePrice = 6000000;
+        baseSoulPrice = BASE_SOUL_PRICES.Ancient;
       }
     } else {
       const idx = Math.floor(rng() * NORMAL_SUBTYPES.length);
@@ -169,16 +181,16 @@ function generateDailyWeapons(dateKey) {
       const rRoll = rng();
       if (rRoll < 0.60) {
         rarity = "Common";
-        basePrice = 50000;
+        baseSoulPrice = BASE_SOUL_PRICES.Common;
       } else if (rRoll < 0.85) {
         rarity = "Rare";
-        basePrice = 150000;
+        baseSoulPrice = BASE_SOUL_PRICES.Rare;
       } else if (rRoll < 0.97) {
         rarity = "Epic";
-        basePrice = 500000;
+        baseSoulPrice = BASE_SOUL_PRICES.Epic;
       } else {
         rarity = "Legendary";
-        basePrice = 1200000;
+        baseSoulPrice = BASE_SOUL_PRICES.Legendary;
       }
     }
 
@@ -209,9 +221,9 @@ function generateDailyWeapons(dateKey) {
     const randomPassive = computeRandomPassiveSpec(randDef.type, rarity, finalQuality, wear);
     const randomPassiveEmoji = randDef.emoji;
 
-    // Proportional power, stats & price
+    // Proportional power, stats & soul price
     const { powerStatMultiplier } = getWeaponQualityFactor(rarity, finalQuality, wear);
-    const price = Math.round((basePrice * powerStatMultiplier) / 1000) * 1000;
+    const price = Math.max(1, Math.round(baseSoulPrice * powerStatMultiplier));
     const powerRarityConfig = config.rpg.gear_rarities[rarity] || { power: 100, sell: 100 };
     const power = Math.floor((powerRarityConfig.power + 4) * powerStatMultiplier);
     const stats = generateGearStats("weapon", rarity, finalQuality, subTypeObj.name, wear);
@@ -240,6 +252,26 @@ function generateDailyWeapons(dateKey) {
   return items;
 }
 
+function getUserSouls(user) {
+  if (!user.inventory) return 0;
+  if (user.inventory instanceof Map) {
+    return user.inventory.get("souls") || 0;
+  }
+  return user.inventory.souls || 0;
+}
+
+function deductUserSouls(user, amount) {
+  if (!user.inventory) user.inventory = new Map();
+  const current = getUserSouls(user);
+  const nextVal = Math.max(0, current - amount);
+  if (user.inventory instanceof Map) {
+    user.inventory.set("souls", nextVal);
+  } else {
+    user.inventory.souls = nextVal;
+  }
+  user.markModified("inventory");
+}
+
 function getUserShopPurchases(user, dateKey) {
   if (!user.rpg) user.rpg = {};
   if (!user.rpg.dailyWeaponShop || user.rpg.dailyWeaponShop.date !== dateKey) {
@@ -257,7 +289,7 @@ class WeaponShopCommand extends BaseCommand {
     super({
       name: "weaponshop",
       aliases: ["ws", "wshop", "shopweapon", "shopvk"],
-      description: "Cửa hàng vũ khí hàng ngày hiển thị dọc chuẩn phong cách OwO.",
+      description: "Cửa hàng vũ khí hàng ngày mua bằng Linh Hồn (Soul).",
       usage: `${config.prefix}weaponshop [buy <100-110>]`,
       category: "rpg",
       cooldown: 0,
@@ -270,20 +302,19 @@ class WeaponShopCommand extends BaseCommand {
     const lines = [];
     weapons.forEach((item) => {
       if (item.isCrate) {
-        const dashCount = Math.max(3, 34 - item.name.length);
+        // Offset dashes to align price with weapon rows
+        const dashCount = Math.max(3, 35 - item.name.length);
         const dashes = "-".repeat(dashCount);
-        lines.push(`\`${item.slotIndex}\` ${item.emoji} \`${item.name}\` ${dashes} \`${item.price.toLocaleString()}\` <:cokecy:1509951335016173662>`);
+        lines.push(`\`${item.slotIndex}\` ${item.emoji} \`${item.name}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
       } else {
         const isBought = purchasedSlots.includes(item.slotIndex);
         const displayName = `${item.wear.prefix}${item.rarity} ${item.name}`;
+        const dashCount = Math.max(3, 28 - displayName.length);
+        const dashes = "-".repeat(dashCount);
         if (isBought) {
-          const dashCount = Math.max(3, 26 - displayName.length);
-          const dashes = "-".repeat(dashCount);
           lines.push(`\`${item.slotIndex}\` ${item.emoji} ${item.fixedPassiveEmoji} ${item.randomPassiveEmoji} \`${displayName}\` ${dashes} \`[ĐÃ MUA]\` ✅`);
         } else {
-          const dashCount = Math.max(3, 26 - displayName.length);
-          const dashes = "-".repeat(dashCount);
-          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${item.fixedPassiveEmoji} ${item.randomPassiveEmoji} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` <:cokecy:1509951335016173662>`);
+          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${item.fixedPassiveEmoji} ${item.randomPassiveEmoji} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
         }
       }
     });
@@ -291,32 +322,32 @@ class WeaponShopCommand extends BaseCommand {
     const divider = "══════════════════════════════════════════════════";
 
     const description =
-      `Use your Coke to purchase weapons and crates!\n` +
-      `Weapons are randomly generated every day!\n` +
-      `• \`${config.prefix}buy {id}\` to buy a weapon\n` +
-      `• \`${config.prefix}shop weapon\` to view the weapons\n` +
+      `Dùng Linh Hồn để mua vũ khí và hòm vũ khí!\n` +
+      `Vũ khí được làm mới ngẫu nhiên mỗi ngày!\n` +
+      `• \`${config.prefix}buy {id}\` để mua một vũ khí\n` +
+      `• \`${config.prefix}ws\` để xem danh sách vũ khí\n` +
       `${divider}\n` +
       lines.join("\n") +
       `\n${divider}`;
 
     const embed = new EmbedBuilder()
       .setColor("#2F3136")
-      .setTitle("OwO Shop: Weapons")
+      .setTitle("Cửa Hàng: Vũ Khí")
       .setDescription(description)
-      .setFooter({ text: `Page 1/1 | Resets in: ${dateInfo.countdownStr}` });
+      .setFooter({ text: `Trang 1/1 | Làm mới sau: ${dateInfo.countdownStr}` });
 
     const selectOptions = weapons.map((item) => {
       if (item.isCrate) {
         return {
           label: "100: Weapon Crate",
-          description: `Giá: ${item.price.toLocaleString()} Coke • Hộp Vũ Khí (wc)`,
+          description: `Giá: 40 Linh Hồn • Hộp Vũ Khí (wc)`,
           value: "100",
         };
       }
       const isBought = purchasedSlots.includes(item.slotIndex);
       return {
         label: `${item.slotIndex}: ${item.wear.prefix}${item.rarity} ${item.name}`,
-        description: isBought ? "Đã mua hôm nay" : `Giá: ${item.price.toLocaleString()} Coke • ${item.power.toLocaleString()} Power`,
+        description: isBought ? "Đã mua hôm nay" : `Giá: ${item.price.toLocaleString()} Linh Hồn • ${item.power.toLocaleString()} Power`,
         value: String(item.slotIndex),
       };
     });
@@ -339,15 +370,17 @@ class WeaponShopCommand extends BaseCommand {
       return { ok: false, message: "❌ Ô vũ khí không hợp lệ! Vui lòng chọn từ `100` đến `110`." };
     }
 
+    const userSouls = getUserSouls(user);
+
     // Item 100: Weapon Crate
     if (item.isCrate) {
-      if (user.coke < item.price) {
+      if (userSouls < item.price) {
         return {
           ok: false,
-          message: `❌ Bạn không đủ Coke! Cần **${item.price.toLocaleString()} Coke** nhưng bạn chỉ có **${user.coke.toLocaleString()} Coke**.`,
+          message: `❌ Bạn không đủ Linh Hồn! Cần **${item.price.toLocaleString()} Linh Hồn** ${SOUL_EMOJI} nhưng bạn chỉ có **${userSouls.toLocaleString()} Linh Hồn**.\n💡 Bạn có thể hiến tế vũ khí thừa để lấy Linh Hồn (\`${config.prefix}sac cw\`, \`${config.prefix}sac rw\`, \`${config.prefix}dismantle\`)!`,
         };
       }
-      user.coke -= item.price;
+      deductUserSouls(user, item.price);
       if (!user.inventory) user.inventory = new Map();
       const currentWc = (user.inventory instanceof Map ? user.inventory.get("wc") : user.inventory.wc) || 0;
       if (user.inventory instanceof Map) {
@@ -357,7 +390,7 @@ class WeaponShopCommand extends BaseCommand {
       }
       user.markModified("inventory");
       await user.save();
-      return { ok: true, isCrate: true, price: item.price, remainingCoke: user.coke };
+      return { ok: true, isCrate: true, price: item.price, remainingSouls: getUserSouls(user) };
     }
 
     // Items 101 to 110: Weapons
@@ -369,14 +402,14 @@ class WeaponShopCommand extends BaseCommand {
       };
     }
 
-    if (user.coke < item.price) {
+    if (userSouls < item.price) {
       return {
         ok: false,
-        message: `❌ Bạn không đủ Coke! Cần **${item.price.toLocaleString()} Coke** nhưng bạn chỉ có **${user.coke.toLocaleString()} Coke**.`,
+        message: `❌ Bạn không đủ Linh Hồn! Cần **${item.price.toLocaleString()} Linh Hồn** ${SOUL_EMOJI} nhưng bạn chỉ có **${userSouls.toLocaleString()} Linh Hồn**.\n💡 Bạn có thể hiến tế vũ khí thừa để lấy Linh Hồn (\`${config.prefix}sac cw\`, \`${config.prefix}sac rw\`, \`${config.prefix}dismantle\`)!`,
       };
     }
 
-    user.coke -= item.price;
+    deductUserSouls(user, item.price);
     user.rpg.dailyWeaponShop.slots.push(slotIndex);
     user.markModified("rpg");
 
@@ -395,36 +428,43 @@ class WeaponShopCommand extends BaseCommand {
     });
 
     if (!weapon) {
-      user.coke += item.price;
+      // Refund souls
+      if (user.inventory instanceof Map) {
+        user.inventory.set("souls", getUserSouls(user) + item.price);
+      } else {
+        user.inventory.souls = getUserSouls(user) + item.price;
+      }
       user.rpg.dailyWeaponShop.slots = user.rpg.dailyWeaponShop.slots.filter((s) => s !== slotIndex);
       user.markModified("rpg");
+      user.markModified("inventory");
       return { ok: false, message: "❌ Đã có lỗi xảy ra khi rèn vũ khí. Vui lòng thử lại!" };
     }
 
     addRpgGearToUser(user, weapon);
     await user.save();
 
-    return { ok: true, isCrate: false, weapon, item, remainingCoke: user.coke };
+    return { ok: true, isCrate: false, weapon, item, remainingSouls: getUserSouls(user) };
   }
 
   buildSuccessEmbed(user, weapon, item) {
     const bracket = RARITY_BRACKETS[weapon.rarity] || "<:common:1530878565489311826>";
     const specialTag = item.isSpecial ? " 🌟 **[ĐẶC BIỆT 5%]**" : "";
+    const remainingSouls = getUserSouls(user);
 
     const embed = new EmbedBuilder()
       .setColor(getRpgColor("success"))
       .setTitle(formatRpgTitle(`Mua Vũ Khí Thành Công • Ô #${item.slotIndex}`, "🎉"))
       .setDescription(
-        `Chúc mừng **${user.username || "bạn"}** đã sở hữu thành công vũ khí từ Shop Hàng Ngày!\n\n` +
+        `Chúc mừng **${user.username || "bạn"}** đã sở hữu thành công vũ khí từ Cửa Hàng Hàng Ngày!\n\n` +
         `${bracket} ${weapon.emoji} **${weapon.name}** [${weapon.wear?.name || "Worn"} • **${weapon.quality.toFixed(1)}%** • ${weapon.rarity}]${specialTag}\n` +
         `• Sức mạnh: **${weapon.power.toLocaleString()} Power** • Giá bán lại: **${(weapon.sellPrice || 0).toLocaleString()} Coke**\n` +
         `• Chỉ số cộng thêm: **${Object.entries(weapon.stats || {}).map(([s, v]) => `+${v} ${s.toUpperCase()}`).join(" • ") || "Không có"}**\n` +
-        `• Chi phí mua: **-${item.price.toLocaleString()} Coke** • Số dư còn lại: **${user.coke.toLocaleString()} Coke**\n\n` +
+        `• Chi phí mua: **-${item.price.toLocaleString()} Linh Hồn** ${SOUL_EMOJI} • Số dư còn lại: **${remainingSouls.toLocaleString()} Linh Hồn**\n\n` +
         `🛡️ **Nội tại cố định:**\n` +
         `> **${weapon.fixedPassive?.name || "Nội tại"}**: ${weapon.fixedPassive?.description || "Không có"}\n\n` +
         `🎲 **Nội tại ngẫu nhiên (Random Passive):**\n` +
         `> ${weapon.randomPassive?.description || "Không có"}\n\n` +
-        `💡 *Cả 2 nội tại, sức mạnh, chỉ số và giá bán đều tỉ lệ thuận theo Rarity (${weapon.rarity}), Wear (${weapon.wear?.name || "Worn"}) và Quality (${weapon.quality.toFixed(1)}%)!*`
+        `💡 *Cả 2 nội tại, sức mạnh, chỉ số, giá mua (Linh Hồn) và giá bán (Coke) đều tỉ lệ thuận theo Rarity (${weapon.rarity}), Wear (${weapon.wear?.name || "Worn"}) và Quality (${weapon.quality.toFixed(1)}%)!*`
       )
       .setFooter(formatRpgFooter(`Dùng ${config.prefix}gear để xem và trang bị`))
       .setTimestamp();
@@ -432,15 +472,15 @@ class WeaponShopCommand extends BaseCommand {
     return embed;
   }
 
-  buildCrateSuccessEmbed(user, price, remainingCoke) {
+  buildCrateSuccessEmbed(user, price, remainingSouls) {
     const embed = new EmbedBuilder()
       .setColor(getRpgColor("success"))
       .setTitle(formatRpgTitle("Mua Hộp Vũ Khí Thành Công • Ô #100", "🎉"))
       .setDescription(
         `Chúc mừng **${user.username || "bạn"}** đã mua thành công **Hộp Vũ Khí (Weapon Crate)**!\n\n` +
         `<:crate:1512793698025603282> **Hộp Vũ Khí (Weapon Crate)**\n` +
-        `• Chi phí: **-${price.toLocaleString()} Coke**\n` +
-        `• Số dư còn lại: **${remainingCoke.toLocaleString()} Coke**\n\n` +
+        `• Chi phí: **-${price.toLocaleString()} Linh Hồn** ${SOUL_EMOJI}\n` +
+        `• Số dư còn lại: **${remainingSouls.toLocaleString()} Linh Hồn**\n\n` +
         `📦 *Dùng lệnh \`${config.prefix}wc\` để mở hộp và nhận vũ khí ngẫu nhiên!*`
       )
       .setFooter(formatRpgFooter(`Dùng ${config.prefix}wc để mở hộp`))
@@ -453,7 +493,7 @@ class WeaponShopCommand extends BaseCommand {
     await requireRpgCharacter(message.author.id);
     const user = await getUser(message.author.id);
 
-    // Direct buy via text: coke ws buy <100-110> or coke ws buy <1-10>
+    // Direct buy via text: xws buy <100-110> or xws buy <1-10>
     if (args[0]?.toLowerCase() === "buy" && args[1]) {
       let slotNum = parseInt(args[1], 10);
       if (slotNum >= 1 && slotNum <= 10) slotNum += 100;
@@ -462,7 +502,7 @@ class WeaponShopCommand extends BaseCommand {
         return message.reply(buyRes.message);
       }
       if (buyRes.isCrate) {
-        return message.reply({ embeds: [this.buildCrateSuccessEmbed(user, buyRes.price, buyRes.remainingCoke)] });
+        return message.reply({ embeds: [this.buildCrateSuccessEmbed(user, buyRes.price, buyRes.remainingSouls)] });
       }
       const successEmbed = this.buildSuccessEmbed(user, buyRes.weapon, buyRes.item);
       return message.reply({ embeds: [successEmbed] });
@@ -490,7 +530,7 @@ class WeaponShopCommand extends BaseCommand {
 
         let successEmbed;
         if (buyRes.isCrate) {
-          successEmbed = this.buildCrateSuccessEmbed(u, buyRes.price, buyRes.remainingCoke);
+          successEmbed = this.buildCrateSuccessEmbed(u, buyRes.price, buyRes.remainingSouls);
         } else {
           successEmbed = this.buildSuccessEmbed(u, buyRes.weapon, buyRes.item);
         }
@@ -513,6 +553,14 @@ class WeaponShopCommand extends BaseCommand {
       const disabledRow = new ActionRowBuilder().addComponents(disabledMenu);
       await shopMsg.edit({ components: [disabledRow] }).catch(() => null);
     });
+  }
+
+  generateDailyWeapons(dateKey) {
+    return generateDailyWeapons(dateKey);
+  }
+
+  getDailyShopDateInfo() {
+    return getDailyShopDateInfo();
   }
 }
 

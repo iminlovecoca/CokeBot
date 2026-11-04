@@ -3,23 +3,46 @@ const { buyItem } = require("../../utils/userUtil");
 const { UserFriendlyError } = require("../../utils/errors");
 const config = require("../../data/config");
 
+const SOUL_EMOJI = "<:souls:1518749776538243082>";
+
+function getUserSouls(user) {
+  if (!user.inventory) return 0;
+  if (user.inventory instanceof Map) {
+    return user.inventory.get("souls") || 0;
+  }
+  return user.inventory.souls || 0;
+}
+
+function deductUserSouls(user, amount) {
+  if (!user.inventory) user.inventory = new Map();
+  const current = getUserSouls(user);
+  const nextVal = Math.max(0, current - amount);
+  if (user.inventory instanceof Map) {
+    user.inventory.set("souls", nextVal);
+  } else {
+    user.inventory.souls = nextVal;
+  }
+  user.markModified("inventory");
+}
+
 class BuyCommand extends BaseCommand {
   constructor() {
     super({
       name: "buy",
+      aliases: ["xbuy"],
       description: "Mua một vật phẩm hoặc vũ khí từ cửa hàng.",
       usage: `${config.prefix}buy <id> [số lượng]`,
       examples: [
         {
-          intent: "Mua 1 hộp vũ khí (Weapon Crate)",
+          intent: "Mua 1 hộp vũ khí (Weapon Crate) bằng 40 Linh Hồn",
           command: `${config.prefix}buy 100`,
         },
         {
-          intent: "Mua vũ khí từ shop hàng ngày (slot 101-110)",
+          intent: "Mua vũ khí từ shop hàng ngày (slot 101-110) bằng Linh Hồn",
           command: `${config.prefix}buy 101`,
         },
         {
-          intent: "Mua 1 vật phẩm (ví dụ: sun-stone)",
+          intent: "Mua 1 vật phẩm shop (ví dụ: sun-stone)",
           command: `${config.prefix}buy sun-stone`,
         },
       ],
@@ -39,7 +62,7 @@ class BuyCommand extends BaseCommand {
 
     const cleanId = String(itemId).toLowerCase().replace(/\s+/g, "");
 
-    // 1. Weapon Crate (ID 100, wc, crate, weaponcrate, 099)
+    // 1. Weapon Crate (ID 100, wc, crate, weaponcrate, 099) - Mua bằng Linh Hồn (Souls)
     if (["100", "wc", "crate", "weaponcrate", "099"].includes(cleanId)) {
       if (args[1]) {
         quantity = parseInt(args[1], 10);
@@ -49,18 +72,19 @@ class BuyCommand extends BaseCommand {
           );
         }
       }
-      const CRATE_PRICE = 40000;
-      const totalCost = CRATE_PRICE * quantity;
+      const CRATE_SOUL_PRICE = 40;
+      const totalSoulCost = CRATE_SOUL_PRICE * quantity;
       const { getUser } = require("../../utils/userUtil");
       const user = await getUser(message.author.id);
+      const userSouls = getUserSouls(user);
 
-      if (user.coke < totalCost) {
+      if (userSouls < totalSoulCost) {
         throw new UserFriendlyError(
-          `${config.emoji.no} Bạn không đủ Coke! Cần **${totalCost.toLocaleString()} Coke** nhưng bạn chỉ có **${user.coke.toLocaleString()} Coke**.`
+          `${config.emoji.no} Bạn không đủ Linh Hồn! Cần **${totalSoulCost.toLocaleString()} Linh Hồn** ${SOUL_EMOJI} nhưng bạn chỉ có **${userSouls.toLocaleString()} Linh Hồn**.\n💡 Bạn có thể hiến tế vũ khí thừa để lấy Linh Hồn (\`${config.prefix}sac cw\`, \`${config.prefix}sac rw\`, \`${config.prefix}dismantle\`).`
         );
       }
 
-      user.coke -= totalCost;
+      deductUserSouls(user, totalSoulCost);
       if (!user.inventory) user.inventory = new Map();
       const currentWc = (user.inventory instanceof Map ? user.inventory.get("wc") : user.inventory.wc) || 0;
       if (user.inventory instanceof Map) {
@@ -72,11 +96,11 @@ class BuyCommand extends BaseCommand {
       await user.save();
 
       return message.reply(
-        `${config.emoji.yes} Đã mua thành công **${quantity.toLocaleString()}x Hộp Vũ Khí (Weapon Crate)** <:crate:1512793698025603282> với giá **${totalCost.toLocaleString()} Coke**! Dùng \`${config.prefix}wc\` để mở.`
+        `${config.emoji.yes} Đã mua thành công **${quantity.toLocaleString()}x Hộp Vũ Khí (Weapon Crate)** <:crate:1512793698025603282> với giá **${totalSoulCost.toLocaleString()} Linh Hồn** ${SOUL_EMOJI}! Dùng \`${config.prefix}wc\` để mở.`
       );
     }
 
-    // 2. Daily Weapon Shop Slots (IDs 101 to 110)
+    // 2. Daily Weapon Shop Slots (IDs 101 to 110) - Mua bằng Linh Hồn (Souls)
     const slotInt = parseInt(cleanId, 10);
     if (!isNaN(slotInt) && slotInt >= 101 && slotInt <= 110) {
       const weaponShopCommand = require("../rpg/user/weaponshop");
@@ -90,7 +114,7 @@ class BuyCommand extends BaseCommand {
       return message.reply({ embeds: [successEmbed] });
     }
 
-    // 3. Command aliases like "coke buy weapon <id>" or "coke buy ws <id>"
+    // 3. Command aliases like "xbuy weapon <id>" or "xbuy ws <id>"
     if (["weapon", "ws", "weaponshop", "vukhi"].includes(cleanId)) {
       const weaponShopCommand = require("../rpg/user/weaponshop");
       if (!args[1]) {
@@ -102,7 +126,7 @@ class BuyCommand extends BaseCommand {
         const user = await getUser(message.author.id);
         const buyRes = await weaponShopCommand.processBuy(user, 100, message.channel);
         if (!buyRes.ok) throw new UserFriendlyError(buyRes.message);
-        return message.reply({ embeds: [weaponShopCommand.buildCrateSuccessEmbed(user, buyRes.price, buyRes.remainingCoke)] });
+        return message.reply({ embeds: [weaponShopCommand.buildCrateSuccessEmbed(user, buyRes.price, buyRes.remainingSouls)] });
       }
       if (slotNum >= 1 && slotNum <= 10) slotNum += 100;
       if (slotNum < 101 || slotNum > 110) {
