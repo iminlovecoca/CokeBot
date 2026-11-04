@@ -63,6 +63,7 @@ const WEAPON_RARITY_MAP = {
   weapon: "ALL",
 };
 
+// Định mức Linh Hồn cố định chuẩn OwO theo rank (không cộng thêm bonus wear/quality)
 const WEAPON_SOUL_RATES = {
   Common: 1,
   Rare: 5,
@@ -75,7 +76,6 @@ const WEAPON_SOUL_RATES = {
 
 async function handleWeaponSacrifice(message, args, user, displayName) {
   const SOUL_EMOJI = "<:souls:1518749776538243082>";
-  const { getWeaponQualityFactor } = require("../../../utils/rpgPassiveUtil");
   const { calculateRpgPower } = require("../../../utils/rpgUtil");
 
   if (!user.rpg || !Array.isArray(user.rpg.items) || user.rpg.items.length === 0) {
@@ -108,8 +108,8 @@ async function handleWeaponSacrifice(message, args, user, displayName) {
       return message.reply(`**🚫 | ${displayName}**, vũ khí này đang được khóa bảo vệ hoặc thuộc Godset!`);
     }
 
-    const { powerStatMultiplier } = getWeaponQualityFactor(item.rarity, item.quality || 50, item.wear);
-    const soulsEarned = Math.max(1, Math.round((WEAPON_SOUL_RATES[item.rarity] || 1) * powerStatMultiplier));
+    // Định mức cố định theo phẩm chất (không phụ thuộc wear hay quality)
+    const soulsEarned = WEAPON_SOUL_RATES[item.rarity] || 1;
 
     user.rpg.items = user.rpg.items.filter((i) => i.id !== item.id);
     if (!user.inventory) user.inventory = new Map();
@@ -135,6 +135,10 @@ async function handleWeaponSacrifice(message, args, user, displayName) {
   let isAllWeapons = false;
 
   for (const t of tokens) {
+    if (t === "all") {
+      isAllWeapons = true;
+      continue;
+    }
     const mapped = WEAPON_RARITY_MAP[t];
     if (mapped) {
       if (mapped === "ALL") {
@@ -169,8 +173,8 @@ async function handleWeaponSacrifice(message, args, user, displayName) {
   let totalSouls = 0;
   const countsByRarity = {};
   itemsToSac.forEach((item) => {
-    const { powerStatMultiplier } = getWeaponQualityFactor(item.rarity, item.quality || 50, item.wear);
-    const souls = Math.max(1, Math.round((WEAPON_SOUL_RATES[item.rarity] || 1) * powerStatMultiplier));
+    // Định mức cố định theo phẩm chất (không phụ thuộc wear hay quality)
+    const souls = WEAPON_SOUL_RATES[item.rarity] || 1;
     totalSouls += souls;
     countsByRarity[item.rarity] = (countsByRarity[item.rarity] || 0) + 1;
   });
@@ -204,14 +208,14 @@ class SacrificeCommand extends BaseCommand {
   constructor() {
     super({
       name: "sacrifice",
-      aliases: ["sac", "sc", "xsac", "xsacrifice", "xsc", "dismantle", "tachvk", "hienlinh"],
+      aliases: ["sac", "sc", "xsac", "xsacrifice", "xsc"],
       description: "Hiến tế thú trong Zoo đổi Essence hoặc hiến tế vũ khí RPG đổi Linh Hồn (Soul).",
       usage: `${config.prefix}sacrifice <rank | all | tên thú | cw,rw... | w<id>> [số lượng]`,
       examples: [
         { intent: "Hiến tế vũ khí Common lấy Linh Hồn", command: `${config.prefix}sacrifice cw` },
         { intent: "Hiến tế tất cả vũ khí thường lấy Linh Hồn", command: `${config.prefix}sacrifice allw` },
-        { intent: "Hiến tế tất cả thú trong sở thú", command: `${config.prefix}sacrifice all` },
-        { intent: "Hiến tế thú rank Common", command: `${config.prefix}sacrifice common` },
+        { intent: "Hiến tế tất cả thú trong sở thú lấy Essence", command: `${config.prefix}sacrifice all` },
+        { intent: "Hiến tế thú rank Common lấy Essence", command: `${config.prefix}sacrifice common` },
       ],
       cooldown: 2,
     });
@@ -224,21 +228,22 @@ class SacrificeCommand extends BaseCommand {
 
     if (!args[0]) {
       return message.reply(
-        `**🌱 | ${displayName}**, vui lòng chỉ định mục tiêu cần hiến tế!\n` +
-          `**1. Hiến tế thú trong Zoo lấy Essence:**\n` +
+        `**🌱 | ${displayName}**, vui lòng chỉ định mục tiêu cần hiến tế!\n\n` +
+          `**1. Hiến tế Thú trong Zoo (Nhận Essence ${essenceEmoji}):**\n` +
           `• Cú pháp: \`${config.prefix}sc <rank | all | tên thú> [số lượng]\`\n` +
-          `• Ví dụ: \`${config.prefix}sc common\`, \`${config.prefix}sc c r e\`, \`${config.prefix}sc all\`, \`${config.prefix}sc bee 5\`\n\n` +
-          `**2. Hiến tế vũ khí RPG lấy Linh Hồn ${soulEmoji}:**\n` +
-          `• Cú pháp: \`${config.prefix}sc <cw | rw | ew | mw | lw | aw | dw | allw | w<id>>\`\n` +
+          `• Ví dụ: \`${config.prefix}sc common\`, \`${config.prefix}sc c r e\`, \`${config.prefix}sc all\`, \`${config.prefix}sc bee 5\`\n` +
+          `• Mục đích: Dùng nâng cấp HuntBot (\`${config.prefix}autohunt\`, \`${config.prefix}up\`).\n\n` +
+          `**2. Hiến tế Vũ Khí RPG (Nhận Linh Hồn ${soulEmoji}):**\n` +
+          `• Cú pháp: \`${config.prefix}sc <cw | rw | ew | mw | lw | aw | dw | allw | w<id>>\` *(hoặc \`${config.prefix}dismantle <...>\`)*\n` +
           `• Ví dụ: \`${config.prefix}sc cw\`, \`${config.prefix}sc rw\`, \`${config.prefix}sc allw\`, \`${config.prefix}sc w5\`\n` +
-          `• Bảng Linh Hồn cơ bản (tự scale theo Quality & Wear): Common: **1** • Rare: **5** • Epic: **25** • Mythic: **300** • Legendary: **1.000** • Ancient: **5.000**`,
+          `• Bảng Linh Hồn cố định: Common: **1** • Rare: **5** • Epic: **25** • Mythic: **300** • Legendary: **1.000** • Ancient: **5.000** • Divine: **10.000**\n` +
+          `• Mục đích: Dùng mua vũ khí và hòm trong Cửa Hàng Vũ Khí (\`${config.prefix}ws\`).`
       );
     }
 
     const firstArgLower = args[0].toLowerCase();
     const isExplicitWeaponId = /^[wg]\d+$/i.test(firstArgLower);
     const isWeaponCommand =
-      message.content.toLowerCase().includes("dismantle") ||
       WEAPON_KEYWORDS.has(firstArgLower) ||
       isExplicitWeaponId ||
       firstArgLower === "weapon" ||
@@ -427,4 +432,6 @@ class SacrificeCommand extends BaseCommand {
   }
 }
 
-module.exports = new SacrificeCommand();
+const sacrificeInstance = new SacrificeCommand();
+sacrificeInstance.handleWeaponSacrifice = handleWeaponSacrifice;
+module.exports = sacrificeInstance;
