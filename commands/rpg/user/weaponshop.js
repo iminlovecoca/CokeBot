@@ -315,6 +315,7 @@ class WeaponShopCommand extends BaseCommand {
         lines.push(`\`${item.slotIndex}\` ${item.emoji} \`${item.name}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
       } else {
         const isBought = purchasedSlots.includes(item.slotIndex);
+        const rankEmoji = RARITY_BRACKETS[item.rarity] || "<:common:1530878565489311826>";
         const displayName = `${item.wear.prefix}${item.rarity} ${item.name}`;
         const passivesStr = item.isSpecial && item.fixedPassiveEmoji
           ? `${item.fixedPassiveEmoji} ${item.randomPassiveEmoji}`
@@ -322,9 +323,9 @@ class WeaponShopCommand extends BaseCommand {
         const dashCount = Math.max(3, (item.isSpecial ? 26 : 28) - displayName.length);
         const dashes = "-".repeat(dashCount);
         if (isBought) {
-          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`[ĐÃ MUA]\` ✅`);
+          lines.push(`\`${item.slotIndex}\` ${rankEmoji} ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`[ĐÃ MUA]\` ✅`);
         } else {
-          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
+          lines.push(`\`${item.slotIndex}\` ${rankEmoji} ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
         }
       }
     });
@@ -447,8 +448,7 @@ class WeaponShopCommand extends BaseCommand {
         `• Sức mạnh: **${weapon.power.toLocaleString()} Power** • Giá bán lại: **${(weapon.sellPrice || 0).toLocaleString()} Coke**\n` +
         `• Chỉ số cộng thêm: **${Object.entries(weapon.stats || {}).map(([s, v]) => `+${v} ${s.toUpperCase()}`).join(" • ") || "Không có"}**\n` +
         `• Chi phí mua: **-${item.price.toLocaleString()} Linh Hồn** ${SOUL_EMOJI} • Số dư còn lại: **${remainingSouls.toLocaleString()} Linh Hồn**\n\n` +
-        `🛡️ **Nội tại cố định:**\n` +
-        `> **${weapon.fixedPassive?.name || "Nội tại"}**: ${weapon.fixedPassive?.description || "Không có"}\n\n` +
+        (weapon.fixedPassive ? `🛡️ **Nội tại cố định:**\n> **${weapon.fixedPassive.name}**: ${weapon.fixedPassive.description}\n\n` : "") +
         `🎲 **Nội tại ngẫu nhiên (Random Passive):**\n` +
         `> ${weapon.randomPassive?.description || "Không có"}\n\n` +
         `💡 *Cả 2 nội tại, sức mạnh, chỉ số, giá mua (Linh Hồn) và giá bán (Coke) đều tỉ lệ thuận theo Rarity (${weapon.rarity}), Wear (${weapon.wear?.name || "Worn"}) và Quality (${weapon.quality.toFixed(1)}%)!*`
