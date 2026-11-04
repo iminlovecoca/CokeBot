@@ -301,9 +301,12 @@ class SacrificeCommand extends BaseCommand {
     } else {
       const matchedRanks = [];
       for (const arg of args) {
+        if (!arg || arg.toLowerCase() === "all") continue;
         const found = getRank(arg);
-        if (found && !matchedRanks.some((r) => r.id === found.id)) {
-          matchedRanks.push(found);
+        if (found) {
+          if (!matchedRanks.some((r) => r.name === found.name)) {
+            matchedRanks.push(found);
+          }
         }
       }
       if (matchedRanks.length > 0) {
@@ -315,29 +318,50 @@ class SacrificeCommand extends BaseCommand {
     if (isRankSacrifice) {
       let totalEssenceGained = 0;
       let totalAnimalsSacrificed = 0;
-      const sacrificedByRank = {};
+      const rankPieces = [];
 
-      for (const rank of targetRanks) {
-        const speciesInRank = Object.values(PET_SPECIES).filter(
-          (s) => s.rank.toLowerCase() === rank.id.toLowerCase(),
+      for (const r of targetRanks) {
+        const speciesInRank = PET_SPECIES.filter(
+          (s) => (s.tier || s.rank || "").toLowerCase() === (r.name || r.id).toLowerCase(),
         );
-
         let rankCount = 0;
-        let rankEssence = 0;
 
-        for (const species of speciesInRank) {
-          const count = zoo[species.id] || 0;
+        for (const a of speciesInRank) {
+          const entry = zoo[a.key];
+          const count = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
           if (count > 0) {
             rankCount += count;
-            rankEssence += count * rank.essence;
-            delete zoo[species.id];
+            if (typeof entry === "object" && entry !== null) {
+              entry.count = 0;
+            } else {
+              zoo[a.key] = { count: 0, totalCount: count };
+            }
+          }
+        }
+
+        for (const [key, entry] of Object.entries(zoo)) {
+          if (speciesInRank.some((s) => s.key.toLowerCase() === key.toLowerCase())) continue;
+          const anim = getAnimal(key);
+          const animRank = anim?.rankName || anim?.tier || (anim && ZOO_RANKS[anim.tier]?.name);
+          if (animRank === r.name) {
+            const count = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
+            if (count > 0) {
+              rankCount += count;
+              if (typeof entry === "object" && entry !== null) {
+                entry.count = 0;
+              } else {
+                zoo[key] = { count: 0, totalCount: count };
+              }
+            }
           }
         }
 
         if (rankCount > 0) {
           totalAnimalsSacrificed += rankCount;
-          totalEssenceGained += rankEssence;
-          sacrificedByRank[rank.name] = rankCount;
+          const essencePerPet = r.essence || 1;
+          const totalEssenceGain = rankCount * essencePerPet;
+          totalEssenceGained += totalEssenceGain;
+          rankPieces.push(`${r.emoji || r.name}x${rankCount}`);
         }
       }
 
@@ -357,12 +381,9 @@ class SacrificeCommand extends BaseCommand {
 
       await user.save();
 
-      const breakdown = Object.entries(sacrificedByRank)
-        .map(([name, count]) => `**${count}** thú rank ${name}`)
-        .join(", ");
-
       return message.reply(
-        `✨ | **${displayName}**, bạn đã hiến tế ${breakdown} và nhận được **+${totalEssenceGained.toLocaleString()}** Essence ${essenceEmoji}!\n` +
+        `✨ | **${displayName}**, bạn đã hiến tế **${rankPieces.join(" ")}** (${totalAnimalsSacrificed.toLocaleString()} thú) và nhận được **+${totalEssenceGained.toLocaleString()}** Essence ${essenceEmoji}!
+` +
           `Số dư Essence hiện tại: **${user.rpg.autohunt.essence.toLocaleString()}** Essence.`,
       );
     }
@@ -370,14 +391,25 @@ class SacrificeCommand extends BaseCommand {
     // ==========================================
     // 3. HIẾN TẾ THEO LOÀI CỤ THỂ
     // ==========================================
-    const species = getAnimal(args[0]);
+    let animalArg = args[0].toLowerCase();
+    let countArg = args[1]?.toLowerCase();
+
+    if (getAnimal(countArg) && (!isNaN(parseInt(animalArg, 10)) || animalArg === "all")) {
+      const temp = animalArg;
+      animalArg = countArg;
+      countArg = temp;
+    }
+
+    const species = getAnimal(animalArg);
     if (!species) {
       return message.reply(
         `**🚫 | ${displayName}**, không tìm thấy loài thú hoặc rank \`${args[0]}\`! Hãy kiểm tra lại tên thú.`,
       );
     }
 
-    const currentCount = zoo[species.id] || 0;
+    const animalKey = species.key;
+    const entry = zoo[animalKey];
+    const currentCount = typeof entry === "object" && entry !== null ? (entry.count || 0) : Number(entry) || 0;
     if (currentCount <= 0) {
       return message.reply(
         `**🚫 | ${displayName}**, bạn không có con **${species.name}** nào trong sở thú!`,
@@ -385,11 +417,11 @@ class SacrificeCommand extends BaseCommand {
     }
 
     let countToSacrifice = 1;
-    if (args[1]) {
-      if (args[1].toLowerCase() === "all") {
+    if (countArg) {
+      if (countArg === "all") {
         countToSacrifice = currentCount;
       } else {
-        const parsed = parseInt(args[1], 10);
+        const parsed = parseInt(countArg, 10);
         if (isNaN(parsed) || parsed <= 0) {
           return message.reply(
             `**🚫 | ${displayName}**, số lượng cần hiến tế phải là số nguyên dương!`,
@@ -405,15 +437,17 @@ class SacrificeCommand extends BaseCommand {
       );
     }
 
-    const rankObj = getRank(species.rank);
-    const essencePerAnimal = rankObj ? rankObj.essence : 1;
+    const rankObj = ZOO_RANKS[species.rankName || species.tier] || getRank(species.rank || species.tier);
+    const essencePerAnimal = species.essence || (rankObj ? rankObj.essence : 1);
     const essenceGained = countToSacrifice * essencePerAnimal;
 
-    const remaining = currentCount - countToSacrifice;
-    if (remaining <= 0) {
-      delete zoo[species.id];
+    if (typeof entry === "object" && entry !== null) {
+      entry.count = Math.max(0, (entry.count || 0) - countToSacrifice);
     } else {
-      zoo[species.id] = remaining;
+      zoo[animalKey] = {
+        count: Math.max(0, currentCount - countToSacrifice),
+        totalCount: currentCount,
+      };
     }
 
     user.zoo = zoo;
@@ -426,7 +460,8 @@ class SacrificeCommand extends BaseCommand {
     await user.save();
 
     return message.reply(
-      `✨ | **${displayName}**, bạn đã hiến tế **${countToSacrifice}x ${species.emoji} ${species.name}** và nhận được **+${essenceGained.toLocaleString()}** Essence ${essenceEmoji}!\n` +
+      `✨ | **${displayName}**, bạn đã hiến tế **${countToSacrifice}x ${species.emoji || ""} ${species.name}** và nhận được **+${essenceGained.toLocaleString()}** Essence ${essenceEmoji}!
+` +
         `Số dư Essence hiện tại: **${user.rpg.autohunt.essence.toLocaleString()}** Essence.`,
     );
   }
