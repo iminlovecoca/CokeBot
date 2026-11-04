@@ -18,6 +18,10 @@ class ShopCommand extends BaseCommand {
   }
 
   async execute(message, args) {
+    if (args[0] && ["weapon", "ws", "weapons", "vukhi", "wshop"].includes(args[0].toLowerCase())) {
+      const wsCmd = require("../rpg/user/weaponshop");
+      return wsCmd.execute(message, args.slice(1));
+    }
     const allItems = message.client.allItems.filter(item => item.price !== null);
 
     const regularItems = allItems.filter(item => !item.item_id.startsWith("somber-") && !item.item_id.startsWith("cristal-"));

@@ -401,6 +401,30 @@ const RARITY_SCORES = {
   Secret: 1.00,
 };
 
+function getWeaponQualityFactor(rarity = "Common", quality = 50, wear = null) {
+  const wearInfo = resolveWearInfo(wear, quality);
+  const qVal = Math.max(10, Math.min(105, Number(quality) || 50));
+  const qualityScore = qVal / 100;
+  const rarityScore = RARITY_SCORES[rarity] ?? 0.30;
+  const wearScore = wearInfo.score;
+
+  // Composite factor: 45% Quality + 30% Wear + 25% Rarity
+  const compositeFactor = Math.max(0.1, Math.min(1.2, qualityScore * 0.45 + wearScore * 0.30 + rarityScore * 0.25));
+  // Multiplier directly proportional to Rarity, Wear, Quality (from ~0.75 to ~1.40)
+  const powerStatMultiplier = Math.round((0.75 + 0.55 * compositeFactor) * 1000) / 1000;
+
+  return {
+    wearInfo,
+    qVal,
+    clampedQuality: qVal,
+    qualityScore,
+    rarityScore,
+    wearScore,
+    compositeFactor,
+    powerStatMultiplier,
+  };
+}
+
 function resolveWearInfo(wear, quality = 50) {
   if (wear && typeof wear === "object" && wear.name) {
     const key = String(wear.id || wear.name).toLowerCase();
@@ -423,18 +447,13 @@ function resolveWearInfo(wear, quality = 50) {
 
 function computeRandomPassiveSpec(passiveType, rarity = "Common", quality = 50, wear = null) {
   const def = RANDOM_PASSIVE_BY_TYPE[passiveType] || RANDOM_PASSIVE_POOL[0];
-  const wearInfo = resolveWearInfo(wear, quality);
-  const clampedQuality = Math.max(0, Math.min(105, Number(quality) || 50));
-  const qualityScore = clampedQuality / 105;
-  const rarityScore = RARITY_SCORES[rarity] ?? 0.30;
+  const { wearInfo, clampedQuality, compositeFactor } = getWeaponQualityFactor(rarity, quality, wear);
 
-  // Deterministic OwO-style weighting: 55% Quality + 20% Wear + 25% Rarity
-  const factor = Math.max(0, Math.min(1, qualityScore * 0.55 + wearInfo.score * 0.20 + rarityScore * 0.25));
-  const finalValue = Math.round((def.baseMin + (def.baseMax - def.baseMin) * factor) * 1000) / 1000;
+  const finalValue = Math.round((def.baseMin + (def.baseMax - def.baseMin) * compositeFactor) * 1000) / 1000;
   const pctNum = Math.round(finalValue * 1000) / 10;
   const percentText = Number.isInteger(pctNum) ? `${pctNum}%` : `${pctNum.toFixed(1)}%`;
   const qDisplay = Number.isInteger(clampedQuality) ? `${clampedQuality}%` : `${clampedQuality.toFixed(1)}%`;
-  const wearBadge = `${wearInfo.name} + ${qDisplay}`;
+  const wearBadge = `${wearInfo.name} ${qDisplay} [${rarity}]`;
 
   return {
     type: def.type,
@@ -443,6 +462,7 @@ function computeRandomPassiveSpec(passiveType, rarity = "Common", quality = 50, 
     value: finalValue,
     wearName: wearInfo.name,
     quality: clampedQuality,
+    rarity,
     description: def.formatDesc(percentText, wearBadge),
   };
 }
@@ -454,19 +474,14 @@ function computeFixedWeaponPassive(subType, rarity = "Common", quality = 50, wea
   const baseP = getWeaponPassive(clean);
   if (!baseP) return null;
 
-  const wearInfo = resolveWearInfo(wear, quality);
-  const clampedQuality = Math.max(0, Math.min(105, Number(quality) || 50));
-  const qualityScore = clampedQuality / 105;
-  const rarityScore = RARITY_SCORES[rarity] ?? 0.30;
+  const { wearInfo, clampedQuality, compositeFactor } = getWeaponQualityFactor(rarity, quality, wear);
 
-  // 55% Quality + 20% Wear + 25% Rarity
-  const factor = Math.max(0, Math.min(1, qualityScore * 0.55 + wearInfo.score * 0.20 + rarityScore * 0.25));
-  // Scale multiplier between 0.85 (worst Common Worn) to 1.25 (Pristine Divine 100%)
-  const scale = Math.round((0.85 + 0.40 * factor) * 1000) / 1000;
+  // Scale multiplier directly proportional to Rarity, Wear, Quality (from 0.80 to 1.35)
+  const scale = Math.round((0.80 + 0.55 * compositeFactor) * 1000) / 1000;
   const scalePct = Math.round(scale * 100);
 
   const qDisplay = Number.isInteger(clampedQuality) ? `${clampedQuality}%` : `${clampedQuality.toFixed(1)}%`;
-  const wearBadge = `${wearInfo.name} ${qDisplay}`;
+  const wearBadge = `${wearInfo.name} ${qDisplay} [${rarity}]`;
 
   let desc = baseP.description || "";
   desc += ` *(Hiệu lực: ${scalePct}% • ${wearBadge})*`;
@@ -478,6 +493,7 @@ function computeFixedWeaponPassive(subType, rarity = "Common", quality = 50, wea
     scale,
     wearName: wearInfo.name,
     quality: clampedQuality,
+    rarity,
     description: desc,
   };
 }
@@ -1227,6 +1243,7 @@ module.exports = {
   getPassiveForMode,
   resolveWearInfo,
   computeRandomPassiveSpec,
+  getWeaponQualityFactor,
   computeFixedWeaponPassive,
   rollRandomWeaponPassive,
   normalizeRandomWeaponPassive,

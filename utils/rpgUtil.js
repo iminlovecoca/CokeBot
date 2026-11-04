@@ -1558,22 +1558,44 @@ const maxVarianceByRarity = {
   Divine: 7
 };
 
-const generateGearStats = (slot, rarity, quality, subType = "") => {
-  if (slot === "weapon") {
-    return {};
-  }
+const generateGearStats = (slot, rarity, quality, subType = "", wear = null) => {
   const rarityConfig = config.rpg.gear_rarities[rarity] || { stat: 1 };
   const statBase = rarityConfig.stat || 1;
   const maxVar = maxVarianceByRarity[rarity] || 1;
 
+  const { resolveWearInfo } = require("./rpgPassiveUtil");
+  const wearInfo = resolveWearInfo(wear, quality);
+  const wearBonus = wearInfo.bonus || 0;
   const qualityVal = typeof quality === "number" ? quality : 50;
-  const qualityFactor = Math.max(0, Math.min(1, (qualityVal - 10) / 90));
+  const qualityFactor = Math.max(0, Math.min(1.2, (qualityVal + wearBonus - 10) / 90));
   const varRoll = Math.round(qualityFactor * (maxVar - 1));
+
+  const subTypeLower = String(subType || "").toLowerCase();
+
+  if (slot === "weapon") {
+    let fixedStat = "str";
+    let randomPool = ["dex", "arc", "vigor"];
+    if (subTypeLower.includes("staff") || subTypeLower.includes("book") || subTypeLower.includes("darkhold")) {
+      fixedStat = "int";
+      randomPool = ["arc", "vigor", "mr"];
+    } else if (subTypeLower.includes("dagger") || subTypeLower.includes("bow")) {
+      fixedStat = "dex";
+      randomPool = ["str", "arc", "vigor"];
+    } else if (subTypeLower.includes("hammer") || subTypeLower.includes("axe")) {
+      fixedStat = "str";
+      randomPool = ["vigor", "pr", "dex"];
+    }
+    const qualitySeed = Math.round(qualityVal * 1000);
+    const randomIndex = qualitySeed % randomPool.length;
+    const randomStat = randomPool[randomIndex] || "dex";
+    const stats = {};
+    stats[fixedStat] = Math.max(1, statBase + varRoll);
+    stats[randomStat] = Math.max(1, statBase + varRoll);
+    return stats;
+  }
 
   let fixedStat = null;
   let randomPool = ["vigor", "pr", "mr", "str", "dex", "int", "arc"];
-
-  const subTypeLower = String(subType || "").toLowerCase();
 
   if (slot === "helmet") {
     fixedStat = "vigor";
@@ -1765,8 +1787,8 @@ const generateRpgGearDrop = async (user, options = {}) => {
   const isDungeon = isDungeonWeaponHelper(slot, chosenSubtype.name);
 
   let rarity, rarityConfig;
-  let wear = null;
-  let quality;
+  let wear = options.wear || null;
+  let quality = options.quality !== undefined ? options.quality : undefined;
 
   if (options.fromWc) {
     // 1. Wear Condition Roll (OwO 1:1 match)
@@ -1849,14 +1871,15 @@ const generateRpgGearDrop = async (user, options = {}) => {
       wear = { id: "worn", name: "Worn", bonus: 0 };
     }
   }
-  if (!options.fromWc) {
+  if (!options.fromWc && (quality === undefined || quality === null)) {
     const baseQ = Math.floor((((variance - 0.9) / 0.2) * 90 + 10) * 10) / 10;
     quality = Math.min(105, Math.round((baseQ + (wear.bonus || 0)) * 10) / 10);
   }
-  variance = 0.9 + 0.2 * ((Math.min(100, quality) - 10) / 90);
-  const power = Math.floor((powerRarityConfig.power + levelBonus) * variance);
-  const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name);
-  const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * variance);
+  const { getWeaponQualityFactor } = require("./rpgPassiveUtil");
+  const { powerStatMultiplier } = getWeaponQualityFactor(rarity, quality, wear);
+  const power = Math.floor((powerRarityConfig.power + levelBonus) * powerStatMultiplier);
+  const stats = generateGearStats(slot, rarity, quality, chosenSubtype.name, wear);
+  const sellPrice = Math.floor((powerRarityConfig.sell + level * 18) * powerStatMultiplier);
 
   let scaling = null;
   let fixedPassive = null;
@@ -1866,7 +1889,7 @@ const generateRpgGearDrop = async (user, options = {}) => {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
     const { computeFixedWeaponPassive, rollRandomWeaponPassive } = require("./rpgPassiveUtil");
     fixedPassive = computeFixedWeaponPassive(chosenSubtype.name, rarity, quality, wear);
-    randomPassive = rollRandomWeaponPassive(rarity, quality, wear);
+    randomPassive = options.randomPassive || rollRandomWeaponPassive(rarity, quality, wear);
   }
 
   const name = getGearDisplayName({ rarity, slot, subType: chosenSubtype.name, emoji: chosenSubtype.emoji, upgradeLevel: options.upgradeLevel });
