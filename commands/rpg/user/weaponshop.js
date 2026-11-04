@@ -168,12 +168,15 @@ function generateDailyWeapons(dateKey) {
       } else if (rRoll < 0.85) {
         rarity = "Legendary";
         baseSoulPrice = BASE_SOUL_PRICES.Legendary;
-      } else if (rRoll < 0.96) {
+      } else if (rRoll < 0.95) {
         rarity = "Mythic";
         baseSoulPrice = BASE_SOUL_PRICES.Mythic;
-      } else {
+      } else if (rRoll < 0.99) {
         rarity = "Ancient";
         baseSoulPrice = BASE_SOUL_PRICES.Ancient;
+      } else {
+        rarity = "Divine";
+        baseSoulPrice = BASE_SOUL_PRICES.Divine;
       }
     } else {
       const idx = Math.floor(rng() * NORMAL_SUBTYPES.length);
