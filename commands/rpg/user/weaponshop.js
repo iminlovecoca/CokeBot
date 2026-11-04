@@ -34,7 +34,6 @@ const NORMAL_SUBTYPES = [
   { name: "Longsword", key: "longsword", emoji: "<:longsword:1514231939865903104>" },
   { name: "Dagger", key: "dagger", emoji: "<:dagger:1514231934191009853>" },
   { name: "Staff", key: "staff", emoji: "<:staff:1514231936581898240>" },
-  { name: "Warhammer", key: "warhammer", emoji: "🔨" },
 ];
 
 const SPECIAL_SUBTYPES = [
