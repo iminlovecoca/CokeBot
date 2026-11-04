@@ -737,12 +737,26 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
               }
               let edited = null;
               if (interaction && msgId === interaction.message?.id) {
-                edited = (await safeInteractionEditReply(interaction, editPayload)) ? interaction.message : null;
-                if (!edited) {
-                  edited = await msg.edit(editPayload).catch(() => null);
+                const ok = await safeInteractionEditReply(interaction, editPayload);
+                if (ok) {
+                  edited = interaction.message;
                 }
-              } else {
+              }
+              if (!edited && !forceNewMessage) {
                 edited = await msg.edit(editPayload).catch(() => null);
+              }
+              if (!edited && forceNewMessage) {
+                await msg.delete().catch(() => null);
+                const newMsg = await channel.send({
+                  content: "",
+                  embeds: [],
+                  components: payload.components,
+                  flags: MessageFlags.IsComponentsV2,
+                  files: [getAttachment(activeBoss.boss)],
+                }).catch(() => null);
+                if (newMsg) {
+                  edited = newMsg;
+                }
               }
               if (edited) {
                 updatedIds.push(edited.id);
@@ -771,7 +785,16 @@ const updateBossMessage = async (channel, activeBoss, forceNewMessage = false, i
   };
   const isDefeated = activeBoss.hp <= 0 || activeBoss.defeated;
   const now = Date.now();
-  const throttleDuration = 1200; 
+  const throttleDuration = 1200;
+  if (interaction) {
+    if (activeBoss.editTimeout) {
+      clearTimeout(activeBoss.editTimeout);
+      activeBoss.editTimeout = null;
+      activeBoss.pendingEdit = false;
+    }
+    await runUpdate();
+    return;
+  }
   if (forceNewMessage) {
     if (activeBoss.editTimeout) {
       clearTimeout(activeBoss.editTimeout);
@@ -1092,13 +1115,7 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   if (user.rpg?.isGodMode) {
     damage = activeBoss.hp;
   }
-  const worldBossMaxHp = activeBoss.maxHp || activeBoss.boss.hp || activeBoss.hp;
-  const directDamageResult = applyWorldBossDamageLimit(
-    damage,
-    worldBossMaxHp,
-    { ignoreLimit: !!user.rpg?.isGodMode },
-  );
-  const directDamage = directDamageResult.appliedDamage;
+  const directDamage = damage;
   if (activeBoss.boss.key === "plaxidusax" && !activeBoss.poiseBroken) {
     let poiseDmg = Math.max(6, Math.floor(directDamage * 0.00032));
     if (cleanSubType === "greatsword") {
@@ -1208,27 +1225,12 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
       }
     }
   }
-  const remainingActionCap = Math.max(
-    0,
-    directDamageResult.actionHardCap - directDamage,
-  );
-  const cappedShieldhexReflect = Math.min(shieldhexReflectDamage, remainingActionCap);
   const equippedPetBoss = getEquippedPet(user);
-  const petCanAttack = activeBoss.hp - directDamage - cappedShieldhexReflect > 0;
-  const petRawDamage = equippedPetBoss && petCanAttack && directDamageResult.actionHardCap > directDamage + cappedShieldhexReflect
+  const petCanAttack = activeBoss.hp - directDamage - shieldhexReflectDamage > 0;
+  const petDamage = equippedPetBoss && petCanAttack
     ? petAttackDamage(equippedPetBoss, "boss")
     : 0;
-  const petDamage = Math.min(
-    petRawDamage,
-    Math.max(0, remainingActionCap - cappedShieldhexReflect),
-  );
-  const appliedWorldBossDamage = directDamage + cappedShieldhexReflect + petDamage;
-  const wasWorldBossDamageCapped = directDamageResult.wasCapped ||
-    cappedShieldhexReflect < shieldhexReflectDamage ||
-    petDamage < petRawDamage;
-  if (wasWorldBossDamageCapped) {
-    passiveTriggers.push(`🛡️ **[World Boss]** Sát thương lượt này được giới hạn còn **${appliedWorldBossDamage.toLocaleString()}** để boss không bị hạ bởi một người trong một lượt.`);
-  }
+  const appliedWorldBossDamage = directDamage + shieldhexReflectDamage + petDamage;
   participant.damage += appliedWorldBossDamage;
   participant.attacks += 1;
   // Track world boss attack for OwO checklist
@@ -1241,6 +1243,20 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
   activeBoss.hp = Math.max(0, activeBoss.hp - appliedWorldBossDamage);
   activeBoss.participants.set(userId, participant);
   activeBoss.lastHitUserId = userId;
+  const userDiscord =
+    interaction?.user ||
+    client.users.cache.get(userId) ||
+    (await client.users.fetch(userId).catch(() => null));
+  const specialBossTriggers = passiveTriggers.filter(t => t.includes("PHÁ VỠ POISE") || t.includes("Axesnake") || t.includes("gián đoạn"));
+  activeBoss.lastAttack = {
+    userId,
+    userName: userDiscord?.displayName || userDiscord?.username || user.username || `<@${userId}>`,
+    damage: appliedWorldBossDamage,
+    petDamage,
+    isCrit,
+    time: now,
+    passiveNote: specialBossTriggers.length > 0 ? specialBossTriggers[0] : null,
+  };
   let killedPhase1 = false;
   if (activeBoss.hp <= 0) {
     if (activeBoss.boss.key === "erdtree-avatar" && activeBoss.phase !== 2) {
@@ -1393,9 +1409,6 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     updateBossMessage(channel, activeBoss, false, interaction),
     bossPersistTask,
   ]);
-  const userDiscord =
-    client.users.cache.get(userId) ||
-    (await client.users.fetch(userId).catch(() => null));
   const embed = buildAttackResultEmbed({
     activeBoss,
     damage: appliedWorldBossDamage,
@@ -1413,10 +1426,31 @@ const performBossAttack = async ({ client, channel, userId, interaction = null }
     passiveTriggers,
     discordUser: userDiscord,
   });
+  let knockoutNotice = null;
+  if (participant.hp <= 0) {
+    const revivesUsed = participant.revives || 0;
+    const reviveCost = getWorldBossReviveCost(revivesUsed, user.rpg?.godsetBackup);
+    const reviveRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`rpg_boss_revive:${channel.id}`)
+        .setLabel(`Hồi sinh ngay (${user.rpg?.godsetBackup ? "Miễn phí" : `${reviveCost.toLocaleString()} Coke`})`)
+        .setStyle(ButtonStyle.Success),
+    );
+    knockoutNotice = {
+      content: `❌ Bạn vừa bị **${activeBoss.boss.name}** phản công hạ gục (-${bossDamage.toLocaleString()} HP)! Cần chờ **30s** để hồi phục hoặc hồi sinh ngay lập tức:`,
+      components: [reviveRow],
+    };
+  }
   if (activeBoss.hp <= 0) {
     await finishBoss({ client, channel, activeBoss, interaction });
   }
-  return { ok: true, embeds: [embed] };
+  return {
+    ok: true,
+    damage: appliedWorldBossDamage,
+    isKnockedOut: participant.hp <= 0,
+    knockoutNotice,
+    embeds: [embed],
+  };
 };
 const getActiveBossState = async (client, channelId) => {
   let activeBoss = client.rpgBosses?.get(channelId);
@@ -1529,6 +1563,12 @@ const handleFightInteraction = async (interaction) => {
         await safeInteractionFollowUp(interaction, {
           content: result.content,
           components: result.components || [],
+          flags: 64,
+        });
+      } else if (result.isKnockedOut && result.knockoutNotice) {
+        await safeInteractionFollowUp(interaction, {
+          content: result.knockoutNotice.content,
+          components: result.knockoutNotice.components || [],
           flags: 64,
         });
       }

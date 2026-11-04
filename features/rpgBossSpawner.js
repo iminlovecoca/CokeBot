@@ -224,6 +224,20 @@ const buildBossComponentsV2 = (activeBoss, status = "alive") => {
     hpLine += `\n🛡️ **Giảm ${Math.round(effects.armorReduced * 100)}% Giáp**`;
   }
 
+  if (activeBoss.lastAttack && !defeated && !expired) {
+    const { userId, userName, damage, isCrit, petDamage, passiveNote } = activeBoss.lastAttack;
+    const critTag = isCrit ? "💥 **[CHÍ MẠNG]** " : "⚔️ ";
+    const userLabel = userId ? `<@${userId}>` : (userName || "Người chơi");
+    let hitTxt = `\n${critTag}${userLabel} vừa gây **-${damage.toLocaleString()}** ST!`;
+    if (petDamage && petDamage > 0) {
+      hitTxt += ` *(🐾 Linh thú: +${petDamage.toLocaleString()})*`;
+    }
+    if (passiveNote) {
+      hitTxt += `\n${passiveNote}`;
+    }
+    hpLine += hitTxt;
+  }
+
   let infoLine = "";
   if (activeBoss.lastHitUserId && !expired) {
       infoLine = `Đòn kết liễu: <@${activeBoss.lastHitUserId}>`;

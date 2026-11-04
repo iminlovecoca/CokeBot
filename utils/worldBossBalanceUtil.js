@@ -56,32 +56,11 @@ const getWorldBossDamageCaps = (bossMaxHp) => {
 
 const applyWorldBossDamageLimit = (damage, bossMaxHp, options = {}) => {
   const requestedDamage = Math.max(0, Math.floor(Number(damage) || 0));
-  if (options.ignoreLimit) {
-    return {
-      requestedDamage,
-      appliedDamage: requestedDamage,
-      wasCapped: false,
-      ...getWorldBossDamageCaps(bossMaxHp),
-    };
-  }
-
-  const caps = getWorldBossDamageCaps(bossMaxHp);
-  const overflowEfficiency = Math.min(
-    1,
-    Math.max(0, Number(getWorldBossBalance().overflow_efficiency) || 0.12),
-  );
-  const appliedDamage = requestedDamage <= caps.softCap
-    ? requestedDamage
-    : Math.min(
-      caps.hardCap,
-      caps.softCap + Math.floor((requestedDamage - caps.softCap) * overflowEfficiency),
-    );
-
   return {
     requestedDamage,
-    appliedDamage,
-    wasCapped: appliedDamage < requestedDamage,
-    ...caps,
+    appliedDamage: requestedDamage,
+    wasCapped: false,
+    ...getWorldBossDamageCaps(bossMaxHp),
   };
 };
 
