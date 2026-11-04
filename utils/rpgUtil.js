@@ -1864,17 +1864,8 @@ const generateRpgGearDrop = async (user, options = {}) => {
 
   if (slot === "weapon") {
     scaling = getWeaponScaling({ subType: chosenSubtype.name, rarity, isDungeon });
-    const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
-    const { rollRandomWeaponPassive } = require("./rpgPassiveUtil");
-    const baseP = getWeaponPassive(chosenSubtype.name);
-    if (baseP) {
-      fixedPassive = {
-        name: baseP.name,
-        type: baseP.type,
-        emoji: getWeaponPassiveEmojis(chosenSubtype.name),
-        description: baseP.description || "",
-      };
-    }
+    const { computeFixedWeaponPassive, rollRandomWeaponPassive } = require("./rpgPassiveUtil");
+    fixedPassive = computeFixedWeaponPassive(chosenSubtype.name, rarity, quality, wear);
     randomPassive = rollRandomWeaponPassive(rarity, quality, wear);
   }
 

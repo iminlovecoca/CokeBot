@@ -447,6 +447,41 @@ function computeRandomPassiveSpec(passiveType, rarity = "Common", quality = 50, 
   };
 }
 
+function computeFixedWeaponPassive(subType, rarity = "Common", quality = 50, wear = null) {
+  if (!subType) return null;
+  const clean = String(subType).toLowerCase().replace(/\s+/g, "");
+  const { getWeaponPassive, getWeaponPassiveEmojis } = require("../data/rpg/weaponPassives");
+  const baseP = getWeaponPassive(clean);
+  if (!baseP) return null;
+
+  const wearInfo = resolveWearInfo(wear, quality);
+  const clampedQuality = Math.max(0, Math.min(105, Number(quality) || 50));
+  const qualityScore = clampedQuality / 105;
+  const rarityScore = RARITY_SCORES[rarity] ?? 0.30;
+
+  // 55% Quality + 20% Wear + 25% Rarity
+  const factor = Math.max(0, Math.min(1, qualityScore * 0.55 + wearInfo.score * 0.20 + rarityScore * 0.25));
+  // Scale multiplier between 0.85 (worst Common Worn) to 1.25 (Pristine Divine 100%)
+  const scale = Math.round((0.85 + 0.40 * factor) * 1000) / 1000;
+  const scalePct = Math.round(scale * 100);
+
+  const qDisplay = Number.isInteger(clampedQuality) ? `${clampedQuality}%` : `${clampedQuality.toFixed(1)}%`;
+  const wearBadge = `${wearInfo.name} ${qDisplay}`;
+
+  let desc = baseP.description || "";
+  desc += ` *(Hiệu lực: ${scalePct}% • ${wearBadge})*`;
+
+  return {
+    name: baseP.name,
+    type: baseP.type,
+    emoji: getWeaponPassiveEmojis(clean),
+    scale,
+    wearName: wearInfo.name,
+    quality: clampedQuality,
+    description: desc,
+  };
+}
+
 function rollRandomWeaponPassive(rarity = "Common", quality = 50, wear = null, seedId = null) {
   let index;
   if (seedId !== null && seedId !== undefined && Number.isFinite(Number(seedId))) {
@@ -508,6 +543,7 @@ const resolveWeaponPassive = (player, enemy, context = {}) => {
 
   const passiveDef = getWeaponPassive(pWeaponSubType);
   const passive = passiveDef ? passiveDef.mode[mode] : null;
+  const fixedPassiveScale = Number(player.weapon?.fixedPassive?.scale) || 1.0;
 
   if (passiveDef && passive) {
     const addPassiveLog = (message, passiveType = passive.type) => {
@@ -1191,6 +1227,7 @@ module.exports = {
   getPassiveForMode,
   resolveWearInfo,
   computeRandomPassiveSpec,
+  computeFixedWeaponPassive,
   rollRandomWeaponPassive,
   normalizeRandomWeaponPassive,
 };

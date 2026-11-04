@@ -80,6 +80,103 @@ const getStatusEmojis = () => {
 const st = getStatusEmojis();
 
 const WEAPON_PASSIVES = {
+  longsword: {
+    name: "Trọng Kiếm Trảm Kích",
+    type: PASSIVE_TYPES.DAMAGE_MULT,
+    description: "45% cơ hội kích hoạt Trọng Kiếm: tăng thêm 15% sát thương vật lý ở đòn đánh.",
+    baseVal: 0.15,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        damageMult: 1.15,
+        log: (name) => `${st.atkup} **[Longsword]** Trọng kiếm vung mạnh (+15% ST) chém vào **${name}**!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        damageMult: 1.15,
+        log: (name) => `${st.atkup} **[Longsword]** Trọng kiếm vung mạnh (+15% ST) chém vào **${name}**!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.DAMAGE_MULT,
+        damageMult: 1.15,
+        log: () => `${st.atkup} **[Longsword]** Đòn đánh trọng kiếm tăng 15% sát thương lên Boss!`,
+      },
+    },
+  },
+
+  dagger: {
+    name: "Ám Đao Xuyên Phá",
+    type: PASSIVE_TYPES.ARMOR_PIERCE,
+    description: "45% cơ hội kích hoạt Ám Đao: đòn đánh bỏ qua 15% giáp vật lý của mục tiêu.",
+    baseVal: 0.15,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.ARMOR_PIERCE,
+        piercePct: 0.15,
+        log: (name) => `${st.armor_pierce} **[Dagger]** Mũi dao sắc lẹm đâm xuyên 15% giáp của **${name}**!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.ARMOR_PIERCE,
+        piercePct: 0.15,
+        log: (name) => `${st.armor_pierce} **[Dagger]** Mũi dao sắc lẹm đâm xuyên 15% giáp của **${name}**!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.ARMOR_PIERCE,
+        piercePct: 0.15,
+        log: () => `${st.armor_pierce} **[Dagger]** Đòn đánh bỏ qua 15% giáp vật lý của Boss!`,
+      },
+    },
+  },
+
+  staff: {
+    name: "Cổ Trượng Ma Kình",
+    type: PASSIVE_TYPES.MR_PIERCE,
+    description: "45% cơ hội kích hoạt Ma Kình: đòn đánh bỏ qua 15% kháng phép của mục tiêu.",
+    baseVal: 0.15,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.MR_PIERCE,
+        piercePct: 0.15,
+        log: (name) => `${st.mr_pierce} **[Staff]** Luồng ma lực cổ xưa xuyên qua 15% kháng phép của **${name}**!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.MR_PIERCE,
+        piercePct: 0.15,
+        log: (name) => `${st.mr_pierce} **[Staff]** Luồng ma lực cổ xưa xuyên qua 15% kháng phép của **${name}**!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.MR_PIERCE,
+        piercePct: 0.15,
+        log: () => `${st.mr_pierce} **[Staff]** Phép thuật xuyên qua 15% kháng phép của Boss!`,
+      },
+    },
+  },
+
+  warhammer: {
+    name: "Thiết Chùy Nghiền Nát",
+    type: PASSIVE_TYPES.ARMOR_SHRED,
+    description: "45% cơ hội kích hoạt Nghiền Nát: phá hủy 15% giáp vật lý của mục tiêu.",
+    baseVal: 0.15,
+    mode: {
+      dungeon: {
+        type: PASSIVE_TYPES.ARMOR_SHRED,
+        amount: 0.15,
+        cap: 0.35,
+        log: (name) => `${st.break} **[Warhammer]** Cú đập sấm sét phá hủy 15% giáp của **${name}**!`,
+      },
+      pvp: {
+        type: PASSIVE_TYPES.ARMOR_SHRED,
+        amount: 0.15,
+        cap: 0.35,
+        log: (name) => `${st.break} **[Warhammer]** Cú đập sấm sét phá hủy 15% giáp của **${name}**!`,
+      },
+      boss: {
+        type: PASSIVE_TYPES.ARMOR_SHRED,
+        amount: 0.15,
+        log: () => `${st.break} **[Warhammer]** Phá hủy 15% giáp của Boss!`,
+      },
+    },
+  },
   shadowdagger: {
     name: "Ảnh Hồn Đoản Đao",
     type: PASSIVE_TYPES.ARMOR_SHRED,

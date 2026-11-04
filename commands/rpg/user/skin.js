@@ -61,6 +61,10 @@ class SkinCommand extends BaseCommand {
             const price = getSkinPrice(file);
             const isOwned = isSkinOwned(currentUser, file);
             let statusStr = "";
+            let typeTag = "";
+            if (isUX) typeTag = " *(🌟 UX)*";
+            else if (honorInfo) typeTag = ` *(🏆 Rank ${honorInfo.rank})*`;
+
             if (isOwned) {
               statusStr = "✅ *Đã sở hữu*";
             } else if (typeof price === "object" && price !== null) {
@@ -68,7 +72,7 @@ class SkinCommand extends BaseCommand {
             } else {
               statusStr = `💰 **${price.toLocaleString()} Coke**`;
             }
-            return `• **${skinName}**: ${statusStr}`;
+            return `• **${skinName}**${typeTag}: ${statusStr}`;
           }).join("\n") +
           `\n\n*Toàn bộ skin có thể mua tại cửa hàng và trang bị qua lệnh class.*`
         )
@@ -87,6 +91,10 @@ class SkinCommand extends BaseCommand {
           desc = "Đã sở hữu skin này";
         } else if (typeof price === "object" && price !== null) {
           desc = `Giá: ${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} Linh Hồn`;
+        } else if (isUX) {
+          desc = `Giá: 5,000,000 Coke [Huyền Thoại UX]`;
+        } else if (honorInfo) {
+          desc = `Giá: 1,000,000 Coke [Xếp Hạng ${honorInfo.rank}]`;
         } else {
           desc = `Giá: ${price.toLocaleString()} Coke`;
         }
@@ -123,21 +131,20 @@ class SkinCommand extends BaseCommand {
         let priceText = "";
         let hasEnoughFunds = false;
         let btnLabel = "";
-        if (honorInfo) {
-          priceText = `• 🏆 Phần thưởng cuối mùa ở rank **${honorInfo.rank}** (không bán)\n`;
-          btnLabel = "Phần thưởng mùa";
-          hasEnoughFunds = false;
-        } else if (isUX) {
-          priceText = `• **Chỉ có thể sở hữu từ Gacha (Hữu hạn)**\n`;
-          btnLabel = "Hữu hạn (Gacha)";
-          hasEnoughFunds = false;
-        } else if (typeof price === "object" && price !== null) {
+        if (typeof price === "object" && price !== null) {
           priceText = `• Giá: **${price.coke.toLocaleString()} Coke** + **${price.souls} Linh Hồn** <:souls:1518749776538243082>\n`;
           btnLabel = `Mua skin (${(price.coke / 1000000).toFixed(1)}M Coke + ${price.souls} LH)`;
           hasEnoughFunds = isAuthorDev || (u.coke >= price.coke && currentSouls >= price.souls);
         } else {
-          priceText = `• Giá: **${price.toLocaleString()} Coke**\n`;
-          btnLabel = `Mua skin (${price.toLocaleString()} Coke)`;
+          let badge = "";
+          if (isUX) badge = " • 🌟 **Huyền Thoại UX**";
+          else if (honorInfo) badge = ` • 🏆 **Xếp Hạng (${honorInfo.rank})**`;
+          priceText = `• Giá: **${price.toLocaleString()} Coke**${badge}\n`;
+          btnLabel = isUX
+            ? `Mua skin UX (${(price / 1000000).toFixed(0)}M Coke)`
+            : honorInfo
+              ? `Mua skin Rank (${(price / 1000000).toFixed(0)}M Coke)`
+              : `Mua skin (${price.toLocaleString()} Coke)`;
           hasEnoughFunds = isAuthorDev || (u.coke >= price);
         }
         const embed = new EmbedBuilder()

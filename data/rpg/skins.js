@@ -71,22 +71,18 @@ const getHonorSkinOwnershipKeys = (skinFileName) => {
   return [skinFileName, `${honorInfo.className}Honor${honorInfo.rank}.png`];
 };
 
-const HONOR_SKIN_PRICES = {
-  Legendary: 800000,
-  Mythic: 1200000,
-  Ancient: 1800000,
-  Divine: 2500000,
-};
+const HONOR_SKIN_PRICE = 1000000; // 1M Coke for all ranked skins
+const UX_SKIN_PRICE = 5000000;    // 5M Coke for UX legendary skins
 
 const getSkinPrice = (skinFileName) => {
   const name = skinFileName.toLowerCase();
 
   const honorInfo = getHonorSkinInfo(skinFileName);
   if (honorInfo) {
-    return HONOR_SKIN_PRICES[honorInfo.rank] || 1000000;
+    return HONOR_SKIN_PRICE;
   }
   if (name.includes("ux")) {
-    return 1500000;
+    return UX_SKIN_PRICE;
   }
   if (SKIN_PRICES[skinFileName]) {
     return SKIN_PRICES[skinFileName];

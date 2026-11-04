@@ -90,7 +90,7 @@ class ShopCommand extends BaseCommand {
       const embed = new EmbedBuilder()
         .setColor('#0099ff')
         .setTitle(title)
-        .setDescription(`Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng \`${config.prefix}buy <id> [số lượng]\` để mua hoặc \`${config.prefix}sell <id> [số lượng]\` để bán.`)
+        .setDescription(`Luôn có những vật phẩm hữu ích cho cuộc hành trình của bạn!\nDùng \`${config.prefix}buy <id> [số lượng]\` để mua hoặc \`${config.prefix}sell <id> [số lượng]\` để bán.\n🗡️ **Cửa Hàng Vũ Khí 24H:** Gõ \`${config.prefix}ws\` hoặc \`${config.prefix}weaponshop\` để mua vũ khí mỗi ngày!`)
         .setFooter({ text: `Trang ${page + 1}/${totalPages}` });
 
       pageItems.forEach(item => {

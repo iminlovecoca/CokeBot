@@ -35,6 +35,24 @@ class BuyCommand extends BaseCommand {
 
     const cleanId = String(itemId).toLowerCase().replace(/\s+/g, "");
 
+    if (["weapon", "ws", "weaponshop", "vukhi"].includes(cleanId)) {
+      const weaponShopCommand = require("../rpg/user/weaponshop");
+      const slotNum = parseInt(args[1], 10);
+      if (!slotNum || slotNum < 1 || slotNum > 4) {
+        throw new UserFriendlyError(
+          `Vui lòng chọn ô vũ khí từ 1 đến 4. Ví dụ: \`${config.prefix}buy weapon 1\` hoặc xem danh sách tại \`${config.prefix}ws\`.`
+        );
+      }
+      const { getUser } = require("../../utils/userUtil");
+      const user = await getUser(message.author.id);
+      const buyRes = await weaponShopCommand.processBuy(user, slotNum, message.channel);
+      if (!buyRes.ok) {
+        throw new UserFriendlyError(buyRes.message);
+      }
+      const successEmbed = weaponShopCommand.buildSuccessEmbed(user, buyRes.weapon, buyRes.item);
+      return message.reply({ embeds: [successEmbed] });
+    }
+
     if (["dungeonkey", "key", "dungeon_key", "001", "1"].includes(cleanId)) {
       throw new UserFriendlyError(
         `${config.emoji.no} Chìa khóa phó bản (Dungeon Key) hiện **không còn bán** trong Cửa Hàng. Bạn có thể nhận được từ phần thưởng hoàn thành **Checklist hàng ngày** (${config.prefix}cl)!`
