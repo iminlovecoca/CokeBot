@@ -3,11 +3,15 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBu
 const path = require("path");
 const fs = require("fs");
 const config = require("../../../data/config");
+const { getItem } = require("../../../data/items");
+const { getUser } = require("../../../utils/userUtil");
 const {
   requireRpgCharacter,
   getGearDisplayName,
   calculateRpgPower,
   getItemImageFile,
+  subTypes,
+  dungeonWeapons,
 } = require("../../../utils/rpgUtil");
 const { getRpgColor, formatRpgFooter, formatRpgTitle, safeInteractionUpdate } = require("../../../utils/rpgUi");
 
@@ -24,6 +28,160 @@ const ENHANCE_CONFIG = {
   9: { stoneId: "cristal-8", stoneQty: 3, cokeCost: 1200000, rate: 0.10 },
   10: { stoneId: "cristal-8", stoneQty: 4, cokeCost: 2000000, rate: 0.06 },
 };
+
+function getWeaponEmoji(item) {
+  if (item?.emoji && item.emoji.includes(":")) return item.emoji;
+  const clean = String(item?.subType || item?.subtype || item?.name || "").toLowerCase().replace(/\s+/g, "");
+  const foundNormal = subTypes.weapon.find(w => w.name.toLowerCase().replace(/\s+/g, "") === clean);
+  if (foundNormal?.emoji) return foundNormal.emoji;
+  const foundDung = dungeonWeapons.find(w => w.key === clean || w.name.toLowerCase().replace(/\s+/g, "") === clean);
+  if (foundDung?.emoji) return foundDung.emoji;
+  if (config.emoji?.weapons?.[clean]) return config.emoji.weapons[clean];
+  return "🗡️";
+}
+
+function getStoneInfo(stoneId) {
+  const item = getItem(stoneId);
+  if (item) {
+    return {
+      name: item.name,
+      emoji: item.emoji || "💎",
+    };
+  }
+  return {
+    name: `Cristal Smithing Stone [${stoneId.split("-")[1] || 1}]`,
+    emoji: "💎",
+  };
+}
+
+function buildEnhanceRows(phase, { weaponEmoji, currentLvl, nextLvl, failLevel, ratePercent, stoneEmoji, stoneQty, isSuccess, canContinue }) {
+  const row1 = new ActionRowBuilder();
+  const row2 = new ActionRowBuilder();
+  const row3 = new ActionRowBuilder();
+
+  if (phase === "initial") {
+    // Row 1: 3 ô trên [Vũ khí cần nâng cấp] [Tỉ lệ thành công] [Viên đá nâng cấp]
+    row1.addComponents(
+      new ButtonBuilder()
+        .setCustomId("slot_source_weapon")
+        .setEmoji(weaponEmoji)
+        .setLabel(`+${currentLvl}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("slot_rate")
+        .setEmoji("🎯")
+        .setLabel(`${ratePercent}%`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("slot_stone")
+        .setEmoji(stoneEmoji)
+        .setLabel(`x${stoneQty}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+
+    // Row 2: Chữ T - Bỏ 2 ô 2 bên, chỉ để ô ở giữa phía dưới hiện vũ khí sau khi nâng cấp
+    row2.addComponents(
+      new ButtonBuilder()
+        .setCustomId("spacer_left")
+        .setLabel("\u2800")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("slot_target_weapon")
+        .setEmoji(weaponEmoji)
+        .setLabel(`+${nextLvl}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("spacer_right")
+        .setLabel("\u2800")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+
+    // Row 3: Button ở ngoài "Nâng cấp"
+    row3.addComponents(
+      new ButtonBuilder()
+        .setCustomId("btn_do_enhance")
+        .setLabel("Nâng cấp")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("btn_cancel_enhance")
+        .setLabel("Hủy")
+        .setStyle(ButtonStyle.Secondary)
+    );
+  } else if (phase === "processing") {
+    // Hiệu ứng đang đập đồ
+    row1.addComponents(
+      new ButtonBuilder().setCustomId("slot_proc_1").setLabel("·").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("slot_proc_2").setLabel("🔨").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("slot_proc_3").setLabel("·").setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+
+    row2.addComponents(
+      new ButtonBuilder().setCustomId("spacer_left").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("slot_target_weapon")
+        .setLabel("⏳ Đang đập...")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true),
+      new ButtonBuilder().setCustomId("spacer_right").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+
+    row3.addComponents(
+      new ButtonBuilder()
+        .setCustomId("btn_processing")
+        .setLabel("Đang nâng cấp...")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(true)
+    );
+  } else if (phase === "result") {
+    // Hiệu ứng kết quả: 3 ô trên TRỐNG, ô giữa phía dưới hiện vũ khí đã cộng (thành công: xanh lá, thất bại: đỏ)
+    row1.addComponents(
+      new ButtonBuilder().setCustomId("slot_empty_1").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("slot_empty_2").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("slot_empty_3").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+
+    const resultLvl = isSuccess ? nextLvl : failLevel;
+    row2.addComponents(
+      new ButtonBuilder().setCustomId("spacer_left").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder()
+        .setCustomId("slot_result_weapon")
+        .setEmoji(weaponEmoji)
+        .setLabel(`+${resultLvl}`)
+        .setStyle(isSuccess ? ButtonStyle.Success : ButtonStyle.Danger)
+        .setDisabled(true),
+      new ButtonBuilder().setCustomId("spacer_right").setLabel("\u2800").setStyle(ButtonStyle.Secondary).setDisabled(true)
+    );
+
+    if (canContinue) {
+      row3.addComponents(
+        new ButtonBuilder()
+          .setCustomId("btn_enhance_again")
+          .setLabel("Nâng cấp tiếp")
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId("btn_cancel_enhance")
+          .setLabel("Đóng")
+          .setStyle(ButtonStyle.Secondary)
+      );
+    } else {
+      row3.addComponents(
+        new ButtonBuilder()
+          .setCustomId("btn_done")
+          .setLabel("Hoàn tất")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      );
+    }
+  }
+
+  return [row1, row2, row3];
+}
 
 class EnhanceCommand extends BaseCommand {
   constructor() {
@@ -61,7 +219,7 @@ class EnhanceCommand extends BaseCommand {
       return message.reply(`${config.emoji.no} Không tìm thấy trang bị này trong túi đồ của bạn.`);
     }
 
-    const item = items[itemIndex];
+    let item = items[itemIndex];
     if (item.slot !== "weapon") {
       return message.reply(`${config.emoji.no} Chỉ có thể cường hóa trang bị thuộc loại **Vũ khí**.`);
     }
@@ -75,85 +233,180 @@ class EnhanceCommand extends BaseCommand {
     }
 
     const maxLevel = 11;
-    const currentLvl = item.upgradeLevel || 0;
+    let currentLvl = item.upgradeLevel || 0;
     if (currentLvl >= maxLevel) {
       return message.reply(`${config.emoji.warning} Vũ khí này đã đạt cấp độ cường hóa tối đa (**+${maxLevel}**).`);
     }
 
-    const nextLvl = currentLvl + 1;
-    const enhanceRule = ENHANCE_CONFIG[currentLvl];
-    if (!enhanceRule) {
+    const buildStateData = (currentUser, currentItem) => {
+      const cLvl = currentItem.upgradeLevel || 0;
+      const nLvl = cLvl + 1;
+      const rule = ENHANCE_CONFIG[cLvl];
+      if (!rule) return null;
+
+      const { stoneId, stoneQty, cokeCost, rate } = rule;
+      const stoneInfo = getStoneInfo(stoneId);
+      const ratePercent = Math.round(rate * 100);
+      const failLevel = Math.max(0, cLvl - 1);
+      const weaponEmoji = getWeaponEmoji(currentItem);
+
+      let userStoneQty = 0;
+      if (currentUser.inventory instanceof Map) {
+        userStoneQty = currentUser.inventory.get(stoneId) || 0;
+      } else if (currentUser.inventory && typeof currentUser.inventory === "object") {
+        userStoneQty = currentUser.inventory[stoneId] || 0;
+      }
+
+      const hasCoke = (currentUser.coke || 0) >= cokeCost;
+      const hasStone = userStoneQty >= stoneQty;
+      const canAfford = hasCoke && hasStone;
+
+      return {
+        cLvl,
+        nLvl,
+        rule,
+        stoneId,
+        stoneQty,
+        cokeCost,
+        rate,
+        ratePercent,
+        failLevel,
+        weaponEmoji,
+        stoneInfo,
+        userStoneQty,
+        hasCoke,
+        hasStone,
+        canAfford,
+      };
+    };
+
+    let stateData = buildStateData(user, item);
+    if (!stateData) {
       return message.reply(`${config.emoji.no} Cấp độ cường hóa hiện tại không hợp lệ.`);
     }
 
-    const { stoneId, stoneQty, cokeCost, rate } = enhanceRule;
-
-    if (user.coke < cokeCost) {
+    if (!stateData.hasCoke) {
       return message.reply(
-        `${config.emoji.no} Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${user.coke.toLocaleString()}** ${config.emoji.money}.`
+        `${config.emoji.no} Bạn không đủ Coke để cường hóa! Cần **${stateData.cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${(user.coke || 0).toLocaleString()}** ${config.emoji.money}.`
       );
     }
 
-    if (!user.inventory) {
-      user.inventory = new Map();
-    }
-    const userStoneQty = user.inventory.get(stoneId) || 0;
-    const stoneItem = message.client.allItems.find((i) => i.item_id === stoneId);
-    const stoneName = stoneItem ? stoneItem.name : `Cristal Smithing Stone [${stoneId.split("-")[1]}]`;
-    const stoneEmoji = stoneItem ? stoneItem.emoji : "💎";
-
-    if (userStoneQty < stoneQty) {
+    if (!stateData.hasStone) {
       return message.reply(
-        `${config.emoji.no} Bạn không đủ nguyên liệu! Cần **${stoneQty} x ${stoneEmoji} ${stoneName}** nhưng hiện tại chỉ có **${userStoneQty}** viên trong túi đồ.`
+        `${config.emoji.no} Bạn không đủ nguyên liệu! Cần **${stateData.stoneQty} x ${stateData.stoneInfo.emoji} ${stateData.stoneInfo.name}** nhưng hiện tại chỉ có **${stateData.userStoneQty}** viên trong túi đồ.`
       );
     }
 
-    const ratePercent = Math.round(rate * 100);
-    const failLevel = Math.max(0, currentLvl - 1);
+    const buildInitialEmbed = (sData, curItem) => {
+      return new EmbedBuilder()
+        .setColor(getRpgColor("premium") || 0xf39c12)
+        .setTitle(formatRpgTitle("Lò Rèn Cường Hóa (Cơ chế FO4)", "🔨"))
+        .setDescription(
+          `🗡️ **Vũ khí**: ${getGearDisplayName(curItem)} (**+${sData.cLvl}** ➡️ **+${sData.nLvl}**)\n` +
+            `🎯 **Tỉ lệ thành công**: **${sData.ratePercent}%**\n` +
+            `${config.emoji.money} **Coke tiêu hao**: **${sData.cokeCost.toLocaleString()}**\n` +
+            `💎 **Nguyên liệu**: **${sData.stoneQty} x ${sData.stoneInfo.emoji} ${sData.stoneInfo.name}**\n\n` +
+            `⚠️ **Cảnh báo rủi ro (FO4):**\n` +
+            (sData.cLvl === 0
+              ? `• Thất bại: Mất đá & Coke (giữ nguyên cấp +0).`
+              : `• Nếu thất bại: Mất đá & Coke, vũ khí sẽ **BỊ TỤT 1 CẤP** (**+${sData.cLvl}** ➡️ **+${sData.failLevel}**)!`)
+        )
+        .setFooter(formatRpgFooter("Nhấn 'Nâng cấp' để tiến hành rèn vũ khí • Hết hạn sau 60 giây"))
+        .setTimestamp();
+    };
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("confirm_enhance")
-        .setLabel("Xác nhận đập đồ")
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId("cancel_enhance")
-        .setLabel("Hủy")
-        .setStyle(ButtonStyle.Danger)
-    );
-
-    const confirmEmbed = new EmbedBuilder()
-      .setColor(getRpgColor("premium") || 0xf39c12)
-      .setTitle(formatRpgTitle("Lò Rèn Cường Hóa (Cơ chế FO4)", "🔨"))
-      .setDescription(
-        `Bạn có chắc chắn muốn tiến hành cường hóa vũ khí sau không?\n\n` +
-          `🗡️ **Vũ khí**: ${getGearDisplayName(item)} (**+${currentLvl}** ➡️ **+${nextLvl}**)\n` +
-          `🎯 **Tỉ lệ thành công**: **${ratePercent}%**\n` +
-          `${config.emoji.money} Coke tiêu hao: **${cokeCost.toLocaleString()}**\n` +
-          `💎 Nguyên liệu tiêu hao: **${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
-          `⚠️ **Cảnh báo rủi ro (FO4):**\n` +
-          (currentLvl === 0
-            ? `• Thất bại: Mất đá & Coke (giữ nguyên cấp +0).`
-            : `• Nếu thất bại: Mất đá & Coke, vũ khí sẽ **BỊ TỤT 1 CẤP** (**+${currentLvl}** ➡️ **+${failLevel}**)!`)
-      )
-      .setFooter(formatRpgFooter("Cân nhắc tỉ lệ trước khi xác nhận • Hết hạn sau 20 giây"))
-      .setTimestamp();
-
-    const confirmMsg = await message.reply({
-      embeds: [confirmEmbed],
-      components: [row],
+    const initialRows = buildEnhanceRows("initial", {
+      weaponEmoji: stateData.weaponEmoji,
+      currentLvl: stateData.cLvl,
+      nextLvl: stateData.nLvl,
+      failLevel: stateData.failLevel,
+      ratePercent: stateData.ratePercent,
+      stoneEmoji: stateData.stoneInfo.emoji,
+      stoneQty: stateData.stoneQty,
     });
 
-    try {
-      const interaction = await confirmMsg.awaitMessageComponent({
-        filter: (i) => i.user.id === message.author.id,
-        time: 20000,
-      });
+    const enhanceMsg = await message.reply({
+      embeds: [buildInitialEmbed(stateData, item)],
+      components: initialRows,
+    });
 
-      if (interaction.customId === "confirm_enhance") {
-        const { getUser } = require("../../../utils/userUtil");
+    const collector = enhanceMsg.createMessageComponentCollector({
+      filter: (i) => i.user.id === message.author.id,
+      time: 60000,
+    });
+
+    let isProcessing = false;
+
+    collector.on("collect", async (interaction) => {
+      if (interaction.customId === "btn_cancel_enhance") {
+        collector.stop("cancelled");
+        return safeInteractionUpdate(interaction, {
+          content: "❌ Đã hủy phiên cường hóa vũ khí.",
+          embeds: [],
+          components: [],
+        });
+      }
+
+      if (interaction.customId === "btn_enhance_again") {
+        if (isProcessing) return;
+        const freshUser = await getUser(message.author.id);
+        const freshItem = freshUser?.rpg?.items?.find((it) => it.id === Number(itemId));
+        if (!freshUser || !freshItem) {
+          collector.stop("not_found");
+          return safeInteractionUpdate(interaction, {
+            content: "❌ Không tìm thấy thông tin nhân vật hoặc vũ khí nữa.",
+            embeds: [],
+            components: [],
+          });
+        }
+
+        if ((freshItem.upgradeLevel || 0) >= maxLevel) {
+          collector.stop("max_level");
+          return safeInteractionUpdate(interaction, {
+            content: `🎉 Vũ khí đã đạt cấp tối đa (**+${maxLevel}**)!`,
+            embeds: [],
+            components: [],
+          });
+        }
+
+        stateData = buildStateData(freshUser, freshItem);
+        if (!stateData || !stateData.canAfford) {
+          const reason = !stateData.hasCoke
+            ? `Cần ${stateData.cokeCost.toLocaleString()} Coke nhưng chỉ có ${(freshUser.coke || 0).toLocaleString()} Coke`
+            : `Cần ${stateData.stoneQty}x ${stateData.stoneInfo.name} nhưng chỉ có ${stateData.userStoneQty} viên`;
+          collector.stop("out_of_resources");
+          return safeInteractionUpdate(interaction, {
+            content: `❌ Bạn không đủ tài nguyên để nâng cấp tiếp (${reason}).`,
+            embeds: [],
+            components: [],
+          });
+        }
+
+        collector.resetTimer();
+        item = freshItem;
+        const reloadedRows = buildEnhanceRows("initial", {
+          weaponEmoji: stateData.weaponEmoji,
+          currentLvl: stateData.cLvl,
+          nextLvl: stateData.nLvl,
+          failLevel: stateData.failLevel,
+          ratePercent: stateData.ratePercent,
+          stoneEmoji: stateData.stoneInfo.emoji,
+          stoneQty: stateData.stoneQty,
+        });
+
+        return safeInteractionUpdate(interaction, {
+          embeds: [buildInitialEmbed(stateData, freshItem)],
+          components: reloadedRows,
+        });
+      }
+
+      if (interaction.customId === "btn_do_enhance") {
+        if (isProcessing) return;
+        isProcessing = true;
+
         const freshUser = await getUser(message.author.id);
         if (!freshUser || !freshUser.rpg || !freshUser.rpg.classKey) {
+          isProcessing = false;
           return safeInteractionUpdate(interaction, {
             content: "❌ Không tìm thấy nhân vật RPG của bạn.",
             embeds: [],
@@ -161,9 +414,9 @@ class EnhanceCommand extends BaseCommand {
           });
         }
 
-        const freshItems = freshUser.rpg.items || [];
-        const freshItemIndex = freshItems.findIndex((it) => it.id === Number(itemId));
+        const freshItemIndex = (freshUser.rpg.items || []).findIndex((it) => it.id === Number(itemId));
         if (freshItemIndex === -1) {
+          isProcessing = false;
           return safeInteractionUpdate(interaction, {
             content: "❌ Không tìm thấy vũ khí này trong túi đồ của bạn nữa.",
             embeds: [],
@@ -171,52 +424,78 @@ class EnhanceCommand extends BaseCommand {
           });
         }
 
-        const freshItem = freshItems[freshItemIndex];
+        const freshItem = freshUser.rpg.items[freshItemIndex];
         const freshCurrentLvl = freshItem.upgradeLevel || 0;
-        if (freshCurrentLvl !== currentLvl) {
+        if (freshCurrentLvl !== stateData.cLvl) {
+          isProcessing = false;
           return safeInteractionUpdate(interaction, {
-            content: `❌ Giao dịch thất bại: Cấp độ vũ khí hiện tại đã thay đổi hoặc đang được xử lý trong một phiên khác.`,
+            content: "❌ Cấp độ vũ khí đã thay đổi trong một phiên khác.",
             embeds: [],
             components: [],
           });
         }
 
-        if (freshUser.coke < cokeCost) {
+        const currentState = buildStateData(freshUser, freshItem);
+        if (!currentState || !currentState.canAfford) {
+          isProcessing = false;
+          const reason = !currentState.hasCoke
+            ? `Cần ${currentState.cokeCost.toLocaleString()} Coke nhưng chỉ có ${(freshUser.coke || 0).toLocaleString()} Coke`
+            : `Cần ${currentState.stoneQty}x ${currentState.stoneInfo.name} nhưng chỉ có ${currentState.userStoneQty} viên`;
           return safeInteractionUpdate(interaction, {
-            content: `❌ Bạn không đủ Coke để cường hóa! Cần **${cokeCost.toLocaleString()}** ${config.emoji.money} nhưng bạn chỉ có **${freshUser.coke.toLocaleString()}** ${config.emoji.money}.`,
+            content: `❌ Không đủ tài nguyên để cường hóa (${reason}).`,
             embeds: [],
             components: [],
           });
         }
 
-        if (!freshUser.inventory) {
-          freshUser.inventory = new Map();
-        }
-        const freshUserStoneQty = freshUser.inventory.get(stoneId) || 0;
-        if (freshUserStoneQty < stoneQty) {
-          return safeInteractionUpdate(interaction, {
-            content: `❌ Bạn không đủ nguyên liệu! Cần **${stoneQty} x ${stoneEmoji} ${stoneName}** nhưng hiện tại chỉ có **${freshUserStoneQty}** viên trong túi đồ.`,
-            embeds: [],
-            components: [],
-          });
-        }
+        // Bước 1: Hiệu ứng đang nâng cấp
+        const processingRows = buildEnhanceRows("processing", {
+          weaponEmoji: currentState.weaponEmoji,
+          currentLvl: currentState.cLvl,
+          nextLvl: currentState.nLvl,
+        });
 
-        // Deduct resources
-        freshUser.coke -= cokeCost;
-        const newQty = freshUserStoneQty - stoneQty;
-        if (newQty <= 0) {
-          freshUser.inventory.delete(stoneId);
-        } else {
-          freshUser.inventory.set(stoneId, newQty);
+        const processingEmbed = new EmbedBuilder()
+          .setColor(getRpgColor("premium") || 0xf39c12)
+          .setTitle(formatRpgTitle("Đang Rèn Vũ Khí...", "🔨"))
+          .setDescription(
+            `🔥 Lò rèn đang rực lửa! Đang tiến hành cường hóa **${getGearDisplayName(freshItem)}**...\n\n` +
+              `🎯 Tỉ lệ thành công: **${currentState.ratePercent}%**\n` +
+              `💎 Tiêu hao: **${currentState.stoneQty} x ${currentState.stoneInfo.emoji} ${currentState.stoneInfo.name}** & **${currentState.cokeCost.toLocaleString()}** ${config.emoji.money}`
+          )
+          .setFooter(formatRpgFooter("Đang kiểm định kết quả..."));
+
+        await safeInteractionUpdate(interaction, {
+          embeds: [processingEmbed],
+          components: processingRows,
+        });
+
+        // Delay 1.0 giây tạo hiệu ứng hồi hộp
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Khấu trừ tài nguyên
+        freshUser.coke -= currentState.cokeCost;
+        if (freshUser.inventory instanceof Map) {
+          const currentQty = freshUser.inventory.get(currentState.stoneId) || 0;
+          const nextQty = currentQty - currentState.stoneQty;
+          if (nextQty <= 0) freshUser.inventory.delete(currentState.stoneId);
+          else freshUser.inventory.set(currentState.stoneId, nextQty);
+        } else if (freshUser.inventory && typeof freshUser.inventory === "object") {
+          const currentQty = freshUser.inventory[currentState.stoneId] || 0;
+          const nextQty = currentQty - currentState.stoneQty;
+          if (nextQty <= 0) delete freshUser.inventory[currentState.stoneId];
+          else freshUser.inventory[currentState.stoneId] = nextQty;
         }
         freshUser.markModified("inventory");
 
-        // Roll success or failure
-        const isSuccess = Math.random() < rate;
-
+        // Quay tỉ lệ
+        const isSuccess = Math.random() < currentState.rate;
+        let finalLvl;
         let resultEmbed;
+
         if (isSuccess) {
-          freshItem.upgradeLevel = nextLvl;
+          finalLvl = currentState.nLvl;
+          freshItem.upgradeLevel = finalLvl;
           freshItem.name = getGearDisplayName(freshItem);
           freshUser.rpg.power = calculateRpgPower(freshUser);
           freshUser.markModified("rpg");
@@ -226,18 +505,18 @@ class EnhanceCommand extends BaseCommand {
             .setColor(getRpgColor("reward") || 0x2ecc71)
             .setTitle(formatRpgTitle("CƯỜNG HÓA THÀNH CÔNG!", "✨"))
             .setDescription(
-              `🎉 Chúc mừng bạn đã nâng cấp thành công vũ khí của mình lên **+${nextLvl}**!\n\n` +
+              `🎉 Chúc mừng bạn đã nâng cấp thành công vũ khí lên **+${finalLvl}**!\n\n` +
                 `🗡️ **Vũ khí**: ${getGearDisplayName(freshItem)}\n` +
-                `🎯 **Tỉ lệ thành công**: **${ratePercent}%**\n` +
-                `${config.emoji.money} Coke tiêu hao: **-${cokeCost.toLocaleString()}**\n` +
-                `💎 Nguyên liệu tiêu hao: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
+                `🎯 **Tỉ lệ thành công**: **${currentState.ratePercent}%**\n` +
+                `${config.emoji.money} Coke tiêu hao: **-${currentState.cokeCost.toLocaleString()}**\n` +
+                `💎 Nguyên liệu tiêu hao: **-${currentState.stoneQty} x ${currentState.stoneInfo.emoji} ${currentState.stoneInfo.name}**\n\n` +
                 `💪 Lực chiến tổng hiện tại: **${freshUser.rpg.power.toLocaleString()}**`
             )
             .setFooter(formatRpgFooter("Cấp cường hóa và lực chiến đã được lưu"))
             .setTimestamp();
         } else {
-          const newDegradedLvl = Math.max(0, currentLvl - 1);
-          freshItem.upgradeLevel = newDegradedLvl;
+          finalLvl = currentState.failLevel;
+          freshItem.upgradeLevel = finalLvl;
           freshItem.name = getGearDisplayName(freshItem);
           freshUser.rpg.power = calculateRpgPower(freshUser);
           freshUser.markModified("rpg");
@@ -247,13 +526,13 @@ class EnhanceCommand extends BaseCommand {
             .setColor(0xe74c3c)
             .setTitle(formatRpgTitle("CƯỜNG HÓA THẤT BẠI!", "💥"))
             .setDescription(
-              `💀 **Rất tiếc! Đập đồ thất bại** (Tỉ lệ thành công: **${ratePercent}%**).\n\n` +
+              `💀 **Rất tiếc! Đập đồ thất bại** (Tỉ lệ thành công: **${currentState.ratePercent}%**).\n\n` +
                 `🗡️ **Vũ khí**: ${getGearDisplayName(freshItem)}\n` +
-                `📉 Cấp độ: **+${currentLvl}** ➡️ **+${newDegradedLvl}** *(Tụt 1 cấp theo cơ chế FO4)*\n` +
-                `${config.emoji.money} Coke đã mất: **-${cokeCost.toLocaleString()}**\n` +
-                `💎 Nguyên liệu đã mất: **-${stoneQty} x ${stoneEmoji} ${stoneName}**\n\n` +
+                `📉 Cấp độ: **+${currentState.cLvl}** ➡️ **+${finalLvl}** *(Tụt 1 cấp theo cơ chế FO4)*\n` +
+                `${config.emoji.money} Coke đã mất: **-${currentState.cokeCost.toLocaleString()}**\n` +
+                `💎 Nguyên liệu đã mất: **-${currentState.stoneQty} x ${currentState.stoneInfo.emoji} ${currentState.stoneInfo.name}**\n\n` +
                 `💪 Lực chiến hiện tại: **${freshUser.rpg.power.toLocaleString()}**\n\n` +
-                `*Đừng nản lòng! Hãy thu thập thêm đá Cristal và thử lại lần sau.*`
+                `*Đừng nản lòng! Hãy tiếp tục rèn giũa để chinh phục mốc cao hơn.*`
             )
             .setFooter(formatRpgFooter("Cơ chế đập đồ FO4 • Đã hạ 1 cấp"))
             .setTimestamp();
@@ -269,25 +548,43 @@ class EnhanceCommand extends BaseCommand {
           }
         }
 
-        const payload = { embeds: [resultEmbed], components: [] };
+        // Kiểm tra xem có thể nâng cấp tiếp không
+        const nextState = buildStateData(freshUser, freshItem);
+        const canContinue = finalLvl < maxLevel && nextState && nextState.canAfford;
+
+        const resultRows = buildEnhanceRows("result", {
+          weaponEmoji: currentState.weaponEmoji,
+          currentLvl: currentState.cLvl,
+          nextLvl: currentState.nLvl,
+          failLevel: currentState.failLevel,
+          isSuccess,
+          canContinue,
+        });
+
+        const payload = { embeds: [resultEmbed], components: resultRows };
         if (itemAttachment) {
           payload.files = [itemAttachment];
         }
-        return safeInteractionUpdate(interaction, payload);
-      } else {
-        return safeInteractionUpdate(interaction, {
-          content: "❌ Đã hủy yêu cầu cường hóa vũ khí.",
-          embeds: [],
-          components: [],
-        });
+
+        await enhanceMsg.edit(payload).catch(() => {});
+        isProcessing = false;
+        collector.resetTimer();
       }
-    } catch {
-      await confirmMsg.edit({
-        content: "❌ Hết thời gian chờ, yêu cầu cường hóa vũ khí đã tự động hủy.",
-        embeds: [],
-        components: [],
-      }).catch(() => {});
-    }
+    });
+
+    collector.on("end", async (_collected, reason) => {
+      if (reason === "cancelled") return;
+      // Vô hiệu hóa nút sau khi hết hạn
+      const disabledRows = buildEnhanceRows("result", {
+        weaponEmoji: stateData.weaponEmoji,
+        currentLvl: stateData.cLvl,
+        nextLvl: stateData.nLvl,
+        failLevel: stateData.failLevel,
+        isSuccess: true,
+        canContinue: false,
+      });
+      await enhanceMsg.edit({ components: disabledRows }).catch(() => {});
+    });
   }
 }
 

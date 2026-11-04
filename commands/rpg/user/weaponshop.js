@@ -211,10 +211,14 @@ function generateDailyWeapons(dateKey) {
     const baseQ = Math.floor((rng() * 79 + 20) * 10) / 10;
     const finalQuality = Math.min(105, Math.round((baseQ + wear.bonus) * 10) / 10);
 
-    // Passives
-    const basePassive = getWeaponPassive(subTypeObj.key);
-    const fixedPassive = computeFixedWeaponPassive(subTypeObj.name, rarity, finalQuality, wear);
-    const fixedPassiveEmoji = PASSIVE_TYPE_EMOJIS[basePassive?.type] || "<:atkup:1521938477359300648>";
+    // Passives: Vũ khí thường (cho Pet) chỉ có 1 random passive, vũ khí đặc biệt mới có fixed passive
+    let fixedPassive = null;
+    let fixedPassiveEmoji = null;
+    if (isSpecial) {
+      const basePassive = getWeaponPassive(subTypeObj.key);
+      fixedPassive = computeFixedWeaponPassive(subTypeObj.name, rarity, finalQuality, wear);
+      fixedPassiveEmoji = PASSIVE_TYPE_EMOJIS[basePassive?.type] || "<:atkup:1521938477359300648>";
+    }
 
     const randIdx = Math.floor(rng() * RANDOM_PASSIVE_POOL.length);
     const randDef = RANDOM_PASSIVE_POOL[randIdx];
@@ -309,12 +313,15 @@ class WeaponShopCommand extends BaseCommand {
       } else {
         const isBought = purchasedSlots.includes(item.slotIndex);
         const displayName = `${item.wear.prefix}${item.rarity} ${item.name}`;
-        const dashCount = Math.max(3, 28 - displayName.length);
+        const passivesStr = item.isSpecial && item.fixedPassiveEmoji
+          ? `${item.fixedPassiveEmoji} ${item.randomPassiveEmoji}`
+          : `${item.randomPassiveEmoji}`;
+        const dashCount = Math.max(3, (item.isSpecial ? 26 : 28) - displayName.length);
         const dashes = "-".repeat(dashCount);
         if (isBought) {
-          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${item.fixedPassiveEmoji} ${item.randomPassiveEmoji} \`${displayName}\` ${dashes} \`[ĐÃ MUA]\` ✅`);
+          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`[ĐÃ MUA]\` ✅`);
         } else {
-          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${item.fixedPassiveEmoji} ${item.randomPassiveEmoji} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
+          lines.push(`\`${item.slotIndex}\` ${item.emoji} ${passivesStr} \`${displayName}\` ${dashes} \`${item.price.toLocaleString()}\` ${SOUL_EMOJI}`);
         }
       }
     });
@@ -336,30 +343,7 @@ class WeaponShopCommand extends BaseCommand {
       .setDescription(description)
       .setFooter({ text: `Trang 1/1 | Làm mới sau: ${dateInfo.countdownStr}` });
 
-    const selectOptions = weapons.map((item) => {
-      if (item.isCrate) {
-        return {
-          label: "100: Weapon Crate",
-          description: `Giá: 40 Linh Hồn • Hộp Vũ Khí (wc)`,
-          value: "100",
-        };
-      }
-      const isBought = purchasedSlots.includes(item.slotIndex);
-      return {
-        label: `${item.slotIndex}: ${item.wear.prefix}${item.rarity} ${item.name}`,
-        description: isBought ? "Đã mua hôm nay" : `Giá: ${item.price.toLocaleString()} Linh Hồn • ${item.power.toLocaleString()} Power`,
-        value: String(item.slotIndex),
-      };
-    });
-
-    const selectMenu = new StringSelectMenuBuilder()
-      .setCustomId("ws_select_buy")
-      .setPlaceholder("🛒 Chọn vật phẩm muốn mua (100 - 110)...")
-      .addOptions(selectOptions);
-
-    const row = new ActionRowBuilder().addComponents(selectMenu);
-
-    return { embeds: [embed], components: [row] };
+    return { embeds: [embed], components: [] };
   }
 
   async processBuy(user, slotIndex, channel) {
@@ -512,47 +496,7 @@ class WeaponShopCommand extends BaseCommand {
     const weapons = generateDailyWeapons(dateInfo.dateKey);
     const payload = this.buildShopPayload(user, dateInfo, weapons);
 
-    const shopMsg = await message.reply(payload);
-
-    const collector = shopMsg.createMessageComponentCollector({
-      filter: (interaction) => interaction.user.id === message.author.id,
-      time: 120000,
-    });
-
-    collector.on("collect", async (interaction) => {
-      const u = await getUser(message.author.id);
-      if (interaction.customId === "ws_select_buy") {
-        const slotIdx = parseInt(interaction.values[0], 10);
-        const buyRes = await this.processBuy(u, slotIdx, message.channel);
-        if (!buyRes.ok) {
-          return safeInteractionReply(interaction, { content: buyRes.message, flags: 64 });
-        }
-
-        let successEmbed;
-        if (buyRes.isCrate) {
-          successEmbed = this.buildCrateSuccessEmbed(u, buyRes.price, buyRes.remainingSouls);
-        } else {
-          successEmbed = this.buildSuccessEmbed(u, buyRes.weapon, buyRes.item);
-        }
-
-        const updatedDateInfo = getDailyShopDateInfo();
-        const updatedWeapons = generateDailyWeapons(updatedDateInfo.dateKey);
-        const updatedPayload = this.buildShopPayload(u, updatedDateInfo, updatedWeapons);
-
-        await safeInteractionReply(interaction, { embeds: [successEmbed], flags: 64 });
-        await shopMsg.edit(updatedPayload).catch(() => null);
-      }
-    });
-
-    collector.on("end", async () => {
-      const disabledMenu = new StringSelectMenuBuilder()
-        .setCustomId("ws_select_expired")
-        .setPlaceholder("Phiên cửa hàng đã hết hạn")
-        .setDisabled(true)
-        .addOptions([{ label: "Hết hạn", value: "expired" }]);
-      const disabledRow = new ActionRowBuilder().addComponents(disabledMenu);
-      await shopMsg.edit({ components: [disabledRow] }).catch(() => null);
-    });
+    return message.reply(payload);
   }
 
   generateDailyWeapons(dateKey) {

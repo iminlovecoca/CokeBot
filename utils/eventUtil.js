@@ -258,6 +258,23 @@ function rollEventDrop(user) {
       break;
     }
 
+    case "souls": {
+      const min = selectedReward.minCount || 5;
+      const max = selectedReward.maxCount || 20;
+      const count = Math.floor(Math.random() * (max - min + 1)) + min;
+      addInventoryItem(user, "souls", count);
+      const soulEmoji = selectedReward.emoji || "<:souls:1518749776538243082>";
+      dropDetails = {
+        type: "souls",
+        amount: count,
+        displayName: "Linh Hồn",
+        quantityText: `${count}`,
+        formattedReward: `**+${count} Linh Hồn** ${soulEmoji}`,
+        emoji: soulEmoji,
+      };
+      break;
+    }
+
     default:
       break;
   }

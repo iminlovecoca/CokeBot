@@ -196,6 +196,14 @@ const EVENT_REWARDS = [
     emoji: "<:key:1516398711712911461>",
     count: 1,
   },
+  {
+    type: "souls",
+    weight: 15,
+    name: "Linh Hồn",
+    emoji: "<:souls:1518749776538243082>",
+    minCount: 5,
+    maxCount: 20,
+  },
 ];
 
 /**

@@ -96,17 +96,6 @@ class DailyCommand extends BaseCommand {
       user.inventory[rewardBoxKey] = (user.inventory[rewardBoxKey] || 0) + 1;
     }
 
-    const currentSouls = user.inventory instanceof Map
-      ? (user.inventory.get("souls") || 0)
-      : (user.inventory.souls || 0);
-    const isSunday = now.weekday === 7;
-    const soulsGained = isSunday ? 4 : 2;
-    if (user.inventory instanceof Map) {
-      user.inventory.set("souls", currentSouls + soulsGained);
-    } else {
-      user.inventory.souls = currentSouls + soulsGained;
-    }
-
     user.markModified("inventory");
 
     const milestones = Object.keys(config.emoji.streakMilestones || {})
@@ -137,7 +126,7 @@ class DailyCommand extends BaseCommand {
     }
 
     responseText += `${rewardBoxEmoji} **|** Bạn đã nhận được **1 ${rewardBoxName}**!\n`;
-    responseText += `<:souls:1518749776538243082> **|** Bạn đã nhận được **${soulsGained} Linh Hồn**!\n`;
+
     responseText += `⏱️ **|** Thời gian nhận điểm danh tiếp theo: **${h}Giờ ${m}Phút ${s}Giây**`;
 
     if (milestoneMessage) {
