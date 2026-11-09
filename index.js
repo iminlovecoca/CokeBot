@@ -426,6 +426,8 @@ client.once(Events.ClientReady, async () => {
     }
 
     await loadBotLock(client);
+    const { initNoituGames } = require("./utils/noituGame");
+    await initNoituGames(client).catch((err) => console.error("❌ Error initializing Noitu games:", err));
     spawner.initializeSpawner(client);
     await rpgBossSpawner.initialize(client);
     
@@ -470,27 +472,7 @@ client.once(Events.ClientReady, async () => {
       console.error("❌ RPG Class migration error:", migError);
     }
 
-    
-    try {
-      const NoituGuild = require("./models/NoituGuild");
-      const activeGuilds = await NoituGuild.find({ "gameState.running": true }).lean();
-      if (activeGuilds.length > 0) {
-        console.log(`🔄 Loading ${activeGuilds.length} active noitu game states from database...`);
-        for (const guildDoc of activeGuilds) {
-          client.noituGames.set(guildDoc.guildId, {
-            running: guildDoc.gameState.running,
-            channelId: guildDoc.gameState.channelId,
-            currentWord: guildDoc.gameState.currentWord,
-            currentPlayerId: guildDoc.gameState.currentPlayerId,
-            words: guildDoc.gameState.words || [],
-            lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
-          });
-        }
-        console.log("✅ Noitu game states loaded successfully.");
-      }
-    } catch (e) {
-      console.error("❌ Error loading noitu game states:", e);
-    }
+
 
     try {
       const seedBattleBots = require("./seeders/battleBots");

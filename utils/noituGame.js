@@ -407,32 +407,86 @@ function getGameState(client, guildId) {
   return client.noituGames.get(guildId) || null;
 }
 
-function setGameState(client, guildId, state) {
+async function setGameState(client, guildId, state) {
   if (!client.noituGames) {
     client.noituGames = new Map();
   }
 
+  const resolvedChannelId =
+    state.channelId ||
+    (await getGuildConfig(guildId))?.channelId ||
+    null;
+  state.channelId = resolvedChannelId;
+
   client.noituGames.set(guildId, state);
 
-  NoituGuild.updateOne(
-    { guildId },
-    {
-      $set: {
-        channelId: state.channelId,
-        gameState: {
-          running: state.running,
-          channelId: state.channelId,
-          currentWord: state.currentWord,
-          currentPlayerId: state.currentPlayerId,
-          words: state.words,
-          lastUpdatedAt: state.lastUpdatedAt,
-        },
-      },
-    },
-    { upsert: true }
-  ).catch((err) => {
+  const payload = {
+    "gameState.running": Boolean(state.running),
+    "gameState.channelId": resolvedChannelId,
+    "gameState.currentWord": state.currentWord || null,
+    "gameState.currentPlayerId": state.currentPlayerId || null,
+    "gameState.words": state.words || [],
+    "gameState.lastUpdatedAt": state.lastUpdatedAt || Date.now(),
+  };
+
+  if (resolvedChannelId) {
+    payload.channelId = resolvedChannelId;
+  }
+
+  try {
+    await NoituGuild.updateOne(
+      { guildId },
+      { $set: payload },
+      { upsert: true }
+    );
+  } catch (err) {
     console.error(`❌ [Noitu DB] Failed to save state for guild ${guildId}:`, err?.message);
-  });
+  }
+}
+
+async function initNoituGames(client) {
+  if (!client.noituGames) {
+    client.noituGames = new Map();
+  }
+
+  try {
+    const activeGuilds = await NoituGuild.find({
+      $or: [
+        { "gameState.running": true },
+        { "gameState.running": "true" },
+        { "gameState.running": 1 },
+      ],
+    }).lean();
+
+    if (activeGuilds.length > 0) {
+      console.log(`🔄 Loading ${activeGuilds.length} active noitu game states from database...`);
+      for (const guildDoc of activeGuilds) {
+        const resolvedChannelId = guildDoc.gameState?.channelId || guildDoc.channelId || null;
+        const state = {
+          running: true,
+          channelId: resolvedChannelId,
+          currentWord: guildDoc.gameState?.currentWord || null,
+          currentPlayerId: guildDoc.gameState?.currentPlayerId || null,
+          words: Array.isArray(guildDoc.gameState?.words) ? guildDoc.gameState.words : [],
+          lastUpdatedAt: guildDoc.gameState?.lastUpdatedAt || Date.now(),
+        };
+
+        client.noituGames.set(guildDoc.guildId, state);
+
+        if (!guildDoc.gameState?.channelId && resolvedChannelId) {
+          NoituGuild.updateOne(
+            { guildId: guildDoc.guildId },
+            { $set: { "gameState.channelId": resolvedChannelId } }
+          ).catch(() => {});
+        }
+      }
+      console.log(`✅ Loaded ${client.noituGames.size} active Noitu game state(s) successfully.`);
+    }
+    return client.noituGames.size;
+  } catch (err) {
+    console.error("❌ Error loading active Noitu game states on startup:", err);
+    return 0;
+  }
 }
 
 function clearGameState(client, guildId) {
@@ -510,7 +564,10 @@ async function handleNoituMessage(message, client) {
   guildQueues.set(guildId, currentPromise);
 
   try {
-    await prevPromise;
+    await Promise.race([
+      prevPromise,
+      new Promise((res) => setTimeout(res, 3000)),
+    ]);
     return await processNoituMessage(message, client);
   } catch (error) {
     console.error(`[Noitu] Error processing message in guild ${guildId}:`, error);
@@ -533,13 +590,14 @@ async function processNoituMessage(message, client) {
     try {
       const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
       if (guildDoc?.gameState?.running) {
+        const resolvedChannelId = guildDoc.gameState?.channelId || guildDoc.channelId || null;
         state = {
-          running: guildDoc.gameState.running,
-          channelId: guildDoc.gameState.channelId || guildDoc.channelId,
+          running: true,
+          channelId: resolvedChannelId,
           currentWord: guildDoc.gameState.currentWord,
           currentPlayerId: guildDoc.gameState.currentPlayerId,
-          words: guildDoc.gameState.words || [],
-          lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
+          words: Array.isArray(guildDoc.gameState.words) ? guildDoc.gameState.words : [],
+          lastUpdatedAt: guildDoc.gameState.lastUpdatedAt || Date.now(),
         };
         if (!client.noituGames) client.noituGames = new Map();
         client.noituGames.set(message.guild.id, state);
@@ -550,28 +608,16 @@ async function processNoituMessage(message, client) {
   }
 
   const guildConfig = await getGuildConfig(message.guild.id);
-  const activeChannelId = guildConfig?.channelId || state?.channelId;
+  let activeChannelId = state?.channelId || guildConfig?.channelId;
+  if (!activeChannelId) {
+    try {
+      const freshDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
+      activeChannelId = freshDoc?.gameState?.channelId || freshDoc?.channelId;
+    } catch {}
+  }
+
   if (!activeChannelId || activeChannelId !== message.channel.id) {
     return false;
-  }
-  if (!state) {
-    try {
-      const guildDoc = await NoituGuild.findOne({ guildId: message.guild.id }).lean();
-      if (guildDoc?.gameState?.running) {
-        state = {
-          running: guildDoc.gameState.running,
-          channelId: guildDoc.gameState.channelId,
-          currentWord: guildDoc.gameState.currentWord,
-          currentPlayerId: guildDoc.gameState.currentPlayerId,
-          words: guildDoc.gameState.words || [],
-          lastUpdatedAt: guildDoc.gameState.lastUpdatedAt,
-        };
-        if (!client.noituGames) client.noituGames = new Map();
-        client.noituGames.set(message.guild.id, state);
-      }
-    } catch (dbErr) {
-      console.error("[Noitu] Error loading fallback game state from DB:", dbErr?.message);
-    }
   }
 
   if (!state?.running) {
@@ -636,6 +682,13 @@ async function processNoituMessage(message, client) {
 
   const targetTail = getLastToken(currentWord);
   const userFirstToken = getFirstToken(normalizedContent);
+
+  // Turn lock timeout: if game was inactive for > 3 minutes (e.g. idle or bot restarted),
+  // unlock currentPlayerId so the game can continue even if the same player types again!
+  const idleMs = Date.now() - (state.lastUpdatedAt || 0);
+  if (idleMs > 3 * 60 * 1000) {
+    state.currentPlayerId = null;
+  }
 
   // Strict Turn-Based Rule: Người vừa nối đúng từ trước đó KHÔNG được nối liên tiếp 2 từ.
   // Nhưng ngay khi có NGƯỜI KHÁC nối đúng, người trước đó sẽ được mở khóa ngay lập tức!
@@ -709,7 +762,7 @@ async function processNoituMessage(message, client) {
   state.currentWord = normalizedContent;
   state.currentPlayerId = String(message.author.id);
   state.lastUpdatedAt = Date.now();
-  setGameState(client, message.guild.id, state);
+  await setGameState(client, message.guild.id, state);
 
   User.updateOne(
     { userId: message.author.id },
@@ -778,6 +831,7 @@ module.exports = {
   getGameState,
   setGameState,
   clearGameState,
+  initNoituGames,
   startNoituGame,
   stopNoituGame,
   handleNoituMessage,
